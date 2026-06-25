@@ -1,0 +1,23 @@
+[versions]
+kotlin = "2.4.0"
+coroutines = "1.11.0"
+logback = "1.5.34"
+
+roomRuntime = "2.8.4"
+sqliteBundled = "2.6.2"
+ksp = "2.3.9"
+
+[libraries]
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomRuntime" }
+# Изменяем room-sqlite-bundled на актуальный room-sqlite для KMP
+androidx-room-sqlite = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqliteBundled" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
