@@ -25,6 +25,8 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation:3.5.0")
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.5.0")
 
+    implementation("de.androidpit:color-thief:1.1.2")
+
     // БД
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
