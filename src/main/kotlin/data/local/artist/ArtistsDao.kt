@@ -10,7 +10,7 @@ interface ArtistsDao {
     @Query("SELECT COUNT(*) FROM ${ArtistEntity.TABLE_NAME}")
     suspend fun getArtistsCount(): Long
 
-    @Query("SELECT * FROM ${ArtistEntity.TABLE_NAME} WHERE id = :id")
+    @Query("SELECT * FROM ${ArtistEntity.TABLE_NAME} WHERE artist_id = :id")
     suspend fun findArtistById(id: Long): ArtistEntity?
     @Query("SELECT * FROM ${ArtistEntity.TABLE_NAME} WHERE name = :name")
     suspend fun findArtistByName(name: String): ArtistEntity?

@@ -16,7 +16,7 @@ import su.nnedition.kord.data.local.track.entity.TrackArtistCrossRef
         TrackEntity::class,
         TrackArtistCrossRef::class,
     ],
-    version = 5
+    version = 1
 )
 abstract class LibraryDatabase : RoomDatabase() {
     abstract val artistsDao: ArtistsDao

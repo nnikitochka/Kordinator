@@ -11,11 +11,11 @@ data class TrackWithArtists(
 
     @Relation(
         parentColumn = "track_id",
-        entityColumn = "id",
+        entityColumn = "artist_id",
         associateBy = Junction(
             value = TrackArtistCrossRef::class,
-            parentColumn = "trackId",  // Поле связи с треком внутри кросс-таблицы
-            entityColumn = "artistId"  // Поле связи с артистом внутри кросс-таблицы
+            parentColumn = "track_id",
+            entityColumn = "artist_id"
         )
     )
     val artists: List<ArtistEntity>
