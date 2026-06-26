@@ -2,7 +2,8 @@ package su.nnedition.kord
 
 import kotlin.time.Duration
 
-class KordConfig(
+class KordinatorConfig(
     val libraryScanDelaySeconds: Duration,
     val musicLibraryPath: String,
+    val allowRegistration: Boolean,
 )

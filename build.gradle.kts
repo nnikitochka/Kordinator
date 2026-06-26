@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "su.nnedition.kordinator"
-version = "0.1-SNAPSHOT"
+version = "0.1"
 
 application {
     mainClass = "io.ktor.server.cio.EngineMain"
@@ -25,6 +25,7 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation:3.5.0")
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.5.0")
 
+    // Парсинг акцентных цветов
     implementation("de.androidpit:color-thief:1.1.2")
 
     //
