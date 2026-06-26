@@ -35,6 +35,15 @@ data class TrackFile(
             else tags["ARTIST"] = value
         }
 
+    var albumArtist: String? = tags["ALBUMARTIST"]?.firstOrNull()
+        set(value) {
+            field = value
+            if (value == null)
+                tags.remove("ALBUMARTIST")
+            else tags["ALBUMARTIST"] = listOf(value)
+        }
+
+
     var trackNum: Int? = tags["TRACKNUMBER"]?.firstOrNull()?.toIntOrNull()
         set(value) {
             field = value
