@@ -27,6 +27,9 @@ dependencies {
 
     implementation("de.androidpit:color-thief:1.1.2")
 
+    //
+    implementation("org.mindrot:jbcrypt:0.4")
+
     // БД
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
