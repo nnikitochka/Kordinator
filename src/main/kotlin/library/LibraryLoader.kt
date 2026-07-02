@@ -58,7 +58,10 @@ class LibraryLoader(
                 }
 
                 val trackFiles = albumFolderFiles.filter { it.isFile && it.extension in musicExtensions }
-                val tracks = trackFiles.map { file -> TrackFile(file, AudioTagsManager.readTags(file).toMutableMap()) }
+                val tracks = trackFiles.map { file ->
+//                    println(createRelativePath(file.path))
+                    TrackFile(file)
+                }
 
                 AlbumFolder(artistFolderFile, albumFile.name, cover, tracks)
             }
@@ -70,6 +73,9 @@ class LibraryLoader(
             artistFolders,
         ))
     }
+
+    private val roodDirLength = rootDir.path.length
+    private fun createRelativePath(path: String): String = path.substring(roodDirLength+1)
 
     private companion object {
         val musicExtensions = listOf("mp3", "wav", "flac")
