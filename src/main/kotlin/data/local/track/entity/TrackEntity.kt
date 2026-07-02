@@ -2,9 +2,14 @@ package su.nnedition.kord.data.local.track.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = TrackEntity.TABLE_NAME)
+@Entity(
+    tableName = TrackEntity.TABLE_NAME,
+    indices = [Index(value = ["relative_path"], unique = true)]
+
+)
 class TrackEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "track_id")
