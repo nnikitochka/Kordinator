@@ -27,7 +27,6 @@ import org.airsonic.player.dao.AvatarDao;
 import org.airsonic.player.dao.InternetRadioDao;
 import org.airsonic.player.dao.UserDao;
 import org.airsonic.player.domain.*;
-import org.airsonic.player.service.sonos.SonosServiceRegistration;
 import org.airsonic.player.util.StringUtil;
 import org.airsonic.player.util.Util;
 import org.apache.commons.lang3.StringUtils;
@@ -127,11 +126,6 @@ public class SettingsService {
     private static final String KEY_DLNA_SERVER_ID = "DlnaServerId";
     private static final String KEY_DLNA_BASE_LAN_URL = "DlnaBaseLANURL";
     private static final String KEY_UPNP_PORT = "UPnpPort";
-    private static final String KEY_SONOS_ENABLED = "SonosEnabled";
-    private static final String KEY_SONOS_SERVICE_NAME = "SonosServiceName";
-    private static final String KEY_SONOS_SERVICE_ID = "SonosServiceId";
-    private static final String KEY_SONOS_CALLBACK_HOST_ADDRESS = "SonosCallbackHostAddress";
-    private static final String KEY_SONOS_LINK_METHOD = "SonosLinkMethod";
     private static final String KEY_JWT_KEY = "JWTKey";
     private static final String KEY_REMEMBER_ME_KEY = "RememberMeKey";
     private static final String KEY_ENCRYPTION_PASSWORD = "EncryptionKeyPassword";
@@ -230,10 +224,6 @@ public class SettingsService {
     private static final String DEFAULT_DLNA_SERVER_ID = null;
     private static final String DEFAULT_DLNA_BASE_LAN_URL = null;
     private static final int DEFAULT_UPNP_PORT = 4041;
-    private static final boolean DEFAULT_SONOS_ENABLED = false;
-    private static final String DEFAULT_SONOS_SERVICE_NAME = "Airsonic";
-    private static final int DEFAULT_SONOS_SERVICE_ID = 242;
-    private static final String DEFAULT_SONOS_LINK_METHOD = SonosServiceRegistration.AuthenticationType.APPLICATION_LINK.name();
     private static final String DEFAULT_EXPORT_PLAYLIST_FORMAT = "m3u";
     private static final boolean DEFAULT_IGNORE_SYMLINKS = false;
     private static final String DEFAULT_EXCLUDE_PATTERN_STRING = null;
@@ -1409,46 +1399,6 @@ public class SettingsService {
 
     public void setDlnaBaseLANURL(String dlnaBaseLANURL) {
         setString(KEY_DLNA_BASE_LAN_URL, dlnaBaseLANURL);
-    }
-
-    public boolean isSonosEnabled() {
-        return getBoolean(KEY_SONOS_ENABLED, DEFAULT_SONOS_ENABLED);
-    }
-
-    public void setSonosEnabled(boolean sonosEnabled) {
-        setBoolean(KEY_SONOS_ENABLED, sonosEnabled);
-    }
-
-    public String getSonosServiceName() {
-        return getString(KEY_SONOS_SERVICE_NAME, DEFAULT_SONOS_SERVICE_NAME);
-    }
-
-    public void setSonosServiceName(String sonosServiceName) {
-        setString(KEY_SONOS_SERVICE_NAME, sonosServiceName);
-    }
-
-    int getSonosServiceId() {
-        return getInt(KEY_SONOS_SERVICE_ID, DEFAULT_SONOS_SERVICE_ID);
-    }
-
-    public String getSonosLinkMethod() {
-        return getString(KEY_SONOS_LINK_METHOD, DEFAULT_SONOS_LINK_METHOD);
-    }
-
-    public void setSonosLinkMethod(String linkMethod) {
-        setString(KEY_SONOS_LINK_METHOD, linkMethod);
-    }
-
-    public String getSonosCallbackHostAddress() {
-        return getSonosCallbackHostAddress(null);
-    }
-
-    public String getSonosCallbackHostAddress(String def) {
-        return getString(KEY_SONOS_CALLBACK_HOST_ADDRESS, def);
-    }
-
-    public void setSonosCallbackHostAddress(String hostAddress) {
-        setString(KEY_SONOS_CALLBACK_HOST_ADDRESS, hostAddress);
     }
 
     private static Set<String> splitLowerString(String s, String splitter) {

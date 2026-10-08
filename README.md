@@ -80,7 +80,6 @@ The following is an incomplete list of features that are enhanced from Airsonic:
   - Ability to pass properties via environment or system variables. You can but do not need to modify `airsonic.properties` to change preferences
   - Ability to use custom URLs to scrobble on ListenBrainz servers
   - Ability to use Repeat-One in play queues in web-clients
-  - Sonos support: [read documentation](https://github.com/airsonic-advanced/airsonic-advanced/blob/master/SONOS.md)
   - Chromecast support: [read details](https://github.com/airsonic-advanced/airsonic-advanced/blob/master/CHROMECAST.md)
   - Ability to upload to specified folders (via `UploadsFolder` property/parameter)
   - Ability to upload multiple files simultaneously

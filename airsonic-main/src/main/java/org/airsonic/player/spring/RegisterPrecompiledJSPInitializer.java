@@ -5,7 +5,6 @@ import org.airsonic.player.spring.webxmldomain.ServletDef;
 import org.airsonic.player.spring.webxmldomain.ServletMappingDef;
 import org.airsonic.player.spring.webxmldomain.WebApp;
 import org.apache.commons.io.IOUtils;
-import org.apache.cxf.jaxb.JAXBDataBinding;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
@@ -60,7 +59,7 @@ public class RegisterPrecompiledJSPInitializer implements ServletContextInitiali
                 IOUtils.toInputStream("</web-app>", Charset.defaultCharset()));
 
         try {
-            JAXBContext jaxbContext = new JAXBDataBinding(WebApp.class).getContext();
+            JAXBContext jaxbContext = JAXBContext.newInstance(WebApp.class);
             Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
             WebApp webapp = (WebApp) unmarshaller.unmarshal(webXmlIS);
             try {

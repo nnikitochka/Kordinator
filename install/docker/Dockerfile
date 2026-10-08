@@ -42,7 +42,6 @@ COPY --from=builder target/cMETA-INF /app/WEB-INF/classes/META-INF
 COPY --from=builder target/lib /app/WEB-INF/lib
 COPY --from=builder target/lib-provided /app/WEB-INF/lib-provided
 COPY --from=builder target/org /app/org
-COPY --from=builder target/sonos /app/sonos
 COPY --from=builder target/icons /app/icons
 COPY --from=builder target/style /app/style
 COPY --from=builder target/cliquibase /app/WEB-INF/classes/liquibase

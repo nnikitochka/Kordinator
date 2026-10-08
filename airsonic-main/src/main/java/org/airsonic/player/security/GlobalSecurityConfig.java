@@ -7,7 +7,6 @@ import com.google.common.io.BaseEncoding;
 import org.airsonic.player.service.JWTSecurityService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
-import org.airsonic.player.service.sonos.SonosLinkSecurityInterceptor.SonosJWTVerification;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,8 +38,6 @@ import org.springframework.security.web.context.request.async.WebAsyncManagerInt
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import javax.servlet.ServletContext;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -110,12 +107,6 @@ public class GlobalSecurityConfig {
 
     @Autowired
     MultipleCredsMatchingAuthenticationProvider multipleCredsProvider;
-
-    @Autowired
-    SonosJWTVerification sonosJwtVerification;
-
-    @Autowired
-    private ServletContext servletContext;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -205,7 +196,6 @@ public class GlobalSecurityConfig {
             settingsService.save();
         }
         JWTAuthenticationProvider jwtAuth = new JWTAuthenticationProvider(jwtKey);
-        jwtAuth.addAdditionalCheck(servletContext.getContextPath() + "/ws/Sonos", sonosJwtVerification);
         auth.authenticationProvider(jwtAuth);
         auth.authenticationProvider(multipleCredsProvider);
     }
@@ -290,7 +280,6 @@ public class GlobalSecurityConfig {
                     .and()
                     .addFilterAfter(restAuthenticationFilter, BasicAuthenticationFilter.class)
                     .csrf()
-                    .ignoringAntMatchers("/ws/Sonos/**")
                     .requireCsrfProtectionMatcher(csrfSecurityRequestMatcher)
                     .and()
                     .headers()
@@ -298,7 +287,7 @@ public class GlobalSecurityConfig {
                     .sameOrigin()
                     .and().authorizeRequests()
                     .antMatchers("/recover*", "/accessDenied*", "/style/**", "/icons/**", "/flash/**", "/script/**",
-                            "/login", "/error", "/sonos/**", "/sonoslink/**", "/ws/Sonos/**")
+                            "/login", "/error")
                     .permitAll()
                     .antMatchers("/personalSettings*",
                             "/playerSettings*", "/shareSettings*", "/credentialsSettings*")

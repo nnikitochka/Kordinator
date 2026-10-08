@@ -52,8 +52,6 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 
 import java.io.InputStream;
-import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
@@ -80,12 +78,10 @@ public class UPnPService {
 
     @PostConstruct
     public void init() {
-        if (settingsService.isDlnaEnabled() || settingsService.isSonosEnabled()) {
+        if (settingsService.isDlnaEnabled()) {
             ensureServiceStarted();
-            if (settingsService.isDlnaEnabled()) {
-                // Start DLNA media server?
-                setMediaServerEnabled(true);
-            }
+            // Start DLNA media server?
+            setMediaServerEnabled(true);
         }
         Runtime.getRuntime().addShutdownHook(new Thread(() -> ensureServiceStopped()));
     }
@@ -206,20 +202,6 @@ public class UPnPService {
         receiverService.setManager(new DefaultServiceManager<>(receiverService, MSMediaReceiverRegistrarService.class));
 
         return new LocalDevice(identity, type, details, new Icon[]{icon}, new LocalService[]{contentDirectoryservice, connetionManagerService, receiverService});
-    }
-
-    public List<String> getSonosControllerHosts() {
-        ensureServiceStarted();
-        List<String> result = new ArrayList<String>();
-        for (Device device : upnpService.getRegistry().getDevices(new DeviceType("schemas-upnp-org", "ZonePlayer"))) {
-            if (device instanceof RemoteDevice) {
-                URL descriptorURL = ((RemoteDevice) device).getIdentity().getDescriptorURL();
-                if (descriptorURL != null) {
-                    result.add(descriptorURL.getHost());
-                }
-            }
-        }
-        return result;
     }
 
     public UpnpService getUpnpService() {

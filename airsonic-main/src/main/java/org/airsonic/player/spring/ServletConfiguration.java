@@ -9,7 +9,6 @@ import org.airsonic.player.filter.RequestEncodingFilter;
 import org.airsonic.player.filter.ResponseHeaderFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,17 +21,11 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import org.springframework.web.servlet.view.JstlView;
 
 import javax.servlet.Filter;
-import javax.servlet.Servlet;
 
 import java.util.Properties;
 
 @Configuration
 public class ServletConfiguration implements WebMvcConfigurer {
-
-    @Bean
-    public ServletRegistrationBean<Servlet> cxfServletBean() {
-        return new ServletRegistrationBean<>(new org.apache.cxf.transport.servlet.CXFServlet(), "/ws/*");
-    }
 
     @Bean
     public FilterRegistrationBean<Filter> bootstrapVerificationFilterRegistration() {

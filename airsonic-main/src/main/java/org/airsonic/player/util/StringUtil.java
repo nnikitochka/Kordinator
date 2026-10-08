@@ -110,13 +110,6 @@ public final class StringUtil {
         return "application/octet-stream";
     }
 
-    public static String getMimeType(String suffix, boolean sonos) {
-        String result = getMimeType(suffix);
-
-        // Sonos doesn't work with "audio/mp4" but needs "audio/aac" for ALAC and AAC (in MP4 container)
-        return sonos && "audio/mp4".equals(result) ? "audio/aac" : result;
-    }
-
     public static String getSuffix(String mimeType) {
         for (String[] map : MIME_TYPES) {
             if (map[1].equalsIgnoreCase(mimeType)) {
