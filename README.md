@@ -89,7 +89,6 @@ The following is an incomplete list of features that are enhanced from Airsonic:
     - tar
   - Ability to export Podcasts to OPML
   - Ability to import playlists with relative file paths (resolved relative to Playlists folder)
-  - Support direct binary internet radio stream urls
   - Catalog multiple genres
   - Ability to specify custom log file location (via `logging.file.name` property/parameter)
   - Auto Bookmarks and Bookmark management

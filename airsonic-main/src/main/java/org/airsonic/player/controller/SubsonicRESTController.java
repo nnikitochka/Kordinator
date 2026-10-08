@@ -1708,24 +1708,6 @@ public class SubsonicRESTController {
         return ResponseEntity.ok().headers(headers).body(podcastService.export(podcastService.getAllChannels()));
     }
 
-    @RequestMapping("/getInternetRadioStations")
-    public void getInternetRadioStations(HttpServletRequest request, HttpServletResponse response) {
-        request = wrapRequest(request);
-
-        InternetRadioStations result = new InternetRadioStations();
-        for (InternetRadio radio : settingsService.getAllInternetRadios()) {
-            InternetRadioStation i = new InternetRadioStation();
-            i.setId(String.valueOf(radio.getId()));
-            i.setName(radio.getName());
-            i.setStreamUrl(radio.getStreamUrl());
-            i.setHomePageUrl(radio.getHomepageUrl());
-            result.getInternetRadioStation().add(i);
-        }
-        Response res = createResponse();
-        res.setInternetRadioStations(result);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
     @RequestMapping("/getBookmarks")
     public void getBookmarks(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);

@@ -3,11 +3,8 @@ package org.airsonic.player.service;
 import com.google.common.collect.ImmutableMap;
 import org.airsonic.player.ajax.MediaFileEntry;
 import org.airsonic.player.ajax.PlayQueueInfo;
-import org.airsonic.player.dao.InternetRadioDao;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.dao.PlayQueueDao;
-import org.airsonic.player.domain.InternetRadio;
-import org.airsonic.player.domain.InternetRadioSource;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.PlayQueue;
@@ -58,11 +55,7 @@ public class PlayQueueService {
     @Autowired
     private PlayQueueDao playQueueDao;
     @Autowired
-    private InternetRadioDao internetRadioDao;
-    @Autowired
     private JWTSecurityService jwtSecurityService;
-    @Autowired
-    private InternetRadioService internetRadioService;
     @Autowired
     private SimpMessagingTemplate brokerTemplate;
 
@@ -109,7 +102,6 @@ public class PlayQueueService {
     public void reloadSearchCriteria(Player player, String sessionId) {
         PlayQueue playQueue = player.getPlayQueue();
         int size = playQueue.size();
-        playQueue.setInternetRadio(null);
         if (playQueue.getRandomSearchCriteria() != null) {
             playQueue.addFiles(true, mediaFileService.getRandomSongs(playQueue.getRandomSearchCriteria(), player.getUsername()));
         }
@@ -176,22 +168,7 @@ public class PlayQueueService {
             songs = mediaFileService.getDescendantsOf(file, true);
         }
 
-        doPlay(player, songs, null, sessionId);
-    }
-
-    /**
-     * @param index Start playing at this index, or play whole radio playlist if {@code null}.
-     * @throws Exception
-     */
-    public void playInternetRadio(Player player, int id, Integer index, String sessionId) throws Exception {
-        InternetRadio radio = internetRadioDao.getInternetRadioById(id);
-        if (!radio.isEnabled()) {
-            throw new Exception("Radio is not enabled");
-        } else {
-            internetRadioService.clearInternetRadioSourceCache(radio.getId());
-        }
-
-        doPlay(player, Collections.emptyList(), radio, sessionId);
+        doPlay(player, songs, sessionId);
     }
 
     /**
@@ -211,7 +188,7 @@ public class PlayQueueService {
 
         // Remove non-present files
         files.removeIf(file -> !file.isPresent());
-        doPlay(player, files, null, sessionId);
+        doPlay(player, files, sessionId);
     }
 
     /**
@@ -230,7 +207,7 @@ public class PlayQueueService {
             }
         }
 
-        doPlay(player, files, null, sessionId);
+        doPlay(player, files, sessionId);
     }
 
     public void playPodcastChannel(Player player, int id, String sessionId) {
@@ -245,7 +222,7 @@ public class PlayQueueService {
             }
         }
 
-        doPlay(player, files, null, sessionId);
+        doPlay(player, files, sessionId);
     }
 
     public void playPodcastEpisode(Player player, int id, String sessionId) {
@@ -265,13 +242,13 @@ public class PlayQueueService {
             }
         }
 
-        doPlay(player, files, null, sessionId);
+        doPlay(player, files, sessionId);
     }
 
     public void playStarred(Player player, String sessionId) {
         List<MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(player.getUsername());
         List<MediaFile> files = mediaFileDao.getStarredFiles(0, Integer.MAX_VALUE, player.getUsername(), musicFolders);
-        doPlay(player, files, null, sessionId);
+        doPlay(player, files, sessionId);
     }
 
     public void playShuffle(Player player, String albumListType, int offset, int count, String genre, String decade, String sessionId) {
@@ -309,14 +286,14 @@ public class PlayQueueService {
         Collections.shuffle(songs);
         songs = songs.subList(0, Math.min(40, songs.size()));
 
-        doPlay(player, songs, null, sessionId);
+        doPlay(player, songs, sessionId);
     }
 
     public void playRandom(Player player, int id, int count, String sessionId) {
         MediaFile file = mediaFileService.getMediaFile(id);
         List<MediaFile> randomFiles = mediaFileService.getRandomSongsForParent(file, count);
 
-        doPlay(player, randomFiles, null, sessionId);
+        doPlay(player, randomFiles, sessionId);
     }
 
     public void playSimilar(Player player, int id, int count, String sessionId) {
@@ -324,16 +301,15 @@ public class PlayQueueService {
         List<MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(player.getUsername());
         List<MediaFile> similarSongs = lastFmService.getSimilarSongs(artist, count, musicFolders);
 
-        doPlay(player, similarSongs, null, sessionId);
+        doPlay(player, similarSongs, sessionId);
     }
 
-    private void doPlay(Player player, List<MediaFile> files, InternetRadio radio, String sessionId) {
+    private void doPlay(Player player, List<MediaFile> files, String sessionId) {
         if (player.isWeb()) {
             mediaFileService.removeVideoFiles(files);
         }
         player.getPlayQueue().addFiles(false, files);
         player.getPlayQueue().setRandomSearchCriteria(null);
-        player.getPlayQueue().setInternetRadio(radio);
         broadcastPlayQueue(player, startAt0, sessionId);
     }
 
@@ -353,7 +329,6 @@ public class PlayQueueService {
             playQueue.addFiles(true, files);
         }
         playQueue.setRandomSearchCriteria(null);
-        playQueue.setInternetRadio(null);
         if (broadcast) {
             broadcastPlayQueue(player);
         }
@@ -362,7 +337,6 @@ public class PlayQueueService {
     public void addRandomCriteria(Player player, boolean append, RandomSearchCriteria criteria, boolean autoRandom) {
         player.getPlayQueue().addFiles(append, mediaFileService.getRandomSongs(criteria, player.getUsername()));
         player.getPlayQueue().setRandomSearchCriteria(autoRandom ? criteria : null);
-        player.getPlayQueue().setInternetRadio(null);
         broadcastPlayQueue(player);
     }
 
@@ -377,7 +351,6 @@ public class PlayQueueService {
         playQueue.addFiles(true, files);
 
         playQueue.setRandomSearchCriteria(null);
-        playQueue.setInternetRadio(null);
         broadcastPlayQueue(player);
     }
 
@@ -509,16 +482,11 @@ public class PlayQueueService {
     public PlayQueueInfo getPlayQueueInfo(Player player, String basePath) {
         PlayQueue playQueue = player.getPlayQueue();
 
-        List<MediaFileEntry> entries;
-        if (playQueue.isInternetRadioEnabled()) {
-            entries = convertInternetRadio(player);
-        } else {
-            entries = convertMediaFileList(player, basePath);
-        }
+        List<MediaFileEntry> entries = convertMediaFileList(player, basePath);
 
         float gain = jukeboxService.getGain(player);
 
-        return new PlayQueueInfo(entries, playQueue.getStatus(), playQueue.getRepeatStatus(), playQueue.isShuffleRadioEnabled(), playQueue.isInternetRadioEnabled(), gain);
+        return new PlayQueueInfo(entries, playQueue.getStatus(), playQueue.getRepeatStatus(), playQueue.isShuffleRadioEnabled(), gain);
     }
 
     private List<MediaFileEntry> convertMediaFileList(Player player, String basePath) {
@@ -529,55 +497,5 @@ public class PlayQueueService {
                 + jwtSecurityService.addJWTToken(player.getUsername(), "ext/coverArt.view?id=" + file.getId());
         return mediaFileService.toMediaFileEntryList(player.getPlayQueue().getFiles(), player.getUsername(), true, true,
                 streamUrlGenerator, remoteStreamUrlGenerator, remoteCoverArtUrlGenerator);
-    }
-
-    private List<MediaFileEntry> convertInternetRadio(Player player) {
-        PlayQueue playQueue = player.getPlayQueue();
-        InternetRadio radio = playQueue.getInternetRadio();
-
-        final String radioHomepageUrl = radio.getHomepageUrl();
-        final String radioName = radio.getName();
-        Instant now = Instant.now();
-
-        List<InternetRadioSource> sources = internetRadioService.getInternetRadioSources(radio);
-        List<MediaFileEntry> entries = new ArrayList<>(sources.size());
-        for (InternetRadioSource streamSource : sources) {
-            // Fake entry id so that the source can be selected in the UI
-            int streamId = -(1 + entries.size());
-            Integer streamDiscNumber = entries.size();
-            String streamUrl = streamSource.getStreamUrl();
-            int i = 1;
-            entries.add(new MediaFileEntry(streamId, // Entry id
-                    i++, // Track number
-                    streamDiscNumber, // Disc number
-                    streamUrl, // Track title (use radio stream URL for now)
-                    "", // Track artist
-                    "", // Album Artist
-                    radioName, // Album name (use radio name)
-                    "Internet Radio", // Genre
-                    0, // Year
-                    "", // Bit rate
-                    null, // Dimensions
-                    0.0, // Duration
-                    "", // Format
-                    "", // Content Type
-                    "", // Entry Type
-                    "", // File size
-                    0, // Play count
-                    now, // Last played
-                    now, // Created
-                    now, // Changed
-                    now, // Last scanned
-                    false, // Starred
-                    true, // Present
-                    radioHomepageUrl, // Album URL (use radio home page URL)
-                    streamUrl, // Stream URL
-                    streamUrl, // Remote stream URL
-                    null, // Cover art URL
-                    null // Remote cover art URL
-            ));
-        }
-
-        return entries;
     }
 }

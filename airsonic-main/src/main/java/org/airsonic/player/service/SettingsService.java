@@ -24,7 +24,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.RateLimiter;
 import org.airsonic.player.dao.AvatarDao;
-import org.airsonic.player.dao.InternetRadioDao;
 import org.airsonic.player.dao.UserDao;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.util.StringUtil;
@@ -256,8 +255,6 @@ public class SettingsService {
 
     private List<Theme> themes;
     private List<Locale> locales;
-    @Autowired
-    private InternetRadioDao internetRadioDao;
     @Autowired
     private UserDao userDao;
     @Autowired
@@ -1220,59 +1217,6 @@ public class SettingsService {
     }
 
     /**
-     * Returns all internet radio stations. Disabled stations are not returned.
-     *
-     * @return Possibly empty list of all internet radio stations.
-     */
-    public List<InternetRadio> getAllInternetRadios() {
-        return getAllInternetRadios(false);
-    }
-
-    /**
-     * Returns all internet radio stations.
-     *
-     * @param includeAll Whether disabled stations should be included.
-     * @return Possibly empty list of all internet radio stations.
-     */
-    public List<InternetRadio> getAllInternetRadios(boolean includeAll) {
-        List<InternetRadio> all = internetRadioDao.getAllInternetRadios();
-        List<InternetRadio> result = new ArrayList<>(all.size());
-        for (InternetRadio folder : all) {
-            if (includeAll || folder.isEnabled()) {
-                result.add(folder);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Creates a new internet radio station.
-     *
-     * @param radio The internet radio station to create.
-     */
-    public void createInternetRadio(InternetRadio radio) {
-        internetRadioDao.createInternetRadio(radio);
-    }
-
-    /**
-     * Deletes the internet radio station with the given ID.
-     *
-     * @param id The internet radio station ID.
-     */
-    public void deleteInternetRadio(Integer id) {
-        internetRadioDao.deleteInternetRadio(id);
-    }
-
-    /**
-     * Updates the given internet radio station.
-     *
-     * @param radio The internet radio station to update.
-     */
-    public void updateInternetRadio(InternetRadio radio) {
-        internetRadioDao.updateInternetRadio(radio);
-    }
-
-    /**
      * Returns settings for the given user.
      *
      * @param username The username.
@@ -1404,10 +1348,6 @@ public class SettingsService {
     private static Set<String> splitLowerString(String s, String splitter) {
         //serial stream and linkedhashset because order matters
         return Stream.of(s.split(splitter)).filter(x -> StringUtils.isNotBlank(x)).map(x -> x.toLowerCase()).collect(Collectors.toCollection(LinkedHashSet::new));
-    }
-
-    public void setInternetRadioDao(InternetRadioDao internetRadioDao) {
-        this.internetRadioDao = internetRadioDao;
     }
 
     public void setUserDao(UserDao userDao) {

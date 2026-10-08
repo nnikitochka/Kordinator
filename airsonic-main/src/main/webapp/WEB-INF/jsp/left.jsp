@@ -31,11 +31,6 @@
                     top.main.location.href = mainLocation;
                 }
             }
-
-            $('.radio-play').on('click', function(evt) {
-                top.playQueue.onPlayInternetRadio($(this).data("id"), 0);
-                evt.preventDefault();
-            });
         }
 
         function createEmptyPlaylist() {
@@ -162,27 +157,6 @@
     <div class="forward"><a href="#" onclick="createEmptyPlaylist()"><fmt:message key="left.createplaylist"/></a></div>
     <div class="forward"><a href="importPlaylist.view" target="main"><fmt:message key="left.importplaylist"/></a></div>
 </div>
-
-<c:if test="${not empty model.radios}">
-    <h2 class="bgcolor1" style="padding-left: 2px"><fmt:message key="left.radio"/></h2>
-    <iframe id="radio-playlist-data" style="display:none;"></iframe>
-    <c:forEach items="${model.radios}" var="radio">
-        <p class="dense truncate" style="padding-left: 2px">
-        <a target="hidden" href="${radio.streamUrl}" class="radio-play" data-id="${radio.id}">
-            <img src="<spring:theme code='playImage'/>" alt="<fmt:message key='common.play'/>" title="<fmt:message key='common.play'/>"></a>
-            <span style="vertical-align: middle">
-                <c:choose>
-                    <c:when test="${empty radio.homepageUrl}">
-                        <span title="${fn:escapeXml(radio.name)}">${fn:escapeXml(radio.name)}</span>
-                    </c:when>
-                    <c:otherwise>
-                        <a target="_blank" rel="noopener" href="${radio.homepageUrl}" title="Visit ${fn:escapeXml(radio.name)}">${fn:escapeXml(radio.name)}</a>
-                    </c:otherwise>
-                </c:choose>
-            </span>
-        </p>
-    </c:forEach>
-</c:if>
 
 <c:forEach items="${model.indexedArtists}" var="entry">
     <table class="bgcolor1" style="width:100%;padding:0;margin:1em 0 0 0;border:0">

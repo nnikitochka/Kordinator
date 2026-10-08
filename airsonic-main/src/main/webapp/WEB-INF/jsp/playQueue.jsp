@@ -99,9 +99,6 @@
         // Is the "shuffle radio" playing? (More > Shuffle Radio)
         shuffleRadioEnabled: false,
 
-        // Is the "internet radio" playing?
-        internetRadioEnabled: false,
-
         // Is the play queue visible?
         isVisible: false,
 
@@ -226,7 +223,7 @@
                       title: "<fmt:message key='personalsettings.album'/>",
                       render(album, type, row) {
                           if (type == "display" && album != null) {
-                              return $("<a>", {title: album, alt: album, text: album}).attr("href", row.albumUrl).attr("target", !pq.internetRadioEnabled ? "main" : "_blank").attr("rel", !pq.internetRadioEnabled ? "" : "noopener noreferrer")[0].outerHTML;
+                              return $("<a>", {title: album, alt: album, text: album}).attr("href", row.albumUrl).attr("target", "main").attr("rel", "")[0].outerHTML;
                           }
                           return album;
                       }
@@ -877,9 +874,6 @@
         onPlayPlaylist(id, index) {
             top.StompClient.send("/app/playqueues/" + this.player.id + "/play/playlist", JSON.stringify({id: id, index: index}));
         },
-        onPlayInternetRadio(id, index) {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/play/radio", JSON.stringify({id: id, index: index}));
-        },
         onPlayTopSong(id, index) {
             top.StompClient.send("/app/playqueues/" + this.player.id + "/play/topsongs", JSON.stringify({id: id, index: index}));
         },
@@ -1032,13 +1026,6 @@
         playQueueCallback(playQueue, initial) {
             this.songs = playQueue.entries;
             this.shuffleRadioEnabled = playQueue.shuffleRadioEnabled;
-            this.internetRadioEnabled = playQueue.internetRadioEnabled;
-
-            // If an internet radio has no sources, display a message to the user.
-            if (this.internetRadioEnabled && this.songs.length == 0) {
-                top.main.$().toastmessage("showErrorToast", "<fmt:message key="playlist.toast.radioerror"/>");
-                this.onStop();
-            }
 
             this.playQueueRepeatStatusCallback(playQueue.repeatStatus);
             this.playQueuePlayStatusCallback(playQueue.playStatus, true);
@@ -1049,24 +1036,6 @@
                 parent.frames.main.location.href="play.m3u?";
             }
 
-            // Disable some UI items if internet radio is playing
-            $("select#moreActions #loadPlayQueue").prop("disabled", this.internetRadioEnabled);
-            $("select#moreActions #savePlayQueue").prop("disabled", this.internetRadioEnabled);
-            $("select#moreActions #savePlaylist").prop("disabled", this.internetRadioEnabled);
-            $("select#moreActions #downloadPlaylist").prop("disabled", this.internetRadioEnabled);
-            $("select#moreActions #sharePlaylist").prop("disabled", this.internetRadioEnabled);
-            $("select#moreActions #sortByTrack").prop("disabled", this.internetRadioEnabled);
-            $("select#moreActions #sortByAlbum").prop("disabled", this.internetRadioEnabled);
-            $("select#moreActions #sortByArtist").prop("disabled", this.internetRadioEnabled);
-            $("select#moreActions #removeSelected").prop("disabled", this.internetRadioEnabled);
-            $("select#moreActions #download").prop("disabled", this.internetRadioEnabled);
-            $("select#moreActions #appendPlaylist").prop("disabled", this.internetRadioEnabled);
-            $("select#moreActions #star").prop("disabled", this.internetRadioEnabled);
-            $("select#moreActions #unstar").prop("disabled", this.internetRadioEnabled);
-            $("#shuffleQueue").toggleLink(!this.internetRadioEnabled);
-            $("#repeatQueue").toggleLink(!this.internetRadioEnabled);
-            $("#undoQueue").toggleLink(!this.internetRadioEnabled);
-
             if (this.songs.length == 0) {
                 $("#playQueueInfo").text("");
             } else {
@@ -1074,15 +1043,9 @@
                 $("#playQueueInfo").html("&nbsp;|&nbsp;" + this.songs.length + " <fmt:message key='playlist2.songs'/> &nbsp;|&nbsp;" + formatDuration(Math.round(totDuration)));
             }
 
-            if (this.internetRadioEnabled) {
-                this.musicTable.column("starred:name").visible(false, false);
-                this.musicTable.column("remove:name").visible(false, false);
-                this.musicTable.column("songcheckbox:name").visible(false, false);
-            } else {
-                this.musicTable.column("starred:name").visible(true, false);
-                this.musicTable.column("remove:name").visible(true, false);
-                this.musicTable.column("songcheckbox:name").visible(true, false);
-            }
+            this.musicTable.column("starred:name").visible(true, false);
+            this.musicTable.column("remove:name").visible(true, false);
+            this.musicTable.column("songcheckbox:name").visible(true, false);
 
             this.currentSongIndex = this.getCurrentSongIndex();
             this.musicTable.ajax.reload().columns.adjust();

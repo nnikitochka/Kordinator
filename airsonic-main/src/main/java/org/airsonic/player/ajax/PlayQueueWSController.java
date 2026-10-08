@@ -82,12 +82,6 @@ public class PlayQueueWSController {
         playQueueService.playMediaFile(player, req.getId(), headers.getSessionId());
     }
 
-    @MessageMapping("/play/radio")
-    public void playInternetRadio(@DestinationVariable int playerId, PlayQueueRequest req, SimpMessageHeaderAccessor headers) throws Exception {
-        Player player = getPlayer(playerId, headers);
-        playQueueService.playInternetRadio(player, req.getId(), req.getIndex(), headers.getSessionId());
-    }
-
     @MessageMapping("/play/playlist")
     public void playPlaylist(@DestinationVariable int playerId, PlayQueueRequest req, SimpMessageHeaderAccessor headers) throws Exception {
         Player player = getPlayer(playerId, headers);

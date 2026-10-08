@@ -105,11 +105,6 @@ public class LeftController {
             lastModified = Math.max(lastModified, musicFolder.getChanged().toEpochMilli());
         }
 
-        // When was internet radio table last changed?
-        for (InternetRadio internetRadio : settingsService.getAllInternetRadios()) {
-            lastModified = Math.max(lastModified, internetRadio.getChanged().toEpochMilli());
-        }
-
         // When was user settings last changed?
         lastModified = Math.max(lastModified, userSettings.getChanged().toEpochMilli());
 
@@ -142,7 +137,6 @@ public class LeftController {
         map.put("scanning", mediaScannerService.isScanning());
         map.put("musicFolders", allMusicFolders);
         map.put("selectedMusicFolder", selectedMusicFolder);
-        map.put("radios", settingsService.getAllInternetRadios());
         map.put("shortcuts", musicIndexService.getShortcuts(musicFoldersToUse));
         map.put("partyMode", userSettings.getPartyModeEnabled());
         map.put("organizeByFolderStructure", settingsService.isOrganizeByFolderStructure());

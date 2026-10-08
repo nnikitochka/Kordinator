@@ -39,7 +39,6 @@ public class PlayQueue {
     private Status status = Status.PLAYING;
 
     private RandomSearchCriteria randomSearchCriteria;
-    private InternetRadio internetRadio;
 
     private Function<Integer, MusicFolder> folderIdToFolder;
 
@@ -232,7 +231,6 @@ public class PlayQueue {
         makeBackup();
         files.clear();
         setRandomSearchCriteria(null);
-        setInternetRadio(null);
         index = 0;
     }
 
@@ -360,15 +358,6 @@ public class PlayQueue {
     }
 
     /**
-     * Returns whether the play queue is a internet radio mode.
-     *
-     * @return Whether the play queue is a internet radio mode.
-     */
-    public boolean isInternetRadioEnabled() {
-        return this.internetRadio != null;
-    }
-
-    /**
      * Revert the last operation.
      */
     public synchronized void undo() {
@@ -401,24 +390,6 @@ public class PlayQueue {
         if (index == -1) {
             index = Math.max(0, Math.min(index, size() - 1));
         }
-    }
-
-    /**
-     * Sets the current internet radio
-     *
-     * @param internetRadio An internet radio, or <code>null</code> if this is not an internet radio playlist
-     */
-    public void setInternetRadio(InternetRadio internetRadio) {
-        this.internetRadio = internetRadio;
-    }
-
-    /**
-     * Gets the current internet radio
-     *
-     * @return The current internet radio, or <code>null</code> if this is not an internet radio playlist
-     */
-    public InternetRadio getInternetRadio() {
-        return internetRadio;
     }
 
     /**
