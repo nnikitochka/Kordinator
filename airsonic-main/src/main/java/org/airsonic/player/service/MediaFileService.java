@@ -764,10 +764,21 @@ public class MediaFileService {
 
             boolean starred = calculateStarred && username != null && getMediaFileStarredDate(file.getId(), username) != null;
             boolean folderAccess = !calculateFolderAccess || username == null || securityService.isFolderAccessAllowed(file, username);
-            entries.add(MediaFileEntry.fromMediaFile(file, locale, starred, folderAccess, streamUrl, remoteStreamUrl, remoteCoverArtUrl));
+            entries.add(MediaFileEntry.fromMediaFile(file, locale, starred, folderAccess, streamUrl, remoteStreamUrl, remoteCoverArtUrl,
+                    getAccentColor(file)));
         }
 
         return entries;
+    }
+
+    /**
+     * Returns the accent color of the cover art shown for the given media file.
+     * For non-directory files the cover art belongs to the parent (album) directory,
+     * mirroring the resolution logic of CoverArtController.
+     */
+    private String getAccentColor(MediaFile file) {
+        MediaFile dir = file.isDirectory() ? file : Optional.ofNullable(getParentOf(file)).orElse(file);
+        return coverArtService.getAccentColor(EntityType.MEDIA_FILE, dir.getId());
     }
 
     public int getAlbumCount(List<MusicFolder> musicFolders) {

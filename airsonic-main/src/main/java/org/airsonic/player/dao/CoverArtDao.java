@@ -17,7 +17,7 @@ import java.util.Optional;
 @Repository
 public class CoverArtDao extends AbstractDao {
 
-    private static final String COLUMNS = "entity_id, entity_type, path, folder_id, overridden, created, updated";
+    private static final String COLUMNS = "entity_id, entity_type, path, folder_id, overridden, created, updated, accent_color";
 
     private CoverArtRowMapper coverArtRowMapper = new CoverArtRowMapper();
 
@@ -36,8 +36,8 @@ public class CoverArtDao extends AbstractDao {
     }
 
     public int update(CoverArt art) {
-        return update("update cover_art set path=?, folder_id=?, overridden=?, updated=? where entity_id=? and entity_type=?",
-                art.getPath(), art.getFolderId(), art.getOverridden(), art.getUpdated(), art.getEntityId(), art.getEntityType().toString());
+        return update("update cover_art set path=?, folder_id=?, overridden=?, updated=?, accent_color=? where entity_id=? and entity_type=?",
+                art.getPath(), art.getFolderId(), art.getOverridden(), art.getUpdated(), art.getAccentColor(), art.getEntityId(), art.getEntityType().toString());
     }
 
     public CoverArt get(EntityType type, int id) {
@@ -59,10 +59,12 @@ public class CoverArtDao extends AbstractDao {
     private static class CoverArtRowMapper implements RowMapper<CoverArt> {
         @Override
         public CoverArt mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new CoverArt(rs.getInt("entity_id"), EntityType.valueOf(rs.getString("entity_type")),
+            CoverArt art = new CoverArt(rs.getInt("entity_id"), EntityType.valueOf(rs.getString("entity_type")),
                     rs.getString("path"), (Integer) rs.getObject("folder_id"), rs.getBoolean("overridden"),
                     Optional.ofNullable(rs.getTimestamp("created")).map(x -> x.toInstant()).orElse(null),
                     Optional.ofNullable(rs.getTimestamp("updated")).map(x -> x.toInstant()).orElse(null));
+            art.setAccentColor(rs.getString("accent_color"));
+            return art;
         }
     }
 

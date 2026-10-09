@@ -234,7 +234,7 @@ public class MediaFileWSController {
                     mfe.getDimensions(), mfe.getDuration(), mfe.getFormat(), mfe.getContentType(), mfe.getEntryType(),
                     mfe.getFileSize(), mfe.getPlayCount(), mfe.getLastPlayed(), mfe.getCreated(), mfe.getChanged(),
                     mfe.getLastScanned(), mfe.getStarred(), mfe.getPresent(), mfe.getAlbumUrl(), mfe.getStreamUrl(),
-                    mfe.getRemoteStreamUrl(), mfe.getCoverArtUrl(), mfe.getRemoteCoverArtUrl());
+                    mfe.getRemoteStreamUrl(), mfe.getCoverArtUrl(), mfe.getRemoteCoverArtUrl(), mfe.getAccentColor());
         }
 
         public List<MediaFileEntry> getFiles() {

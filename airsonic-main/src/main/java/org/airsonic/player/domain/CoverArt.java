@@ -11,6 +11,7 @@ public class CoverArt {
     private String path;
     private Integer folderId;
     private boolean overridden;
+    private String accentColor;
     private Instant created = Instant.now();
     private Instant updated = created;
 
@@ -81,6 +82,14 @@ public class CoverArt {
 
     public void setOverridden(boolean overridden) {
         this.overridden = overridden;
+    }
+
+    public String getAccentColor() {
+        return accentColor;
+    }
+
+    public void setAccentColor(String accentColor) {
+        this.accentColor = accentColor;
     }
 
     public Instant getCreated() {
