@@ -1,0 +1,20 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+    <!-- Dominant (accent) color extracted from the cover art image, stored as #RRGGBB -->
+    <changeSet id="add-accent-color-to-cover-art" author="anon">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="cover_art"/>
+            <not>
+                <columnExists tableName="cover_art" columnName="accent_color"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="cover_art">
+            <column name="accent_color" type="${varchar_type}"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="cover_art" columnName="accent_color"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

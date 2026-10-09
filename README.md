@@ -81,6 +81,7 @@ The following is an incomplete list of features that are enhanced from Airsonic:
   - Ability to use custom URLs to scrobble on ListenBrainz servers
   - Ability to use Repeat-One in play queues in web-clients
   - Chromecast support: [read details](https://github.com/airsonic-advanced/airsonic-advanced/blob/master/CHROMECAST.md)
+  - Accent color of cover art exposed to external clients via Subsonic REST API: [read details](https://github.com/airsonic-advanced/airsonic-advanced/blob/master/ACCENT_COLOR.md)
   - Ability to upload to specified folders (via `UploadsFolder` property/parameter)
   - Ability to upload multiple files simultaneously
   - Ability to upload and extract more archive formats:
