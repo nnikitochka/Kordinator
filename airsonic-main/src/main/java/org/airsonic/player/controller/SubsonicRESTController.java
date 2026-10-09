@@ -555,6 +555,7 @@ public class SubsonicRESTController {
         if (!CoverArt.NULL_ART.equals(coverArtService.get(EntityType.ALBUM, album.getId()))) {
             jaxbAlbum.setCoverArt(CoverArtController.ALBUM_COVERART_PREFIX + album.getId());
         }
+        jaxbAlbum.setAccentColor(coverArtService.getAccentColor(EntityType.ALBUM, album.getId()));
         jaxbAlbum.setSongCount(album.getSongCount());
         jaxbAlbum.setDuration((int) Math.round(album.getDuration()));
         jaxbAlbum.setCreated(jaxbWriter.convertDate(album.getCreated()));
@@ -657,6 +658,7 @@ public class SubsonicRESTController {
         directory.setName(dir.getName());
         directory.setStarred(jaxbWriter.convertDate(mediaFileDao.getMediaFileStarredDate(id, username)));
         directory.setPlayCount((long) dir.getPlayCount());
+        directory.setAccentColor(getAccentColor(dir, parent));
 
         if (dir.isAlbum()) {
             directory.setAverageRating(ratingService.getAverageRating(dir));
@@ -1260,6 +1262,7 @@ public class SubsonicRESTController {
         child.setArtist(mediaFile.getArtist());
         child.setIsDir(mediaFile.isDirectory());
         child.setCoverArt(findCoverArt(mediaFile, parent));
+        child.setAccentColor(getAccentColor(mediaFile, parent));
         child.setYear(mediaFile.getYear());
         child.setGenre(mediaFile.getGenre());
         child.setCreated(jaxbWriter.convertDate(mediaFile.getCreated()));
@@ -1326,6 +1329,19 @@ public class SubsonicRESTController {
             return String.valueOf(dir.getId());
         }
         return null;
+    }
+
+    /**
+     * Returns the accent color of the cover art shown for the given media file.
+     * For non-directory files the cover art (and thus the accent color) belongs to the
+     * parent (album) directory, mirroring the resolution used for the coverArt attribute.
+     */
+    private String getAccentColor(MediaFile mediaFile, MediaFile parent) {
+        MediaFile dir = mediaFile.isDirectory() ? mediaFile : parent;
+        if (dir == null) {
+            return null;
+        }
+        return coverArtService.getAccentColor(EntityType.MEDIA_FILE, dir.getId());
     }
 
     @RequestMapping("/download")

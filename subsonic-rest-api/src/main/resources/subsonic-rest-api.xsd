@@ -162,6 +162,7 @@
         <xs:attribute name="starred" type="xs:dateTime" use="optional"/>
         <xs:attribute name="year" type="xs:int" use="optional"/>     <!-- Added in 1.10.1 -->
         <xs:attribute name="genre" type="xs:string" use="optional"/> <!-- Added in 1.10.1 -->
+        <xs:attribute name="accentColor" type="xs:string" use="optional"/>  <!-- Airsonic extension -->
     </xs:complexType>
 
     <xs:complexType name="AlbumWithSongsID3">
@@ -217,6 +218,7 @@
         <xs:attribute name="userRating" type="sub:UserRating" use="optional"/>  <!-- Added in 1.13.0 -->
         <xs:attribute name="averageRating" type="sub:AverageRating" use="optional"/>  <!-- Added in 1.13.0 -->
         <xs:attribute name="playCount" type="xs:long" use="optional"/>  <!-- Added in 1.14.0 -->
+        <xs:attribute name="accentColor" type="xs:string" use="optional"/>  <!-- Airsonic extension -->
     </xs:complexType>
 
     <xs:complexType name="Child">
@@ -251,6 +253,7 @@
         <xs:attribute name="bookmarkPosition" type="xs:long" use="optional"/>  <!-- In millis. Added in 1.10.1 -->
         <xs:attribute name="originalWidth" type="xs:int" use="optional"/>  <!-- Added in 1.13.0 -->
         <xs:attribute name="originalHeight" type="xs:int" use="optional"/>  <!-- Added in 1.13.0 -->
+        <xs:attribute name="accentColor" type="xs:string" use="optional"/>  <!-- Airsonic extension -->
     </xs:complexType>
 
     <xs:simpleType name="MediaType">
