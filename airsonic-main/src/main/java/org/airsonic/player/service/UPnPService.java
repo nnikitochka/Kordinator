@@ -52,7 +52,6 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 
 import java.io.InputStream;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -88,12 +87,8 @@ public class UPnPService {
 
     public void ensureServiceStarted() {
         running.getAndUpdate(bo -> {
-            if (!bo) {
-                startService();
-                return true;
-            } else {
-                return true;
-            }
+            if (!bo) startService();
+            return true;
         });
     }
 
@@ -121,7 +116,7 @@ public class UPnPService {
             createService();
             LOG.info("Successfully started UPnP service on port {}!", settingsService.getUPnpPort());
         } catch (Throwable x) {
-            LOG.error("Failed to start UPnP service: " + x, x);
+            LOG.error("Failed to start UPnP service: {}", x, x);
         }
     }
 
@@ -169,7 +164,7 @@ public class UPnPService {
         FileUtil.closeQuietly(in);
 
         LocalService<CustomContentDirectory> contentDirectoryservice = new AnnotationLocalServiceBinder().read(CustomContentDirectory.class);
-        contentDirectoryservice.setManager(new DefaultServiceManager<CustomContentDirectory>(contentDirectoryservice) {
+        contentDirectoryservice.setManager(new DefaultServiceManager<>(contentDirectoryservice) {
 
             @Override
             protected CustomContentDirectory createServiceInstance() {
@@ -190,7 +185,7 @@ public class UPnPService {
         }
 
         LocalService<ConnectionManagerService> connetionManagerService = new AnnotationLocalServiceBinder().read(ConnectionManagerService.class);
-        connetionManagerService.setManager(new DefaultServiceManager<ConnectionManagerService>(connetionManagerService) {
+        connetionManagerService.setManager(new DefaultServiceManager<>(connetionManagerService) {
             @Override
             protected ConnectionManagerService createServiceInstance() {
                 return new ConnectionManagerService(protocols, null);
