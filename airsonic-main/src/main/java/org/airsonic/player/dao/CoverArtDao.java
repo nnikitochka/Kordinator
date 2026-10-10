@@ -12,6 +12,7 @@ import javax.annotation.PostConstruct;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -43,6 +44,14 @@ public class CoverArtDao extends AbstractDao {
     public CoverArt get(EntityType type, int id) {
         String sql = "select * from cover_art where entity_id=? and entity_type=?";
         return queryOne(sql, coverArtRowMapper, id, type);
+    }
+
+    /**
+     * Returns all cover art rows that were persisted before the accent color feature
+     * existed (or could not be processed yet), i.e. rows without a computed color.
+     */
+    public List<CoverArt> getCoverArtWithoutAccentColor() {
+        return query("select * from cover_art where accent_color is null", coverArtRowMapper);
     }
 
     public void delete(EntityType type, int id) {

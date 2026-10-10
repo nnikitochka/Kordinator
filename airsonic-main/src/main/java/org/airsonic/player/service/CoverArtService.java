@@ -23,6 +23,8 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -60,6 +62,33 @@ public class CoverArtService {
      */
     public String getAccentColor(EntityType type, int id) {
         return get(type, id).getAccentColor();
+    }
+
+    /**
+     * Computes and stores the accent color for every cover art row that still has none.
+     * Needed to backfill colors for cover art that was persisted before the accent color
+     * feature existed (such rows are not re-upserted by a regular incremental scan).
+     *
+     * @return the number of rows updated
+     */
+    public int backfillAccentColors() {
+        List<CoverArt> missing = coverArtDao.getCoverArtWithoutAccentColor();
+        int count = 0;
+        for (CoverArt art : missing) {
+            String accent = computeAccentColor(art);
+            if (accent != null) {
+                art.setAccentColor(accent);
+                art.setUpdated(Instant.now());
+                upsert(art);
+                count++;
+            }
+        }
+        if (count > 0) {
+            LOG.info("Backfilled accent colors for {}/{} cover art rows", count, missing.size());
+        } else {
+            LOG.debug("No cover art rows without accent color to backfill ({} checked)", missing.size());
+        }
+        return count;
     }
 
     /**

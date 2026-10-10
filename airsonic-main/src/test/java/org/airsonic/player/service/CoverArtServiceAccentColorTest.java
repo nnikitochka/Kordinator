@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Verifies that the dominant (accent) color is extracted from a cover art
@@ -69,5 +71,25 @@ public class CoverArtServiceAccentColorTest {
         CoverArt art2 = new CoverArt(ENTITY_ID, EntityType.MEDIA_FILE, coverPath, null, false);
         coverArtService.upsert(art2);
         assertEquals("#A58866", art2.getAccentColor());
+    }
+
+    @Test
+    public void testBackfillComputesColorForLegacyRows() throws Exception {
+        String coverPath = coverPath();
+
+        // Simulate a cover art row persisted before the accent color feature existed:
+        // insert directly through the DAO, bypassing the service-level computation.
+        CoverArt art = new CoverArt(ENTITY_ID, EntityType.MEDIA_FILE, coverPath, null, false);
+        coverArtDao.upsert(art);
+        CoverArt stored = coverArtDao.get(EntityType.MEDIA_FILE, ENTITY_ID);
+        assertNotNull(stored);
+        assertNull("pre-existing row must have no accent color", stored.getAccentColor());
+
+        int updated = coverArtService.backfillAccentColors();
+        assertTrue("backfill should update the seeded row", updated >= 1);
+        assertEquals("#A58866", coverArtService.getAccentColor(EntityType.MEDIA_FILE, ENTITY_ID));
+        stored = coverArtDao.get(EntityType.MEDIA_FILE, ENTITY_ID);
+        assertNotNull(stored);
+        assertEquals("#A58866", stored.getAccentColor());
     }
 }
