@@ -4,6 +4,8 @@ import com.google.common.util.concurrent.RateLimiter;
 import org.airsonic.player.domain.TransferStatus;
 import org.springframework.core.io.Resource;
 
+import javax.annotation.Nonnull;
+
 import java.io.File;
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -285,8 +287,8 @@ public class PipeStreams {
         }
 
         @Override
-        public void write(byte[] b) throws IOException {
-            write(b, 0, b.length);
+        public void write(@Nonnull byte[] bytes) throws IOException {
+            write(bytes, 0, bytes.length);
         }
 
         /**
@@ -294,7 +296,7 @@ public class PipeStreams {
          */
 
         @Override
-        public void write(byte[] b, int off, int len) throws IOException {
+        public void write(@Nonnull byte[] bytes, int off, int len) throws IOException {
             if (sink == null) {
                 throw new IOException("Unconnected pipe");
             }
@@ -317,7 +319,7 @@ public class PipeStreams {
 
                     // Try again.
 
-                    write(b, off, len);
+                    write(bytes, off, len);
 
                     return;
                 }
@@ -329,7 +331,7 @@ public class PipeStreams {
                         (sink.writePosition < sink.readPosition ? sink.readPosition : sink.buffer.length)
                                 - sink.writePosition);
 
-                System.arraycopy(b, off, sink.buffer, sink.writePosition, amount);
+                System.arraycopy(bytes, off, sink.buffer, sink.writePosition, amount);
                 sink.writePosition += amount;
 
                 if (sink.writePosition == sink.buffer.length) {
@@ -341,7 +343,7 @@ public class PipeStreams {
                 // written.
 
                 if (amount < len) {
-                    write(b, off + amount, len - amount);
+                    write(bytes, off + amount, len - amount);
                 } else {
                     sink.buffer.notifyAll();
                 }

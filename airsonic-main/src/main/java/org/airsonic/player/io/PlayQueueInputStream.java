@@ -3,6 +3,8 @@ package org.airsonic.player.io;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.PlayQueue;
 
+import javax.annotation.Nonnull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.Consumer;
@@ -26,18 +28,18 @@ public class PlayQueueInputStream extends InputStream {
 
     @Override
     public int read() throws IOException {
-        byte[] b = new byte[1];
-        int n = read(b);
-        return n == -1 ? -1 : b[0];
+        byte[] bytes = new byte[1];
+        int n = read(bytes);
+        return n == -1 ? -1 : bytes[0];
     }
 
     @Override
-    public int read(byte[] b) throws IOException {
+    public int read(@Nonnull byte[] b) throws IOException {
         return read(b, 0, b.length);
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(@Nonnull byte[] b, int off, int len) throws IOException {
         prepare();
         if (currentStream == null || queue.getStatus() == PlayQueue.Status.STOPPED) {
             return -1;

@@ -19,6 +19,8 @@
  */
 package org.airsonic.player.io;
 
+import javax.annotation.Nonnull;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -71,7 +73,7 @@ public class ShoutCastOutputStream extends OutputStream {
      * Writes the given byte array to the underlying stream, adding SHOUTcast meta-data as necessary.
      */
     @Override
-    public void write(byte[] b, int off, int len) throws IOException {
+    public void write(@Nonnull byte[] bytes, int off, int len) throws IOException {
 
         int bytesWritten = 0;
         while (bytesWritten < len) {
@@ -79,7 +81,7 @@ public class ShoutCastOutputStream extends OutputStream {
             // 'n' is the number of bytes to write before the next potential meta-data block.
             int n = Math.min(len - bytesWritten, ShoutCastOutputStream.META_DATA_INTERVAL - byteCount);
 
-            out.write(b, off + bytesWritten, n);
+            out.write(bytes, off + bytesWritten, n);
             bytesWritten += n;
             byteCount += n;
 
@@ -95,8 +97,8 @@ public class ShoutCastOutputStream extends OutputStream {
      * Writes the given byte array to the underlying stream, adding SHOUTcast meta-data as necessary.
      */
     @Override
-    public void write(byte[] b) throws IOException {
-        write(b, 0, b.length);
+    public void write(@Nonnull byte[] bytes) throws IOException {
+        write(bytes, 0, bytes.length);
     }
 
     /**

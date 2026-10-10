@@ -25,6 +25,7 @@ import org.airsonic.player.service.SettingsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -104,7 +105,7 @@ public class LocaleResolver implements org.springframework.web.servlet.LocaleRes
     }
 
     @Override
-    public void setLocale(HttpServletRequest request, HttpServletResponse response, Locale locale) {
+    public void setLocale(@Nonnull HttpServletRequest request, HttpServletResponse response, Locale locale) {
         throw new UnsupportedOperationException("Cannot change locale - use a different locale resolution strategy");
     }
 

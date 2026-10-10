@@ -23,7 +23,6 @@ import javax.servlet.*;
 import javax.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.util.Enumeration;
 
 /**
  * Configurable filter for setting HTTP response headers. Can be used, for instance, to
@@ -40,8 +39,8 @@ public class ResponseHeaderFilter implements Filter {
         HttpServletResponse response = (HttpServletResponse) res;
 
         // Sets the provided HTTP response parameters
-        for (Enumeration e = filterConfig.getInitParameterNames(); e.hasMoreElements();) {
-            String headerName = (String) e.nextElement();
+        for (var enumeration = filterConfig.getInitParameterNames(); enumeration.hasMoreElements();) {
+            String headerName = enumeration.nextElement();
             response.setHeader(headerName, filterConfig.getInitParameter(headerName));
         }
 
