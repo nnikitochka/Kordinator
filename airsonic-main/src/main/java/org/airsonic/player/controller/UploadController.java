@@ -32,7 +32,7 @@ import org.airsonic.player.service.PlayerService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.service.StatusService;
-import org.airsonic.player.upload.MonitoredDiskFileItemFactory;
+import org.airsonic.player.upload.MonitoredOutputStream;
 import org.airsonic.player.upload.UploadListener;
 import org.airsonic.player.util.FileUtil;
 import org.airsonic.player.util.LambdaUtils;
@@ -43,9 +43,9 @@ import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry;
 import org.apache.commons.compress.archivers.sevenz.SevenZFile;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload2.core.FileItemInput;
+import org.apache.commons.fileupload2.core.FileItemInputIterator;
+import org.apache.commons.fileupload2.jakarta.JakartaServletDiskFileUpload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,18 +55,20 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -97,6 +99,10 @@ public class UploadController {
 
     private static final Set<String> SUPPORTED_ZIP_FORMATS = ImmutableSet.of("zip", "7z", "rar", "cpio", "jar", "tar");
     public static final Map<UUID, Consumer<Path>> registeredCallbacks = new ConcurrentHashMap<>();
+
+    /** A file part received from the network and buffered to a temp file until the target dir is known. */
+    private record ReceivedFile(String fileName, Path tempFile) {
+    }
 
     private void checkUploadAllowed(User user, Path p, boolean checkExistence) throws Exception {
         if (!user.isAdminRole() && !user.isUploadRole()) {
@@ -131,7 +137,7 @@ public class UploadController {
                     new UploadInfo(status.getId(), 0L, status.getBytesTotal()));
 
             // Check that we have a file upload request
-            if (!ServletFileUpload.isMultipartContent(request)) {
+            if (!JakartaServletDiskFileUpload.isMultipartContent(request)) {
                 throw new Exception("Illegal request.");
             }
 
@@ -139,21 +145,39 @@ public class UploadController {
 
             UploadListener listener = new UploadListenerImpl(status, settingsService.getUploadBitrateLimiter(), brokerTemplate);
 
-            FileItemFactory factory = new MonitoredDiskFileItemFactory(listener);
-            ServletFileUpload upload = new ServletFileUpload(factory);
+            // commons-fileupload2's items are final (builder-only), so the parts are streamed manually.
+            // This preserves the original upload-progress semantics: bytes are counted as they arrive
+            // from the network, before they are moved into the target directory.
+            JakartaServletDiskFileUpload upload = new JakartaServletDiskFileUpload();
+            FileItemInputIterator items = upload.getItemIterator(request);
 
-            List<?> items = upload.parseRequest(request);
+            List<ReceivedFile> receivedFiles = new ArrayList<>();
 
-            // First, look for "dir" and "unzip" parameters.
-            for (Object o : items) {
-                FileItem item = (FileItem) o;
+            while (items.hasNext()) {
+                FileItemInput item = items.next();
 
-                if (item.isFormField() && "dir".equals(item.getFieldName())) {
-                    dir = Paths.get(item.getString());
-                } else if (item.isFormField() && "unzip".equals(item.getFieldName())) {
-                    unzip = true;
-                } else if (item.isFormField() && "callback".equals(item.getFieldName())) {
-                    callback = UUID.fromString(item.getString());
+                if (item.isFormField()) {
+                    String fieldValue = new String(item.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+                    if ("dir".equals(item.getFieldName())) {
+                        dir = Paths.get(fieldValue);
+                    } else if ("unzip".equals(item.getFieldName())) {
+                        unzip = true;
+                    } else if ("callback".equals(item.getFieldName())) {
+                        callback = UUID.fromString(fieldValue);
+                    }
+                } else {
+                    String fileName = item.getName();
+                    if (fileName != null) {
+                        listener.start(fileName);
+                        if (!fileName.trim().isEmpty()) {
+                            Path tempFile = Files.createTempFile("airsonic-upload-", ".tmp");
+                            try (InputStream in = item.getInputStream();
+                                 OutputStream os = new MonitoredOutputStream(Files.newOutputStream(tempFile), listener)) {
+                                in.transferTo(os);
+                            }
+                            receivedFiles.add(new ReceivedFile(fileName, tempFile));
+                        }
+                    }
                 }
             }
 
@@ -167,31 +191,24 @@ public class UploadController {
                 Files.createDirectories(dir);
             }
 
-            // Look for file items.
-            for (Object o : items) {
-                FileItem item = (FileItem) o;
+            // Move received files into place.
+            for (ReceivedFile received : receivedFiles) {
+                Path targetFile = dir.resolve(Paths.get(received.fileName()).getFileName());
 
-                if (!item.isFormField()) {
-                    String fileName = item.getName();
-                    if (!fileName.trim().isEmpty()) {
+                try {
+                    checkUploadAllowed(user, targetFile, true);
+                } catch (IOException e) {
+                    exceptions.add(e);
+                    FileUtil.delete(received.tempFile());
+                    continue;
+                }
 
-                        Path targetFile = dir.resolve(Paths.get(fileName).getFileName());
+                Files.move(received.tempFile(), targetFile, StandardCopyOption.REPLACE_EXISTING);
+                uploadedFiles.add(targetFile);
+                LOG.info("Uploaded {} ", targetFile);
 
-                        try {
-                            checkUploadAllowed(user, targetFile, true);
-                        } catch (IOException e) {
-                            exceptions.add(e);
-                            continue;
-                        }
-
-                        item.write(targetFile.toFile());
-                        uploadedFiles.add(targetFile);
-                        LOG.info("Uploaded {} ", targetFile);
-
-                        if (unzip && SUPPORTED_ZIP_FORMATS.contains(MoreFiles.getFileExtension(targetFile).toLowerCase())) {
-                            unzip(targetFile, unzippedFiles, exceptions);
-                        }
-                    }
+                if (unzip && SUPPORTED_ZIP_FORMATS.contains(MoreFiles.getFileExtension(targetFile).toLowerCase())) {
+                    unzip(targetFile, unzippedFiles, exceptions);
                 }
             }
         } catch (Exception x) {

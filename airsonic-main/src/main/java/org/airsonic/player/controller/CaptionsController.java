@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -173,14 +173,11 @@ public class CaptionsController {
     }
 
     public static String getDisplayFormat(String format) {
-        switch (format) {
-            case "webvtt":
-                return "vtt";
-            case "subrip":
-                return "srt";
-            default:
-                return format;
-        }
+        return switch (format) {
+            case "webvtt" -> "vtt";
+            case "subrip" -> "srt";
+            default -> format;
+        };
     }
 
     @GetMapping("/list")

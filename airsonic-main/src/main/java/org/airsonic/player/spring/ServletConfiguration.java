@@ -15,17 +15,23 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.Validator;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.servlet.ViewResolver;
+import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import org.springframework.web.servlet.view.JstlView;
 
-import javax.servlet.Filter;
+import jakarta.servlet.Filter;
 
 import java.util.Properties;
 
 @Configuration
 public class ServletConfiguration implements WebMvcConfigurer {
+
+    @Bean
+    public LegacyViewSuffixHandlerMapping legacyViewSuffixHandlerMapping() {
+        return new LegacyViewSuffixHandlerMapping();
+    }
 
     @Bean
     public FilterRegistrationBean<Filter> bootstrapVerificationFilterRegistration() {
@@ -153,6 +159,13 @@ public class ServletConfiguration implements WebMvcConfigurer {
 
     @Autowired
     private MessageSource ms;
+
+    @Override
+    public void configurePathMatch(PathMatchConfigurer configurer) {
+        // Spring Framework 6 disabled trailing-slash matching by default; re-enable it to
+        // preserve the URL behavior of the previous platform (Boot 2.5 / Framework 5.3).
+        configurer.setUseTrailingSlashMatch(true);
+    }
 
     @Override
     public Validator getValidator() {

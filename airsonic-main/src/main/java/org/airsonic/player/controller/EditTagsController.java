@@ -32,8 +32,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,16 +61,16 @@ public class EditTagsController {
         MediaFile dir = mediaFileService.getMediaFile(id);
         List<MediaFile> files = mediaFileService.getChildrenOf(dir, true, false, true, false);
 
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         if (!files.isEmpty()) {
-            map.put("defaultArtist", files.get(0).getArtist());
-            map.put("defaultAlbum", files.get(0).getAlbumName());
-            map.put("defaultYear", files.get(0).getYear());
-            map.put("defaultGenre", files.get(0).getGenre());
+            map.put("defaultArtist", files.getFirst().getArtist());
+            map.put("defaultAlbum", files.getFirst().getAlbumName());
+            map.put("defaultYear", files.getFirst().getYear());
+            map.put("defaultGenre", files.getFirst().getGenre());
         }
         map.put("allGenres", JaudiotaggerParser.getID3V1Genres());
 
-        List<Song> songs = new ArrayList<Song>();
+        List<Song> songs = new ArrayList<>();
         for (int i = 0; i < files.size(); i++) {
             songs.add(createSong(files.get(i), i));
         }

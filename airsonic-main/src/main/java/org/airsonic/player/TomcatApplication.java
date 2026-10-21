@@ -13,7 +13,7 @@ public class TomcatApplication {
         tomcatFactory.addContextCustomizers(context -> {
 
             StandardJarScanFilter standardJarScanFilter = new StandardJarScanFilter();
-            standardJarScanFilter.setTldScan("jstl-*.jar,spring-security-taglibs-*.jar,spring-web-*.jar,spring-webmvc-*.jar,string-*.jar,taglibs-standard-impl-*.jar,tomcat-annotations-api-*.jar,tomcat-embed-jasper-*.jar");
+            standardJarScanFilter.setTldScan("jstl-*.jar,jakarta.servlet.jsp.jstl-*.jar,java-time-jsptags-*.jar,spring-security-taglibs-*.jar,spring-web-*.jar,spring-webmvc-*.jar,string-*.jar,taglibs-standard-impl-*.jar,tomcat-annotations-api-*.jar,tomcat-embed-jasper-*.jar");
             standardJarScanFilter.setTldSkip("*");
             context.getJarScanner().setJarScanFilter(standardJarScanFilter);
 

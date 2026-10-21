@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
 import org.springframework.boot.actuate.endpoint.web.WebEndpointResponse;
-import org.springframework.boot.task.TaskSchedulerBuilder;
+import org.springframework.boot.task.ThreadPoolTaskSchedulerBuilder;
 import org.springframework.scheduling.TriggerContext;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.config.FixedDelayTask;
@@ -48,7 +48,7 @@ public class TaskSchedulingService implements ScheduledTaskHolder {
 
 
     @Autowired
-    public TaskSchedulingService(TaskSchedulerBuilder builder) throws IOException {
+    public TaskSchedulingService(ThreadPoolTaskSchedulerBuilder builder) throws IOException {
         ThreadPoolTaskScheduler taskScheduler = builder.build();
         taskScheduler.setDaemon(true);
         taskScheduler.afterPropertiesSet();

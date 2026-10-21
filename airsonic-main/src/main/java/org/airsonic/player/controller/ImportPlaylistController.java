@@ -22,10 +22,8 @@ package org.airsonic.player.controller;
 import org.airsonic.player.domain.Playlist;
 import org.airsonic.player.service.PlaylistService;
 import org.airsonic.player.service.SecurityService;
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileItemFactory;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload2.core.DiskFileItem;
+import org.apache.commons.fileupload2.jakarta.JakartaServletDiskFileUpload;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +33,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.HashMap;
 import java.util.List;
@@ -62,13 +60,11 @@ public class ImportPlaylistController {
         Map<String, Object> map = new HashMap<String, Object>();
 
         try {
-            if (ServletFileUpload.isMultipartContent(request)) {
+            if (JakartaServletDiskFileUpload.isMultipartContent(request)) {
 
-                FileItemFactory factory = new DiskFileItemFactory();
-                ServletFileUpload upload = new ServletFileUpload(factory);
-                List<?> items = upload.parseRequest(request);
-                for (Object o : items) {
-                    FileItem item = (FileItem) o;
+                JakartaServletDiskFileUpload upload = new JakartaServletDiskFileUpload();
+                List<DiskFileItem> items = upload.parseRequest(request);
+                for (DiskFileItem item : items) {
 
                     if ("file".equals(item.getFieldName()) && !StringUtils.isBlank(item.getName())) {
                         if (item.getSize() > MAX_PLAYLIST_SIZE_MB * 1024L * 1024L) {

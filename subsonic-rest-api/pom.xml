@@ -16,21 +16,41 @@
             <groupId>jakarta.xml.bind</groupId>
             <artifactId>jakarta.xml.bind-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
-                <groupId>org.jvnet.jaxb2.maven2</groupId>
-                <artifactId>maven-jaxb2-plugin</artifactId>
+                <!-- cxf-xjc uses the jakarta-line XJC (JAXB 4): generated classes carry
+                     jakarta.xml.bind annotations, unlike the old jvnet jaxb2 plugin -->
+                <groupId>org.apache.cxf</groupId>
+                <artifactId>cxf-xjc-plugin</artifactId>
+                <version>4.1.0</version>
+                <configuration>
+                    <sourceRoot>${basedir}/target/generated/src/main/java</sourceRoot>
+                    <xsdOptions>
+                        <xsdOption>
+                            <xsd>${basedir}/src/main/resources/subsonic-rest-api.xsd</xsd>
+                            <packagename>org.subsonic.restapi</packagename>
+                        </xsdOption>
+                    </xsdOptions>
+                </configuration>
                 <executions>
                     <execution>
+                        <id>xjc</id>
                         <goals>
-                            <goal>generate</goal>
+                            <goal>xsdtojava</goal>
                         </goals>
+                        <phase>generate-sources</phase>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
     </build>
+
 </project>

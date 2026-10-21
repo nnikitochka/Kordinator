@@ -4,7 +4,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import org.airsonic.player.domain.TransferStatus;
 import org.springframework.core.io.Resource;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 import java.io.File;
 import java.io.FilterInputStream;

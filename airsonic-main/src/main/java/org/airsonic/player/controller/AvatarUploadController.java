@@ -24,10 +24,8 @@ import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.util.FileUtil;
 import org.airsonic.player.util.StringUtil;
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileItemFactory;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload2.core.DiskFileItem;
+import org.apache.commons.fileupload2.jakarta.JakartaServletDiskFileUpload;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -38,8 +36,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 
+import jakarta.servlet.http.HttpServletRequest;
 import javax.imageio.ImageIO;
-import javax.servlet.http.HttpServletRequest;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -75,17 +73,16 @@ public class AvatarUploadController {
         String username = securityService.getCurrentUsername(request);
 
         // Check that we have a file upload request.
-        if (!ServletFileUpload.isMultipartContent(request)) {
+        if (!JakartaServletDiskFileUpload.isMultipartContent(request)) {
             throw new Exception("Illegal request.");
         }
 
         Map<String, Object> map = new HashMap<String, Object>();
-        FileItemFactory factory = new DiskFileItemFactory();
-        ServletFileUpload upload = new ServletFileUpload(factory);
-        List<FileItem> items = upload.parseRequest(request);
+        JakartaServletDiskFileUpload upload = new JakartaServletDiskFileUpload();
+        List<DiskFileItem> items = upload.parseRequest(request);
 
         // Look for file items.
-        for (FileItem item : items) {
+        for (DiskFileItem item : items) {
             if (!item.isFormField()) {
                 String fileName = item.getName();
                 byte[] data = item.get();

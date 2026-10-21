@@ -3,7 +3,7 @@ package org.airsonic.player.io;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.PlayQueue;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 import java.io.IOException;
 import java.io.InputStream;

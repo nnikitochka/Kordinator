@@ -34,8 +34,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -80,7 +80,13 @@ public class MoreController {
             }
             return context;
         };
-        String uploadDirectory = settingsService.resolveContextualString(settingsService.getUploadsFolder(), contextSupplier);
+        String uploadsFolder = settingsService.getUploadsFolder();
+        // The default upload pattern uses the first accessible music folder. Spring 6's
+        // SpEL rejects indexing an empty list, whereas a freshly installed server has no
+        // music folders yet. Keep the page usable until the administrator creates one.
+        String uploadDirectory = musicFolders.isEmpty() && StringUtils.contains(uploadsFolder, "USER_MUSIC_FOLDERS")
+                ? ""
+                : settingsService.resolveContextualString(uploadsFolder, contextSupplier);
 
         Player player = playerService.getPlayer(request, response);
         ModelAndView result = new ModelAndView();

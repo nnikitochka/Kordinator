@@ -15,34 +15,34 @@ import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 
-import javax.servlet.AsyncContext;
-import javax.servlet.DispatcherType;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletInputStream;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpUpgradeHandler;
-import javax.servlet.http.Part;
+import jakarta.servlet.AsyncContext;
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletInputStream;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpUpgradeHandler;
+import jakarta.servlet.http.Part;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -111,32 +111,115 @@ public class WebsocketConfiguration implements WebSocketMessageBrokerConfigurer 
     }
 
     public static class WebsocketInterceptedServletRequest implements HttpServletRequest {
-        private final ServletServerHttpRequest originalRequest;
+        private final Map<String, Object> attributes;
+        private final Map<String, String[]> parameters;
+        private final Map<String, List<String>> headers;
         private final String contextPath;
+        private final String characterEncoding;
+        private final String contentType;
+        private final String protocol;
+        private final String scheme;
+        private final String serverName;
+        private final int serverPort;
+        private final String remoteAddr;
+        private final String remoteHost;
+        private final int remotePort;
+        private final String localName;
+        private final String localAddr;
+        private final int localPort;
+        private final boolean secure;
+        private final ServletContext servletContext;
+        private final Cookie[] cookies;
+        private final String authType;
+        private final String method;
+        private final String queryString;
+        private final String remoteUser;
+        private final Principal userPrincipal;
+        private final String requestedSessionId;
+        private final String requestUri;
+        private final String requestUrl;
+        private final String servletPath;
+        private final HttpSession session;
+        private final boolean requestedSessionIdValid;
+        private final boolean requestedSessionIdFromCookie;
+        private final boolean requestedSessionIdFromUrl;
 
         public WebsocketInterceptedServletRequest(ServletServerHttpRequest originalRequest, String contextPath) {
-            this.originalRequest = originalRequest;
-            this.contextPath = contextPath;
+            HttpServletRequest request = originalRequest.getServletRequest();
+            this.attributes = copyAttributes(request);
+            this.parameters = copyParameters(request);
+            this.headers = copyHeaders(originalRequest);
+            this.contextPath = StringUtils.defaultIfBlank(request.getContextPath(), contextPath);
+            this.characterEncoding = request.getCharacterEncoding();
+            this.contentType = request.getContentType();
+            this.protocol = request.getProtocol();
+            this.scheme = request.getScheme();
+            this.serverName = request.getServerName();
+            this.serverPort = request.getServerPort();
+            this.remoteAddr = request.getRemoteAddr();
+            this.remoteHost = request.getRemoteHost();
+            this.remotePort = request.getRemotePort();
+            this.localName = request.getLocalName();
+            this.localAddr = request.getLocalAddr();
+            this.localPort = request.getLocalPort();
+            this.secure = request.isSecure();
+            this.servletContext = request.getServletContext();
+            Cookie[] requestCookies = request.getCookies();
+            this.cookies = requestCookies == null ? null : requestCookies.clone();
+            this.authType = request.getAuthType();
+            this.method = request.getMethod();
+            this.queryString = request.getQueryString();
+            this.remoteUser = request.getRemoteUser();
+            this.userPrincipal = request.getUserPrincipal();
+            this.requestedSessionId = request.getRequestedSessionId();
+            this.requestUri = request.getRequestURI();
+            this.requestUrl = request.getRequestURL().toString();
+            this.servletPath = request.getServletPath();
+            // WebSocket commands still use the HTTP session to retain the selected player.
+            // Capture the session facade now; unlike the request facade it remains valid after
+            // the handshake completes.
+            this.session = request.getSession();
+            this.requestedSessionIdValid = request.isRequestedSessionIdValid();
+            this.requestedSessionIdFromCookie = request.isRequestedSessionIdFromCookie();
+            this.requestedSessionIdFromUrl = request.isRequestedSessionIdFromURL();
         }
 
-        public ServletServerHttpRequest getOriginalRequest() {
-            return originalRequest;
+        private static Map<String, Object> copyAttributes(HttpServletRequest request) {
+            Map<String, Object> snapshot = new HashMap<>();
+            Enumeration<String> names = request.getAttributeNames();
+            while (names.hasMoreElements()) {
+                String name = names.nextElement();
+                snapshot.put(name, request.getAttribute(name));
+            }
+            return snapshot;
+        }
+
+        private static Map<String, String[]> copyParameters(HttpServletRequest request) {
+            Map<String, String[]> snapshot = new LinkedHashMap<>();
+            request.getParameterMap().forEach((name, values) -> snapshot.put(name, values.clone()));
+            return snapshot;
+        }
+
+        private static Map<String, List<String>> copyHeaders(ServletServerHttpRequest request) {
+            Map<String, List<String>> snapshot = new LinkedHashMap<>();
+            request.getHeaders().forEach((name, values) -> snapshot.put(name, new ArrayList<>(values)));
+            return snapshot;
         }
 
         @Override
         public Object getAttribute(String name) {
-            return Optional.ofNullable(getOriginalRequest().getServletRequest().getAttribute(name))
-                    .orElse(getOriginalRequest().getHeaders().get(name));
+            Object attribute = attributes.get(name);
+            return attribute == null ? headers.get(name) : attribute;
         }
 
         @Override
         public Enumeration<String> getAttributeNames() {
-            return getOriginalRequest().getServletRequest().getAttributeNames();
+            return Collections.enumeration(attributes.keySet());
         }
 
         @Override
         public String getCharacterEncoding() {
-            return getOriginalRequest().getServletRequest().getCharacterEncoding();
+            return characterEncoding;
         }
 
         @Override
@@ -155,57 +238,56 @@ public class WebsocketConfiguration implements WebSocketMessageBrokerConfigurer 
 
         @Override
         public String getContentType() {
-            return getOriginalRequest().getServletRequest().getContentType();
+            return contentType;
         }
 
         @Override
         public ServletInputStream getInputStream() throws IOException {
-            return getOriginalRequest().getServletRequest().getInputStream();
+            throw new UnsupportedOperationException("WebSocket handshake request body is unavailable");
         }
 
         @Override
         public String getParameter(String name) {
-            return Optional.ofNullable(getOriginalRequest().getServletRequest().getParameter(name))
-                    .orElse(Optional.ofNullable(getOriginalRequest().getHeaders().get(name)).map(x -> x.get(0))
-                            .orElse(null));
+            String[] values = parameters.get(name);
+            return values == null || values.length == 0 ? getHeader(name) : values[0];
         }
 
         @Override
         public Enumeration<String> getParameterNames() {
-            return getOriginalRequest().getServletRequest().getParameterNames();
+            return Collections.enumeration(parameters.keySet());
         }
 
         @Override
         public String[] getParameterValues(String name) {
-            return getOriginalRequest().getServletRequest().getParameterValues(name);
+            String[] values = parameters.get(name);
+            return values == null ? null : values.clone();
         }
 
         @Override
         public Map<String, String[]> getParameterMap() {
-            return getOriginalRequest().getServletRequest().getParameterMap();
+            Map<String, String[]> snapshot = new LinkedHashMap<>();
+            parameters.forEach((name, values) -> snapshot.put(name, values.clone()));
+            return Collections.unmodifiableMap(snapshot);
         }
 
         @Override
         public String getProtocol() {
-            return getOriginalRequest().getServletRequest().getProtocol();
+            return protocol;
         }
 
         @Override
         public String getScheme() {
-            return Optional.ofNullable(getOriginalRequest().getServletRequest().getScheme())
-                    .orElse(getOriginalRequest().getURI().getScheme());
+            return scheme;
         }
 
         @Override
         public String getServerName() {
-            return Optional.ofNullable(getOriginalRequest().getServletRequest().getServerName())
-                    .orElse(getOriginalRequest().getURI().getHost());
+            return serverName;
         }
 
         @Override
         public int getServerPort() {
-            return Optional.ofNullable(getOriginalRequest().getServletRequest().getServerPort())
-                    .orElse(getOriginalRequest().getURI().getPort());
+            return serverPort;
         }
 
         @Override
@@ -213,24 +295,14 @@ public class WebsocketConfiguration implements WebSocketMessageBrokerConfigurer 
             return null;
         }
 
-        private <T> T getAddress(Supplier<T> addressSupplier, Function<URI, T> inCaseOfException) {
-            try {
-                return addressSupplier.get();
-            } catch (Exception e) {
-                return inCaseOfException.apply(getOriginalRequest().getURI());
-            }
-        }
-
         @Override
         public String getRemoteAddr() {
-            return getAddress(() -> Optional.ofNullable(getOriginalRequest().getServletRequest().getRemoteAddr())
-                    .orElse(getOriginalRequest().getRemoteAddress().getHostString()), URI::getHost);
+            return remoteAddr;
         }
 
         @Override
         public String getRemoteHost() {
-            return getAddress(() -> Optional.ofNullable(getOriginalRequest().getServletRequest().getRemoteHost())
-                    .orElse(getOriginalRequest().getRemoteAddress().getHostName()), URI::getHost);
+            return remoteHost;
         }
 
         @Override
@@ -262,7 +334,7 @@ public class WebsocketConfiguration implements WebSocketMessageBrokerConfigurer 
 
         @Override
         public boolean isSecure() {
-            return getOriginalRequest().getServletRequest().isSecure();
+            return secure;
         }
 
         @Override
@@ -271,37 +343,43 @@ public class WebsocketConfiguration implements WebSocketMessageBrokerConfigurer 
         }
 
         @Override
-        public String getRealPath(String path) {
+        public jakarta.servlet.ServletConnection getServletConnection() {
+            return null;
+        }
+
+        @Override
+        public String getProtocolRequestId() {
+            return null;
+        }
+
+        @Override
+        public String getRequestId() {
             return null;
         }
 
         @Override
         public int getRemotePort() {
-            return getAddress(() -> Optional.ofNullable(getOriginalRequest().getServletRequest().getRemotePort())
-                    .orElse(getOriginalRequest().getRemoteAddress().getPort()), URI::getPort);
+            return remotePort;
         }
 
         @Override
         public String getLocalName() {
-            return getAddress(() -> Optional.ofNullable(getOriginalRequest().getServletRequest().getLocalName())
-                    .orElse(getOriginalRequest().getLocalAddress().getHostName()), URI::getHost);
+            return localName;
         }
 
         @Override
         public String getLocalAddr() {
-            return getAddress(() -> Optional.ofNullable(getOriginalRequest().getServletRequest().getLocalAddr())
-                    .orElse(getOriginalRequest().getLocalAddress().getHostString()), URI::getHost);
+            return localAddr;
         }
 
         @Override
         public int getLocalPort() {
-            return getAddress(() -> Optional.ofNullable(getOriginalRequest().getServletRequest().getLocalPort())
-                    .orElse(getOriginalRequest().getLocalAddress().getPort()), URI::getPort);
+            return localPort;
         }
 
         @Override
         public ServletContext getServletContext() {
-            return getOriginalRequest().getServletRequest().getServletContext();
+            return servletContext;
         }
 
         @Override
@@ -337,46 +415,59 @@ public class WebsocketConfiguration implements WebSocketMessageBrokerConfigurer 
 
         @Override
         public String getAuthType() {
-            return null;
+            return authType;
         }
 
         @Override
         public Cookie[] getCookies() {
-            return getOriginalRequest().getServletRequest().getCookies();
+            return cookies == null ? null : cookies.clone();
         }
 
         @Override
         public long getDateHeader(String name) {
-            return 0;
+            return -1L;
         }
 
         @Override
         public String getHeader(String name) {
-            return Optional.ofNullable(getOriginalRequest().getServletRequest().getHeader(name)).orElse(
-                    Optional.ofNullable(getOriginalRequest().getHeaders().get(name)).map(x -> x.get(0)).orElse(null));
+            List<String> values = headers.get(name);
+            if (values == null) {
+                values = headers.entrySet().stream()
+                        .filter(entry -> entry.getKey().equalsIgnoreCase(name))
+                        .map(Map.Entry::getValue)
+                        .findFirst()
+                        .orElse(null);
+            }
+            return values == null || values.isEmpty() ? null : values.get(0);
         }
 
         @Override
         public Enumeration<String> getHeaders(String name) {
-            return Optional.ofNullable(getOriginalRequest().getServletRequest().getHeaders(name))
-                    .orElse(Collections.enumeration(getOriginalRequest().getHeaders().get(name)));
+            List<String> values = headers.get(name);
+            if (values == null) {
+                values = headers.entrySet().stream()
+                        .filter(entry -> entry.getKey().equalsIgnoreCase(name))
+                        .map(Map.Entry::getValue)
+                        .findFirst()
+                        .orElse(Collections.emptyList());
+            }
+            return Collections.enumeration(values);
         }
 
         @Override
         public Enumeration<String> getHeaderNames() {
-            return Optional.ofNullable(getOriginalRequest().getServletRequest().getHeaderNames())
-                    .orElse(Collections.enumeration(getOriginalRequest().getHeaders().keySet()));
+            return Collections.enumeration(headers.keySet());
         }
 
         @Override
         public int getIntHeader(String name) {
-            return 0;
+            String value = getHeader(name);
+            return value == null ? -1 : Integer.parseInt(value);
         }
 
         @Override
         public String getMethod() {
-            return Optional.ofNullable(getOriginalRequest().getServletRequest().getMethod())
-                    .orElse(getOriginalRequest().getMethodValue());
+            return method;
         }
 
         @Override
@@ -391,94 +482,82 @@ public class WebsocketConfiguration implements WebSocketMessageBrokerConfigurer 
 
         @Override
         public String getContextPath() {
-            return Optional
-                    .ofNullable(StringUtils.trimToNull(getOriginalRequest().getServletRequest().getContextPath()))
-                    .orElse(this.contextPath);
+            return contextPath;
         }
 
         @Override
         public String getQueryString() {
-            return Optional.ofNullable(getOriginalRequest().getServletRequest().getQueryString())
-                    .orElse(getOriginalRequest().getURI().getQuery());
+            return queryString;
         }
 
         @Override
         public String getRemoteUser() {
-            return Optional.ofNullable(getOriginalRequest().getServletRequest().getRemoteUser())
-                    .orElse(getOriginalRequest().getPrincipal().getName());
+            return remoteUser;
         }
 
         @Override
         public boolean isUserInRole(String role) {
-            return getOriginalRequest().getServletRequest().isUserInRole(role);
+            return false;
         }
 
         @Override
         public Principal getUserPrincipal() {
-            return Optional.ofNullable(getOriginalRequest().getServletRequest().getUserPrincipal())
-                    .orElse(getOriginalRequest().getPrincipal());
+            return userPrincipal;
         }
 
         @Override
         public String getRequestedSessionId() {
-            return getOriginalRequest().getServletRequest().getRequestedSessionId();
+            return requestedSessionId;
         }
 
         @Override
         public String getRequestURI() {
-            return Optional.ofNullable(getOriginalRequest().getServletRequest().getRequestURI())
-                    .orElse(getOriginalRequest().getURI().toString());
+            return requestUri;
         }
 
         @Override
         public StringBuffer getRequestURL() {
-            return getAddress(() -> getOriginalRequest().getServletRequest().getRequestURL(),
-                uri -> new StringBuffer(uri.toString()));
+            return new StringBuffer(requestUrl);
         }
 
         @Override
         public String getServletPath() {
-            return getOriginalRequest().getServletRequest().getServletPath();
+            return servletPath;
         }
 
         @Override
         public HttpSession getSession(boolean create) {
-            return getOriginalRequest().getServletRequest().getSession(create);
+            return session;
         }
 
         @Override
         public HttpSession getSession() {
-            return getOriginalRequest().getServletRequest().getSession();
+            return session;
         }
 
         @Override
         public String changeSessionId() {
-            return getOriginalRequest().getServletRequest().changeSessionId();
+            throw new UnsupportedOperationException("WebSocket handshake session cannot be changed");
         }
 
         @Override
         public boolean isRequestedSessionIdValid() {
-            return getOriginalRequest().getServletRequest().isRequestedSessionIdValid();
+            return requestedSessionIdValid;
         }
 
         @Override
         public boolean isRequestedSessionIdFromCookie() {
-            return getOriginalRequest().getServletRequest().isRequestedSessionIdFromCookie();
+            return requestedSessionIdFromCookie;
         }
 
         @Override
         public boolean isRequestedSessionIdFromURL() {
-            return getOriginalRequest().getServletRequest().isRequestedSessionIdFromURL();
-        }
-
-        @Override
-        public boolean isRequestedSessionIdFromUrl() {
-            return isRequestedSessionIdFromURL();
+            return requestedSessionIdFromUrl;
         }
 
         @Override
         public boolean authenticate(HttpServletResponse response) throws IOException, ServletException {
-            return getOriginalRequest().getServletRequest().authenticate(response);
+            throw new UnsupportedOperationException("WebSocket handshake request cannot authenticate");
         }
 
         @Override

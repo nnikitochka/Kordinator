@@ -23,7 +23,7 @@ import com.google.common.net.MediaType;
 import org.airsonic.player.controller.SubsonicRESTController.APIException;
 import org.airsonic.player.util.StringUtil;
 import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.persistence.jaxb.JAXBContext;
+import org.eclipse.persistence.jaxb.JAXBContextFactory;
 import org.eclipse.persistence.jaxb.MarshallerProperties;
 import org.jdom2.Attribute;
 import org.jdom2.Document;
@@ -34,10 +34,10 @@ import org.subsonic.restapi.ObjectFactory;
 import org.subsonic.restapi.Response;
 import org.subsonic.restapi.ResponseStatus;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Marshaller;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 
@@ -59,13 +59,16 @@ public class JAXBWriter {
 
     private static final Logger LOG = LoggerFactory.getLogger(JAXBWriter.class);
 
-    private final javax.xml.bind.JAXBContext jaxbContext;
+    private final jakarta.xml.bind.JAXBContext jaxbContext;
     private final DatatypeFactory datatypeFactory;
     private static final String restProtocolVersion = parseRESTProtocolVersion();
 
     public JAXBWriter() {
         try {
-            jaxbContext = JAXBContext.newInstance(Response.class);
+            // Deterministically use MOXy (needed for the JSON media-type properties below);
+            // don't rely on the ServiceLoader, as another jakarta JAXB provider may be on the
+            // classpath (ehcache:jakarta pulls in glassfish jaxb-runtime).
+            jaxbContext = new JAXBContextFactory().createContext(new Class[] {Response.class}, null);
             datatypeFactory = DatatypeFactory.newInstance();
         } catch (Exception x) {
             throw new RuntimeException(x);

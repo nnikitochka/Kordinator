@@ -11,7 +11,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
@@ -19,10 +18,12 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -31,6 +32,7 @@ import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.password.Pbkdf2PasswordEncoder;
 import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
@@ -38,6 +40,8 @@ import org.springframework.security.web.context.request.async.WebAsyncManagerInt
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import jakarta.servlet.DispatcherType;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -48,8 +52,8 @@ import java.util.stream.Collectors;
 import static org.airsonic.player.security.MultipleCredsMatchingAuthenticationProvider.SALT_TOKEN_MECHANISM_SPECIALIZATION;
 
 @Configuration
-@Order(SecurityProperties.BASIC_AUTH_ORDER - 2)
-@EnableGlobalMethodSecurity(securedEnabled = true, prePostEnabled = true)
+@EnableWebSecurity
+@EnableMethodSecurity(securedEnabled = true)
 public class GlobalSecurityConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(GlobalSecurityConfig.class);
@@ -63,12 +67,12 @@ public class GlobalSecurityConfig {
             .put("ldap", new org.springframework.security.crypto.password.LdapShaPasswordEncoder())
             .put("MD4", new org.springframework.security.crypto.password.Md4PasswordEncoder())
             .put("MD5", new org.springframework.security.crypto.password.MessageDigestPasswordEncoder("MD5"))
-            .put("pbkdf2", new Pbkdf2PasswordEncoder())
-            .put("scrypt", new SCryptPasswordEncoder())
+            .put("pbkdf2", new Pbkdf2PasswordEncoder("", 8, 185000, 256)) // legacy Security 5 no-arg defaults (existing hashes must keep matching)
+            .put("scrypt", new SCryptPasswordEncoder(16384, 8, 1, 32, 64)) // legacy Security 5 no-arg defaults
             .put("SHA-1", new org.springframework.security.crypto.password.MessageDigestPasswordEncoder("SHA-1"))
             .put("SHA-256", new org.springframework.security.crypto.password.MessageDigestPasswordEncoder("SHA-256"))
             .put("sha256", new org.springframework.security.crypto.password.StandardPasswordEncoder())
-            .put("argon2", new Argon2PasswordEncoder())
+            .put("argon2", new Argon2PasswordEncoder(16, 32, 1, 4096, 1)) // legacy Security 5 no-arg defaults
 
             // base decodable encoders
             .put("noop", new PasswordEncoderDecoderWrapper(org.springframework.security.crypto.password.NoOpPasswordEncoder.getInstance(), p -> p))
@@ -200,133 +204,105 @@ public class GlobalSecurityConfig {
         auth.authenticationProvider(multipleCredsProvider);
     }
 
-    @Configuration
-    @Order(1)
-    public class ExtSecurityConfiguration extends WebSecurityConfigurerAdapter {
-
-        public ExtSecurityConfiguration() {
-            super(true);
-        }
-
-        @Override
-        @Bean
-        public AuthenticationManager authenticationManagerBean() throws Exception {
-            return super.authenticationManagerBean();
-        }
-
-        @Bean(name = "jwtAuthenticationFilter")
-        public JWTRequestParameterProcessingFilter jwtAuthFilter() throws Exception {
-            return new JWTRequestParameterProcessingFilter(authenticationManager(), FAILURE_URL);
-        }
-
-        @Override
-        protected void configure(HttpSecurity http) throws Exception {
-
-            http = http.addFilter(new WebAsyncManagerIntegrationFilter());
-            http = http.addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
-
-            http
-                    .antMatcher("/ext/**")
-                    .csrf()
-                    // .disable()
-                    .requireCsrfProtectionMatcher(csrfSecurityRequestMatcher).and()
-                    .headers().frameOptions().sameOrigin().and()
-                    .authorizeRequests()
-                    .antMatchers(
-                            "/ext/stream/**",
-                            "/ext/coverArt*",
-                            "/ext/share/**",
-                            "/ext/hls/**",
-                            "/ext/captions**")
-                    .hasAnyRole("TEMP", "USER").and()
-                    .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).sessionFixation().none().and()
-                    .exceptionHandling().and()
-                    .securityContext().and()
-                    .requestCache().and()
-                    .anonymous().and()
-                    .servletApi();
-        }
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
 
-    @Configuration
+    @Bean
+    @Order(1)
+    public SecurityFilterChain extSecurityFilterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws Exception {
+        http = http.addFilter(new WebAsyncManagerIntegrationFilter());
+        http = http.addFilterBefore(
+                new JWTRequestParameterProcessingFilter(authenticationManager, FAILURE_URL),
+                UsernamePasswordAuthenticationFilter.class);
+
+        http
+                .securityMatcher("/ext/**")
+                .csrf(csrf -> csrf.requireCsrfProtectionMatcher(csrfSecurityRequestMatcher))
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(
+                                "/ext/stream/**",
+                                "/ext/coverArt*",
+                                "/ext/share/**",
+                                "/ext/hls/**",
+                                "/ext/captions**")
+                        .hasAnyRole("TEMP", "USER")
+                        .anyRequest().authenticated())
+                .sessionManagement(manager -> manager
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                        .sessionFixation().none())
+                .exceptionHandling(Customizer.withDefaults())
+                .securityContext(Customizer.withDefaults())
+                .requestCache(Customizer.withDefaults())
+                .anonymous(Customizer.withDefaults())
+                .servletApi(Customizer.withDefaults());
+        return http.build();
+    }
+
+    @Bean
     @Order(2)
-    public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
+    public SecurityFilterChain webSecurityFilterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws Exception {
+        RESTRequestParameterProcessingFilter restAuthenticationFilter = new RESTRequestParameterProcessingFilter();
+        restAuthenticationFilter.setAuthenticationManager(authenticationManager);
 
-        @Override
-        protected void configure(HttpSecurity http) throws Exception {
-            RESTRequestParameterProcessingFilter restAuthenticationFilter = new RESTRequestParameterProcessingFilter();
-            restAuthenticationFilter.setAuthenticationManager(authenticationManagerBean());
-
-            // Try to load the 'remember me' key.
-            //
-            // Note that using a fixed key compromises security as perfect
-            // forward secrecy is not guaranteed anymore.
-            //
-            // An external entity can then re-use our authentication cookies before
-            // the expiration time, or even, given enough time, recover the password
-            // from the MD5 hash.
-            //
-            // A null key means an ephemeral key is autogenerated
-            String rememberMeKey = settingsService.getRememberMeKey();
-            if (rememberMeKey != null) {
-                LOG.info("Using a fixed 'remember me' key from properties, this is insecure.");
-            }
-
-            http
-                    .cors()
-                    .and()
-                    //.addFilterBefore(restAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                    .httpBasic()
-                    .and()
-                    .addFilterAfter(restAuthenticationFilter, BasicAuthenticationFilter.class)
-                    .csrf()
-                    .requireCsrfProtectionMatcher(csrfSecurityRequestMatcher)
-                    .and()
-                    .headers()
-                    .frameOptions()
-                    .sameOrigin()
-                    .and().authorizeRequests()
-                    .antMatchers("/recover*", "/accessDenied*", "/style/**", "/icons/**", "/flash/**", "/script/**",
-                            "/login", "/error")
-                    .permitAll()
-                    .antMatchers("/personalSettings*",
-                            "/playerSettings*", "/shareSettings*", "/credentialsSettings*")
-                    .hasRole("SETTINGS")
-                    .antMatchers("/generalSettings*", "/advancedSettings*", "/userSettings*",
-                            "/musicFolderSettings*", "/databaseSettings*", "/transcodeSettings*", "/rest/startScan*")
-                    .hasRole("ADMIN")
-                    .antMatchers("/deletePlaylist*", "/savePlaylist*")
-                    .hasRole("PLAYLIST")
-                    .antMatchers("/download*")
-                    .hasRole("DOWNLOAD")
-                    .antMatchers("/upload*")
-                    .hasRole("UPLOAD")
-                    .antMatchers("/createShare*")
-                    .hasRole("SHARE")
-                    .antMatchers("/changeCoverArt*", "/editTags*")
-                    .hasRole("COVERART")
-                    .antMatchers("/setMusicFileInfo*")
-                    .hasRole("COMMENT")
-                    .antMatchers("/podcastReceiverAdmin*")
-                    .hasRole("PODCAST")
-                    .antMatchers("/**")
-                    .hasRole("USER")
-                    .anyRequest().authenticated()
-                    .and().formLogin()
-                    .loginPage("/login")
-                    .permitAll()
-                    .defaultSuccessUrl("/index", true)
-                    .failureUrl(FAILURE_URL)
-                    .usernameParameter("j_username")
-                    .passwordParameter("j_password")
-                    .and()
-                    .logout(logout -> logout
-                            .deleteCookies("JSESSIONID", "XSRF-TOKEN")
-                            .clearAuthentication(true)
-                            .invalidateHttpSession(true)
-                            .logoutSuccessUrl("/login?logout"))
-                    .rememberMe().key(rememberMeKey).userDetailsService(securityService);
+        // Try to load the 'remember me' key.
+        //
+        // Note that using a fixed key compromises security as perfect
+        // forward secrecy is not guaranteed anymore.
+        //
+        // An external entity can then re-use our authentication cookies before
+        // the expiration time, or even, given enough time, recover the password
+        // from the MD5 hash.
+        //
+        // A null key means an ephemeral key is autogenerated
+        String rememberMeKey = settingsService.getRememberMeKey();
+        if (rememberMeKey != null) {
+            LOG.info("Using a fixed 'remember me' key from properties, this is insecure.");
         }
+
+        http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .httpBasic(Customizer.withDefaults())
+                .addFilterAfter(restAuthenticationFilter, BasicAuthenticationFilter.class)
+                .csrf(csrf -> csrf.requireCsrfProtectionMatcher(csrfSecurityRequestMatcher))
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+                .authorizeHttpRequests(authorize -> authorize
+                        // Views are forwarded internally to /WEB-INF/jsp/*.jsp after the
+                        // public controller endpoint has already been authorized.
+                        .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
+                        .requestMatchers("/recover*", "/accessDenied*", "/style/**", "/icons/**", "/flash/**", "/script/**",
+                                "/login", "/error").permitAll()
+                        .requestMatchers("/personalSettings*",
+                                "/playerSettings*", "/shareSettings*", "/credentialsSettings*").hasRole("SETTINGS")
+                        .requestMatchers("/generalSettings*", "/advancedSettings*", "/userSettings*",
+                                "/musicFolderSettings*", "/databaseSettings*", "/transcodeSettings*", "/rest/startScan*").hasRole("ADMIN")
+                        .requestMatchers("/deletePlaylist*", "/savePlaylist*").hasRole("PLAYLIST")
+                        .requestMatchers("/download*").hasRole("DOWNLOAD")
+                        .requestMatchers("/upload*").hasRole("UPLOAD")
+                        .requestMatchers("/createShare*").hasRole("SHARE")
+                        .requestMatchers("/changeCoverArt*", "/editTags*").hasRole("COVERART")
+                        .requestMatchers("/setMusicFileInfo*").hasRole("COMMENT")
+                        .requestMatchers("/podcastReceiverAdmin*").hasRole("PODCAST")
+                        .requestMatchers("/**").hasRole("USER")
+                        .anyRequest().authenticated())
+                .formLogin(login -> login
+                        .loginPage("/login")
+                        .permitAll()
+                        .defaultSuccessUrl("/index", true)
+                        .failureUrl(FAILURE_URL)
+                        .usernameParameter("j_username")
+                        .passwordParameter("j_password"))
+                .logout(logout -> logout
+                        .deleteCookies("JSESSIONID", "XSRF-TOKEN")
+                        .clearAuthentication(true)
+                        .invalidateHttpSession(true)
+                        .logoutSuccessUrl("/login?logout"))
+                .rememberMe(rememberMe -> rememberMe
+                        .key(rememberMeKey)
+                        .userDetailsService(securityService));
+        return http.build();
     }
 
     @Bean
