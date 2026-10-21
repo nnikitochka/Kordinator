@@ -95,7 +95,7 @@ public final class Util {
         return result;
     }
 
-    private static ObjectMapper objectMapper = new ObjectMapper()
+    private static final ObjectMapper objectMapper = new ObjectMapper()
             .findAndRegisterModules()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -192,14 +192,20 @@ public final class Util {
     }
 
     public static Map<String, String> objectToStringMap(Object object) {
-        return objectMapper.convertValue(object, new TypeReference<Map<String, String>>() {});
+        return objectMapper.convertValue(object, new TypeReference<>() {
+        });
     }
 
     public static <T> T stringMapToObject(Class<T> clazz, Map<String, String> data) {
         return objectMapper.convertValue(data, clazz);
     }
 
-    private static Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+    private static final Validator validator;
+    static {
+        try (var factory = Validation.buildDefaultValidatorFactory()) {
+            validator = factory.getValidator();
+        }
+    }
 
     public static <T> T stringMapToValidObject(Class<T> clazz, Map<String, String> data) {
         T object = stringMapToObject(clazz, data);

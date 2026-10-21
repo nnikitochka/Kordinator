@@ -71,7 +71,7 @@ public class CredentialsManagementValidators {
                 return GlobalSecurityConfig.NONLEGACY_NONDECODABLE_ENCODERS.contains(field);
             }
 
-            return GlobalSecurityConfig.ENCODERS.keySet().contains(field);
+            return GlobalSecurityConfig.ENCODERS.containsKey(field);
         }
     }
 

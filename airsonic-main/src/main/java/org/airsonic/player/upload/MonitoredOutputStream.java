@@ -19,6 +19,8 @@
  */
 package org.airsonic.player.upload;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -28,26 +30,26 @@ import java.io.OutputStream;
  * @author Pierre-Alexandre Losson -- http://www.telio.be/blog -- plosson@users.sourceforge.net
  */
 public class MonitoredOutputStream extends OutputStream {
-    private OutputStream target;
-    private UploadListener listener;
+    private final OutputStream target;
+    private final UploadListener listener;
 
     public MonitoredOutputStream(OutputStream target, UploadListener listener) {
         this.target = target;
         this.listener = listener;
     }
 
-    public void write(byte[] b, int off, int len) throws IOException {
-        target.write(b, off, len);
+    public void write(@NotNull byte[] bytes, int off, int len) throws IOException {
+        target.write(bytes, off, len);
         listener.bytesRead(len);
     }
 
-    public void write(byte[] b) throws IOException {
-        target.write(b);
-        listener.bytesRead(b.length);
+    public void write(@NotNull byte[] bytes) throws IOException {
+        target.write(bytes);
+        listener.bytesRead(bytes.length);
     }
 
-    public void write(int b) throws IOException {
-        target.write(b);
+    public void write(int bytes) throws IOException {
+        target.write(bytes);
         listener.bytesRead(1);
     }
 

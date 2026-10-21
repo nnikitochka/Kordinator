@@ -53,7 +53,7 @@ public final class FileUtil {
         try {
             return Files.getLastModifiedTime(file).toInstant();
         } catch (IOException e) {
-            LOG.warn("Could not get file modify date for {}", file.toString(), e);
+            LOG.warn("Could not get file modify date for {}", file, e);
             return Instant.now();
         }
     }
@@ -62,7 +62,7 @@ public final class FileUtil {
         try {
             return Files.size(file);
         } catch (IOException e) {
-            LOG.warn("Could not get file size for {}", file.toString(), e);
+            LOG.warn("Could not get file size for {}", file, e);
             return 0;
         }
     }

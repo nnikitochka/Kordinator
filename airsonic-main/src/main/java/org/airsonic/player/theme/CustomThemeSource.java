@@ -21,6 +21,7 @@ package org.airsonic.player.theme;
 
 import org.airsonic.player.domain.Theme;
 import org.airsonic.player.service.SettingsService;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
@@ -41,8 +42,9 @@ public class CustomThemeSource extends ResourceBundleThemeSource {
     private SettingsService settingsService;
     private String basenamePrefix;
 
+    @NotNull
     @Override
-    protected MessageSource createMessageSource(String basename) {
+    protected MessageSource createMessageSource(@NotNull String basename) {
         ResourceBundleMessageSource messageSource = (ResourceBundleMessageSource) super.createMessageSource(basename);
 
         // Create parent theme recursively.

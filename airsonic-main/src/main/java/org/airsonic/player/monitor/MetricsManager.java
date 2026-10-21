@@ -21,7 +21,7 @@ public class MetricsManager {
     private static final MetricRegistry metrics = new MetricRegistry();
 
     private static volatile Boolean metricsActivatedByConfiguration = null;
-    private static Object _lock = new Object();
+    private static final Object _lock = new Object();
 
     // Potential metrics reporters
     private static JmxReporter reporter;

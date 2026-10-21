@@ -60,7 +60,7 @@ public class UrlTag extends BodyTagSupport {
     private String var;
     private String value;
     private String encoding = DEFAULT_ENCODING;
-    private List<Parameter> parameters = new ArrayList<Parameter>();
+    private final List<Parameter> parameters = new ArrayList<>();
 
     public int doStartTag() {
         parameters.clear();
@@ -96,14 +96,14 @@ public class UrlTag extends BodyTagSupport {
             for (int i = 0; i < parameters.size(); i++) {
                 Parameter parameter = parameters.get(i);
                 try {
-                    result.append(parameter.getName());
-                    if (isUtf8Hex() && !isAsciiAlphaNumeric(parameter.getValue())) {
+                    result.append(parameter.name());
+                    if (isUtf8Hex() && !isAsciiAlphaNumeric(parameter.value())) {
                         result.append(ParameterDecodingFilter.PARAM_SUFFIX);
                     }
 
                     result.append('=');
-                    if (parameter.getValue() != null) {
-                        result.append(encode(parameter.getValue()));
+                    if (parameter.value() != null) {
+                        result.append(encode(parameter.value()));
                     }
                     if (i < parameters.size() - 1) {
                         result.append("&");
@@ -126,7 +126,7 @@ public class UrlTag extends BodyTagSupport {
             try {
                 return StringUtil.utf8HexEncode(s);
             } catch (Exception x) {
-                LOG.error("Failed to utf8hex-encode the string '" + s + "'.", x);
+                LOG.error("Failed to utf8hex-encode the string '{}'.", s, x);
                 return s;
             }
         }
@@ -190,21 +190,6 @@ public class UrlTag extends BodyTagSupport {
     /**
      * A URL query parameter.
      */
-    private static class Parameter {
-        private String name;
-        private String value;
-
-        private Parameter(String name, String value) {
-            this.name = name;
-            this.value = value;
-        }
-
-        private String getName() {
-            return name;
-        }
-
-        private String getValue() {
-            return value;
-        }
+    private record Parameter(String name, String value) {
     }
 }

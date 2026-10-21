@@ -23,6 +23,7 @@ import org.airsonic.player.domain.Theme;
 import org.airsonic.player.domain.UserSettings;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.ThemeResolver;
@@ -112,7 +113,7 @@ public class CustomThemeResolver implements ThemeResolver {
      * @throws UnsupportedOperationException If the ThemeResolver implementation
      *                                       does not support dynamic changing of the theme
      */
-    public void setThemeName(HttpServletRequest request, HttpServletResponse response, String themeName) {
+    public void setThemeName(@NotNull HttpServletRequest request, HttpServletResponse response, String themeName) {
         throw new UnsupportedOperationException("Cannot change theme - use a different theme resolution strategy");
     }
 
