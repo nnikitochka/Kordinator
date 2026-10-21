@@ -71,7 +71,7 @@ public class MultipleCredsMatchingAuthenticationProvider extends DaoAuthenticati
         }
 
         // perform upgrade if needed for password-based auth
-        if ("".equals(encoderSpecialization) && getPasswordEncoder().upgradeEncoding("{" + matchedCred.get().getEncoder() + "}" + matchedCred.get().getCredential())) {
+        if (encoderSpecialization.isEmpty() && getPasswordEncoder().upgradeEncoding("{" + matchedCred.get().getEncoder() + "}" + matchedCred.get().getCredential())) {
             UserCredential upgraded = new UserCredential(matchedCred.get());
             upgraded.setCredential(authentication.getCredentials().toString());
             if (!securityService.updateCredentials(matchedCred.get(), upgraded, upgraded.getComment() + " | Automatically upgraded by system", true)) {

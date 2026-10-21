@@ -176,14 +176,14 @@ public class MetaData {
     }
 
     public List<Track> getAudioTracks() {
-        return this.getTracks().stream().filter(i -> i.isAudio()).collect(Collectors.toList());
+        return this.getTracks().stream().filter(Track::isAudio).collect(Collectors.toList());
     }
 
     public List<Track> getVideoTracks() {
-        return this.getTracks().stream().filter(i -> i.isVideo()).collect(Collectors.toList());
+        return this.getTracks().stream().filter(Track::isVideo).collect(Collectors.toList());
     }
 
     public List<Track> getSubtitleTracks() {
-        return this.getTracks().stream().filter(i -> i.isSubtitle()).collect(Collectors.toList());
+        return this.getTracks().stream().filter(Track::isSubtitle).collect(Collectors.toList());
     }
 }

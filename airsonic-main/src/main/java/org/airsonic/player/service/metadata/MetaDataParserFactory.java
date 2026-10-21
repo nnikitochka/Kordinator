@@ -33,7 +33,7 @@ import java.util.List;
 @Component
 public class MetaDataParserFactory {
 
-    private List<MetaDataParser> parsers;
+    private final List<MetaDataParser> parsers;
 
     @Autowired
     public MetaDataParserFactory(List<MetaDataParser> parsers) {

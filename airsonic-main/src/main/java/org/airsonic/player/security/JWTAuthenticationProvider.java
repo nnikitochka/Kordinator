@@ -36,7 +36,7 @@ public class JWTAuthenticationProvider implements AuthenticationProvider {
         this.jwtKey = jwtSignAndVerifyKey;
     }
 
-    private Map<String, List<VerificationCheck>> additionalChecks = new HashMap<>();
+    private final Map<String, List<VerificationCheck>> additionalChecks = new HashMap<>();
 
     @Override
     public Authentication authenticate(Authentication auth) throws AuthenticationException {

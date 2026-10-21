@@ -55,7 +55,7 @@ public class JWTRequestParameterProcessingFilter implements Filter {
         HttpServletResponse response = (HttpServletResponse) resp;
 
         Optional<JWTAuthenticationToken> token = findToken(request);
-        if (!token.isPresent()) {
+        if (token.isEmpty()) {
             chain.doFilter(req, resp);
             return;
         }
