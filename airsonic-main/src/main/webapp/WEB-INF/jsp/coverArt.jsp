@@ -5,7 +5,6 @@
 PARAMETERS
   albumId: ID of album.
   playlistId: ID of playlist.
-  podcastChannelId: ID of podcast channel
   coverArtSize: Height and width of cover art.
   caption1: Caption line 1
   caption2: Caption line 2
@@ -46,11 +45,6 @@ PARAMETERS
                 <c:param name="id" value="${param.playlistId}"/>
             </c:url>
         </c:if>
-        <c:if test="${not empty param.podcastChannelId}">
-            <c:url value="podcastChannel.view" var="targetUrl">
-                <c:param name="id" value="${param.podcastChannelId}"/>
-            </c:url>
-        </c:if>
 
         <c:url value="/coverArt.view" var="coverArtUrl">
             <c:if test="${not empty param.coverArtSize}">
@@ -58,9 +52,6 @@ PARAMETERS
             </c:if>
             <c:if test="${not empty param.albumId}">
                 <c:param name="id" value="${param.albumId}"/>
-            </c:if>
-            <c:if test="${not empty param.podcastChannelId}">
-                <c:param name="id" value="pod-${param.podcastChannelId}"/>
             </c:if>
             <c:if test="${not empty param.playlistId}">
                 <c:param name="id" value="pl-${param.playlistId}"/>
@@ -145,9 +136,6 @@ PARAMETERS
         </c:if>
         <c:if test="${not empty param.playlistId}">
         top.playQueue.onPlayPlaylist(${param.playlistId});
-        </c:if>
-        <c:if test="${not empty param.podcastChannelId}">
-        top.playQueue.onPlayPodcastChannel(${param.podcastChannelId});
         </c:if>
     });
     $("#${addId}").click(function () {

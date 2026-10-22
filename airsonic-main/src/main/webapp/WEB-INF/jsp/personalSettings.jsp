@@ -10,7 +10,6 @@
     <script type="text/javascript" language="javascript">
         var lastfmCredsAbsent = ${lastfmCredsAbsent};
         var listenBrainzCredsAbsent = ${listenBrainzCredsAbsent};
-        var podcastIndexCredsAbsent = ${podcastIndexCredsAbsent};
         function enableFields() {
             $("#lastFm").is(":checked") ? $(".lastFmRow").show() : $(".lastFmRow").hide();
             if (lastfmCredsAbsent) {
@@ -23,12 +22,6 @@
                 $(".listenBrainzRow .nocreds").show();
             } else {
                 $(".listenBrainzRow .nocreds").hide();
-            }
-            $("#podcastIndex").is(":checked") ? $(".podcastIndexRow").show() : $(".podcastIndexRow").hide();
-            if (podcastIndexCredsAbsent) {
-                $(".podcastIndexRow .nocreds").show();
-            } else {
-                $(".podcastIndexRow .nocreds").hide();
             }
         }
     </script>
@@ -279,23 +272,6 @@
             <td><form:input path="listenBrainzUrl" size="36"/></td>
         </tr>
         <tr id="listenBrainzStatus" class="listenBrainzRow">
-            <td></td>
-            <td colspan="2">
-              <span><fmt:message key="personalsettings.modifycredsincreds" /></span>
-              <span class="nocreds warning"><fmt:message key="personalsettings.credsnotpresent" /></span>
-            </td>
-        </tr>
-        <tr>
-            <td><form:checkbox path="podcastIndexEnabled" id="podcastIndex" cssClass="checkbox" onclick="enableFields()"/></td>
-            <td><label for="podcastIndex"><fmt:message key="personalsettings.podcastindexenabled"/></label></td>
-            <td></td>
-        </tr>
-        <tr class="podcastIndexRow">
-            <td></td>
-            <td><fmt:message key="personalsettings.podcastindexurl"/></td>
-            <td><form:input path="podcastIndexUrl" size="36"/></td>
-        </tr>
-        <tr id="podcastIndexStatus" class="podcastIndexRow">
             <td></td>
             <td colspan="2">
               <span><fmt:message key="personalsettings.modifycredsincreds" /></span>

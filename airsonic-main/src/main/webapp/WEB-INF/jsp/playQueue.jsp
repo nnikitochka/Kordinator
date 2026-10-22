@@ -877,12 +877,6 @@
         onPlayTopSong(id, index) {
             top.StompClient.send("/app/playqueues/" + this.player.id + "/play/topsongs", JSON.stringify({id: id, index: index}));
         },
-        onPlayPodcastChannel(id) {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/play/podcastchannel", JSON.stringify({id: id}));
-        },
-        onPlayPodcastEpisode(id) {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/play/podcastepisode", JSON.stringify({id: id}));
-        },
         onPlayStarred() {
             top.StompClient.send("/app/playqueues/" + this.player.id + "/play/starred", "");
         },

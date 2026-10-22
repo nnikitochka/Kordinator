@@ -28,11 +28,6 @@
                 $("#clearFullScanSettingAfterScan").prop("disabled", false);
             }
         }
-
-        function podcastEnabler(event, el) {
-            $('.podcast-enable-radio[value="false"]').prop("checked", true);
-            $(el).prop("checked", true);
-        }
     </script>
 </head>
 <body class="mainframe bgcolor1" onload="init()">
@@ -63,13 +58,7 @@
             <td><form:input path="musicFolders[${loopStatus.index}].path" style="width:90%"/></td>
             <td align="center"><span><c:out value="${folder.type}"/></span></td>
             <td align="center">
-              <c:if test="${folder.type != 'PODCAST'}">
-                <form:checkbox path="musicFolders[${loopStatus.index}].enabled" cssClass="checkbox"/>
-              </c:if>
-              <c:if test="${folder.type == 'PODCAST'}">
-                <form:radiobutton path="musicFolders[${loopStatus.index}].enabled" value="true" cssClass="podcast-enable-radio" onchange="podcastEnabler(event, this)"/>
-                <form:radiobutton path="musicFolders[${loopStatus.index}].enabled" value="false" cssClass="podcast-enable-radio" cssStyle="display:none;"/>
-              </c:if>
+              <form:checkbox path="musicFolders[${loopStatus.index}].enabled" cssClass="checkbox"/>
             </td>
             <td align="center"><form:checkbox path="musicFolders[${loopStatus.index}].delete" cssClass="checkbox"/></td>
             <td>
@@ -78,10 +67,6 @@
             </td>
         </tr>
     </c:forEach>
-
-    <tr>
-        <td colspan="6" align="left" style="padding-top:1em"><span class="detail"><fmt:message key="musicfoldersettings.podcastfoldernote"/></span></td>
-    </tr>
 
     <tr>
         <th colspan="6" align="left" style="padding-top:1em"><fmt:message key="musicfoldersettings.deleted"/></th>

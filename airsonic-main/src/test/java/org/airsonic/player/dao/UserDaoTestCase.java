@@ -45,7 +45,7 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
 
     @Test
     public void testCreateUser() {
-        User user = new User("sindre", "sindre@activeobjects.no", false, 1000L, 2000L, 3000L, Set.of(Role.ADMIN, Role.COMMENT, Role.COVERART, Role.PLAYLIST, Role.PODCAST, Role.STREAM, Role.JUKEBOX, Role.SETTINGS));
+        User user = new User("sindre", "sindre@activeobjects.no", false, 1000L, 2000L, 3000L, Set.of(Role.ADMIN, Role.COMMENT, Role.COVERART, Role.PLAYLIST, Role.STREAM, Role.JUKEBOX, Role.SETTINGS));
         UserCredential uc = new UserCredential("sindre", "sindre", "secret", "noop", App.AIRSONIC);
         userDao.createUser(user, uc);
 
@@ -89,7 +89,7 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
     @Test
     public void testUpdateUser() {
         User user = new User("sindre", null);
-        user.setRoles(Set.of(Role.ADMIN, Role.COMMENT, Role.COVERART, Role.PLAYLIST, Role.PODCAST, Role.STREAM, Role.JUKEBOX, Role.SETTINGS));
+        user.setRoles(Set.of(Role.ADMIN, Role.COMMENT, Role.COVERART, Role.PLAYLIST, Role.STREAM, Role.JUKEBOX, Role.SETTINGS));
         UserCredential uc = new UserCredential("sindre", "sindre", "secret", "noop", App.AIRSONIC);
         userDao.createUser(user, uc);
 
@@ -156,11 +156,11 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
     @Test
     public void testGetRolesForUser() {
         User user = new User("sindre", null);
-        user.setRoles(Set.of(Role.ADMIN, Role.COMMENT, Role.PODCAST, Role.STREAM, Role.SETTINGS));
+        user.setRoles(Set.of(Role.ADMIN, Role.COMMENT, Role.STREAM, Role.SETTINGS));
         userDao.createUser(user, new UserCredential("sindre", "sindre", "secret", "noop", App.AIRSONIC));
 
         Set<Role> roles = userDao.getUserByName("sindre", true).getRoles();
-        assertThat(roles).containsOnly(Role.ADMIN, Role.COMMENT, Role.PODCAST, Role.STREAM, Role.SETTINGS);
+        assertThat(roles).containsOnly(Role.ADMIN, Role.COMMENT, Role.STREAM, Role.SETTINGS);
     }
 
     @Test

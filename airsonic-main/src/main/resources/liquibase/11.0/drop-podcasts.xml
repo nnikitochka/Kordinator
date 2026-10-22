@@ -1,0 +1,44 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+    <changeSet id="remove-podcast-data" author="anon">
+        <preConditions onFail="MARK_RAN">
+            <columnExists tableName="media_file" columnName="media_type"/>
+        </preConditions>
+        <sql>
+            UPDATE media_file SET media_type='MUSIC' WHERE media_type='PODCAST';
+        </sql>
+        <rollback></rollback>
+    </changeSet>
+    <changeSet id="remove-podcast-music-folder" author="anon">
+        <preConditions onFail="MARK_RAN">
+            <columnExists tableName="music_folder" columnName="type"/>
+        </preConditions>
+        <sql>
+            DELETE FROM music_folder WHERE type='PODCAST';
+        </sql>
+        <rollback></rollback>
+    </changeSet>
+    <changeSet id="drop-podcast-episode-table" author="anon">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="podcast_episode"/>
+        </preConditions>
+        <dropTable tableName="podcast_episode" cascadeConstraints="true"/>
+        <rollback></rollback>
+    </changeSet>
+    <changeSet id="drop-podcast-channel-rules-table" author="anon">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="podcast_channel_rules"/>
+        </preConditions>
+        <dropTable tableName="podcast_channel_rules" cascadeConstraints="true"/>
+        <rollback></rollback>
+    </changeSet>
+    <changeSet id="drop-podcast-channel-table" author="anon">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="podcast_channel"/>
+        </preConditions>
+        <dropTable tableName="podcast_channel" cascadeConstraints="true"/>
+        <rollback></rollback>
+    </changeSet>
+</databaseChangeLog>

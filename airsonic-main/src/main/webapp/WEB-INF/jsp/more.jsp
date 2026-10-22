@@ -281,12 +281,6 @@
 </h2>
 <fmt:message key="more.status.text"/>
 
-<h2>
-    <img src="<spring:theme code='podcastImage'/>" alt=""/>
-    <span style="vertical-align: middle"><fmt:message key="more.podcast.title"/></span>
-</h2>
-<fmt:message key="more.podcast.text"/>
-
 <c:if test="${model.user.uploadRole}">
 
     <h2>
@@ -342,7 +336,6 @@
     </tr>
     <tr>
         <td class="more-shortcut">&#8594;</td><td class="more-shortcut-descr"><fmt:message key="more.keyboard.next"/></td>
-        <td class="more-shortcut">g <fmt:message key="more.keyboard.then"/> o</td><td class="more-shortcut-descr"><fmt:message key="more.keyboard.podcasts"/></td>
         <td class="more-shortcut">q</td><td class="more-shortcut-descr"><fmt:message key="more.keyboard.playqueue"/></td>
     </tr>
     <tr>
