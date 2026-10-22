@@ -28,7 +28,7 @@ import org.airsonic.player.domain.MusicFolder.Type;
 import org.airsonic.player.domain.PodcastChannel;
 import org.airsonic.player.domain.PodcastChannelRule;
 import org.airsonic.player.domain.PodcastEpisode;
-import org.airsonic.player.domain.PodcastExportOPML;
+import org.airsonic.player.removal.PodcastExportOPML;
 import org.airsonic.player.domain.PodcastStatus;
 import org.airsonic.player.service.metadata.MetaData;
 import org.airsonic.player.service.metadata.MetaDataParser;
