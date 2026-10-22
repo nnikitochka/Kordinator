@@ -237,9 +237,9 @@ public class DatabaseService {
             Arrays.asList("playlist", "play_queue", "internet_radio"),
             Arrays.asList("playlist_file", "playlist_user", "play_queue_file"),
             Arrays.asList("album", "artist", "genre"),
-            Arrays.asList("podcast_channel", "share"),
+            Arrays.asList("share"),
             Arrays.asList("cover_art"),
-            Arrays.asList("podcast_channel_rules", "podcast_episode", "bookmark", "share_file", "sonoslink"),
+            Arrays.asList("bookmark", "share_file", "sonoslink"),
             Arrays.asList("starred_album", "starred_artist", "starred_media_file", "user_rating", "custom_avatar"));
 
     private boolean generateChangeLog(Path fPath, Connection connection, String snapshotTypes, String author, DiffOutputControl diffOutputControl) throws Exception {

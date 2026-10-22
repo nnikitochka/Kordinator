@@ -1388,7 +1388,6 @@ public class SubsonicRESTController {
 
     @RequestMapping("/stream")
     public ResponseEntity<Resource> stream(Authentication authentication,
-            @RequestParam(required = false) Integer playlist,
             @RequestParam(required = false) String format,
             @RequestParam(required = false) String suffix,
             @RequestParam Optional<Integer> maxBitRate,
@@ -1402,7 +1401,7 @@ public class SubsonicRESTController {
             throw new APIException(ErrorCode.NOT_AUTHORIZED, user.getUsername() + " is not authorized to play files.");
         }
 
-        return streamController.handleRequest(authentication, playlist, format, suffix, maxBitRate, id, path,
+        return streamController.handleRequest(authentication, format, suffix, maxBitRate, id, path,
                 offsetSeconds, new ServletWebRequest(request, swr.getResponse()));
     }
 
@@ -1862,7 +1861,8 @@ public class SubsonicRESTController {
         result.setPlaylistRole(true);  // Since 1.8.0
         result.setCoverArtRole(user.isCoverArtRole());
         result.setCommentRole(user.isCommentRole());
-        result.setPodcastRole(user.isPodcastRole());
+        // Podcasts are not supported in this instance; the attribute is kept for API compatibility.
+        result.setPodcastRole(false);
         result.setStreamRole(user.isStreamRole());
         result.setJukeboxRole(user.isJukeboxRole());
         result.setShareRole(user.isShareRole());
@@ -1904,7 +1904,6 @@ public class SubsonicRESTController {
         command.setStreamRole(getBooleanParameter(request, "streamRole", true));
         command.setUploadRole(getBooleanParameter(request, "uploadRole", false));
         command.setJukeboxRole(getBooleanParameter(request, "jukeboxRole", false));
-        command.setPodcastRole(getBooleanParameter(request, "podcastRole", false));
         command.setSettingsRole(getBooleanParameter(request, "settingsRole", true));
         command.setShareRole(getBooleanParameter(request, "shareRole", false));
         command.setTranscodeSchemeName(TranscodeScheme.OFF.name());
@@ -1951,7 +1950,6 @@ public class SubsonicRESTController {
         command.setStreamRole(getBooleanParameter(request, "streamRole", u.isDownloadRole()));
         command.setUploadRole(getBooleanParameter(request, "uploadRole", u.isUploadRole()));
         command.setJukeboxRole(getBooleanParameter(request, "jukeboxRole", u.isJukeboxRole()));
-        command.setPodcastRole(getBooleanParameter(request, "podcastRole", u.isPodcastRole()));
         command.setSettingsRole(getBooleanParameter(request, "settingsRole", u.isSettingsRole()));
         command.setShareRole(getBooleanParameter(request, "shareRole", u.isShareRole()));
 

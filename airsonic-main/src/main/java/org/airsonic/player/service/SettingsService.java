@@ -99,10 +99,6 @@ public class SettingsService {
     private static final String KEY_TRANSCODE_ESTIMATE_BYTE_PADDING = "TranscodeEstimateBytePadding";
     private static final String KEY_DB_BACKUP_INTERVAL = "DbBackupUpdateInterval";
     private static final String KEY_DB_BACKUP_RETENTION_COUNT = "DbBackupRetentionCount";
-    private static final String KEY_PODCAST_UPDATE_INTERVAL = "PodcastUpdateInterval";
-    private static final String KEY_PODCAST_FOLDER = "PodcastFolder";
-    private static final String KEY_PODCAST_EPISODE_RETENTION_COUNT = "PodcastEpisodeRetentionCount";
-    private static final String KEY_PODCAST_EPISODE_DOWNLOAD_COUNT = "PodcastEpisodeDownloadCount";
     private static final String KEY_DOWNLOAD_BITRATE_LIMIT = "DownloadBitrateLimit";
     private static final String KEY_UPLOAD_BITRATE_LIMIT = "UploadBitrateLimit";
     private static final String KEY_DOWNSAMPLING_COMMAND = "DownsamplingCommand4";
@@ -156,7 +152,6 @@ public class SettingsService {
     private static final String KEY_DATABASE_MIGRATION_ROLLBACK_FILE = "spring.liquibase.rollback-file";
     private static final String KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH = "spring.liquibase.parameters.mysqlVarcharLimit";
     private static final String KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_MUSIC_FOLDER = "spring.liquibase.parameters.defaultMusicFolder";
-    private static final String KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_PODCAST_FOLDER = "spring.liquibase.parameters.defaultPodcastFolder";
     public static final String KEY_PROPERTIES_FILE_RETAIN_OBSOLETE_KEYS = "PropertiesFileRetainObsoleteKeys";
 
     // Default values.
@@ -165,7 +160,7 @@ public class SettingsService {
     private static final String DEFAULT_IGNORED_ARTICLES = "The El La Los Las Le Les";
     private static final String DEFAULT_UPLOADS_FOLDER = "%{['USER_MUSIC_FOLDERS'][0]}/Incoming";
     private static final String DEFAULT_GENRE_SEPARATORS = ";";
-    private static final String DEFAULT_SHORTCUTS = "New Incoming Podcast";
+    private static final String DEFAULT_SHORTCUTS = "";
     private static final String DEFAULT_PLAYLIST_FOLDER = Util.getDefaultPlaylistFolder();
     private static final String DEFAULT_MUSIC_FILE_TYPES = "mp3 ogg oga aac m4a m4b flac wav wma aif aiff ape mpc shn mka opus alm 669 mdl far xm mod fnk imf it liq wow mtm ptm rtm stm s3m ult dmf dbm med okt emod sfx m15 mtn amf gdm stx gmc psm j2b umx amd rad hsc flx gtk mgt mtp wv";
     private static final String DEFAULT_VIDEO_FILE_TYPES = "flv avi mpg mpeg mp4 m4v mkv mov wmv ogv divx m2ts webm";
@@ -198,9 +193,6 @@ public class SettingsService {
     private static final long DEFAULT_TRANSCODE_ESTIMATE_BYTE_PADDING = 0;
     private static final int DEFAULT_DB_BACKUP_INTERVAL = -1;
     private static final int DEFAULT_DB_BACKUP_RETENTION_COUNT = 2;
-    private static final int DEFAULT_PODCAST_UPDATE_INTERVAL = 24;
-    private static final int DEFAULT_PODCAST_EPISODE_RETENTION_COUNT = 10;
-    private static final int DEFAULT_PODCAST_EPISODE_DOWNLOAD_COUNT = 1;
     private static final long DEFAULT_DOWNLOAD_BITRATE_LIMIT = 0;
     private static final long DEFAULT_UPLOAD_BITRATE_LIMIT = 0;
     private static final String DEFAULT_DOWNSAMPLING_COMMAND = "ffmpeg -i %s -map 0:0 -b:a %bk -v 0 -f mp3 -";
@@ -295,8 +287,6 @@ public class SettingsService {
         keyMaps.put("database.varchar.maxlength", "DatabaseMysqlMaxlength");
         keyMaps.put("DatabaseMysqlMaxlength", KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH);
 
-        keyMaps.put(KEY_PODCAST_FOLDER, KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_PODCAST_FOLDER);
-
         keyMaps.put("airsonic.rememberMeKey", KEY_REMEMBER_ME_KEY);
         keyMaps.put("IgnoreFileTimestamps", KEY_FULL_SCAN);
 
@@ -368,9 +358,6 @@ public class SettingsService {
         }
         if (StringUtils.isBlank(env.getProperty(KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_MUSIC_FOLDER))) {
             defaultConstants.put(KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_MUSIC_FOLDER, Util.getDefaultMusicFolder());
-        }
-        if (StringUtils.isBlank(env.getProperty(KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_PODCAST_FOLDER))) {
-            defaultConstants.put(KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_PODCAST_FOLDER, Util.getDefaultPodcastFolder());
         }
         if (StringUtils.isBlank(env.getProperty(LogFile.FILE_NAME_PROPERTY))) {
             defaultConstants.put(LogFile.FILE_NAME_PROPERTY, getDefaultLogFile());
@@ -846,50 +833,6 @@ public class SettingsService {
 
     public void setDbBackupRetentionCount(int count) {
         setInt(KEY_DB_BACKUP_RETENTION_COUNT, count);
-    }
-
-    /**
-     * Returns the number of hours between Podcast updates, of -1 if automatic updates
-     * are disabled.
-     */
-    public int getPodcastUpdateInterval() {
-        return getInt(KEY_PODCAST_UPDATE_INTERVAL, DEFAULT_PODCAST_UPDATE_INTERVAL);
-    }
-
-    /**
-     * Sets the number of hours between Podcast updates, of -1 if automatic updates
-     * are disabled.
-     */
-    public void setPodcastUpdateInterval(int hours) {
-        setInt(KEY_PODCAST_UPDATE_INTERVAL, hours);
-    }
-
-    /**
-     * Returns the number of Podcast episodes to keep (-1 to keep all).
-     */
-    public int getPodcastEpisodeRetentionCount() {
-        return getInt(KEY_PODCAST_EPISODE_RETENTION_COUNT, DEFAULT_PODCAST_EPISODE_RETENTION_COUNT);
-    }
-
-    /**
-     * Sets the number of Podcast episodes to keep (-1 to keep all).
-     */
-    public void setPodcastEpisodeRetentionCount(int count) {
-        setInt(KEY_PODCAST_EPISODE_RETENTION_COUNT, count);
-    }
-
-    /**
-     * Returns the number of Podcast episodes to download (-1 to download all).
-     */
-    public int getPodcastEpisodeDownloadCount() {
-        return getInt(KEY_PODCAST_EPISODE_DOWNLOAD_COUNT, DEFAULT_PODCAST_EPISODE_DOWNLOAD_COUNT);
-    }
-
-    /**
-     * Sets the number of Podcast episodes to download (-1 to download all).
-     */
-    public void setPodcastEpisodeDownloadCount(int count) {
-        setInt(KEY_PODCAST_EPISODE_DOWNLOAD_COUNT, count);
     }
 
     /**

@@ -183,7 +183,7 @@ public class MusicFolder implements Serializable {
     }
 
     public static enum Type {
-        MEDIA, PODCAST
+        MEDIA
     }
 
 

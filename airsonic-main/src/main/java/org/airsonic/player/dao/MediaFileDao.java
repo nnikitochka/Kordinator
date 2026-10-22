@@ -93,8 +93,8 @@ public class MediaFileDao extends AbstractDao {
 
     public List<MediaFile> getSongsForAlbum(String artist, String album) {
         return query("select " + QUERY_COLUMNS + " from media_file where album_artist=? and album=? and present " +
-                     "and type in (?,?,?) order by disc_number, track_number", rowMapper,
-                     artist, album, MediaFile.MediaType.MUSIC.name(), MediaFile.MediaType.AUDIOBOOK.name(), MediaFile.MediaType.PODCAST.name());
+                     "and type in (?,?) order by disc_number, track_number", rowMapper,
+                     artist, album, MediaFile.MediaType.MUSIC.name(), MediaFile.MediaType.AUDIOBOOK.name());
     }
 
     public List<MediaFile> getVideos(final int count, final int offset, final List<MusicFolder> musicFolders) {
@@ -440,7 +440,7 @@ public class MediaFileDao extends AbstractDao {
             return Collections.emptyList();
         }
         Map<String, Object> args = new HashMap<>();
-        args.put("types", Arrays.asList(MediaFile.MediaType.MUSIC.name(), MediaFile.MediaType.PODCAST.name(), MediaFile.MediaType.AUDIOBOOK.name()));
+        args.put("types", Arrays.asList(MediaFile.MediaType.MUSIC.name(), MediaFile.MediaType.AUDIOBOOK.name()));
         args.put("genre", genre);
         args.put("count", count);
         args.put("offset", offset);
@@ -451,8 +451,8 @@ public class MediaFileDao extends AbstractDao {
 
     public List<MediaFile> getSongsByArtist(String artist, int offset, int count) {
         return query("select " + QUERY_COLUMNS
-                     + " from media_file where type in (?,?,?) and artist=? and present order by id limit ? offset ?",
-                     rowMapper, MediaFile.MediaType.MUSIC.name(), MediaFile.MediaType.PODCAST.name(), MediaFile.MediaType.AUDIOBOOK.name(), artist, count, offset);
+                     + " from media_file where type in (?,?) and artist=? and present order by id limit ? offset ?",
+                     rowMapper, MediaFile.MediaType.MUSIC.name(), MediaFile.MediaType.AUDIOBOOK.name(), artist, count, offset);
     }
 
     public MediaFile getSongByArtistAndTitle(final String artist, final String title, final List<MusicFolder> musicFolders) {
@@ -537,7 +537,7 @@ public class MediaFileDao extends AbstractDao {
             return Collections.emptyList();
         }
         Map<String, Object> args = new HashMap<>();
-        args.put("types", Arrays.asList(MediaFile.MediaType.MUSIC.name(), MediaFile.MediaType.PODCAST.name(), MediaFile.MediaType.AUDIOBOOK.name(), MediaFile.MediaType.VIDEO.name()));
+        args.put("types", Arrays.asList(MediaFile.MediaType.MUSIC.name(), MediaFile.MediaType.AUDIOBOOK.name(), MediaFile.MediaType.VIDEO.name()));
         args.put("folders", MusicFolder.toIdList(musicFolders));
         args.put("username", username);
         args.put("count", count);
@@ -764,7 +764,7 @@ public class MediaFileDao extends AbstractDao {
 
     public List<Integer> getSongExpungeCandidates() {
         return queryForInts("select id from media_file where media_file.type in (?,?,?,?) and not present",
-                MediaFile.MediaType.MUSIC.name(), MediaFile.MediaType.PODCAST.name(),
+                MediaFile.MediaType.MUSIC.name(),
                 MediaFile.MediaType.AUDIOBOOK.name(), MediaFile.MediaType.VIDEO.name());
     }
 

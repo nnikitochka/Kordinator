@@ -26,7 +26,7 @@ import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.domain.CoverArt.EntityType;
 import org.airsonic.player.domain.MediaFile.MediaType;
-import org.airsonic.player.domain.MusicFolder.Type;
+import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.metadata.JaudiotaggerParser;
 import org.airsonic.player.service.metadata.MetaData;
@@ -582,17 +582,11 @@ public class MediaFileService {
     }
 
     private MediaFile.MediaType getMediaType(MediaFile mediaFile, MusicFolder folder) {
-        if (folder.getType() == Type.PODCAST) {
-            return MediaType.PODCAST;
-        }
         if (isVideoFile(mediaFile.getFormat())) {
             return MediaFile.MediaType.VIDEO;
         }
         String path = mediaFile.getPath().toLowerCase();
         String genre = StringUtils.trimToEmpty(mediaFile.getGenre()).toLowerCase();
-        if (path.contains("podcast") || genre.contains("podcast")) {
-            return MediaFile.MediaType.PODCAST;
-        }
         if (path.contains("audiobook") || genre.contains("audiobook") || path.contains("audio book") || genre.contains("audio book")) {
             return MediaFile.MediaType.AUDIOBOOK;
         }

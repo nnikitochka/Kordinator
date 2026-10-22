@@ -74,7 +74,6 @@ public class CoverArtController implements LastModified {
     public static final String ALBUM_COVERART_PREFIX = "al-";
     public static final String ARTIST_COVERART_PREFIX = "ar-";
     public static final String PLAYLIST_COVERART_PREFIX = "pl-";
-    public static final String PODCAST_COVERART_PREFIX = "pod-";
 
     private static final Logger LOG = LoggerFactory.getLogger(CoverArtController.class);
 
@@ -88,8 +87,6 @@ public class CoverArtController implements LastModified {
     private SettingsService settingsService;
     @Autowired
     private PlaylistService playlistService;
-    @Autowired
-    private PodcastService podcastService;
     @Autowired
     private ArtistDao artistDao;
     @Autowired
@@ -161,9 +158,6 @@ public class CoverArtController implements LastModified {
         if (id.startsWith(PLAYLIST_COVERART_PREFIX)) {
             return createPlaylistCoverArtRequest(Integer.valueOf(id.replace(PLAYLIST_COVERART_PREFIX, "")));
         }
-        if (id.startsWith(PODCAST_COVERART_PREFIX)) {
-            return createPodcastCoverArtRequest(Integer.valueOf(id.replace(PODCAST_COVERART_PREFIX, "")), request);
-        }
         return createMediaFileCoverArtRequest(Integer.valueOf(id), request);
     }
 
@@ -180,17 +174,6 @@ public class CoverArtController implements LastModified {
     private PlaylistCoverArtRequest createPlaylistCoverArtRequest(int id) {
         Playlist playlist = playlistService.getPlaylist(id);
         return playlist == null ? null : new PlaylistCoverArtRequest(playlist);
-    }
-
-    private CoverArtRequest createPodcastCoverArtRequest(int id, HttpServletRequest request) {
-        PodcastChannel channel = podcastService.getChannel(id);
-        if (channel == null) {
-            return null;
-        }
-        if (channel.getMediaFileId() == null) {
-            return new PodcastCoverArtRequest(channel);
-        }
-        return createMediaFileCoverArtRequest(channel.getMediaFileId(), request);
     }
 
     private CoverArtRequest createMediaFileCoverArtRequest(int id, HttpServletRequest request) {
@@ -538,26 +521,6 @@ public class CoverArtController implements LastModified {
                     .filter(album -> album != null && !mediaFileService.isRoot(album))
                     .distinct()
                     .collect(Collectors.toList());
-        }
-    }
-
-    private class PodcastCoverArtRequest extends CoverArtRequest {
-
-        private final PodcastChannel channel;
-
-        PodcastCoverArtRequest(PodcastChannel channel) {
-            super(null, () -> PODCAST_COVERART_PREFIX + channel.getId(), () -> Instant.ofEpochMilli(-1));
-            this.channel = channel;
-        }
-
-        @Override
-        public String getAlbum() {
-            return null;
-        }
-
-        @Override
-        public String getArtist() {
-            return channel.getTitle() != null ? channel.getTitle() : channel.getUrl();
         }
     }
 

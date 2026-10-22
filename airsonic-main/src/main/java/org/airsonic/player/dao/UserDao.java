@@ -257,13 +257,17 @@ public class UserDao extends AbstractDao {
     private class UserRowMapper implements RowMapper<User> {
         @Override
         public User mapRow(ResultSet rs, int rowNum) throws SQLException {
+            // Parse roles leniently: ignore unknown role names (e.g. roles of features no longer present).
             return new User(rs.getString("username"),
                     rs.getString("email"),
                     rs.getBoolean("ldap_authenticated"),
                     rs.getLong("bytes_streamed"),
                     rs.getLong("bytes_downloaded"),
                     rs.getLong("bytes_uploaded"),
-                    Optional.ofNullable(Util.fromJson(rs.getString("roles"), new TypeReference<Set<User.Role>>() {})).orElse(Collections.emptySet()));
+                    Optional.ofNullable(Util.fromJson(rs.getString("roles"), new TypeReference<Set<String>>() {}))
+                            .orElse(Collections.emptySet()).stream()
+                            .flatMap(role -> Arrays.stream(User.Role.values()).filter(r -> r.name().equals(role)))
+                            .collect(Collectors.toSet()));
         }
     }
 

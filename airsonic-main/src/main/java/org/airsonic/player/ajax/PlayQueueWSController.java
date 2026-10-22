@@ -94,18 +94,6 @@ public class PlayQueueWSController {
         playQueueService.playTopSong(player, req.getId(), req.getIndex(), headers.getSessionId());
     }
 
-    @MessageMapping("/play/podcastchannel")
-    public void playPodcastChannel(@DestinationVariable int playerId, PlayQueueRequest req, SimpMessageHeaderAccessor headers) throws Exception {
-        Player player = getPlayer(playerId, headers);
-        playQueueService.playPodcastChannel(player, req.getId(), headers.getSessionId());
-    }
-
-    @MessageMapping("/play/podcastepisode")
-    public void playPodcastEpisode(@DestinationVariable int playerId, PlayQueueRequest req, SimpMessageHeaderAccessor headers) throws Exception {
-        Player player = getPlayer(playerId, headers);
-        playQueueService.playPodcastEpisode(player, req.getId(), headers.getSessionId());
-    }
-
     @MessageMapping("/play/starred")
     public void playStarred(@DestinationVariable int playerId, SimpMessageHeaderAccessor headers) throws Exception {
         Player player = getPlayer(playerId, headers);

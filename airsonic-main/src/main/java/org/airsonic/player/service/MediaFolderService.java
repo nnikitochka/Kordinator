@@ -168,29 +168,6 @@ public class MediaFolderService {
         clearMediaFileCache();
     }
 
-    public boolean enablePodcastFolder(int id) {
-        MusicFolder podcastFolder = getMusicFolderById(id, true, true);
-        if (podcastFolder != null && podcastFolder.getType() == Type.PODCAST) {
-            try {
-                getAllMusicFolders(true, true).stream()
-                        .filter(f -> f.getType() == Type.PODCAST)
-                        .filter(f -> !f.getId().equals(podcastFolder.getId()))
-                        .forEach(f -> {
-                            f.setEnabled(false);
-                            updateMusicFolder(f);
-                        });
-                podcastFolder.setEnabled(true);
-                updateMusicFolder(podcastFolder);
-                return true;
-            } catch (Exception e) {
-                LOG.warn("Could not enable podcast music folder id {} ({})", podcastFolder.getId(), podcastFolder.getName(), e);
-                return false;
-            }
-        }
-
-        return false;
-    }
-
     public void expunge() {
         musicFolderDao.expungeMusicFolders();
     }

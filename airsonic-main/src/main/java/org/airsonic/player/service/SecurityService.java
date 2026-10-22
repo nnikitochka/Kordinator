@@ -392,8 +392,8 @@ public class SecurityService implements UserDetailsService {
     }
 
     public boolean isWriteAllowed(Path relativePath, MusicFolder folder) {
-        // Only allowed to write podcasts or cover art.
-        return folder.isEnabled() && (folder.getType() == Type.PODCAST || relativePath.getFileName().toString().startsWith("cover."));
+        // Only allowed to write cover art.
+        return folder.isEnabled() && relativePath.getFileName().toString().startsWith("cover.");
     }
 
     /**

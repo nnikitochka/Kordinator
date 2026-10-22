@@ -187,8 +187,7 @@ public class UserCredential {
     public enum App {
         AIRSONIC("Airsonic", false, true),
         LASTFM("Last.fm", true, false),
-        LISTENBRAINZ("Listenbrainz", false, false),
-        PODCASTINDEX("Podcast Index", true, false);
+        LISTENBRAINZ("Listenbrainz", false, false);
 
         private final String name;
         private final boolean usernameRequired;

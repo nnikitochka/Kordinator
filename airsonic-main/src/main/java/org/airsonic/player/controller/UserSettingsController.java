@@ -59,7 +59,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static java.util.stream.Collectors.toSet;
+
 
 /**
  * Controller for the page used to administrate users.
@@ -203,11 +203,6 @@ public class UserSettingsController {
         }
         if (command.isCommentRole()) {
             roles.add(Role.COMMENT);
-        }
-        if (command.isPodcastRole()) {
-            roles.add(Role.PODCAST);
-            allowedMusicFolderIds.addAll(mediaFolderService.getAllMusicFolders().stream()
-                    .filter(mf -> mf.getType() == Type.PODCAST).map(mf -> mf.getId()).collect(toSet()));
         }
         if (command.isStreamRole()) {
             roles.add(Role.STREAM);
