@@ -1,5 +1,6 @@
-package org.airsonic.player.ajax;
+package org.airsonic.player.ajax.artist;
 
+import org.airsonic.player.ajax.media.MediaFileEntry;
 import org.airsonic.player.domain.ArtistBio;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
@@ -7,7 +8,6 @@ import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.LastFmService;
 import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.MediaFolderService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
@@ -60,35 +60,5 @@ public class ArtistWSController {
         return lastFmService.getSimilarArtists(artist, limit, false, musicFolders).parallelStream()
                 .map(similarArtist -> new SimilarArtist(similarArtist.getId(), similarArtist.getName()))
                 .collect(Collectors.toList());
-    }
-
-    public static class ArtistInfoRequest {
-        private int mediaFileId;
-        private int maxSimilarArtists;
-        private int maxTopSongs;
-
-        public int getMediaFileId() {
-            return mediaFileId;
-        }
-
-        public void setMediaFileId(int mediaFileId) {
-            this.mediaFileId = mediaFileId;
-        }
-
-        public int getMaxSimilarArtists() {
-            return maxSimilarArtists;
-        }
-
-        public void setMaxSimilarArtists(int maxSimilarArtists) {
-            this.maxSimilarArtists = maxSimilarArtists;
-        }
-
-        public int getMaxTopSongs() {
-            return maxTopSongs;
-        }
-
-        public void setMaxTopSongs(int maxTopSongs) {
-            this.maxTopSongs = maxTopSongs;
-        }
     }
 }

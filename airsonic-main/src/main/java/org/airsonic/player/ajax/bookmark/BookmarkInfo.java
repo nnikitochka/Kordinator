@@ -1,5 +1,7 @@
-package org.airsonic.player.ajax;
+package org.airsonic.player.ajax.bookmark;
 
+
+import org.airsonic.player.ajax.media.MediaFileEntry;
 
 import java.time.Instant;
 

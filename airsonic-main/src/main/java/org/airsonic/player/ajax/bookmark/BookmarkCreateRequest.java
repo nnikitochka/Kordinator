@@ -1,6 +1,6 @@
-package org.airsonic.player.ajax;
+package org.airsonic.player.ajax.bookmark;
 
-public class BookmarkCreateReq {
+public class BookmarkCreateRequest {
     private long positionMillis;
     private String comment;
     private int mediaFileId;

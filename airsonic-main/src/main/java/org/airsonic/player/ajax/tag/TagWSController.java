@@ -1,4 +1,4 @@
-package org.airsonic.player.ajax;
+package org.airsonic.player.ajax.tag;
 
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
@@ -12,25 +12,25 @@ import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
-
-import jakarta.validation.constraints.NotNull;
 
 @Controller
 @MessageMapping("/tags")
 public class TagWSController {
     private static final Logger LOG = LoggerFactory.getLogger(TagWSController.class);
 
-    @Autowired
     private MetaDataParserFactory metaDataParserFactory;
-    @Autowired
     private MediaFileService mediaFileService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
+    private final MediaFolderService mediaFolderService;
+
+    public TagWSController(MetaDataParserFactory metaDataParserFactory, MediaFileService mediaFileService, MediaFolderService mediaFolderService) {
+        this.metaDataParserFactory = metaDataParserFactory;
+        this.mediaFileService = mediaFileService;
+        this.mediaFolderService = mediaFolderService;
+    }
 
     /**
      * Updated tags for a given music file.
@@ -87,72 +87,5 @@ public class TagWSController {
 
     public void setMetaDataParserFactory(MetaDataParserFactory metaDataParserFactory) {
         this.metaDataParserFactory = metaDataParserFactory;
-    }
-
-    public static class TagData {
-        @NotNull
-        private Integer mediaFileId;
-        private Integer track;
-        private String artist;
-        private String album;
-        private String title;
-        private Integer year;
-        private String genre;
-
-        public Integer getMediaFileId() {
-            return mediaFileId;
-        }
-
-        public void setMediaFileId(Integer mediaFileId) {
-            this.mediaFileId = mediaFileId;
-        }
-
-        public Integer getTrack() {
-            return track;
-        }
-
-        public void setTrack(Integer track) {
-            this.track = track;
-        }
-
-        public String getArtist() {
-            return StringUtils.trimToNull(artist);
-        }
-
-        public void setArtist(String artist) {
-            this.artist = artist;
-        }
-
-        public String getAlbum() {
-            return StringUtils.trimToNull(album);
-        }
-
-        public void setAlbum(String album) {
-            this.album = album;
-        }
-
-        public String getTitle() {
-            return StringUtils.trimToNull(title);
-        }
-
-        public void setTitle(String title) {
-            this.title = title;
-        }
-
-        public Integer getYear() {
-            return year;
-        }
-
-        public void setYear(Integer year) {
-            this.year = year;
-        }
-
-        public String getGenre() {
-            return StringUtils.trimToNull(genre);
-        }
-
-        public void setGenre(String genre) {
-            this.genre = genre;
-        }
     }
 }

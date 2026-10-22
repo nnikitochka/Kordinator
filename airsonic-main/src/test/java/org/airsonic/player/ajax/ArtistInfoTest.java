@@ -1,5 +1,6 @@
 package org.airsonic.player.ajax;
 
+import org.airsonic.player.ajax.artist.ArtistInfo;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNull;

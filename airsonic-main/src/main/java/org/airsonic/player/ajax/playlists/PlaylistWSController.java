@@ -1,5 +1,6 @@
-package org.airsonic.player.ajax;
+package org.airsonic.player.ajax.playlists;
 
+import org.airsonic.player.ajax.media.MediaFileEntry;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
@@ -10,7 +11,6 @@ import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.PlayerService;
 import org.airsonic.player.service.PlaylistService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.annotation.SendToUser;
@@ -34,18 +34,21 @@ import java.util.stream.Stream;
 @Controller
 @MessageMapping("/playlists")
 public class PlaylistWSController {
-    @Autowired
     private MediaFileService mediaFileService;
-    @Autowired
     private PlaylistService playlistService;
-    @Autowired
     private MediaFileDao mediaFileDao;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
+    private final MediaFolderService mediaFolderService;
     private PlayerService playerService;
-    @Autowired
     private LocaleResolver localeResolver;
+
+    public PlaylistWSController(MediaFileService mediaFileService, PlaylistService playlistService, MediaFileDao mediaFileDao, MediaFolderService mediaFolderService, PlayerService playerService, LocaleResolver localeResolver) {
+        this.mediaFileService = mediaFileService;
+        this.playlistService = playlistService;
+        this.mediaFileDao = mediaFileDao;
+        this.mediaFolderService = mediaFolderService;
+        this.playerService = playerService;
+        this.localeResolver = localeResolver;
+    }
 
     @SubscribeMapping("/readable")
     public List<Playlist> getReadablePlaylists(Principal p) {
@@ -171,8 +174,8 @@ public class PlaylistWSController {
     public int up(PlaylistFilesModificationRequest req) {
         // in this context, modifierIds has one element that is the index of the file
         List<MediaFile> files = playlistService.getFilesInPlaylist(req.getId(), true);
-        if (req.getModifierIds().size() == 1 && req.getModifierIds().get(0) > 0) {
-            Collections.swap(files, req.getModifierIds().get(0), req.getModifierIds().get(0) - 1);
+        if (req.getModifierIds().size() == 1 && req.getModifierIds().getFirst() > 0) {
+            Collections.swap(files, req.getModifierIds().getFirst(), req.getModifierIds().getFirst() - 1);
             playlistService.setFilesInPlaylist(req.getId(), files);
         }
 
@@ -184,8 +187,8 @@ public class PlaylistWSController {
     public int down(PlaylistFilesModificationRequest req) {
         // in this context, modifierIds has one element that is the index of the file
         List<MediaFile> files = playlistService.getFilesInPlaylist(req.getId(), true);
-        if (req.getModifierIds().size() == 1 && req.getModifierIds().get(0) < files.size() - 1) {
-            Collections.swap(files, req.getModifierIds().get(0), req.getModifierIds().get(0) + 1);
+        if (req.getModifierIds().size() == 1 && req.getModifierIds().getFirst() < files.size() - 1) {
+            Collections.swap(files, req.getModifierIds().getFirst(), req.getModifierIds().getFirst() + 1);
             playlistService.setFilesInPlaylist(req.getId(), files);
         }
 
@@ -235,65 +238,5 @@ public class PlaylistWSController {
 
     public void setLocaleResolver(LocaleResolver localeResolver) {
         this.localeResolver = localeResolver;
-    }
-
-    public static class PlaylistFilesModificationRequest {
-        private int id;
-        private List<Integer> modifierIds;
-
-        public int getId() {
-            return id;
-        }
-
-        public void setId(int id) {
-            this.id = id;
-        }
-
-        public List<Integer> getModifierIds() {
-            return modifierIds;
-        }
-
-        public void setModifierIds(List<Integer> modifierIds) {
-            this.modifierIds = modifierIds;
-        }
-    }
-
-    public static class PlaylistUpdateRequest {
-        private int id;
-        private String name;
-        private String comment;
-        private boolean shared;
-
-        public int getId() {
-            return id;
-        }
-
-        public void setId(int id) {
-            this.id = id;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getComment() {
-            return comment;
-        }
-
-        public void setComment(String comment) {
-            this.comment = comment;
-        }
-
-        public boolean getShared() {
-            return shared;
-        }
-
-        public void setShared(boolean shared) {
-            this.shared = shared;
-        }
     }
 }

@@ -1,4 +1,4 @@
-package org.airsonic.player.ajax;
+package org.airsonic.player.ajax.bookmark;
 
 import org.airsonic.player.domain.Bookmark;
 import org.airsonic.player.domain.MediaFile;
@@ -10,7 +10,6 @@ import org.springframework.messaging.simp.annotation.SubscribeMapping;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -53,7 +52,7 @@ public class BookmarksWSController {
     }
 
     @MessageMapping("/set")
-    public boolean create(Principal user, BookmarkCreateReq bookmark) {
+    public boolean create(Principal user, BookmarkCreateRequest bookmark) {
         return bookmarkService.setBookmark(user.getName(), bookmark.getMediaFileId(), bookmark.getPositionMillis(), bookmark.getComment());
     }
 

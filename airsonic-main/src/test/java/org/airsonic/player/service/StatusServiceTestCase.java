@@ -19,7 +19,7 @@
  */
 package org.airsonic.player.service;
 
-import org.airsonic.player.ajax.NowPlayingInfo;
+import org.airsonic.player.ajax.playing.NowPlayingInfo;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.PlayStatus;
 import org.airsonic.player.domain.Player;

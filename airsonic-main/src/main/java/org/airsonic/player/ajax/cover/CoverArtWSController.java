@@ -1,4 +1,4 @@
-package org.airsonic.player.ajax;
+package org.airsonic.player.ajax.cover;
 
 import org.airsonic.player.domain.CoverArt.EntityType;
 import org.airsonic.player.domain.LastFmCoverArt;
@@ -17,7 +17,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
@@ -34,16 +33,19 @@ import java.util.List;
 public class CoverArtWSController {
     private static final Logger LOG = LoggerFactory.getLogger(CoverArtWSController.class);
 
-    @Autowired
     private SecurityService securityService;
-    @Autowired
     private MediaFileService mediaFileService;
-    @Autowired
     private LastFmService lastFmService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
-    private CoverArtService coverArtService;
+    private final MediaFolderService mediaFolderService;
+    private final CoverArtService coverArtService;
+
+    public CoverArtWSController(SecurityService securityService, MediaFileService mediaFileService, LastFmService lastFmService, MediaFolderService mediaFolderService, CoverArtService coverArtService) {
+        this.securityService = securityService;
+        this.mediaFileService = mediaFileService;
+        this.lastFmService = lastFmService;
+        this.mediaFolderService = mediaFolderService;
+        this.coverArtService = coverArtService;
+    }
 
     @MessageMapping("/search")
     @SendToUser(broadcast = false)
@@ -128,47 +130,5 @@ public class CoverArtWSController {
 
     public void setLastFmService(LastFmService lastFmService) {
         this.lastFmService = lastFmService;
-    }
-
-    public static class CoverArtSearchRequest {
-        private String artist;
-        private String album;
-
-        public String getArtist() {
-            return artist;
-        }
-
-        public void setArtist(String artist) {
-            this.artist = artist;
-        }
-
-        public String getAlbum() {
-            return album;
-        }
-
-        public void setAlbum(String album) {
-            this.album = album;
-        }
-    }
-
-    public static class CoverArtSetRequest {
-        private int id;
-        private String url;
-
-        public int getId() {
-            return id;
-        }
-
-        public void setId(int id) {
-            this.id = id;
-        }
-
-        public String getUrl() {
-            return url;
-        }
-
-        public void setUrl(String url) {
-            this.url = url;
-        }
     }
 }

@@ -1,5 +1,6 @@
-package org.airsonic.player.ajax
+package org.airsonic.player.ajax.artist
 
+import org.airsonic.player.ajax.media.MediaFileEntry
 import org.airsonic.player.domain.ArtistBio
 
 /**

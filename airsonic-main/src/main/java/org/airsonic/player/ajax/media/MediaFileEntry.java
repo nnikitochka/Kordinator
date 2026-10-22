@@ -1,4 +1,4 @@
-package org.airsonic.player.ajax;
+package org.airsonic.player.ajax.media;
 
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.util.StringUtil;

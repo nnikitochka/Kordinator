@@ -1,8 +1,8 @@
 package org.airsonic.player.service;
 
 import com.google.common.collect.ImmutableMap;
-import org.airsonic.player.ajax.MediaFileEntry;
-import org.airsonic.player.ajax.PlayQueueInfo;
+import org.airsonic.player.ajax.media.MediaFileEntry;
+import org.airsonic.player.ajax.queue.PlayQueueInfo;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.dao.PlayQueueDao;
 import org.airsonic.player.domain.MediaFile;

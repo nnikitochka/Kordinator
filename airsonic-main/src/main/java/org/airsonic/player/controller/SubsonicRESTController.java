@@ -20,8 +20,8 @@
 package org.airsonic.player.controller;
 
 import com.google.common.primitives.Ints;
-import org.airsonic.player.ajax.LyricsInfo;
-import org.airsonic.player.ajax.LyricsWSController;
+import org.airsonic.player.ajax.lyrics.LyricsInfo;
+import org.airsonic.player.ajax.lyrics.LyricsWSController;
 import org.airsonic.player.command.UserSettingsCommand;
 import org.airsonic.player.dao.AlbumDao;
 import org.airsonic.player.dao.ArtistDao;
@@ -44,7 +44,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;

@@ -1,4 +1,4 @@
-package org.airsonic.player.ajax;
+package org.airsonic.player.ajax.lyrics;
 
 public class LyricsInfo {
 

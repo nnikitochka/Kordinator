@@ -1,4 +1,4 @@
-package org.airsonic.player.ajax;
+package org.airsonic.player.ajax.media;
 
 import com.google.common.collect.ImmutableMap;
 import org.airsonic.player.domain.MediaFile;
@@ -8,7 +8,6 @@ import org.airsonic.player.service.RatingService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.annotation.SendToUser;
@@ -29,14 +28,17 @@ import java.util.stream.Stream;
 @Controller
 @MessageMapping("/mediafile")
 public class MediaFileWSController {
-    @Autowired
-    private MediaFileService mediaFileService;
-    @Autowired
-    private RatingService ratingService;
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private SettingsService settingsService;
+    private final MediaFileService mediaFileService;
+    private final RatingService ratingService;
+    private final SecurityService securityService;
+    private final SettingsService settingsService;
+
+    public MediaFileWSController(MediaFileService mediaFileService, RatingService ratingService, SecurityService securityService, SettingsService settingsService) {
+        this.mediaFileService = mediaFileService;
+        this.ratingService = ratingService;
+        this.securityService = securityService;
+        this.settingsService = settingsService;
+    }
 
     @MessageMapping("/directory/get")
     @SendToUser(broadcast = false)
@@ -47,7 +49,7 @@ public class MediaFileWSController {
             return ImmutableMap.of("contentType", "notFound");
         }
 
-        MediaFile dir = mediaFiles.get(0);
+        MediaFile dir = mediaFiles.getFirst();
         if (dir.isFile()) {
             dir = mediaFileService.getParentOf(dir);
         }
@@ -72,7 +74,7 @@ public class MediaFileWSController {
                 subDirs.add(child);
             }
         }
-        MediaFileDirectoryEntry entry = new MediaFileDirectoryEntry(mediaFileService.toMediaFileEntryList(Collections.singletonList(dir), user.getName(), true, true, null, null, null).get(0));
+        MediaFileDirectoryEntry entry = new MediaFileDirectoryEntry(mediaFileService.toMediaFileEntryList(Collections.singletonList(dir), user.getName(), true, true, null, null, null).getFirst());
         entry.setFiles(mediaFileService.toMediaFileEntryList(files, user.getName(), true, false, null, null, null));
         entry.setSubDirs(mediaFileService.toMediaFileEntryList(subDirs, user.getName(), false, false, null, null, null));
         entry.setAncestors(mediaFileService.toMediaFileEntryList(getAncestors(dir), user.getName(), false, false, null, null, null));
@@ -189,116 +191,8 @@ public class MediaFileWSController {
         if (!mediaFileService.isRoot(parent)) {
             List<MediaFile> siblings = mediaFileService.getChildrenOf(parent, false, true, true);
             result.addAll(siblings.stream().filter(sibling -> sibling.isAlbum() && !sibling.equals(dir))
-                    .collect(Collectors.toList()));
+                    .toList());
         }
         return result;
-    }
-
-    public static class MediaDirectoryRequest {
-        List<Integer> ids;
-        Map<Integer, List<String>> paths;
-
-        public List<Integer> getIds() {
-            return ids;
-        }
-
-        public void setIds(List<Integer> ids) {
-            this.ids = ids;
-        }
-
-        public Map<Integer, List<String>> getPaths() {
-            return paths;
-        }
-
-        public void setPaths(Map<Integer, List<String>> paths) {
-            this.paths = paths;
-        }
-
-    }
-
-    public static class MediaFileDirectoryEntry extends MediaFileEntry {
-        private List<MediaFileEntry> files;
-        private List<MediaFileEntry> subDirs;
-        private List<MediaFileEntry> ancestors;
-        private Integer userRating;
-        private Double averageRating;
-        private String comment;
-
-        // Albums only
-        private List<MediaFileEntry> siblingAlbums;
-        private String musicBrainzReleaseId;
-
-        public MediaFileDirectoryEntry(MediaFileEntry mfe) {
-            super(mfe.getId(), mfe.getTrackNumber(), mfe.getDiscNumber(), mfe.getTitle(), mfe.getArtist(),
-                    mfe.getAlbumArtist(), mfe.getAlbum(), mfe.getGenre(), mfe.getYear(), mfe.getBitRate(),
-                    mfe.getDimensions(), mfe.getDuration(), mfe.getFormat(), mfe.getContentType(), mfe.getEntryType(),
-                    mfe.getFileSize(), mfe.getPlayCount(), mfe.getLastPlayed(), mfe.getCreated(), mfe.getChanged(),
-                    mfe.getLastScanned(), mfe.getStarred(), mfe.getPresent(), mfe.getAlbumUrl(), mfe.getStreamUrl(),
-                    mfe.getRemoteStreamUrl(), mfe.getCoverArtUrl(), mfe.getRemoteCoverArtUrl(), mfe.getAccentColor());
-        }
-
-        public List<MediaFileEntry> getFiles() {
-            return files;
-        }
-
-        public void setFiles(List<MediaFileEntry> files) {
-            this.files = files;
-        }
-
-        public Integer getUserRating() {
-            return userRating;
-        }
-
-        public void setUserRating(Integer userRating) {
-            this.userRating = userRating;
-        }
-
-        public Double getAverageRating() {
-            return averageRating;
-        }
-
-        public void setAverageRating(Double averageRating) {
-            this.averageRating = averageRating;
-        }
-
-        public String getComment() {
-            return comment;
-        }
-
-        public void setComment(String comment) {
-            this.comment = comment;
-        }
-
-        public String getMusicBrainzReleaseId() {
-            return musicBrainzReleaseId;
-        }
-
-        public void setMusicBrainzReleaseId(String musicBrainzReleaseId) {
-            this.musicBrainzReleaseId = musicBrainzReleaseId;
-        }
-
-        public List<MediaFileEntry> getSubDirs() {
-            return subDirs;
-        }
-
-        public void setSubDirs(List<MediaFileEntry> subDirs) {
-            this.subDirs = subDirs;
-        }
-
-        public List<MediaFileEntry> getAncestors() {
-            return ancestors;
-        }
-
-        public void setAncestors(List<MediaFileEntry> ancestors) {
-            this.ancestors = ancestors;
-        }
-
-        public List<MediaFileEntry> getSiblingAlbums() {
-            return siblingAlbums;
-        }
-
-        public void setSiblingAlbums(List<MediaFileEntry> siblingAlbums) {
-            this.siblingAlbums = siblingAlbums;
-        }
     }
 }

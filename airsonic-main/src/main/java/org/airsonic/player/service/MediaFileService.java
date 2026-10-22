@@ -20,12 +20,11 @@
 package org.airsonic.player.service;
 
 import com.google.common.io.MoreFiles;
-import org.airsonic.player.ajax.MediaFileEntry;
+import org.airsonic.player.ajax.media.MediaFileEntry;
 import org.airsonic.player.dao.AlbumDao;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.domain.CoverArt.EntityType;
-import org.airsonic.player.domain.MediaFile.MediaType;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.metadata.JaudiotaggerParser;
