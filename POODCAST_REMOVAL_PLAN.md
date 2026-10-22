@@ -254,3 +254,27 @@
 ## 7. Следующий шаг
 
 После утверждения плана — начать **Фазу 1** (вынос REST-эндпоинтов в пакет `org.airsonic.player.removal`).
+
+## 8. Статус выполнения (итог)
+
+Все фазы выполнены. Ветка `podcast-removal`, коммиты:
+
+| Коммит | Содержание |
+|---|---|
+| `0f4d7be` | План удаления подкастов |
+| `17406ac` | Фаза 1: REST-эндпоинты вынесены в quarantine-пакет `org.airsonic.player.removal` (`PodcastRemovalController`, `PodcastExportOPML`); из `SubsonicRESTController` удалены 8 подкастных методов |
+| `56494f2` | Фаза 2: удалён бэкенд (домен, DAO, сервисы, security-роль PODCAST, App.PODCASTINDEX, настройки, `/rest/stream?playlist`, `/podcast/**`-маппинг, Stretch-ветка MediaFile/MusicFolder enum'ов); UserDao читает JSON-роли толерантно (−2836 строк) |
+| `a8841bf` | Фазы 3–5: liquibase `drop-podcasts.xml` (плюс чексуммобезопасность истории), 4 JSP удалены, UI/i18n/темы/иконки/docker/README почистены (−490 i18n-ключей), тесты обновлены, soapui-проект без getPodcasts |
+| текущий | Тест-фикс миграции: `MusicFolderDao.MusicFolderRowMapper` толерантен к неизвестному `type` (окно миграции, когда исторический `add-podcast-media-folder` ещё создаёт PODCAST-строку) |
+
+### Принятые решения в процессе
+- REST-контракт сохранён: ENDPOINты живут как заглушки (getters — пустые, mutations — `NOT_AUTHORIZED`); DTO-модуль `subsonic-rest-api` не менялся — совместимость клиентов и синтаксис JAXB не пострадали.
+- Liquibase-история не тронута (чексуммы/DATABASECHANGELOG в безопасности); удаление выполнено новым changeset'ом с `preConditions onFail="MARK_RAN"`; `AddMediaFileIdToPodcastChannels`/`AddPodcastMediaFolderUsers` сохранены — исторические changesets их исполняют.
+- Восстановление данных: `media_type='MUSIC'` для PODCAST-файлов + каскадное удаление podcast-папки (`media_file` FK `mfi_mfo_id_fk` ON DELETE CASCADE).
+
+### Критерии готовности — выполнены
+- [x] `mvn test` (subsonic-rest-api,airsonic-main): **137/137 зелёных**.
+- [x] REST-эндпоинты только в quarantine-пакете.
+- [x] Схема БД без podcast-таблиц (после миграции).
+- [x] Весь исходный код (кроме планируемых к удалению quarantine- и liquibase-истории) без упоминаний подкастов; grep по репо — только `target/`, CHANGELOG (история), план.
+
