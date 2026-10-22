@@ -38,6 +38,9 @@ public class BookmarksWSController {
     }
 
     private BookmarkInfo bookmarkToBookmarkInfo(Bookmark bookmark, String user) {
+        if (bookmark == null) {
+            return null;
+        }
         MediaFile mediaFile = mediaFileService.getMediaFile(bookmark.getMediaFileId());
         if (mediaFile == null) {
             return null;
