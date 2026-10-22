@@ -24,6 +24,7 @@ import org.airsonic.player.domain.AvatarScheme;
 import org.airsonic.player.domain.UserSettings;
 import org.airsonic.player.service.SettingsService;
 import org.apache.commons.io.IOUtils;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -51,7 +52,7 @@ public class AvatarController implements LastModified {
     private ResourceLoader loader;
 
     @Override
-    public long getLastModified(HttpServletRequest request) {
+    public long getLastModified(@NotNull HttpServletRequest request) {
         Avatar avatar = getAvatar(request);
         long result = avatar == null ? -1L : avatar.getCreatedDate().toEpochMilli();
 

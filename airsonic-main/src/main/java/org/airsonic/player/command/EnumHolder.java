@@ -25,4 +25,12 @@ package org.airsonic.player.command;
  * @author Sindre Mehus
  */
 public record EnumHolder(String name, String description) {
+    /** JavaBean-compatible accessor for JSP EL (record accessors are not prefixed with 'get'). */
+    public String getName() {
+        return name;
+    }
+    /** JavaBean-compatible accessor for JSP EL (record accessors are not prefixed with 'get'). */
+    public String getDescription() {
+        return description;
+    }
 }
