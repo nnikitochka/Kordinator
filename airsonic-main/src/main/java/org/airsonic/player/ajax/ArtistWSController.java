@@ -19,14 +19,22 @@ import java.util.stream.Collectors;
 @Controller
 @MessageMapping("/artist")
 public class ArtistWSController {
-    @Autowired
-    private MediaFileService mediaFileService;
-    @Autowired
-    private LastFmService lastFmService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
-    private LocaleResolver localeResolver;
+    private final MediaFileService mediaFileService;
+    private final LastFmService lastFmService;
+    private final MediaFolderService mediaFolderService;
+    private final LocaleResolver localeResolver;
+
+    public ArtistWSController(
+            MediaFileService mediaFileService,
+            LastFmService lastFmService,
+            MediaFolderService mediaFolderService,
+            LocaleResolver localeResolver
+    ) {
+        this.mediaFileService = mediaFileService;
+        this.lastFmService = lastFmService;
+        this.mediaFolderService = mediaFolderService;
+        this.localeResolver = localeResolver;
+    }
 
     @MessageMapping("/info")
     @SendToUser(broadcast = false)
