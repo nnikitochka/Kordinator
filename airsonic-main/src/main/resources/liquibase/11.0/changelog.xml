@@ -29,4 +29,5 @@
     <include file="explicit-fk-indices.xml" relativeToChangelogFile="true"/>
     <include file="podcast-episode-indices.xml" relativeToChangelogFile="true"/>
     <include file="drop-podcasts.xml" relativeToChangelogFile="true"/>
+    <include file="drop-internet-radio.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

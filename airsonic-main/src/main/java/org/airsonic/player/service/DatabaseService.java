@@ -234,7 +234,7 @@ public class DatabaseService {
             Arrays.asList("users", "music_folder", "transcoding", "player"),
             Arrays.asList("music_folder_user", "user_credentials", "user_settings", "player_transcoding"),
             Arrays.asList("media_file", "music_file_info"),
-            Arrays.asList("playlist", "play_queue", "internet_radio"),
+            Arrays.asList("playlist", "play_queue"),
             Arrays.asList("playlist_file", "playlist_user", "play_queue_file"),
             Arrays.asList("album", "artist", "genre"),
             Arrays.asList("share"),
