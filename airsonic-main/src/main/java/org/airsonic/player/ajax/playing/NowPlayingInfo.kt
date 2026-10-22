@@ -1,169 +1,100 @@
-package org.airsonic.player.ajax.playing;
+package org.airsonic.player.ajax.playing
 
-import org.airsonic.player.domain.AvatarScheme;
-import org.airsonic.player.domain.MediaFile;
-import org.airsonic.player.domain.PlayStatus;
-import org.airsonic.player.domain.Player;
-import org.airsonic.player.domain.UserSettings;
-import org.airsonic.player.service.SettingsService;
-import org.airsonic.player.util.StringUtil;
-import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.lang.StringUtils;
-
-import java.util.UUID;
+import org.airsonic.player.domain.AvatarScheme
+import org.airsonic.player.domain.PlayStatus
+import org.airsonic.player.service.SettingsService
+import org.airsonic.player.util.StringUtil
+import org.apache.commons.lang.StringEscapeUtils
+import org.apache.commons.lang.StringUtils
+import java.util.*
 
 /**
  * Details about what a user is currently listening to.
  */
-public class NowPlayingInfo {
-
-    private final UUID transferId;
-    private final Integer playerId;
-    private final Integer mediaFileId;
-    private final String username;
-    private final String artist;
-    private final String title;
-    private final String tooltip;
-    private final String streamUrl;
-    private final String albumUrl;
-    private final String lyricsUrl;
-    private final String coverArtUrl;
-    private final String avatarUrl;
-    private final long minutesAgo;
-    private final PlayStatus playStatus;
-
-    public NowPlayingInfo(Integer playerId, String user, String artist, String title, String tooltip, String streamUrl, String albumUrl,
-            String lyricsUrl, String coverArtUrl, String avatarUrl, long minutesAgo) {
-        this(null, playerId, null, user, artist, title, tooltip, streamUrl, albumUrl, lyricsUrl, coverArtUrl, avatarUrl,
-                minutesAgo, null);
-    }
-
-    public NowPlayingInfo(UUID transferId, Integer playerId, Integer mediaFileId, String user, String artist, String title,
-            String tooltip, String streamUrl, String albumUrl, String lyricsUrl, String coverArtUrl, String avatarUrl,
-            long minutesAgo, PlayStatus playStatus) {
-        this.transferId = transferId;
-        this.playerId = playerId;
-        this.mediaFileId = mediaFileId;
-        this.username = user;
-        this.artist = artist;
-        this.title = title;
-        this.tooltip = tooltip;
-        this.streamUrl = streamUrl;
-        this.albumUrl = albumUrl;
-        this.lyricsUrl = lyricsUrl;
-        this.coverArtUrl = coverArtUrl;
-        this.avatarUrl = avatarUrl;
-        this.minutesAgo = minutesAgo;
-        this.playStatus = playStatus;
-    }
-
-    public UUID getTransferId() {
-        return transferId;
-    }
-
-    public Integer getPlayerId() {
-        return playerId;
-    }
-
-    public Integer getMediaFileId() {
-        return mediaFileId;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public String getArtist() {
-        return artist;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getTooltip() {
-        return tooltip;
-    }
-
-    public String getStreamUrl() {
-        return streamUrl;
-    }
-
-    public String getAlbumUrl() {
-        return albumUrl;
-    }
-
-    public String getLyricsUrl() {
-        return lyricsUrl;
-    }
-
-    public String getCoverArtUrl() {
-        return coverArtUrl;
-    }
-
-    public String getAvatarUrl() {
-        return avatarUrl;
-    }
-
-    public long getMinutesAgo() {
-        return minutesAgo;
-    }
+data class NowPlayingInfo(
+    val transferId: UUID?,
+    val playerId: Int?,
+    val mediaFileId: Int?,
+    val username: String?,
+    val artist: String?,
+    val title: String?,
+    val tooltip: String?,
+    val streamUrl: String?,
+    val albumUrl: String?,
+    val lyricsUrl: String?,
+    val coverArtUrl: String?,
+    val avatarUrl: String?,
+    val minutesAgo: Long,
+    private val playStatus: PlayStatus?
+) {
+    constructor(
+        playerId: Int?,
+        user: String?,
+        artist: String?,
+        title: String?,
+        tooltip: String?,
+        streamUrl: String?,
+        albumUrl: String?,
+        lyricsUrl: String?,
+        coverArtUrl: String?,
+        avatarUrl: String?,
+        minutesAgo: Long
+    ) : this(
+        null, playerId, null, user, artist, title, tooltip, streamUrl, albumUrl, lyricsUrl, coverArtUrl, avatarUrl,
+        minutesAgo, null
+    )
 
     // deliberately do not make it a getter so it doesn't serialize
-    public PlayStatus fromPlayStatus() {
-        return playStatus;
-    }
+    fun fromPlayStatus(): PlayStatus? = playStatus
 
-    public static NowPlayingInfo createForBroadcast(PlayStatus status, SettingsService settingsService) {
-        String url = "";// NetworkService.getBaseUrl(request);
+    companion object {
+        @JvmStatic
+        fun createForBroadcast(status: PlayStatus, settingsService: SettingsService): NowPlayingInfo? {
+            val url = "" // NetworkService.getBaseUrl(request);
 
-        Player player = status.getPlayer();
-        MediaFile mediaFile = status.getMediaFile();
-        if (mediaFile == null) {
-            return null;
-        }
-        String username = player.getUsername();
-        if (username == null) {
-            return null;
-        }
-        long minutesAgo = status.getMinutesAgo();
-        if (minutesAgo > 60) {
-            return null;
-        }
-        UserSettings userSettings = settingsService.getUserSettings(username);
-        if (!userSettings.getNowPlayingAllowed()) {
-            return null;
-        }
+            val mediaFile = status.mediaFile ?: return null
 
-        String artist = mediaFile.getArtist();
-        String title = mediaFile.getTitle();
-        String streamUrl = url + "stream?player=" + player.getId() + "&id=" + mediaFile.getId();
-        String albumUrl = url + "main.view?id=" + mediaFile.getId();
-        String lyricsUrl = null;
-        if (!mediaFile.isVideo()) {
-            lyricsUrl = url + "lyrics.view?artistUtf8Hex=" + StringUtil.utf8HexEncode(artist) + "&songUtf8Hex="
-                    + StringUtil.utf8HexEncode(title);
+            val player = status.player
+            var username = player.username ?: return null
+
+            val minutesAgo = status.minutesAgo
+            if (minutesAgo > 60) return null
+
+            val userSettings = settingsService.getUserSettings(username)
+            if (!userSettings.nowPlayingAllowed) return null
+
+            var artist = mediaFile.artist
+            var title = mediaFile.title
+            val streamUrl = url + "stream?player=" + player.id + "&id=" + mediaFile.id
+            val albumUrl = url + "main.view?id=" + mediaFile.id
+            var lyricsUrl: String? = null
+            if (!mediaFile.isVideo) {
+                lyricsUrl = (url + "lyrics.view?artistUtf8Hex=" + StringUtil.utf8HexEncode(artist) + "&songUtf8Hex=" + StringUtil.utf8HexEncode(title))
+            }
+            val coverArtUrl = url + "coverArt.view?size=60&id=" + mediaFile.id
+
+            var avatarUrl: String? = null
+            if (userSettings.avatarScheme == AvatarScheme.SYSTEM) {
+                avatarUrl = url + "avatar.view?id=" + userSettings.systemAvatarId
+            } else if (userSettings.avatarScheme == AvatarScheme.CUSTOM
+                && settingsService.getCustomAvatar(username) != null
+            ) {
+                avatarUrl = url + "avatar.view?usernameUtf8Hex=" + StringUtil.utf8HexEncode(username)
+            }
+
+            val tooltip = StringEscapeUtils.escapeHtml(artist) + " &ndash; " + StringEscapeUtils.escapeHtml(title)
+
+            if (StringUtils.isNotBlank(player.name)) {
+                username += "@" + player.name
+            }
+            artist = StringEscapeUtils.escapeHtml(StringUtils.abbreviate(artist, 25))
+            title = StringEscapeUtils.escapeHtml(StringUtils.abbreviate(title, 25))
+            username = StringEscapeUtils.escapeHtml(StringUtils.abbreviate(username, 25))
+
+            return NowPlayingInfo(
+                status.transferId, player.id, mediaFile.id, username, artist, title,
+                tooltip, streamUrl, albumUrl, lyricsUrl, coverArtUrl, avatarUrl, minutesAgo, status
+            )
         }
-        String coverArtUrl = url + "coverArt.view?size=60&id=" + mediaFile.getId();
-
-        String avatarUrl = null;
-        if (userSettings.getAvatarScheme() == AvatarScheme.SYSTEM) {
-            avatarUrl = url + "avatar.view?id=" + userSettings.getSystemAvatarId();
-        } else if (userSettings.getAvatarScheme() == AvatarScheme.CUSTOM
-                && settingsService.getCustomAvatar(username) != null) {
-            avatarUrl = url + "avatar.view?usernameUtf8Hex=" + StringUtil.utf8HexEncode(username);
-        }
-
-        String tooltip = StringEscapeUtils.escapeHtml(artist) + " &ndash; " + StringEscapeUtils.escapeHtml(title);
-
-        if (StringUtils.isNotBlank(player.getName())) {
-            username += "@" + player.getName();
-        }
-        artist = StringEscapeUtils.escapeHtml(StringUtils.abbreviate(artist, 25));
-        title = StringEscapeUtils.escapeHtml(StringUtils.abbreviate(title, 25));
-        username = StringEscapeUtils.escapeHtml(StringUtils.abbreviate(username, 25));
-
-        return new NowPlayingInfo(status.getTransferId(), player.getId(), mediaFile.getId(), username, artist, title,
-                tooltip, streamUrl, albumUrl, lyricsUrl, coverArtUrl, avatarUrl, minutesAgo, status);
     }
 }

@@ -51,7 +51,8 @@ public class BookmarksWSController {
                 bookmark.getChanged(),
                 bookmark.getCreated(),
                 bookmark.getComment(),
-                bookmark.getPositionMillis());
+                bookmark.getPositionMillis()
+        );
     }
 
     @MessageMapping("/set")

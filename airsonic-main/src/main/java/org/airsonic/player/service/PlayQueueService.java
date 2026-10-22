@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -30,30 +29,33 @@ import static java.util.concurrent.CompletableFuture.runAsync;
 
 @Service
 public class PlayQueueService {
-    @Autowired
-    private JukeboxService jukeboxService;
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private MediaFileService mediaFileService;
-    @Autowired
-    private LastFmService lastFmService;
-    @Autowired
-    private SearchService searchService;
-    @Autowired
-    private RatingService ratingService;
-    @Autowired
-    private PlaylistService playlistService;
-    @Autowired
-    private MediaFileDao mediaFileDao;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
-    private PlayQueueDao playQueueDao;
-    @Autowired
-    private JWTSecurityService jwtSecurityService;
-    @Autowired
-    private SimpMessagingTemplate brokerTemplate;
+    private final JukeboxService jukeboxService;
+    private final SettingsService settingsService;
+    private final MediaFileService mediaFileService;
+    private final LastFmService lastFmService;
+    private final SearchService searchService;
+    private final RatingService ratingService;
+    private final PlaylistService playlistService;
+    private final MediaFileDao mediaFileDao;
+    private final MediaFolderService mediaFolderService;
+    private final PlayQueueDao playQueueDao;
+    private final JWTSecurityService jwtSecurityService;
+    private final SimpMessagingTemplate brokerTemplate;
+
+    public PlayQueueService(SearchService searchService, JukeboxService jukeboxService, SettingsService settingsService, MediaFileService mediaFileService, LastFmService lastFmService, RatingService ratingService, PlaylistService playlistService, MediaFileDao mediaFileDao, SimpMessagingTemplate brokerTemplate, MediaFolderService mediaFolderService, PlayQueueDao playQueueDao, JWTSecurityService jwtSecurityService) {
+        this.searchService = searchService;
+        this.jukeboxService = jukeboxService;
+        this.settingsService = settingsService;
+        this.mediaFileService = mediaFileService;
+        this.lastFmService = lastFmService;
+        this.ratingService = ratingService;
+        this.playlistService = playlistService;
+        this.mediaFileDao = mediaFileDao;
+        this.brokerTemplate = brokerTemplate;
+        this.mediaFolderService = mediaFolderService;
+        this.playQueueDao = playQueueDao;
+        this.jwtSecurityService = jwtSecurityService;
+    }
 
     public void start(Player player) {
         player.getPlayQueue().setStatus(PlayQueue.Status.PLAYING);
@@ -158,7 +160,7 @@ public class PlayQueueService {
                     songs = songs.subList(index, songs.size());
                 }
             } else {
-                songs = Arrays.asList(file);
+                songs = List.of(file);
             }
         } else {
             songs = mediaFileService.getDescendantsOf(file, true);
@@ -178,7 +180,7 @@ public class PlayQueueService {
             if (queueFollowingSongs) {
                 files = files.subList(index, files.size());
             } else {
-                files = Arrays.asList(files.get(index));
+                files = Collections.singletonList(files.get(index));
             }
         }
 
@@ -199,7 +201,7 @@ public class PlayQueueService {
             if (queueFollowingSongs) {
                 files = files.subList(index, files.size());
             } else {
-                files = Arrays.asList(files.get(index));
+                files = Collections.singletonList(files.get(index));
             }
         }
 
@@ -215,30 +217,22 @@ public class PlayQueueService {
     public void playShuffle(Player player, String albumListType, int offset, int count, String genre, String decade, String sessionId) {
         List<MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(player.getUsername(),
                 settingsService.getUserSettings(player.getUsername()).getSelectedMusicFolderId());
-        List<MediaFile> albums;
-        if ("highest".equals(albumListType)) {
-            albums = ratingService.getHighestRatedAlbums(offset, count, musicFolders);
-        } else if ("frequent".equals(albumListType)) {
-            albums = mediaFileService.getMostFrequentlyPlayedAlbums(offset, count, musicFolders);
-        } else if ("recent".equals(albumListType)) {
-            albums = mediaFileService.getMostRecentlyPlayedAlbums(offset, count, musicFolders);
-        } else if ("newest".equals(albumListType)) {
-            albums = mediaFileService.getNewestAlbums(offset, count, musicFolders);
-        } else if ("starred".equals(albumListType)) {
-            albums = mediaFileService.getStarredAlbums(offset, count, player.getUsername(), musicFolders);
-        } else if ("random".equals(albumListType)) {
-            albums = searchService.getRandomAlbums(count, musicFolders);
-        } else if ("alphabetical".equals(albumListType)) {
-            albums = mediaFileService.getAlphabeticalAlbums(offset, count, true, musicFolders);
-        } else if ("decade".equals(albumListType)) {
-            int fromYear = Integer.parseInt(decade);
-            int toYear = fromYear + 9;
-            albums = mediaFileService.getAlbumsByYear(offset, count, fromYear, toYear, musicFolders);
-        } else if ("genre".equals(albumListType)) {
-            albums = mediaFileService.getAlbumsByGenre(offset, count, genre, musicFolders);
-        } else {
-            albums = Collections.emptyList();
-        }
+        List<MediaFile> albums = switch (albumListType) {
+            case "highest" -> ratingService.getHighestRatedAlbums(offset, count, musicFolders);
+            case "frequent" -> mediaFileService.getMostFrequentlyPlayedAlbums(offset, count, musicFolders);
+            case "recent" -> mediaFileService.getMostRecentlyPlayedAlbums(offset, count, musicFolders);
+            case "newest" -> mediaFileService.getNewestAlbums(offset, count, musicFolders);
+            case "starred" -> mediaFileService.getStarredAlbums(offset, count, player.getUsername(), musicFolders);
+            case "random" -> searchService.getRandomAlbums(count, musicFolders);
+            case "alphabetical" -> mediaFileService.getAlphabeticalAlbums(offset, count, true, musicFolders);
+            case "decade" -> {
+                int fromYear = Integer.parseInt(decade);
+                int toYear = fromYear + 9;
+                yield mediaFileService.getAlbumsByYear(offset, count, fromYear, toYear, musicFolders);
+            }
+            case "genre" -> mediaFileService.getAlbumsByGenre(offset, count, genre, musicFolders);
+            case null, default -> Collections.emptyList();
+        };
 
         List<MediaFile> songs = new ArrayList<>();
         for (MediaFile album : albums) {

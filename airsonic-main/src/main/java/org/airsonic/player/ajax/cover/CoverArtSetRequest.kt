@@ -1,22 +1,6 @@
-package org.airsonic.player.ajax.cover;
+package org.airsonic.player.ajax.cover
 
-public class CoverArtSetRequest {
-    private int id;
-    private String url;
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-}
+data class CoverArtSetRequest(
+    var id: Int = 0,
+    var url: String? = null
+)
