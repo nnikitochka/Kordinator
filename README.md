@@ -22,7 +22,7 @@ Airsonic is designed to handle very large music collections (hundreds of gigabyt
 
 If you have constrained bandwidth, you may set an upper limit for the bitrate of the music streams. Airsonic will then automatically resample the music to a suitable bitrate.
 
-In addition to being a streaming media server, Airsonic works very well as a local jukebox. The intuitive web interface, as well as search and index facilities, are optimized for efficient browsing through large media libraries. Airsonic also comes with an integrated Podcast receiver, with many of the same features as you find in iTunes.
+In addition to being a streaming media server, Airsonic works very well as a local jukebox. The intuitive web interface, as well as search and index facilities, are optimized for efficient browsing through large media libraries.
 
 Written in Java, Airsonic runs on most platforms, including Windows, Mac, Linux and Unix variants.
 
@@ -88,7 +88,6 @@ The following is an incomplete list of features that are enhanced from Airsonic:
     - rar
     - 7z
     - tar
-  - Ability to export Podcasts to OPML
   - Ability to import playlists with relative file paths (resolved relative to Playlists folder)
   - Catalog multiple genres
   - Ability to specify custom log file location (via `logging.file.name` property/parameter)
@@ -143,7 +142,6 @@ Docker releases are at [DockerHub](https://hub.docker.com/r/airsonicadvanced/air
 
 Please note that for Docker images, the volume mounting points have changed and are different from Airsonic. Airsonic mount points are at `/airsonic/*` inside the container. Airsonic-Advanced tries to use the same volume locations as the default war image at `/var/*` in order to remain consistent if people want to switch between the containers and non-containers.
   - `Music:/airsonic/music` -> `Music:/var/music`
-  - `Podcasts:/airsonic/podcast` -> `Podcasts:/var/podcast`
   - `Playlists:/airsonic/playlists` -> `Playlists:/var/playlists`
   - `/airsonic/data` -> `/var/airsonic`
 

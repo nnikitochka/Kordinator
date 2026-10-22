@@ -22,8 +22,9 @@ package org.airsonic.player.dao;
 import org.airsonic.player.domain.Bookmark;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import jakarta.annotation.PostConstruct;
 
@@ -32,6 +33,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Provides database services for media file bookmarks.
@@ -43,8 +45,20 @@ public class BookmarkDao extends AbstractDao {
 
     private static final String INSERT_COLUMNS = "media_file_id, position_millis, username, comment, created, changed";
     private static final String QUERY_COLUMNS = "id, " + INSERT_COLUMNS;
+    private static final int LOCK_STRIPES = 256;
 
+    private final TransactionTemplate transactionTemplate;
+    private final ReentrantLock[] locks = new ReentrantLock[LOCK_STRIPES];
     private BookmarkRowMapper bookmarkRowMapper = new BookmarkRowMapper();
+
+    public BookmarkDao(PlatformTransactionManager transactionManager) {
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.transactionTemplate.setIsolationLevel(TransactionTemplate.ISOLATION_READ_COMMITTED);
+        this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        for (int i = 0; i < LOCK_STRIPES; i++) {
+            locks[i] = new ReentrantLock();
+        }
+    }
 
     @PostConstruct
     public void register() throws Exception {
@@ -77,25 +91,56 @@ public class BookmarkDao extends AbstractDao {
     }
 
     /**
-     * Creates or updates a bookmark.  If created, the ID of the bookmark will be set by this method.
+     * Creates or updates a bookmark.
+     *
+     * <p>Several WebSocket messages for the same bookmark may arrive at once. The
+     * operation is consequently serialized by username and media-file ID. The
+     * transaction is completed while the lock is held, so the next request sees
+     * the inserted row and updates it by primary key. Updating by primary key also
+     * avoids an HSQLDB issue when a unique-constrained column is used in an update
+     * predicate.</p>
+     *
+     * If created, the ID of the bookmark will be set by this method.
      */
-    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void createOrUpdateBookmark(Bookmark bookmark) {
-        int n = update("update bookmark set position_millis=?, comment=?, changed=? where media_file_id=? and username=?",
-                bookmark.getPositionMillis(), bookmark.getComment(), bookmark.getChanged(), bookmark.getMediaFileId(), bookmark.getUsername());
+        ReentrantLock lock = getLock(bookmark.getUsername(), bookmark.getMediaFileId());
+        lock.lock();
+        try {
+            transactionTemplate.executeWithoutResult(status -> createOrUpdateBookmarkInTransaction(bookmark));
+        } finally {
+            lock.unlock();
+        }
+    }
 
-        if (n == 0) {
+    private void createOrUpdateBookmarkInTransaction(Bookmark bookmark) {
+        Bookmark existing = getBookmark(bookmark.getUsername(), bookmark.getMediaFileId());
+        if (existing == null) {
             Integer id = insert("bookmark", bookmark);
             bookmark.setId(id);
+            return;
         }
+
+        bookmark.setId(existing.getId());
+        update("update bookmark set position_millis=?, comment=?, changed=? where id=?",
+                bookmark.getPositionMillis(), bookmark.getComment(), bookmark.getChanged(), existing.getId());
     }
 
     /**
      * Deletes the bookmark for the given username and media file.
      */
-    @Transactional
     public void deleteBookmark(String username, int mediaFileId) {
-        update("delete from bookmark where username=? and media_file_id=?", username, mediaFileId);
+        ReentrantLock lock = getLock(username, mediaFileId);
+        lock.lock();
+        try {
+            transactionTemplate.executeWithoutResult(status ->
+                    update("delete from bookmark where username=? and media_file_id=?", username, mediaFileId));
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private ReentrantLock getLock(String username, int mediaFileId) {
+        return locks[Math.floorMod(31 * mediaFileId + (username == null ? 0 : username.hashCode()), LOCK_STRIPES)];
     }
 
     private static class BookmarkRowMapper implements RowMapper<Bookmark> {

@@ -1,6 +1,5 @@
 package org.airsonic.player.spring;
 
-import org.airsonic.player.controller.PodcastController;
 import org.airsonic.player.filter.BootstrapVerificationFilter;
 import org.airsonic.player.filter.MetricsFilter;
 import org.airsonic.player.filter.ParameterDecodingFilter;
@@ -17,13 +16,11 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.servlet.ViewResolver;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import org.springframework.web.servlet.view.JstlView;
 
 import jakarta.servlet.Filter;
 
-import java.util.Properties;
 
 @Configuration
 public class ServletConfiguration implements WebMvcConfigurer {
@@ -109,7 +106,7 @@ public class ServletConfiguration implements WebMvcConfigurer {
     @Bean
     public FilterRegistrationBean<Filter> noCacheFilterRegistration() {
         FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>(noCacheFilter());
-        registration.addUrlPatterns("/statusChart.view", "/userChart.view", "/playQueue.view", "/podcastChannels.view", "/podcastChannel.view", "/help.view", "/top.view", "/home.view");
+        registration.addUrlPatterns("/statusChart.view", "/userChart.view", "/playQueue.view", "/help.view", "/top.view", "/home.view");
         registration.addInitParameter("Cache-Control", "no-cache, post-check=0, pre-check=0");
         registration.addInitParameter("Pragma", "no-cache");
         registration.addInitParameter("Expires", "Thu, 01 Dec 1994 16:00:00 GMT");
@@ -142,19 +139,6 @@ public class ServletConfiguration implements WebMvcConfigurer {
         resolver.setPrefix("/WEB-INF/jsp/");
         resolver.setSuffix(".jsp");
         return resolver;
-    }
-
-    @Bean
-    public SimpleUrlHandlerMapping podcastMapping(PodcastController podcastController) {
-        SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
-
-        mapping.setAlwaysUseFullPath(true);
-
-        Properties properties = new Properties();
-        properties.put("/podcast/**", podcastController);
-        mapping.setMappings(properties);
-
-        return mapping;
     }
 
     @Autowired

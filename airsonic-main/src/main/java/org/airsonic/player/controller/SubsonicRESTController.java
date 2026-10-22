@@ -44,7 +44,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
-import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -57,14 +56,11 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.subsonic.restapi.*;
-import org.subsonic.restapi.PodcastStatus;
-
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import javax.xml.datatype.XMLGregorianCalendar;
 
-import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -133,8 +129,6 @@ public class SubsonicRESTController {
     private JukeboxService jukeboxService;
     @Autowired
     private AudioScrobblerService audioScrobblerService;
-    @Autowired
-    private PodcastService podcastService;
     @Autowired
     private RatingService ratingService;
     @Autowired
@@ -1299,9 +1293,6 @@ public class SubsonicRESTController {
                 case MUSIC:
                     child.setType(org.subsonic.restapi.MediaType.MUSIC);
                     break;
-                case PODCAST:
-                    child.setType(org.subsonic.restapi.MediaType.PODCAST);
-                    break;
                 case AUDIOBOOK:
                     child.setType(org.subsonic.restapi.MediaType.AUDIOBOOK);
                     break;
@@ -1397,7 +1388,6 @@ public class SubsonicRESTController {
 
     @RequestMapping("/stream")
     public ResponseEntity<Resource> stream(Authentication authentication,
-            @RequestParam(required = false) Integer playlist,
             @RequestParam(required = false) String format,
             @RequestParam(required = false) String suffix,
             @RequestParam Optional<Integer> maxBitRate,
@@ -1411,7 +1401,7 @@ public class SubsonicRESTController {
             throw new APIException(ErrorCode.NOT_AUTHORIZED, user.getUsername() + " is not authorized to play files.");
         }
 
-        return streamController.handleRequest(authentication, playlist, format, suffix, maxBitRate, id, path,
+        return streamController.handleRequest(authentication, format, suffix, maxBitRate, id, path,
                 offsetSeconds, new ServletWebRequest(request, swr.getResponse()));
     }
 
@@ -1556,172 +1546,6 @@ public class SubsonicRESTController {
         Response res = createResponse();
         res.setStarred2(result);
         jaxbWriter.writeResponse(request, response, res);
-    }
-
-    @RequestMapping("/getPodcasts")
-    public void getPodcasts(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        Player player = playerService.getPlayer(request, response);
-        String username = securityService.getCurrentUsername(request);
-        boolean includeEpisodes = getBooleanParameter(request, "includeEpisodes", true);
-        Integer channelId = getIntParameter(request, "id");
-
-        Podcasts result = new Podcasts();
-
-        for (org.airsonic.player.domain.PodcastChannel channel : podcastService.getAllChannels()) {
-            if (channelId == null || channelId.equals(channel.getId())) {
-
-                org.subsonic.restapi.PodcastChannel c = new org.subsonic.restapi.PodcastChannel();
-                result.getChannel().add(c);
-
-                c.setId(String.valueOf(channel.getId()));
-                c.setUrl(channel.getUrl());
-                c.setStatus(PodcastStatus.valueOf(channel.getStatus().name()));
-                c.setTitle(channel.getTitle());
-                c.setDescription(channel.getDescription());
-                c.setCoverArt(CoverArtController.PODCAST_COVERART_PREFIX + channel.getId());
-                c.setOriginalImageUrl(channel.getImageUrl());
-                c.setErrorMessage(channel.getErrorMessage());
-
-                if (includeEpisodes) {
-                    List<org.airsonic.player.domain.PodcastEpisode> episodes = podcastService.getEpisodes(channel.getId());
-                    for (org.airsonic.player.domain.PodcastEpisode episode : episodes) {
-                        c.getEpisode().add(createJaxbPodcastEpisode(player, username, episode));
-                    }
-                }
-            }
-        }
-        Response res = createResponse();
-        res.setPodcasts(result);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
-    @RequestMapping("/getNewestPodcasts")
-    public void getNewestPodcasts(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        Player player = playerService.getPlayer(request, response);
-        String username = securityService.getCurrentUsername(request);
-
-        int count = getIntParameter(request, "count", 20);
-        NewestPodcasts result = new NewestPodcasts();
-
-        for (org.airsonic.player.domain.PodcastEpisode episode : podcastService.getNewestEpisodes(count)) {
-            result.getEpisode().add(createJaxbPodcastEpisode(player, username, episode));
-        }
-
-        Response res = createResponse();
-        res.setNewestPodcasts(result);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
-    private org.subsonic.restapi.PodcastEpisode createJaxbPodcastEpisode(Player player, String username, org.airsonic.player.domain.PodcastEpisode episode) {
-        org.subsonic.restapi.PodcastEpisode e = new org.subsonic.restapi.PodcastEpisode();
-
-        if (episode.getMediaFileId() != null) {
-            MediaFile mediaFile = mediaFileService.getMediaFile(episode.getMediaFileId());
-            e = createJaxbChild(new org.subsonic.restapi.PodcastEpisode(), player, mediaFile, username);
-            e.setStreamId(String.valueOf(mediaFile.getId()));
-        }
-
-        e.setId(String.valueOf(episode.getId()));  // Overwrites the previous "id" attribute.
-        e.setChannelId(String.valueOf(episode.getChannelId()));
-        e.setStatus(PodcastStatus.valueOf(episode.getStatus().name()));
-        e.setTitle(episode.getTitle());
-        e.setDescription(episode.getDescription());
-        e.setPublishDate(jaxbWriter.convertDate(episode.getPublishDate()));
-        return e;
-    }
-
-    @RequestMapping("/refreshPodcasts")
-    public void refreshPodcasts(HttpServletRequest request, HttpServletResponse response) {
-        request = wrapRequest(request);
-        org.airsonic.player.domain.User user = securityService.getCurrentUser(request);
-        if (!user.isPodcastRole()) {
-            error(request, response, ErrorCode.NOT_AUTHORIZED, user.getUsername() + " is not authorized to administrate podcasts.");
-            return;
-        }
-        podcastService.refreshAllChannels(true);
-        writeEmptyResponse(request, response);
-    }
-
-    @RequestMapping("/createPodcastChannel")
-    public void createPodcastChannel(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        org.airsonic.player.domain.User user = securityService.getCurrentUser(request);
-        if (!user.isPodcastRole()) {
-            error(request, response, ErrorCode.NOT_AUTHORIZED, user.getUsername() + " is not authorized to administrate podcasts.");
-            return;
-        }
-
-        String url = getRequiredStringParameter(request, "url");
-        podcastService.createChannel(url);
-        writeEmptyResponse(request, response);
-    }
-
-    @RequestMapping("/deletePodcastChannel")
-    public void deletePodcastChannel(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        org.airsonic.player.domain.User user = securityService.getCurrentUser(request);
-        if (!user.isPodcastRole()) {
-            error(request, response, ErrorCode.NOT_AUTHORIZED, user.getUsername() + " is not authorized to administrate podcasts.");
-            return;
-        }
-
-        int id = getRequiredIntParameter(request, "id");
-        podcastService.deleteChannel(id);
-        writeEmptyResponse(request, response);
-    }
-
-    @RequestMapping("/deletePodcastEpisode")
-    public void deletePodcastEpisode(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        org.airsonic.player.domain.User user = securityService.getCurrentUser(request);
-        if (!user.isPodcastRole()) {
-            error(request, response, ErrorCode.NOT_AUTHORIZED, user.getUsername() + " is not authorized to administrate podcasts.");
-            return;
-        }
-
-        int id = getRequiredIntParameter(request, "id");
-        podcastService.deleteEpisode(id, true);
-        writeEmptyResponse(request, response);
-    }
-
-    @RequestMapping("/downloadPodcastEpisode")
-    public void downloadPodcastEpisode(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        org.airsonic.player.domain.User user = securityService.getCurrentUser(request);
-        if (!user.isPodcastRole()) {
-            error(request, response, ErrorCode.NOT_AUTHORIZED, user.getUsername() + " is not authorized to administrate podcasts.");
-            return;
-        }
-
-        int id = getRequiredIntParameter(request, "id");
-        org.airsonic.player.domain.PodcastEpisode episode = podcastService.getEpisode(id, true);
-        if (episode == null) {
-            error(request, response, ErrorCode.NOT_FOUND, "Podcast episode " + id + " not found.");
-            return;
-        }
-
-        podcastService.downloadEpisode(episode);
-        writeEmptyResponse(request, response);
-    }
-
-    @RequestMapping("/exportPodcasts/opml")
-    public ResponseEntity<PodcastExportOPML> exportPodcastOPML(HttpServletRequest request, HttpServletResponse response)
-            throws Exception {
-        request = wrapRequest(request);
-        org.airsonic.player.domain.User user = securityService.getCurrentUser(request);
-        if (!user.isPodcastRole()) {
-            error(request, response, ErrorCode.NOT_AUTHORIZED,
-                    user.getUsername() + " is not authorized to administrate podcasts.");
-            return null;
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentDisposition(ContentDisposition.builder("attachment").filename("airsonic.opml", StandardCharsets.UTF_8).build());
-        headers.setContentType(org.springframework.http.MediaType.APPLICATION_XML);
-
-        return ResponseEntity.ok().headers(headers).body(podcastService.export(podcastService.getAllChannels()));
     }
 
     @RequestMapping("/getBookmarks")
@@ -2037,7 +1861,8 @@ public class SubsonicRESTController {
         result.setPlaylistRole(true);  // Since 1.8.0
         result.setCoverArtRole(user.isCoverArtRole());
         result.setCommentRole(user.isCommentRole());
-        result.setPodcastRole(user.isPodcastRole());
+        // Podcasts are not supported in this instance; the attribute is kept for API compatibility.
+        result.setPodcastRole(false);
         result.setStreamRole(user.isStreamRole());
         result.setJukeboxRole(user.isJukeboxRole());
         result.setShareRole(user.isShareRole());
@@ -2079,7 +1904,6 @@ public class SubsonicRESTController {
         command.setStreamRole(getBooleanParameter(request, "streamRole", true));
         command.setUploadRole(getBooleanParameter(request, "uploadRole", false));
         command.setJukeboxRole(getBooleanParameter(request, "jukeboxRole", false));
-        command.setPodcastRole(getBooleanParameter(request, "podcastRole", false));
         command.setSettingsRole(getBooleanParameter(request, "settingsRole", true));
         command.setShareRole(getBooleanParameter(request, "shareRole", false));
         command.setTranscodeSchemeName(TranscodeScheme.OFF.name());
@@ -2126,7 +1950,6 @@ public class SubsonicRESTController {
         command.setStreamRole(getBooleanParameter(request, "streamRole", u.isDownloadRole()));
         command.setUploadRole(getBooleanParameter(request, "uploadRole", u.isUploadRole()));
         command.setJukeboxRole(getBooleanParameter(request, "jukeboxRole", u.isJukeboxRole()));
-        command.setPodcastRole(getBooleanParameter(request, "podcastRole", u.isPodcastRole()));
         command.setSettingsRole(getBooleanParameter(request, "settingsRole", u.isSettingsRole()));
         command.setShareRole(getBooleanParameter(request, "shareRole", u.isShareRole()));
 

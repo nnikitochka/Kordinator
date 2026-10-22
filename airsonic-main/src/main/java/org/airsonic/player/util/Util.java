@@ -63,11 +63,6 @@ public final class Util {
         return System.getProperty("airsonic.defaultMusicFolder", def);
     }
 
-    public static String getDefaultPodcastFolder() {
-        String def = isWindows() ? "c:\\podcast" : "/var/podcast";
-        return System.getProperty("airsonic.defaultPodcastFolder", def);
-    }
-
     public static String getDefaultPlaylistFolder() {
         String def = isWindows() ? "c:\\playlists" : "/var/playlists";
         return System.getProperty("airsonic.defaultPlaylistFolder", def);

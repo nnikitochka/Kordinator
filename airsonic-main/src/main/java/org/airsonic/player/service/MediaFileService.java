@@ -26,7 +26,7 @@ import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.domain.CoverArt.EntityType;
 import org.airsonic.player.domain.MediaFile.MediaType;
-import org.airsonic.player.domain.MusicFolder.Type;
+import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.metadata.JaudiotaggerParser;
 import org.airsonic.player.service.metadata.MetaData;
@@ -171,9 +171,25 @@ public class MediaFileService {
     }
 
     private MediaFile checkLastModified(MediaFile mediaFile, MusicFolder folder, boolean minimizeDiskAccess) {
-        if (minimizeDiskAccess || (mediaFile.getVersion() >= MediaFileDao.VERSION
+        if (minimizeDiskAccess) {
+            return mediaFile;
+        }
+
+        // If the file has disappeared from disk, mark the db row absent immediately instead of
+        // going through FileUtil.lastModified (which pollutes the log with a stacktrace on every
+        // access). The row is then expunged at the next scan.
+        if (Files.notExists(mediaFile.getFullPath(folder.getPath()))) {
+            LOG.info("Marking media file (id {}, path {} in folder {}) as absent since it no longer exists on disk",
+                    mediaFile.getId(), mediaFile.getPath(), folder.getName());
+            mediaFile.setPresent(false);
+            mediaFile.setChildrenLastUpdated(Instant.ofEpochMilli(1));
+            updateMediaFile(mediaFile);
+            return mediaFile;
+        }
+
+        if (mediaFile.getVersion() >= MediaFileDao.VERSION
                 && !settingsService.getFullScan()
-                && mediaFile.getChanged().compareTo(FileUtil.lastModified(mediaFile.getFullPath(folder.getPath()))) > -1)) {
+                && mediaFile.getChanged().compareTo(FileUtil.lastModified(mediaFile.getFullPath(folder.getPath()))) > -1) {
             LOG.debug("Detected unmodified file (id {}, path {} in folder {} ({}))", mediaFile.getId(), mediaFile.getPath(), folder.getId(), folder.getName());
             return mediaFile;
         }
@@ -582,17 +598,11 @@ public class MediaFileService {
     }
 
     private MediaFile.MediaType getMediaType(MediaFile mediaFile, MusicFolder folder) {
-        if (folder.getType() == Type.PODCAST) {
-            return MediaType.PODCAST;
-        }
         if (isVideoFile(mediaFile.getFormat())) {
             return MediaFile.MediaType.VIDEO;
         }
         String path = mediaFile.getPath().toLowerCase();
         String genre = StringUtils.trimToEmpty(mediaFile.getGenre()).toLowerCase();
-        if (path.contains("podcast") || genre.contains("podcast")) {
-            return MediaFile.MediaType.PODCAST;
-        }
         if (path.contains("audiobook") || genre.contains("audiobook") || path.contains("audio book") || genre.contains("audio book")) {
             return MediaFile.MediaType.AUDIOBOOK;
         }

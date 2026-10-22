@@ -56,8 +56,6 @@ public class PersonalSettingsCommand {
     private boolean lastFmEnabled;
     private boolean listenBrainzEnabled;
     private String listenBrainzUrl;
-    private boolean podcastIndexEnabled;
-    private String podcastIndexUrl;
     private int paginationSizeFiles;
     private int paginationSizeFolders;
     private int paginationSizePlayqueue;
@@ -266,22 +264,6 @@ public class PersonalSettingsCommand {
 
     public void setListenBrainzUrl(String listenBrainzUrl) {
         this.listenBrainzUrl = listenBrainzUrl;
-    }
-
-    public boolean getPodcastIndexEnabled() {
-        return podcastIndexEnabled;
-    }
-
-    public void setPodcastIndexEnabled(boolean podcastIndexEnabled) {
-        this.podcastIndexEnabled = podcastIndexEnabled;
-    }
-
-    public String getPodcastIndexUrl() {
-        return podcastIndexUrl;
-    }
-
-    public void setPodcastIndexUrl(String podcastIndexUrl) {
-        this.podcastIndexUrl = podcastIndexUrl;
     }
 
     public boolean isQueueFollowingSongs() {

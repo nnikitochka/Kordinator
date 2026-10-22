@@ -1017,9 +1017,6 @@
             case "wikipedia":
                 url = 'https://en.wikipedia.org/wiki/Special:Search?go=Go&search=' + encodeURIComponent('"' + mediaDir.album + '"');
                 break;
-            case "allmusic":
-                url = 'https://www.allmusic.com/search/albums/' + encodeURIComponent('"' + mediaDir.artist + '" "' + mediaDir.album + '"');
-                break;
             case "lastfm":
                 url = 'https://www.last.fm/search?type=album&q=' + encodeURIComponent('"' + mediaDir.artist + '" "' + mediaDir.album + '"');
                 break;
@@ -1119,7 +1116,6 @@
 
         <span class="header external-search"><fmt:message key="top.search"/>: <a href="#" onclick="searchExternally('google')">Google</a> |</span>
         <span class="header external-search"><a href="#" onclick="searchExternally('wikipedia')">Wikipedia</a> |</span>
-        <span class="header external-search"><a href="#" onclick="searchExternally('allmusic')">allmusic</a> |</span>
         <span class="header external-search"><a href="#" onclick="searchExternally('lastfm')">Last.fm</a> |</span>
         <span class="header external-search"><a href="#" onclick="searchExternally('discogs')">Discogs</a> |</span>
         <span class="header external-search musicbrainz"><a href="#" onclick="searchExternally('musicbrainz')">MusicBrainz</a> |</span>

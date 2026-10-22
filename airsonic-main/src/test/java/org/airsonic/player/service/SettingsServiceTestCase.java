@@ -88,9 +88,6 @@ public class SettingsServiceTestCase {
         assertEquals("Wrong default index creation hour.", 3, settingsService.getIndexCreationHour());
         assertTrue("Wrong default playlist folder.", settingsService.getPlaylistFolder().endsWith("playlists"));
         assertEquals("Wrong default theme.", "default", settingsService.getThemeId());
-        assertEquals("Wrong default Podcast episode retention count.", 10, settingsService.getPodcastEpisodeRetentionCount());
-        assertEquals("Wrong default Podcast episode download count.", 1, settingsService.getPodcastEpisodeDownloadCount());
-        assertEquals("Wrong default Podcast update interval.", 24, settingsService.getPodcastUpdateInterval());
         assertEquals("Wrong default LDAP enabled.", false, settingsService.isLdapEnabled());
         assertEquals("Wrong default LDAP URL.", "ldap://host.domain.com:389/cn=Users,dc=domain,dc=com", settingsService.getLdapUrl());
         assertNull("Wrong default LDAP manager DN.", settingsService.getLdapManagerDn());
@@ -115,9 +112,6 @@ public class SettingsServiceTestCase {
         settingsService.setThemeId("dark");
         settingsService.setIndexCreationInterval(4);
         settingsService.setIndexCreationHour(9);
-        settingsService.setPodcastEpisodeRetentionCount(5);
-        settingsService.setPodcastEpisodeDownloadCount(-1);
-        settingsService.setPodcastUpdateInterval(-1);
         settingsService.setLdapEnabled(true);
         settingsService.setLdapUrl("newLdapUrl");
         settingsService.setLdapManagerDn("admin");
@@ -151,9 +145,6 @@ public class SettingsServiceTestCase {
         assertEquals("Wrong theme.", "dark", ss.getThemeId());
         assertEquals("Wrong index creation interval.", 4, ss.getIndexCreationInterval());
         assertEquals("Wrong index creation hour.", 9, ss.getIndexCreationHour());
-        assertEquals("Wrong Podcast episode retention count.", 5, settingsService.getPodcastEpisodeRetentionCount());
-        assertEquals("Wrong Podcast episode download count.", -1, settingsService.getPodcastEpisodeDownloadCount());
-        assertEquals("Wrong Podcast update interval.", -1, settingsService.getPodcastUpdateInterval());
         assertTrue("Wrong LDAP enabled.", settingsService.isLdapEnabled());
         assertEquals("Wrong LDAP URL.", "newLdapUrl", settingsService.getLdapUrl());
         assertEquals("Wrong LDAP manager DN.", "admin", settingsService.getLdapManagerDn());

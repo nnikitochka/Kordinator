@@ -285,7 +285,6 @@ public class GlobalSecurityConfig {
                         .requestMatchers("/createShare*").hasRole("SHARE")
                         .requestMatchers("/changeCoverArt*", "/editTags*").hasRole("COVERART")
                         .requestMatchers("/setMusicFileInfo*").hasRole("COMMENT")
-                        .requestMatchers("/podcastReceiverAdmin*").hasRole("PODCAST")
                         .requestMatchers("/**").hasRole("USER")
                         .anyRequest().authenticated())
                 .formLogin(login -> login

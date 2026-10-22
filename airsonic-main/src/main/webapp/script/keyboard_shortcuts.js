@@ -12,7 +12,6 @@ if (top.keyboardShortcutsEnabled) {
 
   Mousetrap.bind('g h', function() { parent.frames.main.location.href = "home.view?"; });
   Mousetrap.bind('g p', function() { parent.frames.main.location.href = "playlists.view?"; });
-  Mousetrap.bind('g o', function() { parent.frames.main.location.href = "podcastChannels.view?"; });
   Mousetrap.bind('g s', function() { parent.frames.main.location.href = "settings.view?"; });
   Mousetrap.bind('g b', function() { parent.frames.main.location.href = "bookmarks.view?"; });
   Mousetrap.bind('g t', function() { parent.frames.main.location.href = "starred.view?"; });

@@ -64,20 +64,31 @@ public class RandomPlayQueueController {
             ModelMap model,
             HttpServletRequest request,
             HttpServletResponse response,
-            @RequestParam("size") Integer size,
-            @RequestParam(value = "genre", required = false) String genre,
-            @RequestParam(value = "year", required = false) String year,
-            @RequestParam(value = "songRating", required = false) String songRating,
-            @RequestParam(value = "lastPlayedValue", required = false) String lastPlayedValue,
-            @RequestParam(value = "lastPlayedComp", required = false) String lastPlayedComp,
-            @RequestParam(value = "albumRatingValue", required = false) Integer albumRatingValue,
-            @RequestParam(value = "albumRatingComp", required = false) String albumRatingComp,
-            @RequestParam(value = "playCountValue", required = false) Integer playCountValue,
-            @RequestParam(value = "playCountComp", required = false) String playCountComp,
-            @RequestParam(value = "format", required = false) String format,
-            @RequestParam(value = "autoRandom", required = false) String autoRandom
+            @RequestParam("size")
+            Integer size,
+            @RequestParam(value = "genre", required = false)
+            String genre,
+            @RequestParam(value = "year", required = false)
+            String year,
+            @RequestParam(value = "songRating", required = false)
+            String songRating,
+            @RequestParam(value = "lastPlayedValue", required = false)
+            String lastPlayedValue,
+            @RequestParam(value = "lastPlayedComp", required = false)
+            String lastPlayedComp,
+            @RequestParam(value = "albumRatingValue", required = false)
+            Integer albumRatingValue,
+            @RequestParam(value = "albumRatingComp", required = false)
+            String albumRatingComp,
+            @RequestParam(value = "playCountValue", required = false)
+            Integer playCountValue,
+            @RequestParam(value = "playCountComp", required = false)
+            String playCountComp,
+            @RequestParam(value = "format", required = false)
+            String format,
+            @RequestParam(value = "autoRandom", required = false)
+            String autoRandom
     ) throws Exception {
-
         Integer fromYear = null;
         Integer toYear = null;
         Integer minAlbumRating = null;
@@ -111,9 +122,7 @@ public class RandomPlayQueueController {
             doesShowUnstarredSongs = true;
         } else if (StringUtils.equalsIgnoreCase("starred", songRating)) {
             doesShowStarredSongs = true;
-            doesShowUnstarredSongs = false;
         } else if (StringUtils.equalsIgnoreCase("unstarred", songRating)) {
-            doesShowStarredSongs = false;
             doesShowUnstarredSongs = true;
         }
 
@@ -144,68 +153,56 @@ public class RandomPlayQueueController {
         }
 
         if (lastPlayed != null) {
-            switch (lastPlayedComp) {
-                case "lt":
-                    minLastPlayedDate = null;
-                    maxLastPlayedDate = lastPlayed;
-                    break;
-                case "gt":
+            maxLastPlayedDate = switch (lastPlayedComp) {
+                case "lt" -> lastPlayed;
+                case "gt" -> {
                     minLastPlayedDate = lastPlayed;
-                    maxLastPlayedDate = null;
-                    break;
-            }
+                    yield null;
+                }
+                default -> maxLastPlayedDate;
+            };
         }
 
         // Handle the album rating filter
         if (albumRatingValue != null) {
-            switch (albumRatingComp) {
-                case "lt":
-                    minAlbumRating = null;
-                    maxAlbumRating = albumRatingValue - 1;
-                    break;
-                case "gt":
+            maxAlbumRating = switch (albumRatingComp) {
+                case "lt" -> albumRatingValue - 1;
+                case "gt" -> {
                     minAlbumRating = albumRatingValue + 1;
-                    maxAlbumRating = null;
-                    break;
-                case "le":
-                    minAlbumRating = null;
-                    maxAlbumRating = albumRatingValue;
-                    break;
-                case "ge":
+                    yield null;
+                }
+                case "le" -> albumRatingValue;
+                case "ge" -> {
                     minAlbumRating = albumRatingValue;
-                    maxAlbumRating = null;
-                    break;
-                case "eq":
+                    yield null;
+                }
+                case "eq" -> {
                     minAlbumRating = albumRatingValue;
-                    maxAlbumRating = albumRatingValue;
-                    break;
-            }
+                    yield albumRatingValue;
+                }
+                default -> maxAlbumRating;
+            };
         }
 
         // Handle the play count filter
         if (playCountValue != null) {
-            switch (playCountComp) {
-                case "lt":
-                    minPlayCount = null;
-                    maxPlayCount = playCountValue - 1;
-                    break;
-                case "gt":
+            maxPlayCount = switch (playCountComp) {
+                case "lt" -> playCountValue - 1;
+                case "gt" -> {
                     minPlayCount = playCountValue + 1;
-                    maxPlayCount = null;
-                    break;
-                case "le":
-                    minPlayCount = null;
-                    maxPlayCount = playCountValue;
-                    break;
-                case "ge":
+                    yield null;
+                }
+                case "le" -> playCountValue;
+                case "ge" -> {
                     minPlayCount = playCountValue;
-                    maxPlayCount = null;
-                    break;
-                case "eq":
+                    yield null;
+                }
+                case "eq" -> {
                     minPlayCount = playCountValue;
-                    maxPlayCount = playCountValue;
-                    break;
-            }
+                    yield playCountValue;
+                }
+                default -> maxPlayCount;
+            };
         }
 
         // Handle the format filter

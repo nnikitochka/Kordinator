@@ -2,6 +2,7 @@ package org.airsonic.player.io;
 
 import com.google.common.util.concurrent.RateLimiter;
 import org.airsonic.player.domain.TransferStatus;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.core.io.Resource;
 
 import jakarta.annotation.Nonnull;
@@ -44,7 +45,7 @@ public class PipeStreams {
 
     public static class PipedInputStream extends InputStream {
 
-        byte[] buffer;
+        final byte[] buffer;
         boolean closed = false;
         int readLaps = 0;
         int readPosition = 0;
@@ -140,8 +141,8 @@ public class PipeStreams {
         }
 
         @Override
-        public int read(byte[] b) throws IOException {
-            return read(b, 0, b.length);
+        public int read(@NotNull byte[] bytes) throws IOException {
+            return read(bytes, 0, bytes.length);
         }
 
         /**
@@ -149,7 +150,7 @@ public class PipeStreams {
          */
 
         @Override
-        public int read(byte[] b, int off, int len) throws IOException {
+        public int read(@NotNull byte[] bytes, int off, int len) throws IOException {
             if (source == null) {
                 throw new IOException("Unconnected pipe");
             }
@@ -171,7 +172,7 @@ public class PipeStreams {
 
                     // Try again.
 
-                    return read(b, off, len);
+                    return read(bytes, off, len);
                 }
 
                 // Don't read more than the capacity indicated by len or what's available
@@ -180,7 +181,7 @@ public class PipeStreams {
                 int amount = Math.min(len,
                         (writePosition > readPosition ? writePosition : buffer.length) - readPosition);
 
-                System.arraycopy(buffer, readPosition, b, off, amount);
+                System.arraycopy(buffer, readPosition, bytes, off, amount);
                 readPosition += amount;
 
                 if (readPosition == buffer.length) {
@@ -193,7 +194,7 @@ public class PipeStreams {
                 // obtained.
 
                 if (amount < len) {
-                    int second = read(b, off + amount, len - amount);
+                    int second = read(bytes, off + amount, len - amount);
 
                     return second == -1 ? amount : amount + second;
                 } else {

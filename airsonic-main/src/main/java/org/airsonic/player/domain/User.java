@@ -138,10 +138,6 @@ public class User {
         return roles.contains(Role.COVERART);
     }
 
-    public boolean isPodcastRole() {
-        return roles.contains(Role.PODCAST);
-    }
-
     public boolean isStreamRole() {
         return roles.contains(Role.STREAM);
     }
@@ -160,6 +156,6 @@ public class User {
     }
 
     public enum Role {
-        ADMIN, SETTINGS, DOWNLOAD, UPLOAD, PLAYLIST, COVERART, COMMENT, PODCAST, STREAM, JUKEBOX, SHARE
+        ADMIN, SETTINGS, DOWNLOAD, UPLOAD, PLAYLIST, COVERART, COMMENT, STREAM, JUKEBOX, SHARE
     }
 }

@@ -4,7 +4,6 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="websocket.jsp" %>
-    <link rel="alternate" type="application/rss+xml" title="Airsonic Podcast" href="podcast.view?suffix=.rss">
     <style>
         iframe {
             border: none;

@@ -55,7 +55,10 @@ public class MainController {
     private SettingsService settingsService;
 
     @GetMapping
-    protected ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response) throws Exception {
+    protected ModelAndView handleRequestInternal(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws Exception {
         Map<String, Object> map = new HashMap<>();
 
         String username = securityService.getCurrentUsername(request);

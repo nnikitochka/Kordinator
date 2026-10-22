@@ -10,8 +10,6 @@ import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.PlayQueue;
 import org.airsonic.player.domain.PlayQueue.RepeatStatus;
 import org.airsonic.player.domain.Player;
-import org.airsonic.player.domain.PodcastEpisode;
-import org.airsonic.player.domain.PodcastStatus;
 import org.airsonic.player.domain.RandomSearchCriteria;
 import org.airsonic.player.domain.SavedPlayQueue;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,8 +42,6 @@ public class PlayQueueService {
     private SearchService searchService;
     @Autowired
     private RatingService ratingService;
-    @Autowired
-    private PodcastService podcastService;
     @Autowired
     private PlaylistService playlistService;
     @Autowired
@@ -204,41 +200,6 @@ public class PlayQueueService {
                 files = files.subList(index, files.size());
             } else {
                 files = Arrays.asList(files.get(index));
-            }
-        }
-
-        doPlay(player, files, sessionId);
-    }
-
-    public void playPodcastChannel(Player player, int id, String sessionId) {
-        List<PodcastEpisode> episodes = podcastService.getEpisodes(id);
-        List<MediaFile> files = new ArrayList<>(episodes.size());
-        for (PodcastEpisode episode : episodes) {
-            if (episode.getStatus() == PodcastStatus.COMPLETED) {
-                MediaFile mediaFile = mediaFileService.getMediaFile(episode.getMediaFileId());
-                if (mediaFile != null && mediaFile.isPresent()) {
-                    files.add(mediaFile);
-                }
-            }
-        }
-
-        doPlay(player, files, sessionId);
-    }
-
-    public void playPodcastEpisode(Player player, int id, String sessionId) {
-        boolean queueFollowingSongs = settingsService.getUserSettings(player.getUsername()).getQueueFollowingSongs();
-
-        PodcastEpisode episode = podcastService.getEpisode(id, false);
-        List<PodcastEpisode> allEpisodes = podcastService.getEpisodes(episode.getChannelId());
-        List<MediaFile> files = new ArrayList<>(allEpisodes.size());
-
-        for (PodcastEpisode ep : allEpisodes) {
-            if (ep.getStatus() == PodcastStatus.COMPLETED && ep.getMediaFileId() != null) {
-                MediaFile mediaFile = mediaFileService.getMediaFile(ep.getMediaFileId());
-                if (mediaFile != null && mediaFile.isPresent()
-                        && (ep.getId().equals(episode.getId()) || queueFollowingSongs && !files.isEmpty())) {
-                    files.add(mediaFile);
-                }
             }
         }
 

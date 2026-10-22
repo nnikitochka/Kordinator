@@ -177,7 +177,7 @@ public class MediaFileWSController {
                 parent = mediaFileService.getParentOf(parent);
             }
         } catch (SecurityException x) {
-            // Happens if Podcast directory is outside music folder.
+            // Ignored.
         }
         return result;
     }

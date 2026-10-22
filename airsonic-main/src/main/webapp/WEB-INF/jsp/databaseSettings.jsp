@@ -187,11 +187,11 @@
 
         <td>
           <form:select path="dbBackupInterval" cssStyle="width:20em">
-            <fmt:message key="podcastsettings.interval.manually" var="never"/>
-            <fmt:message key="podcastsettings.interval.hourly" var="hourly"/>
-            <fmt:message key="podcastsettings.interval.daily" var="daily"/>
-            <fmt:message key="podcastsettings.interval.weekly" var="weekly"/>
-            <fmt:message key="podcastsettings.interval.monthly" var="monthly"/>
+            <fmt:message key="databasesettings.interval.manually" var="never"/>
+            <fmt:message key="databasesettings.interval.hourly" var="hourly"/>
+            <fmt:message key="databasesettings.interval.daily" var="daily"/>
+            <fmt:message key="databasesettings.interval.weekly" var="weekly"/>
+            <fmt:message key="databasesettings.interval.monthly" var="monthly"/>
 
             <form:option value="-1" label="${never}"/>
             <form:option value="1" label="${hourly}"/>
@@ -202,7 +202,7 @@
         </td>
       </tr>
       <tr>
-        <td><fmt:message key="podcastsettings.keep"/></td>
+        <td><fmt:message key="databasesettings.keep"/></td>
 
         <td>
           <form:select path="dbBackupRetentionCount" cssStyle="width:20em">

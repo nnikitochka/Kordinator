@@ -26,7 +26,6 @@ import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.MediaLibraryStatistics;
 import org.airsonic.player.domain.MusicFolder;
-import org.airsonic.player.domain.MusicFolder.Type;
 import org.airsonic.player.service.CoverArtService;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.MediaScannerService;
@@ -159,11 +158,7 @@ public class MusicFolderSettingsController {
         boolean success = true;
         for (MusicFolderSettingsCommand.MusicFolderInfo musicFolderInfo : command.getMusicFolders()) {
             if (musicFolderInfo.getDelete()) {
-                // either not a podcast or there is more than 1 podcast to delete (prevents deleting the last one)
-                if (!musicFolderInfo.getType().equals(Type.PODCAST.name()) ||
-                        mediaFolderService.getAllMusicFolders(true, true).stream().filter(m -> m.getType() == Type.PODCAST).count() > 1) {
-                    mediaFolderService.deleteMusicFolder(musicFolderInfo.getId());
-                }
+                mediaFolderService.deleteMusicFolder(musicFolderInfo.getId());
             } else {
                 MusicFolder musicFolder = musicFolderInfo.toMusicFolder();
                 if (musicFolder != null) {
@@ -176,19 +171,10 @@ public class MusicFolderSettingsController {
                 }
             }
         }
-        List<MusicFolder> podcastFolders = mediaFolderService.getAllMusicFolders(true, true).stream().filter(m -> m.getType() == Type.PODCAST).collect(toList());
-        long enabledPodcasts = podcastFolders.stream().filter(pf -> pf.isEnabled()).count();
-        if (enabledPodcasts != 1) {
-            podcastFolders.stream().findFirst().ifPresent(pf -> mediaFolderService.enablePodcastFolder(pf.getId()));
-        }
-
         MusicFolder newMusicFolder = command.getNewMusicFolder().toMusicFolder();
         if (newMusicFolder != null) {
             try {
                 mediaFolderService.createMusicFolder(newMusicFolder);
-                if (newMusicFolder.getType() == Type.PODCAST && newMusicFolder.isEnabled()) {
-                    mediaFolderService.enablePodcastFolder(newMusicFolder.getId());
-                }
             } catch (Exception e) {
                 LOG.warn("Could not create music folder {}", newMusicFolder.getName(), e);
                 success = false;

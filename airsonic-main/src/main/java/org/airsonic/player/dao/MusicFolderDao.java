@@ -21,6 +21,7 @@ package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
+import org.apache.commons.lang3.EnumUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.RowMapper;
@@ -195,8 +196,9 @@ public class MusicFolderDao extends AbstractDao {
     public static class MusicFolderRowMapper implements RowMapper<MusicFolder> {
         @Override
         public MusicFolder mapRow(ResultSet rs, int rowNum) throws SQLException {
+            // Lenient mapping: unknown type values (e.g. from removed features during schema migration) fall back to MEDIA.
             return new MusicFolder(rs.getInt("id"), Paths.get(rs.getString("path")), rs.getString("name"),
-                    MusicFolder.Type.valueOf(rs.getString("type")), rs.getBoolean("enabled"),
+                    EnumUtils.getEnum(MusicFolder.Type.class, rs.getString("type"), MusicFolder.Type.MEDIA), rs.getBoolean("enabled"),
                     Optional.ofNullable(rs.getTimestamp("changed")).map(x -> x.toInstant()).orElse(null));
         }
     }

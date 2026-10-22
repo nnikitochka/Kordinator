@@ -83,8 +83,6 @@ public class StreamController {
     @Autowired
     private PlayerService playerService;
     @Autowired
-    private PlaylistService playlistService;
-    @Autowired
     private SecurityService securityService;
     @Autowired
     private SettingsService settingsService;
@@ -101,7 +99,6 @@ public class StreamController {
 
     @GetMapping
     public ResponseEntity<Resource> handleRequest(Authentication authentication,
-            @RequestParam(required = false) Integer playlist,
             @RequestParam(required = false) String format,
             @RequestParam(required = false) String suffix,
             @RequestParam Optional<Integer> maxBitRate,
@@ -117,18 +114,6 @@ public class StreamController {
         }
 
         Long expectedSize = null;
-
-        // If "playlist" request parameter is set, this is a Podcast request. In that case, create a separate
-        // play queue (in order to support multiple parallel Podcast streams).
-        boolean isPodcast = playlist != null;
-        if (isPodcast) {
-            PlayQueue playQueue = playQueueFactory.createPlayQueue();
-            playQueue.addFiles(false, playlistService.getFilesInPlaylist(playlist));
-            player.setPlayQueue(playQueue);
-            // Note: does not take transcoding into account
-            expectedSize = playQueue.length();
-            LOG.info("{}: Incoming Podcast request for playlist {}", swr.getRequest().getRemoteAddr(), playlist);
-        }
 
         String targetFormat = format;
         Integer bitRate = maxBitRate.filter(x -> x != 0).orElse(null);
@@ -191,7 +176,7 @@ public class StreamController {
         }
 
         // Terminate any other streams to this player.
-        if (!isPodcast && !isSingleFile) {
+        if (!isSingleFile) {
             statusService.getStreamStatusesForPlayer(player).forEach(TransferStatus::terminate);
         }
 
