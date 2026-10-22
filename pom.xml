@@ -25,6 +25,7 @@
         <failOnDependencyWarning>true</failOnDependencyWarning>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>25</java.version>
+        <kotlin.version>2.3.20</kotlin.version>
         <docker.container.repo>airsonicadvanced/airsonic-advanced</docker.container.repo>
     </properties>
 
@@ -64,6 +65,13 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-bom</artifactId>
+                <version>${kotlin.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <!-- Fix convergence issues -->
             <dependency>
                 <groupId>org.ow2.asm</groupId>
@@ -140,6 +148,11 @@
     <build>
         <pluginManagement>
             <plugins>
+                <plugin>
+                    <groupId>org.jetbrains.kotlin</groupId>
+                    <artifactId>kotlin-maven-plugin</artifactId>
+                    <version>${kotlin.version}</version>
+                </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>buildnumber-maven-plugin</artifactId>
@@ -280,6 +293,13 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>3.8.1</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.ow2.asm</groupId>
+                        <artifactId>asm</artifactId>
+                        <version>9.8</version>
+                    </dependency>
+                </dependencies>
                 <executions>
                     <execution>
                        <id>init</id>
@@ -310,6 +330,10 @@
                                 <ignoredUsedUndeclaredDependency>org.glassfish:jakarta.el</ignoredUsedUndeclaredDependency>
                             </ignoredUsedUndeclaredDependencies>
                             <ignoredUnusedDeclaredDependencies>
+                                <ignoredUnusedDeclaredDependency>org.jetbrains.kotlin:*</ignoredUnusedDeclaredDependency>
+                                <ignoredUnusedDeclaredDependency>org.jetbrains.kotlin:kotlin-reflect</ignoredUnusedDeclaredDependency>
+                                <ignoredUnusedDeclaredDependency>org.jetbrains.kotlin:kotlin-test-junit5</ignoredUnusedDeclaredDependency>
+                                <ignoredUnusedDeclaredDependency>com.fasterxml.jackson.module:jackson-module-kotlin</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>com.google.code.findbugs:jsr305:*</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>com.fasterxml.jackson.module:jackson-module-jaxb-annotations</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>com.sun.mail:jakarta.mail*</ignoredUnusedDeclaredDependency>
