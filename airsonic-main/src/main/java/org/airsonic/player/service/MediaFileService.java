@@ -171,9 +171,25 @@ public class MediaFileService {
     }
 
     private MediaFile checkLastModified(MediaFile mediaFile, MusicFolder folder, boolean minimizeDiskAccess) {
-        if (minimizeDiskAccess || (mediaFile.getVersion() >= MediaFileDao.VERSION
+        if (minimizeDiskAccess) {
+            return mediaFile;
+        }
+
+        // If the file has disappeared from disk, mark the db row absent immediately instead of
+        // going through FileUtil.lastModified (which pollutes the log with a stacktrace on every
+        // access). The row is then expunged at the next scan.
+        if (Files.notExists(mediaFile.getFullPath(folder.getPath()))) {
+            LOG.info("Marking media file (id {}, path {} in folder {}) as absent since it no longer exists on disk",
+                    mediaFile.getId(), mediaFile.getPath(), folder.getName());
+            mediaFile.setPresent(false);
+            mediaFile.setChildrenLastUpdated(Instant.ofEpochMilli(1));
+            updateMediaFile(mediaFile);
+            return mediaFile;
+        }
+
+        if (mediaFile.getVersion() >= MediaFileDao.VERSION
                 && !settingsService.getFullScan()
-                && mediaFile.getChanged().compareTo(FileUtil.lastModified(mediaFile.getFullPath(folder.getPath()))) > -1)) {
+                && mediaFile.getChanged().compareTo(FileUtil.lastModified(mediaFile.getFullPath(folder.getPath()))) > -1) {
             LOG.debug("Detected unmodified file (id {}, path {} in folder {} ({}))", mediaFile.getId(), mediaFile.getPath(), folder.getId(), folder.getName());
             return mediaFile;
         }
