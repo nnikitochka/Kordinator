@@ -8,5 +8,6 @@
             <tableExists tableName="internet_radio"/>
         </preConditions>
         <dropTable tableName="internet_radio" cascadeConstraints="true"/>
+        <rollback></rollback>
     </changeSet>
 </databaseChangeLog>
