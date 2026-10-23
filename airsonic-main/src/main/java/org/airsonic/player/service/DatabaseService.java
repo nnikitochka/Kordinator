@@ -21,7 +21,6 @@ import org.airsonic.player.util.LegacyHsqlMigrationUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -39,6 +38,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -56,14 +56,17 @@ public class DatabaseService {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
-    @Autowired
-    SettingsService settingsService;
-    @Autowired
-    DatabaseDao databaseDao;
-    @Autowired
-    private SimpMessagingTemplate brokerTemplate;
-    @Autowired
-    private TaskSchedulingService taskService;
+    private final SettingsService settingsService;
+    private final DatabaseDao databaseDao;
+    private final SimpMessagingTemplate brokerTemplate;
+    private final TaskSchedulingService taskService;
+
+    public DatabaseService(SettingsService settingsService, DatabaseDao databaseDao, SimpMessagingTemplate brokerTemplate, TaskSchedulingService taskService) {
+        this.settingsService = settingsService;
+        this.databaseDao = databaseDao;
+        this.brokerTemplate = brokerTemplate;
+        this.taskService = taskService;
+    }
 
     @PostConstruct
     public void init() {
@@ -95,7 +98,7 @@ public class DatabaseService {
         taskService.unscheduleTask("db-backup");
     }
 
-    private Runnable backupTask = () -> {
+    private final Runnable backupTask = () -> {
         LOG.info("Starting scheduled DB backup");
         backup();
         LOG.info("Completed scheduled DB backup");
@@ -127,7 +130,7 @@ public class DatabaseService {
         }
 
         String backupNamePattern = StringUtils.substringBeforeLast(backupLocation.getFileName().toString(), ".");
-        try (Stream<Path> backups = Files.list(backupLocation.getParent());) {
+        try (Stream<Path> backups = Files.list(backupLocation.getParent())) {
             backups.filter(p -> p.getFileName().toString().startsWith(backupNamePattern))
                     .sorted(Comparator.comparing(
                             LambdaUtils.<Path, FileTime, Exception>uncheckFunction(p -> Files.readAttributes(p, BasicFileAttributes.class).creationTime()),
@@ -152,7 +155,7 @@ public class DatabaseService {
     Function<Path, Consumer<Connection>> importFunction = p -> LambdaUtils.uncheckConsumer(
         connection -> runLiquibaseUpdate(connection, p));
 
-    public synchronized Path exportDB() throws Exception {
+    public synchronized Path exportDB() {
         brokerTemplate.convertAndSend("/topic/exportStatus", "started");
         Path fPath = getChangeLogFolder();
         Path zPath = null;
@@ -182,7 +185,7 @@ public class DatabaseService {
         Path zipName = folder.resolve(folder.getFileName().toString() + ".zip");
         try (OutputStream fos = Files.newOutputStream(zipName);
                 ZipOutputStream zipOut = new ZipOutputStream(fos);
-                Stream<Path> files = Files.list(folder);) {
+                Stream<Path> files = Files.list(folder)) {
             files.filter(f -> !f.equals(zipName)).forEach(LambdaUtils.uncheckConsumer(f -> {
                 ZipEntry zipEntry = new ZipEntry(f.getFileName().toString());
                 zipOut.putNextEntry(zipEntry);
@@ -220,7 +223,7 @@ public class DatabaseService {
     }
 
     private static void truncateAll(Database db, Connection c) throws Exception {
-        String sql = TABLE_ORDER.stream().flatMap(t -> t.stream())
+        String sql = TABLE_ORDER.stream().flatMap(Collection::stream)
                 .map(t -> "delete from " + t).collect(joining("; "));
         CommandScope commandScope = new CommandScope(ExecuteSqlCommandStep.COMMAND_NAME);
         commandScope.addArgumentValue(ExecuteSqlCommandStep.SQL_ARG, sql);
@@ -230,15 +233,15 @@ public class DatabaseService {
         commandScope.execute();
     }
 
-    private static List<List<String>> TABLE_ORDER = Arrays.asList(
+    private static final List<List<String>> TABLE_ORDER = Arrays.asList(
             Arrays.asList("users", "music_folder", "transcoding", "player"),
             Arrays.asList("music_folder_user", "user_credentials", "user_settings", "player_transcoding"),
             Arrays.asList("media_file", "music_file_info"),
             Arrays.asList("playlist", "play_queue"),
             Arrays.asList("playlist_file", "playlist_user", "play_queue_file"),
             Arrays.asList("album", "artist", "genre"),
-            Arrays.asList("share"),
-            Arrays.asList("cover_art"),
+            List.of("share"),
+            List.of("cover_art"),
             Arrays.asList("bookmark", "share_file", "sonoslink"),
             Arrays.asList("starred_album", "starred_artist", "starred_media_file", "user_rating", "custom_avatar"));
 

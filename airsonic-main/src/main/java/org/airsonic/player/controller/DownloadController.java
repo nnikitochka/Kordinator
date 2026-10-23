@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import org.airsonic.player.domain.*;
@@ -33,7 +14,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -88,22 +68,25 @@ public class DownloadController {
 
     private static final Logger LOG = LoggerFactory.getLogger(DownloadController.class);
 
-    @Autowired
-    private PlayerService playerService;
-    @Autowired
-    private StatusService statusService;
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private PlaylistService playlistService;
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private MediaFileService mediaFileService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
-    private CoverArtService coverArtService;
+    private final PlayerService playerService;
+    private final StatusService statusService;
+    private final SecurityService securityService;
+    private final PlaylistService playlistService;
+    private final SettingsService settingsService;
+    private final MediaFileService mediaFileService;
+    private final MediaFolderService mediaFolderService;
+    private final CoverArtService coverArtService;
+
+    public DownloadController(PlayerService playerService, StatusService statusService, SecurityService securityService, PlaylistService playlistService, SettingsService settingsService, MediaFileService mediaFileService, MediaFolderService mediaFolderService, CoverArtService coverArtService) {
+        this.playerService = playerService;
+        this.statusService = statusService;
+        this.securityService = securityService;
+        this.playlistService = playlistService;
+        this.settingsService = settingsService;
+        this.mediaFileService = mediaFileService;
+        this.mediaFolderService = mediaFolderService;
+        this.coverArtService = coverArtService;
+    }
 
     @GetMapping
     public ResponseEntity<Resource> handleRequest(Principal p,
@@ -198,14 +181,14 @@ public class DownloadController {
             throw new IllegalArgumentException("Can't have index > number of files");
         }
 
-        if (indices.size() == 0) {
+        if (indices.isEmpty()) {
             // nothing, just return empty
             return new ResponseDTO(null, "emptyfile.download", 0, -1);
         }
 
-        if (indices.size() == 1 && (additionalFiles == null || additionalFiles.size() == 0)) {
+        if (indices.size() == 1 && (additionalFiles == null || additionalFiles.isEmpty())) {
             // single file
-            MediaFile file = files.get(indices.get(0));
+            MediaFile file = files.get(indices.getFirst());
             Path path = file.getFullPath(mediaFolderService.getMusicFolderById(file.getFolderId()).getPath());
             long changed = file.getChanged() == null ? -1 : file.getChanged().toEpochMilli();
             return new ResponseDTO(
@@ -229,8 +212,7 @@ public class DownloadController {
                         Path p = mf.getPath().resolve(pf.getLeft());
                         Path parent = p.getParent();
                         try (Stream<Path> paths = Files.walk(p)) {
-                            return paths
-                                    .filter(f -> !f.getFileName().toString().startsWith("."))
+                            return paths.filter(f -> !f.getFileName().toString().startsWith("."))
                                     .map(f -> {
                                         String zipName = parent.relativize(f).toString();
                                         long size = 0L;
@@ -242,7 +224,7 @@ public class DownloadController {
                                         return Pair.of(f, Pair.of(zipName, size));
                                     })
                                     // need to create a new stream, because try-with-resources will close the paths stream before it exits
-                                    .collect(Collectors.toList()).stream();
+                                    .toList().stream();
                         } catch (Exception e) {
                             LOG.warn("Error retrieving file to zip", e);
                             return Stream.empty();
@@ -260,7 +242,7 @@ public class DownloadController {
                     try (PipedOutputStream pout = new PipedOutputStream(pin);
                             ZipOutputStream zout = new ZipOutputStream(pout)) {
                         zout.setMethod(ZipOutputStream.STORED); // No compression.
-                        pathsToZip.stream().forEach(LambdaUtils.uncheckConsumer(f -> {
+                        pathsToZip.forEach(LambdaUtils.uncheckConsumer(f -> {
                             status.setExternalFile(f.getLeft());
                             ZipEntry zipEntry = new ZipEntry(f.getRight().getKey());
                             zipEntry.setSize(f.getRight().getValue());
@@ -289,7 +271,7 @@ public class DownloadController {
                 }
             };
 
-            long size = zipSize(pathsToZip.stream().map(e -> e.getRight()));
+            long size = zipSize(pathsToZip.stream().map(Pair::getRight));
 
             PipedInputStream pin = new PipedInputStream(null, 16 * 1024); // 16 Kb buffer
 

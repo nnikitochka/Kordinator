@@ -17,7 +17,6 @@ import org.apache.commons.beanutils.BeanMap;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
@@ -47,14 +46,16 @@ import static java.util.stream.Collectors.toMap;
 public class CredentialsManagementController {
     private static final Logger LOG = LoggerFactory.getLogger(CredentialsManagementController.class);
 
-    @Autowired
-    private SecurityService securityService;
-
-    @Autowired
-    private SettingsService settingsService;
+    private final SecurityService securityService;
+    private final SettingsService settingsService;
 
     private static final Map<String, String> ENCODER_ALIASES = ImmutableMap.of("noop", "plaintext", "legacynoop",
             "legacyplaintext (deprecated)", "legacyhex", "legacyhex (deprecated)");
+
+    public CredentialsManagementController(SecurityService securityService, SettingsService settingsService) {
+        this.securityService = securityService;
+        this.settingsService = settingsService;
+    }
 
     @GetMapping
     protected String displayForm() {
@@ -66,7 +67,7 @@ public class CredentialsManagementController {
         List<CredentialsCommand> creds = securityService.getCredentials(user.getName(), App.values())
                 .parallelStream()
                 .map(CredentialsCommand::fromUserCredential)
-                .map(c -> {
+                .peek(c -> {
                     if (c.getEncoder().startsWith("legacy")) {
                         c.addDisplayComment("migratecred");
                     }
@@ -81,7 +82,6 @@ public class CredentialsManagementController {
                         c.addDisplayComment("nondecodablecred");
                     }
 
-                    return c;
                 })
                 .sorted(Comparator.comparing(CredentialsCommand::getCreated))
                 .collect(Collectors.toList());
@@ -94,7 +94,7 @@ public class CredentialsManagementController {
         map.addAttribute("newCreds", new CredentialsCommand());
 
         map.addAttribute("apps", EnumSet.allOf(App.class));
-        map.addAttribute("appsMap", EnumSet.allOf(App.class).stream().collect(toMap(a -> a, a -> new BeanMap(a))));
+        map.addAttribute("appsMap", EnumSet.allOf(App.class).stream().collect(toMap(a -> a, BeanMap::new)));
 
         map.addAttribute("decodableEncoders", GlobalSecurityConfig.NONLEGACY_DECODABLE_ENCODERS);
         map.addAttribute("decodableEncodersJson", Util.toJson(GlobalSecurityConfig.NONLEGACY_DECODABLE_ENCODERS));
@@ -164,26 +164,24 @@ public class CredentialsManagementController {
         List<Boolean> failures = new ArrayList<>();
         List<UserCredential> creds = securityService.getCredentials(user.getName(), App.values());
 
-        cmc.getCredentials().forEach(c -> {
-            creds.parallelStream().filter(sc -> StringUtils.equals(String.valueOf(sc.hashCode()), c.getHash()))
-                    .findAny().ifPresent(dbCreds -> {
-                        if (c.getMarkedForDeletion()) {
-                            if (!securityService.deleteCredential(dbCreds)) {
-                                LOG.warn("Could not delete creds for user {}", dbCreds.getUsername());
-                                failures.add(true);
-                            }
-                        } else {
-                            UserCredential newCreds = new UserCredential(dbCreds);
-                            newCreds.setEncoder(c.getEncoder());
-                            newCreds.setExpiration(c.getExpirationInstant());
-
-                            if (!securityService.updateCredentials(dbCreds, newCreds, "User updated", false)) {
-                                LOG.warn("Could not update creds for user {}", dbCreds.getUsername());
-                                failures.add(true);
-                            }
+        cmc.getCredentials().forEach(c -> creds.parallelStream().filter(sc -> StringUtils.equals(String.valueOf(sc.hashCode()), c.getHash()))
+                .findAny().ifPresent(dbCreds -> {
+                    if (c.getMarkedForDeletion()) {
+                        if (!securityService.deleteCredential(dbCreds)) {
+                            LOG.warn("Could not delete creds for user {}", dbCreds.getUsername());
+                            failures.add(true);
                         }
-                    });
-        });
+                    } else {
+                        UserCredential newCreds = new UserCredential(dbCreds);
+                        newCreds.setEncoder(c.getEncoder());
+                        newCreds.setExpiration(c.getExpirationInstant());
+
+                        if (!securityService.updateCredentials(dbCreds, newCreds, "User updated", false)) {
+                            LOG.warn("Could not update creds for user {}", dbCreds.getUsername());
+                            failures.add(true);
+                        }
+                    }
+                }));
 
         redirectAttributes.addFlashAttribute("settings_toast", failures.isEmpty());
 

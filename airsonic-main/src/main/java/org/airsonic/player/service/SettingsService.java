@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.service;
 
 import com.google.common.cache.CacheBuilder;
@@ -29,6 +10,7 @@ import org.airsonic.player.domain.*;
 import org.airsonic.player.util.StringUtil;
 import org.airsonic.player.util.Util;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,7 +45,6 @@ import java.util.stream.Stream;
  */
 @Service
 public class SettingsService {
-
     // Airsonic home directory.
     private static final Path AIRSONIC_HOME_WINDOWS = Paths.get("c:/airsonic");
     private static final Path AIRSONIC_HOME_OTHER = Paths.get("/var/airsonic");
@@ -247,11 +228,8 @@ public class SettingsService {
 
     private List<Theme> themes;
     private List<Locale> locales;
-    @Autowired
     private UserDao userDao;
-    @Autowired
     private AvatarDao avatarDao;
-    @Autowired
     private Environment env;
 
     // Array of obsolete properties. Used to clean property file.
@@ -264,6 +242,12 @@ public class SettingsService {
             "MediaLibraryStatistics", "LastScanned", "database.config.type", "DatabaseConfigType",
             "database.usertable.quote", "DatabaseUsertableQuote", "spring.liquibase.parameters.userTableQuote"
             );
+
+    public SettingsService(UserDao userDao, AvatarDao avatarDao, Environment env) {
+        this.userDao = userDao;
+        this.avatarDao = avatarDao;
+        this.env = env;
+    }
 
     public static Map<String, String> getMigratedPropertyKeys() {
         Map<String, String> keyMaps = new LinkedHashMap<>();
@@ -413,13 +397,12 @@ public class SettingsService {
         }
     }
 
-    private static LoadingCache<String, String> transcodeExecutableCache = CacheBuilder.newBuilder()
+    private static final LoadingCache<String, String> transcodeExecutableCache = CacheBuilder.newBuilder()
         .expireAfterAccess(8, TimeUnit.HOURS)
-        .build(new CacheLoader<String, String>() {
+        .build(new CacheLoader<>() {
             @Override
-            public String load(String executable) throws Exception {
-                    return Arrays.asList(getTranscodeDirectory().resolve(executable).toString(), executable)
-                        .stream()
+            public String load(@NotNull String executable) {
+                    return Stream.of(getTranscodeDirectory().resolve(executable).toString(), executable)
                         .filter(SettingsService::isExecutableInstalled)
                         .findFirst()
                         .orElseThrow();
@@ -440,7 +423,7 @@ public class SettingsService {
     }
 
     public static String getDefaultJDBCUrl() {
-        return "jdbc:hsqldb:file:" + getAirsonicHome().resolve("db").resolve(getFileSystemAppName()).toString() + ";hsqldb.tx=mvcc;sql.enforce_size=false;sql.char_literal=false;sql.nulls_first=false;sql.pad_space=false;hsqldb.defrag_limit=50;shutdown=true";
+        return "jdbc:hsqldb:file:" + getAirsonicHome().resolve("db").resolve(getFileSystemAppName()) + ";hsqldb.tx=mvcc;sql.enforce_size=false;sql.char_literal=false;sql.nulls_first=false;sql.pad_space=false;hsqldb.defrag_limit=50;shutdown=true";
     }
 
     public static String getDefaultJDBCUsername() {
@@ -473,9 +456,7 @@ public class SettingsService {
     }
 
     private static void logServerInfo() {
-        LOG.info("Java: " + Runtime.version() +
-                ", OS: " + System.getProperty("os.name") +
-                ", Memory (max bytes): " + Runtime.getRuntime().maxMemory());
+        LOG.info("Java: {}, OS: {}, Memory (max bytes): {}", Runtime.version(), System.getProperty("os.name"), Runtime.getRuntime().maxMemory());
     }
 
     public void save() {
@@ -502,12 +483,12 @@ public class SettingsService {
         return getAirsonicHome().resolve(getFileSystemAppName() + ".properties");
     }
 
-    private Map<String, Object> settingsCache = new ConcurrentHashMap<>();
+    private final Map<String, Object> settingsCache = new ConcurrentHashMap<>();
     // exists for secondary derived objects based on objects in properties.
     // Can't be stored with settingsCache because ConcurrentHashMaps cannot recursively update values.
     // Example: Retrieving KEY_DERIVATIVE: If absent, retrieve KEY to derive object from. If KEY in turn is also absent: look up in env.
     // Then store KEY first, then KEY_DERIVATIVE. So one lookup ends up modifying another part of ConcurrentHashMap which is illegal by contract.
-    private Map<String, Object> derivativeSettingsCache = new ConcurrentHashMap<>();
+    private final Map<String, Object> derivativeSettingsCache = new ConcurrentHashMap<>();
 
     private void setProperty(String key, Object value) {
         if (value == null) {
@@ -805,19 +786,19 @@ public class SettingsService {
 
     public long getTranscodeEstimateTimePadding() {
         return getLong(KEY_TRANSCODE_ESTIMATE_TIME_PADDING, DEFAULT_TRANSCODE_ESTIMATE_TIME_PADDING);
-    };
+    }
 
     public void setTranscodeEstimateTimePadding(Long timeInMillis) {
         setLong(KEY_TRANSCODE_ESTIMATE_TIME_PADDING, timeInMillis);
-    };
+    }
 
     public long getTranscodeEstimateBytePadding() {
         return getLong(KEY_TRANSCODE_ESTIMATE_BYTE_PADDING, DEFAULT_TRANSCODE_ESTIMATE_BYTE_PADDING);
-    };
+    }
 
     public void setTranscodeEstimateBytePadding(Long bytes) {
         setLong(KEY_TRANSCODE_ESTIMATE_BYTE_PADDING, bytes);
-    };
+    }
 
     public int getDbBackupInterval() {
         return getInt(KEY_DB_BACKUP_INTERVAL, DEFAULT_DB_BACKUP_INTERVAL);
@@ -1065,7 +1046,7 @@ public class SettingsService {
         String country = getProperty(KEY_LOCALE_COUNTRY, DEFAULT_LOCALE_COUNTRY);
         String variant = getProperty(KEY_LOCALE_VARIANT, DEFAULT_LOCALE_VARIANT);
 
-        return new Locale(language, country, variant);
+        return Locale.of(language, country, variant);
     }
 
     /**
@@ -1115,7 +1096,7 @@ public class SettingsService {
                     } else if (elements.length == 3) {
                         themes.add(new Theme(elements[0], elements[1], elements[2]));
                     } else {
-                        LOG.warn("Failed to parse theme from line: [" + line + "].");
+                        LOG.warn("Failed to parse theme from line: [{}].", line);
                     }
                 }
             } catch (IOException x) {
@@ -1290,7 +1271,7 @@ public class SettingsService {
 
     private static Set<String> splitLowerString(String s, String splitter) {
         //serial stream and linkedhashset because order matters
-        return Stream.of(s.split(splitter)).filter(x -> StringUtils.isNotBlank(x)).map(x -> x.toLowerCase()).collect(Collectors.toCollection(LinkedHashSet::new));
+        return Stream.of(s.split(splitter)).filter(StringUtils::isNotBlank).map(String::toLowerCase).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     public void setUserDao(UserDao userDao) {

@@ -11,16 +11,16 @@ import jakarta.annotation.PostConstruct;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public class CoverArtDao extends AbstractDao {
-
     private static final String COLUMNS = "entity_id, entity_type, path, folder_id, overridden, created, updated, accent_color";
 
-    private CoverArtRowMapper coverArtRowMapper = new CoverArtRowMapper();
+    private final CoverArtRowMapper coverArtRowMapper = new CoverArtRowMapper();
 
     @PostConstruct
     public void register() throws Exception {
@@ -68,10 +68,12 @@ public class CoverArtDao extends AbstractDao {
     private static class CoverArtRowMapper implements RowMapper<CoverArt> {
         @Override
         public CoverArt mapRow(ResultSet rs, int rowNum) throws SQLException {
-            CoverArt art = new CoverArt(rs.getInt("entity_id"), EntityType.valueOf(rs.getString("entity_type")),
+            CoverArt art = new CoverArt(
+                    rs.getInt("entity_id"), EntityType.valueOf(rs.getString("entity_type")),
                     rs.getString("path"), (Integer) rs.getObject("folder_id"), rs.getBoolean("overridden"),
-                    Optional.ofNullable(rs.getTimestamp("created")).map(x -> x.toInstant()).orElse(null),
-                    Optional.ofNullable(rs.getTimestamp("updated")).map(x -> x.toInstant()).orElse(null));
+                    Optional.ofNullable(rs.getTimestamp("created")).map(Timestamp::toInstant).orElse(null),
+                    Optional.ofNullable(rs.getTimestamp("updated")).map(Timestamp::toInstant).orElse(null)
+            );
             art.setAccentColor(rs.getString("accent_color"));
             return art;
         }

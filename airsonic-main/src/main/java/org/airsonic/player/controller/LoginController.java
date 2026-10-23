@@ -3,7 +3,6 @@ package org.airsonic.player.controller;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.util.StringUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,15 +22,16 @@ import java.util.Map;
 @Controller
 @RequestMapping("/login")
 public class LoginController {
+    private final SecurityService securityService;
+    private final SettingsService settingsService;
 
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private SettingsService settingsService;
+    public LoginController(SecurityService securityService, SettingsService settingsService) {
+        this.securityService = securityService;
+        this.settingsService = settingsService;
+    }
 
     @GetMapping
     public ModelAndView login(HttpServletRequest request, HttpServletResponse response) {
-
         // Auto-login if "user" and "password" parameters are given.
         String username = request.getParameter("user");
         String password = request.getParameter("password");

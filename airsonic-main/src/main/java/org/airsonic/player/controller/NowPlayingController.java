@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import org.airsonic.player.domain.Player;
@@ -24,7 +5,6 @@ import org.airsonic.player.domain.TransferStatus;
 import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.PlayerService;
 import org.airsonic.player.service.StatusService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,23 +18,22 @@ import java.util.Optional;
 
 /**
  * Controller for showing what's currently playing.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/nowPlaying")
 public class NowPlayingController {
+    private final PlayerService playerService;
+    private final StatusService statusService;
+    private final MediaFileService mediaFileService;
 
-    @Autowired
-    private PlayerService playerService;
-    @Autowired
-    private StatusService statusService;
-    @Autowired
-    private MediaFileService mediaFileService;
+    public NowPlayingController(PlayerService playerService, StatusService statusService, MediaFileService mediaFileService) {
+        this.playerService = playerService;
+        this.statusService = statusService;
+        this.mediaFileService = mediaFileService;
+    }
 
     @GetMapping
     protected ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response) throws Exception {
-
         Player player = playerService.getPlayer(request, response);
         TransferStatus status = statusService.getStreamStatusesForPlayer(player).stream().findFirst()
                 .orElseGet(() -> statusService.getInactiveStreamStatusForPlayer(player));

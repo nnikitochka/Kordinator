@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.filter;
 
 import org.airsonic.player.service.SettingsService;
@@ -39,11 +20,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * (The Airsonic home directory is usually created automatically, but a common
  * problem on Linux is that the Tomcat user does not have the necessary
  * privileges).
- *
- * @author Sindre Mehus
  */
 public class BootstrapVerificationFilter implements Filter {
-
     private static final Logger LOG = LoggerFactory.getLogger(BootstrapVerificationFilter.class);
     private boolean airsonicHomeVerified = false;
     private final AtomicBoolean serverInfoLogged = new AtomicBoolean();
@@ -80,7 +58,7 @@ public class BootstrapVerificationFilter implements Filter {
     private void logServerInfo(ServletRequest req) {
         if (!serverInfoLogged.getAndSet(true) && req instanceof HttpServletRequest) {
             String serverInfo = ((HttpServletRequest) req).getSession().getServletContext().getServerInfo();
-            LOG.info("Servlet container: " + serverInfo);
+            LOG.info("Servlet container: {}", serverInfo);
         }
     }
 

@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.domain;
 
 import java.io.Serializable;
@@ -36,15 +17,13 @@ import java.util.Objects;
  * <p/>
  * Clicking on an index in the user interface will typically bring up a list of all music files that are categorized
  * under that index.
- *
- * @author Sindre Mehus
  */
 public class MusicIndex implements Serializable {
 
     public static final MusicIndex OTHER = new MusicIndex("#");
 
     private final String index;
-    private final List<String> prefixes = new ArrayList<String>();
+    private final List<String> prefixes = new ArrayList<>();
 
     /**
      * Creates a new index with the given index string.
@@ -94,11 +73,9 @@ public class MusicIndex implements Serializable {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof MusicIndex)) {
+        if (!(o instanceof MusicIndex musicIndex)) {
             return false;
         }
-
-        final MusicIndex musicIndex = (MusicIndex) o;
 
         return Objects.equals(index, musicIndex.index);
     }
@@ -143,7 +120,7 @@ public class MusicIndex implements Serializable {
 
     public static class SortableArtistWithMediaFiles extends SortableArtist {
 
-        private final List<MediaFile> mediaFiles = new ArrayList<MediaFile>();
+        private final List<MediaFile> mediaFiles = new ArrayList<>();
 
         public SortableArtistWithMediaFiles(String name, String sortableName, Collator collator) {
             super(name, sortableName, collator);

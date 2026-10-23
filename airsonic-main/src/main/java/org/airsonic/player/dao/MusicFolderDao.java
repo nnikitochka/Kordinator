@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.MediaFile;
@@ -36,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -43,12 +25,9 @@ import java.util.Optional;
 
 /**
  * Provides database services for music folders.
- *
- * @author Sindre Mehus
  */
 @Repository
 public class MusicFolderDao extends AbstractDao {
-
     private static final Logger LOG = LoggerFactory.getLogger(MusicFolderDao.class);
     private static final String INSERT_COLUMNS = "path, name, type, enabled, changed";
     private static final String QUERY_COLUMNS = "id, " + INSERT_COLUMNS;
@@ -197,9 +176,11 @@ public class MusicFolderDao extends AbstractDao {
         @Override
         public MusicFolder mapRow(ResultSet rs, int rowNum) throws SQLException {
             // Lenient mapping: unknown type values (e.g. from removed features during schema migration) fall back to MEDIA.
-            return new MusicFolder(rs.getInt("id"), Paths.get(rs.getString("path")), rs.getString("name"),
+            return new MusicFolder(
+                    rs.getInt("id"), Paths.get(rs.getString("path")), rs.getString("name"),
                     EnumUtils.getEnum(MusicFolder.Type.class, rs.getString("type"), MusicFolder.Type.MEDIA), rs.getBoolean("enabled"),
-                    Optional.ofNullable(rs.getTimestamp("changed")).map(x -> x.toInstant()).orElse(null));
+                    Optional.ofNullable(rs.getTimestamp("changed")).map(Timestamp::toInstant).orElse(null)
+            );
         }
     }
 }

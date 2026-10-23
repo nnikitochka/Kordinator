@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.MediaFile;
@@ -31,6 +12,7 @@ import jakarta.annotation.PostConstruct;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -38,8 +20,6 @@ import java.util.stream.Stream;
 
 /**
  * Provides database services for playlists.
- *
- * @author Sindre Mehus
  */
 @Repository
 public class PlaylistDao extends AbstractDao {
@@ -47,7 +27,7 @@ public class PlaylistDao extends AbstractDao {
                                                 "created, changed, imported_from";
     private static final String QUERY_COLUMNS = "id, " + INSERT_COLUMNS;
     private final PlaylistMapper rowMapper = new PlaylistMapper();
-    private final static Comparator<Playlist> sorter = Comparator.comparing(p -> p.getName());
+    private final static Comparator<Playlist> sorter = Comparator.comparing(Playlist::getName);
 
     @PostConstruct
     public void register() throws Exception {
@@ -65,8 +45,8 @@ public class PlaylistDao extends AbstractDao {
 
         // Remove duplicates.
         return Stream.of(result1, result2, result3)
-                .flatMap(r -> r.parallelStream())
-                .filter(LambdaUtils.distinctByKey(p -> p.getId()))
+                .flatMap(Collection::parallelStream)
+                .filter(LambdaUtils.distinctByKey(Playlist::getId))
                 .sorted(sorter)
                 .collect(Collectors.toList());
     }
@@ -141,9 +121,10 @@ public class PlaylistDao extends AbstractDao {
                     rs.getString(5),
                     rs.getInt(6),
                     rs.getDouble(7),
-                    Optional.ofNullable(rs.getTimestamp(8)).map(x -> x.toInstant()).orElse(null),
-                    Optional.ofNullable(rs.getTimestamp(9)).map(x -> x.toInstant()).orElse(null),
-                    rs.getString(10));
+                    Optional.ofNullable(rs.getTimestamp(8)).map(Timestamp::toInstant).orElse(null),
+                    Optional.ofNullable(rs.getTimestamp(9)).map(Timestamp::toInstant).orElse(null),
+                    rs.getString(10)
+            );
         }
     }
 }

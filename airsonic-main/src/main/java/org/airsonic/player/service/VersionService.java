@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -46,13 +27,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Provides version-related services, including functionality for determining whether a newer
  * version of Airsonic is available.
- *
- * @author Sindre Mehus
  */
 @Service
 public class VersionService {
@@ -207,16 +185,17 @@ public class VersionService {
 
     private static final String VERSION_URL = "https://api.github.com/repos/airsonic-advanced/airsonic-advanced/releases";
 
-    private static ResponseHandler<List<Map<String, Object>>> respHandler = new AbstractResponseHandler<List<Map<String,Object>>>() {
+    private static final ResponseHandler<List<Map<String, Object>>> respHandler = new AbstractResponseHandler<>() {
         @Override
         public List<Map<String, Object>> handleEntity(HttpEntity entity) throws IOException {
             try (InputStream is = entity.getContent(); InputStream bis = new BufferedInputStream(is)) {
-                return Util.getObjectMapper().readValue(bis, new TypeReference<List<Map<String, Object>>>() {});
+                return Util.getObjectMapper().readValue(bis, new TypeReference<>() {
+                });
             }
         }
     };
 
-    private static Function<Map<String,Object>, Version> releaseToVersionMapper = r ->
+    private static final Function<Map<String,Object>, Version> releaseToVersionMapper = r ->
             new Version(
                     (String) r.get("tag_name"),
                     (String) r.get("target_commitish"),
@@ -225,7 +204,7 @@ public class VersionService {
                     Instant.parse((String) r.get("published_at")),
                     Instant.parse((String) r.get("created_at")),
                     (List<Map<String,Object>>) r.get("assets")
-                    );
+            );
 
     /**
      * Resolves the latest available Airsonic version by inspecting github.
@@ -250,8 +229,8 @@ public class VersionService {
         }
 
         List<Map<String, Object>> releases = content.stream()
-                .sorted(Comparator.<Map<String, Object>,Instant>comparing(r -> Instant.parse((String) r.get("published_at")), Comparator.reverseOrder()))
-                .collect(Collectors.toList());
+                .sorted(Comparator.comparing(r -> Instant.parse((String) r.get("published_at")), Comparator.reverseOrder()))
+                .toList();
 
 
         Optional<Map<String, Object>> betaR = releases.stream().findFirst();

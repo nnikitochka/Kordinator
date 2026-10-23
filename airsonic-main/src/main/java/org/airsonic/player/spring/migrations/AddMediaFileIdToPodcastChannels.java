@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class AddMediaFileIdToPodcastChannels implements CustomSqlChange {
-
     @Override
     public String getConfirmationMessage() {
         return "Added media file ids to podcast channels";

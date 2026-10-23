@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.Transcoding;
@@ -35,8 +16,6 @@ import java.util.List;
 
 /**
  * Provides database services for transcoding configurations.
- *
- * @author Sindre Mehus
  */
 @Repository
 public class TranscodingDao extends AbstractDao {
@@ -44,7 +23,7 @@ public class TranscodingDao extends AbstractDao {
     private static final Logger LOG = LoggerFactory.getLogger(TranscodingDao.class);
     private static final String INSERT_COLUMNS = "name, source_formats, target_format, step1, step2, step3, default_active";
     private static final String QUERY_COLUMNS = "id, " + INSERT_COLUMNS;
-    private TranscodingRowMapper rowMapper = new TranscodingRowMapper();
+    private final TranscodingRowMapper rowMapper = new TranscodingRowMapper();
 
     @PostConstruct
     public void register() throws Exception {

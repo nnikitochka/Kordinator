@@ -68,7 +68,7 @@ public class CredentialsManagementCommand {
         private Instant created;
         private Instant updated;
         private String comment;
-        private Set<String> displayComments = new HashSet<>();
+        private final Set<String> displayComments = new HashSet<>();
         private boolean markedForDeletion;
 
         public CredentialsCommand(String username, String encoder, App app, Instant created,

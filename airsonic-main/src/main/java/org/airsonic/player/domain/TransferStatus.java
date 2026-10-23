@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.domain;
 
 import org.apache.commons.collections4.queue.CircularFifoQueue;
@@ -27,11 +8,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Status for a single transfer (stream, download or upload).
- *
- * @author Sindre Mehus
  */
 public class TransferStatus {
-
     private static final int HISTORY_LENGTH = 200;
     private static final long SAMPLE_INTERVAL_MILLIS = 5000;
 
@@ -247,8 +225,8 @@ public class TransferStatus {
      * A sample containing a timestamp and the number of bytes transferred up to that point in time.
      */
     public static class Sample {
-        private long bytesTransferred;
-        private long timestamp;
+        private final long bytesTransferred;
+        private final long timestamp;
 
         /**
          * Creates a new sample.

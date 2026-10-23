@@ -1,27 +1,8 @@
-/*
- * This file is part of Airsonic.
- *
- * Airsonic is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Airsonic is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Copyright 2013 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.service.UPnPService;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.ServletRequestUtils;
@@ -44,16 +25,18 @@ import java.util.Map;
 @RequestMapping("/dlnaSettings")
 public class DLNASettingsController {
 
-    @Autowired
     private UPnPService upnpService;
-
-    @Autowired
     private SettingsService settingsService;
+
+    public DLNASettingsController(UPnPService upnpService, SettingsService settingsService) {
+        this.upnpService = upnpService;
+        this.settingsService = settingsService;
+    }
 
     @GetMapping
     public String handleGet(Model model) {
 
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
 
         map.put("dlnaEnabled", settingsService.isDlnaEnabled());
         map.put("dlnaServerName", settingsService.getDlnaServerName());

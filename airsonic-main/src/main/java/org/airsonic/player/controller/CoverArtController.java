@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import com.google.common.io.MoreFiles;
@@ -32,9 +13,9 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jaudiotagger.tag.images.Artwork;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.ServletRequestUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -77,23 +58,26 @@ public class CoverArtController implements LastModified {
 
     private static final Logger LOG = LoggerFactory.getLogger(CoverArtController.class);
 
-    @Autowired
-    private MediaFileService mediaFileService;
-    @Autowired
-    private CoverArtService coverArtService;
-    @Autowired
-    private TranscodingService transcodingService;
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private PlaylistService playlistService;
-    @Autowired
-    private ArtistDao artistDao;
-    @Autowired
-    private AlbumDao albumDao;
-    @Autowired
-    private JaudiotaggerParser jaudiotaggerParser;
+    private final MediaFileService mediaFileService;
+    private final CoverArtService coverArtService;
+    private final TranscodingService transcodingService;
+    private final SettingsService settingsService;
+    private final PlaylistService playlistService;
+    private final ArtistDao artistDao;
+    private final AlbumDao albumDao;
+    private final JaudiotaggerParser jaudiotaggerParser;
     private Semaphore semaphore;
+
+    public CoverArtController(MediaFileService mediaFileService, CoverArtService coverArtService, TranscodingService transcodingService, SettingsService settingsService, PlaylistService playlistService, ArtistDao artistDao, AlbumDao albumDao, JaudiotaggerParser jaudiotaggerParser) {
+        this.mediaFileService = mediaFileService;
+        this.coverArtService = coverArtService;
+        this.transcodingService = transcodingService;
+        this.settingsService = settingsService;
+        this.playlistService = playlistService;
+        this.artistDao = artistDao;
+        this.albumDao = albumDao;
+        this.jaudiotaggerParser = jaudiotaggerParser;
+    }
 
     @PostConstruct
     public void init() {
@@ -101,7 +85,7 @@ public class CoverArtController implements LastModified {
     }
 
     @Override
-    public long getLastModified(HttpServletRequest request) {
+    public long getLastModified(@NotNull HttpServletRequest request) {
         CoverArtRequest coverArtRequest = createCoverArtRequest(request);
         if (coverArtRequest == null) {
             return -1L;
@@ -150,15 +134,15 @@ public class CoverArtController implements LastModified {
         }
 
         if (id.startsWith(ALBUM_COVERART_PREFIX)) {
-            return createAlbumCoverArtRequest(Integer.valueOf(id.replace(ALBUM_COVERART_PREFIX, "")));
+            return createAlbumCoverArtRequest(Integer.parseInt(id.replace(ALBUM_COVERART_PREFIX, "")));
         }
         if (id.startsWith(ARTIST_COVERART_PREFIX)) {
-            return createArtistCoverArtRequest(Integer.valueOf(id.replace(ARTIST_COVERART_PREFIX, "")));
+            return createArtistCoverArtRequest(Integer.parseInt(id.replace(ARTIST_COVERART_PREFIX, "")));
         }
         if (id.startsWith(PLAYLIST_COVERART_PREFIX)) {
-            return createPlaylistCoverArtRequest(Integer.valueOf(id.replace(PLAYLIST_COVERART_PREFIX, "")));
+            return createPlaylistCoverArtRequest(Integer.parseInt(id.replace(PLAYLIST_COVERART_PREFIX, "")));
         }
-        return createMediaFileCoverArtRequest(Integer.valueOf(id), request);
+        return createMediaFileCoverArtRequest(Integer.parseInt(id), request);
     }
 
     private CoverArtRequest createAlbumCoverArtRequest(int id) {
@@ -262,9 +246,10 @@ public class CoverArtController implements LastModified {
                     }
                     semaphore.release();
                 }
-            } else {
-//                LOG.info("Cache HIT - " + request + " (" + size + ")");
             }
+//            else {
+//                LOG.info("Cache HIT - " + request + " (" + size + ")");
+//            }
             return cachedImage;
         }
     }
@@ -314,7 +299,7 @@ public class CoverArtController implements LastModified {
         Path dir = SettingsService.getAirsonicHome().resolve("thumbs").resolve(String.valueOf(size));
         if (!Files.exists(dir)) {
             try {
-                dir = Files.createDirectories(dir);
+                Files.createDirectories(dir);
                 LOG.info("Created thumbnail cache {}", dir);
             } catch (Exception e) {
                 LOG.error("Failed to create thumbnail cache {}", dir, e);
@@ -381,7 +366,7 @@ public class CoverArtController implements LastModified {
         public BufferedImage createImage(int size) {
             if (coverArt != null) {
                 try (InputStream in = getImageInputStream(coverArt)) {
-                    String reason = null;
+                    String reason;
                     if (in == null) {
                         reason = "getImageInputStream";
                     } else {
@@ -421,7 +406,7 @@ public class CoverArtController implements LastModified {
         private ArtistCoverArtRequest(Artist artist) {
             super(coverArtService.get(EntityType.ARTIST, artist.getId()),
                 () -> ARTIST_COVERART_PREFIX + artist.getId(),
-                () -> artist.getLastScanned());
+                    artist::getLastScanned);
             this.artist = artist;
         }
 
@@ -448,7 +433,7 @@ public class CoverArtController implements LastModified {
         private AlbumCoverArtRequest(Album album) {
             super(coverArtService.get(EntityType.ALBUM, album.getId()),
                 () -> ALBUM_COVERART_PREFIX + album.getId(),
-                () -> album.getLastScanned());
+                    album::getLastScanned);
             this.album = album;
         }
 
@@ -473,7 +458,7 @@ public class CoverArtController implements LastModified {
         private final Playlist playlist;
 
         private PlaylistCoverArtRequest(Playlist playlist) {
-            super(null, () -> PLAYLIST_COVERART_PREFIX + playlist.getId(), () -> playlist.getChanged());
+            super(null, () -> PLAYLIST_COVERART_PREFIX + playlist.getId(), playlist::getChanged);
             this.playlist = playlist;
         }
 
@@ -499,7 +484,7 @@ public class CoverArtController implements LastModified {
                 return createAutoCover(size, size);
             }
             if (albums.size() < 4) {
-                return new MediaFileCoverArtRequest(albums.get(0)).createImage(size);
+                return new MediaFileCoverArtRequest(albums.getFirst()).createImage(size);
             }
 
             BufferedImage image = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
@@ -531,7 +516,7 @@ public class CoverArtController implements LastModified {
         private MediaFileCoverArtRequest(MediaFile mediaFile, Integer proxyId) {
             super(coverArtService.get(EntityType.MEDIA_FILE, mediaFile.getId()),
                 () -> mediaFile.getFolderId() + "/" + mediaFile.getPath(),
-                () -> mediaFile.getChanged());
+                    mediaFile::getChanged);
             this.dir = mediaFile;
             this.proxyId = proxyId;
         }
@@ -565,19 +550,18 @@ public class CoverArtController implements LastModified {
             this.mediaFile = mediaFile;
             this.offset = offset;
             keyGenerator = () -> mediaFile.getFolderId() + "/" + mediaFile.getPath() + "/" + offset;
-            lastModifiedGenerator = () -> mediaFile.getChanged();
+            lastModifiedGenerator = mediaFile::getChanged;
         }
 
         @Override
-        public BufferedImage createImage(int size) {
-            int height = size;
+        public BufferedImage createImage(int height) {
             int width = height * 16 / 9;
             try (InputStream in = getImageInputStreamForVideo(mediaFile, width, height, offset)) {
                 BufferedImage result = ImageIO.read(in);
                 if (result != null) {
                     return result;
                 }
-                LOG.warn("Failed to process cover art for {}: {}", mediaFile, result);
+                LOG.warn("Failed to process cover art for {}: {}", mediaFile, null);
             } catch (Throwable x) {
                 LOG.warn("Failed to process cover art for {}", mediaFile, x);
             }

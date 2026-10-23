@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.service;
 
 import org.airsonic.player.dao.AlbumDao;
@@ -53,12 +34,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Provides services for scanning the music library.
- *
- * @author Sindre Mehus
  */
 @Service
 public class MediaScannerService {
-
     private static final Logger LOG = LoggerFactory.getLogger(MediaScannerService.class);
 
     private volatile boolean scanning;
@@ -90,7 +68,7 @@ public class MediaScannerService {
     @Value("${MediaScannerParallelism:#{T(java.lang.Runtime).getRuntime().availableProcessors() + 1}}")
     private int scannerParallelism;
 
-    private AtomicInteger scanCount = new AtomicInteger(0);
+    private final AtomicInteger scanCount = new AtomicInteger(0);
 
     @PostConstruct
     public void init() {
@@ -117,13 +95,13 @@ public class MediaScannerService {
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime nextRun = now.withHour(hour).withMinute(0).withSecond(0);
-        if (now.compareTo(nextRun) > 0)
+        if (now.isAfter(nextRun))
             nextRun = nextRun.plusDays(1);
 
         long initialDelayMillis = ChronoUnit.MILLIS.between(now, nextRun);
         Instant firstTime = Instant.now().plusMillis(initialDelayMillis);
 
-        taskService.scheduleAtFixedRate("mediascanner-IndexingTask", () -> scanLibrary(), firstTime, Duration.ofDays(daysBetween), true);
+        taskService.scheduleAtFixedRate("mediascanner-IndexingTask", this::scanLibrary, firstTime, Duration.ofDays(daysBetween), true);
 
         LOG.info("Automatic media library scanning scheduled to run every {} day(s), starting at {}", daysBetween, nextRun);
 
@@ -166,14 +144,11 @@ public class MediaScannerService {
         return scanCount.get();
     }
 
-    private static ForkJoinWorkerThreadFactory mediaScannerThreadFactory = new ForkJoinWorkerThreadFactory() {
-        @Override
-        public ForkJoinWorkerThread newThread(ForkJoinPool pool) {
-            final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
-            worker.setName("MediaLibraryScanner-" + worker.getPoolIndex());
-            worker.setPriority(Thread.MIN_PRIORITY);
-            return worker;
-        }
+    private static final ForkJoinWorkerThreadFactory mediaScannerThreadFactory = pool -> {
+        final ForkJoinWorkerThread worker = ForkJoinPool.defaultForkJoinWorkerThreadFactory.newThread(pool);
+        worker.setName("MediaLibraryScanner-" + worker.getPoolIndex());
+        worker.setPriority(Thread.MIN_PRIORITY);
+        return worker;
     };
 
     /**
@@ -223,7 +198,7 @@ public class MediaScannerService {
 
             // Update statistics
             statistics.incrementArtists(albumCount.size());
-            statistics.incrementAlbums(albumCount.values().parallelStream().mapToInt(x -> x.get()).sum());
+            statistics.incrementAlbums(albumCount.values().parallelStream().mapToInt(AtomicInteger::get).sum());
 
             LOG.info("Persisting albums");
             CompletableFuture<Void> albumPersistence = CompletableFuture
@@ -439,7 +414,7 @@ public class MediaScannerService {
                 a.setName(k);
             }
 
-            int n = Math.max(Optional.ofNullable(albumCount.get(a.getName())).map(x -> x.get()).orElse(0), Optional.ofNullable(a.getAlbumCount()).orElse(0));
+            int n = Math.max(Optional.ofNullable(albumCount.get(a.getName())).map(AtomicInteger::get).orElse(0), Optional.ofNullable(a.getAlbumCount()).orElse(0));
             a.setAlbumCount(n);
 
             firstEncounter.set(!lastScanned.equals(a.getLastScanned()));

@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.dao;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -30,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,8 +24,6 @@ import java.util.stream.Collectors;
 
 /**
  * Provides user-related database services.
- *
- * @author Sindre Mehus
  */
 @Repository
 @Transactional
@@ -53,9 +33,9 @@ public class UserDao extends AbstractDao {
     private static final String USER_SETTINGS_COLUMNS = "username, settings";
     private static final String USER_CREDENTIALS_COLUMNS = "username, app_username, credential, encoder, app, created, updated, expiration, comment";
 
-    private UserRowMapper userRowMapper = new UserRowMapper();
-    private UserSettingsRowMapper userSettingsRowMapper = new UserSettingsRowMapper();
-    private UserCredentialRowMapper userCredentialRowMapper = new UserCredentialRowMapper();
+    private final UserRowMapper userRowMapper = new UserRowMapper();
+    private final UserSettingsRowMapper userSettingsRowMapper = new UserSettingsRowMapper();
+    private final UserCredentialRowMapper userCredentialRowMapper = new UserCredentialRowMapper();
 
     /**
      * Returns the user with the given username.
@@ -74,7 +54,7 @@ public class UserDao extends AbstractDao {
         List<User> users = query(sql, userRowMapper, username);
         User user = null;
         if (users.size() == 1) {
-            user = users.iterator().next();
+            user = users.getFirst();
         } else if (users.size() > 1) {
             throw new RuntimeException("Too many matching users");
         }
@@ -86,7 +66,7 @@ public class UserDao extends AbstractDao {
             return Collections.emptyList();
         }
         String sql = "select " + USER_CREDENTIALS_COLUMNS + " from user_credentials where username=:user and app in (:apps)";
-        return namedQuery(sql, userCredentialRowMapper, ImmutableMap.of("user", username, "apps", Arrays.asList(apps).stream().map(App::name).collect(Collectors.toList())));
+        return namedQuery(sql, userCredentialRowMapper, ImmutableMap.of("user", username, "apps", Arrays.stream(apps).map(App::name).collect(Collectors.toList())));
     }
 
     public List<UserCredential> getCredentialsByEncoder(String encoderPatternMatcher) {
@@ -153,8 +133,7 @@ public class UserDao extends AbstractDao {
      */
     public User getUserByEmail(String email) {
         String sql = "select " + USER_COLUMNS + " from users where email=?";
-        User user = queryOne(sql, userRowMapper, email);
-        return user;
+        return queryOne(sql, userRowMapper, email);
     }
 
     /**
@@ -164,8 +143,7 @@ public class UserDao extends AbstractDao {
      */
     public List<User> getAllUsers() {
         String sql = "select " + USER_COLUMNS + " from users";
-        List<User> users = query(sql, userRowMapper);
-        return users;
+        return query(sql, userRowMapper);
     }
 
     /**
@@ -238,7 +216,7 @@ public class UserDao extends AbstractDao {
         return update(sql, settings.getUsername(), Util.toJson(settings)) == 1;
     }
 
-    private class UserCredentialRowMapper implements RowMapper<UserCredential> {
+    private static class UserCredentialRowMapper implements RowMapper<UserCredential> {
         @Override
         public UserCredential mapRow(ResultSet rs, int rowNum) throws SQLException {
             return new UserCredential(
@@ -248,17 +226,19 @@ public class UserDao extends AbstractDao {
                     rs.getString("encoder"),
                     App.valueOf(rs.getString("app")),
                     rs.getString("comment"),
-                    Optional.ofNullable(rs.getTimestamp("expiration")).map(x -> x.toInstant()).orElse(null),
+                    Optional.ofNullable(rs.getTimestamp("expiration")).map(Timestamp::toInstant).orElse(null),
                     rs.getTimestamp("created").toInstant(),
-                    rs.getTimestamp("updated").toInstant());
+                    rs.getTimestamp("updated").toInstant()
+            );
         }
     }
 
-    private class UserRowMapper implements RowMapper<User> {
+    private static class UserRowMapper implements RowMapper<User> {
         @Override
         public User mapRow(ResultSet rs, int rowNum) throws SQLException {
             // Parse roles leniently: ignore unknown role names (e.g. roles of features no longer present).
-            return new User(rs.getString("username"),
+            return new User(
+                    rs.getString("username"),
                     rs.getString("email"),
                     rs.getBoolean("ldap_authenticated"),
                     rs.getLong("bytes_streamed"),
@@ -267,7 +247,8 @@ public class UserDao extends AbstractDao {
                     Optional.ofNullable(Util.fromJson(rs.getString("roles"), new TypeReference<Set<String>>() {}))
                             .orElse(Collections.emptySet()).stream()
                             .flatMap(role -> Arrays.stream(User.Role.values()).filter(r -> r.name().equals(role)))
-                            .collect(Collectors.toSet()));
+                            .collect(Collectors.toSet())
+            );
         }
     }
 

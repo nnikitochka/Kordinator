@@ -1,28 +1,8 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.service;
 
 import org.airsonic.player.domain.*;
 import org.airsonic.player.domain.MusicIndex.SortableArtist;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.Serializable;
@@ -36,16 +16,16 @@ import static java.util.stream.Collectors.toList;
 
 /**
  * Provides services for grouping artists by index.
- *
- * @author Sindre Mehus
  */
 @Service
 public class MusicIndexService {
-
-    @Autowired
     private SettingsService settingsService;
-    @Autowired
     private MediaFileService mediaFileService;
+
+    public MusicIndexService(SettingsService settingsService, MediaFileService mediaFileService) {
+        this.settingsService = settingsService;
+        this.mediaFileService = mediaFileService;
+    }
 
     /**
      * Returns a map from music indexes to sorted lists of artists that are direct children of the given music folders.
@@ -89,11 +69,11 @@ public class MusicIndexService {
         List<MusicIndex> indexes = createIndexesFromExpression(settingsService.getIndexString());
         Comparator<MusicIndex> indexComparator = new MusicIndexComparator(indexes);
 
-        SortedMap<MusicIndex, List<T>> result = new TreeMap<MusicIndex, List<T>>(indexComparator);
+        SortedMap<MusicIndex, List<T>> result = new TreeMap<>(indexComparator);
 
         for (T artist : artists) {
             MusicIndex index = getIndex(artist, indexes);
-            List<T> artistSet = result.computeIfAbsent(index, k -> new ArrayList<T>());
+            List<T> artistSet = result.computeIfAbsent(index, k -> new ArrayList<>());
             artistSet.add(artist);
         }
 
@@ -141,7 +121,7 @@ public class MusicIndexService {
      * @return A list of music indexes.
      */
     protected List<MusicIndex> createIndexesFromExpression(String expr) {
-        List<MusicIndex> result = new ArrayList<MusicIndex>();
+        List<MusicIndex> result = new ArrayList<>();
 
         StringTokenizer tokenizer = new StringTokenizer(expr, " ");
         while (tokenizer.hasMoreTokens()) {
@@ -155,8 +135,8 @@ public class MusicIndexService {
     private List<MusicIndex.SortableArtistWithMediaFiles> createSortableArtists(List<MusicFolder> folders, boolean refresh) {
         String[] ignoredArticles = settingsService.getIgnoredArticlesAsArray();
         String[] shortcuts = settingsService.getShortcutsAsArray();
-        SortedMap<String, MusicIndex.SortableArtistWithMediaFiles> artistMap = new TreeMap<String, MusicIndex.SortableArtistWithMediaFiles>();
-        Set<String> shortcutSet = new HashSet<String>(Arrays.asList(shortcuts));
+        SortedMap<String, MusicIndex.SortableArtistWithMediaFiles> artistMap = new TreeMap<>();
+        Set<String> shortcutSet = new HashSet<>(Arrays.asList(shortcuts));
         Collator collator = createCollator();
 
         for (MusicFolder folder : folders) {
@@ -177,11 +157,11 @@ public class MusicIndexService {
             }
         }
 
-        return new ArrayList<MusicIndex.SortableArtistWithMediaFiles>(artistMap.values());
+        return new ArrayList<>(artistMap.values());
     }
 
     private List<MusicIndex.SortableArtistWithArtist> createSortableArtists(List<Artist> artists) {
-        List<MusicIndex.SortableArtistWithArtist> result = new ArrayList<MusicIndex.SortableArtistWithArtist>();
+        List<MusicIndex.SortableArtistWithArtist> result = new ArrayList<>();
         String[] ignoredArticles = settingsService.getIgnoredArticlesAsArray();
         Collator collator = createCollator();
         for (Artist artist : artists) {
@@ -238,7 +218,7 @@ public class MusicIndexService {
 
     private static class MusicIndexComparator implements Comparator<MusicIndex>, Serializable {
 
-        private List<MusicIndex> indexes;
+        private final List<MusicIndex> indexes;
 
         public MusicIndexComparator(List<MusicIndex> indexes) {
             this.indexes = indexes;

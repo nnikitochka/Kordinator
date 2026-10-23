@@ -1,28 +1,8 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.service;
 
 import org.airsonic.player.dao.RatingDao;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -30,18 +10,18 @@ import java.util.stream.Collectors;
 
 /**
  * Provides services for user ratings.
- *
- * @author Sindre Mehus
  */
 @Service
 public class RatingService {
-
-    @Autowired
     private RatingDao ratingDao;
-    @Autowired
     private SecurityService securityService;
-    @Autowired
     private MediaFileService mediaFileService;
+
+    public RatingService(RatingDao ratingDao, SecurityService securityService, MediaFileService mediaFileService) {
+        this.ratingDao = ratingDao;
+        this.securityService = securityService;
+        this.mediaFileService = mediaFileService;
+    }
 
     /**
      * Returns the highest rated albums.

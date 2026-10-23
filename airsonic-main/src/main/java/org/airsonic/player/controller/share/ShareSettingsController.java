@@ -1,23 +1,4 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
-package org.airsonic.player.controller;
+package org.airsonic.player.controller.share;
 
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
@@ -28,7 +9,6 @@ import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.ShareService;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.ServletRequestUtils;
@@ -45,27 +25,26 @@ import java.util.*;
 
 /**
  * Controller for the page used to administrate the set of shared media.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/shareSettings")
 public class ShareSettingsController {
+    private final ShareService shareService;
+    private final SecurityService securityService;
+    private final MediaFileService mediaFileService;
+    private final MediaFolderService mediaFolderService;
 
-    @Autowired
-    private ShareService shareService;
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private MediaFileService mediaFileService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-
+    public ShareSettingsController(ShareService shareService, SecurityService securityService, MediaFileService mediaFileService, MediaFolderService mediaFolderService) {
+        this.shareService = shareService;
+        this.securityService = securityService;
+        this.mediaFileService = mediaFileService;
+        this.mediaFolderService = mediaFolderService;
+    }
 
     @GetMapping
     public String doGet(HttpServletRequest request, Model model) {
 
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         map.put("shareInfos", getShareInfos(request));
         map.put("user", securityService.getCurrentUser(request));
 
@@ -115,14 +94,14 @@ public class ShareSettingsController {
     }
 
     private List<ShareInfo> getShareInfos(HttpServletRequest request) {
-        List<ShareInfo> result = new ArrayList<ShareInfo>();
+        List<ShareInfo> result = new ArrayList<>();
         User user = securityService.getCurrentUser(request);
         List<MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(user.getUsername());
 
         for (Share share : shareService.getSharesForUser(user)) {
             List<MediaFile> files = shareService.getSharedFiles(share.getId(), musicFolders);
             if (!files.isEmpty()) {
-                MediaFile file = files.get(0);
+                MediaFile file = files.getFirst();
                 result.add(new ShareInfo(shareService.getShareUrl(request, share), share, file.isDirectory() ? file :
                         mediaFileService
                         .getParentOf(file)));
@@ -143,29 +122,5 @@ public class ShareSettingsController {
         }
 
         return Instant.now().plus(days, ChronoUnit.DAYS);
-    }
-
-    public static class ShareInfo {
-        private final String shareUrl;
-        private final Share share;
-        private final MediaFile dir;
-
-        public ShareInfo(String shareUrl, Share share, MediaFile dir) {
-            this.shareUrl = shareUrl;
-            this.share = share;
-            this.dir = dir;
-        }
-
-        public Share getShare() {
-            return share;
-        }
-
-        public String getShareUrl() {
-            return shareUrl;
-        }
-
-        public MediaFile getDir() {
-            return dir;
-        }
     }
 }

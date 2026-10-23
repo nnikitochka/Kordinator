@@ -5,10 +5,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.FileInputStream;
 
-/**
- * @author Sindre Mehus
- * @version $Id$
- */
 public class PlayerTest implements AudioPlayer.Listener {
 
     private AudioPlayer player;

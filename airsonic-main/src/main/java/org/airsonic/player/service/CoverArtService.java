@@ -12,7 +12,6 @@ import org.airsonic.player.service.metadata.JaudiotaggerParser;
 import org.jaudiotagger.tag.images.Artwork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -31,12 +30,15 @@ import java.util.Optional;
 @CacheConfig(cacheNames = "coverArtCache")
 public class CoverArtService {
     private static final Logger LOG = LoggerFactory.getLogger(CoverArtService.class);
-    @Autowired
-    CoverArtDao coverArtDao;
-    @Autowired
-    MediaFolderService mediaFolderService;
-    @Autowired
-    JaudiotaggerParser jaudiotaggerParser;
+    final CoverArtDao coverArtDao;
+    final MediaFolderService mediaFolderService;
+    final JaudiotaggerParser jaudiotaggerParser;
+
+    public CoverArtService(CoverArtDao coverArtDao, MediaFolderService mediaFolderService, JaudiotaggerParser jaudiotaggerParser) {
+        this.coverArtDao = coverArtDao;
+        this.mediaFolderService = mediaFolderService;
+        this.jaudiotaggerParser = jaudiotaggerParser;
+    }
 
     public void upsert(EntityType type, int id, String path, Integer folderId, boolean overridden) {
         CoverArt art = new CoverArt(id, type, path, folderId, overridden);

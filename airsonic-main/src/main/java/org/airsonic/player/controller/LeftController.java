@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import org.airsonic.player.domain.*;
@@ -24,7 +5,6 @@ import org.airsonic.player.service.*;
 import org.airsonic.player.service.search.IndexManager;
 import org.airsonic.player.util.FileUtil;
 import org.airsonic.player.util.StringUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.ServletRequestUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,30 +21,30 @@ import java.util.*;
 
 /**
  * Controller for the left index frame.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/left")
 public class LeftController {
-
     // Update this time if you want to force a refresh in clients.
     private static final Instant LAST_COMPATIBILITY_TIME = Instant.parse("2012-03-06T00:00:00.00Z");
 
-    @Autowired
-    private MediaScannerService mediaScannerService;
-    @Autowired
-    private IndexManager indexManager;
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private MusicIndexService musicIndexService;
-    @Autowired
-    private PlayerService playerService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
+    private final MediaScannerService mediaScannerService;
+    private final IndexManager indexManager;
+    private final SettingsService settingsService;
+    private final SecurityService securityService;
+    private final MusicIndexService musicIndexService;
+    private final PlayerService playerService;
+    private final MediaFolderService mediaFolderService;
+
+    public LeftController(MediaScannerService mediaScannerService, IndexManager indexManager, SettingsService settingsService, SecurityService securityService, MusicIndexService musicIndexService, PlayerService playerService, MediaFolderService mediaFolderService) {
+        this.mediaScannerService = mediaScannerService;
+        this.indexManager = indexManager;
+        this.settingsService = settingsService;
+        this.securityService = securityService;
+        this.musicIndexService = musicIndexService;
+        this.playerService = playerService;
+        this.mediaFolderService = mediaFolderService;
+    }
 
     /**
      * Note: This class intentionally does not implement org.springframework.web.servlet.mvc.LastModified

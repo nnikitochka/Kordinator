@@ -16,7 +16,6 @@ import jakarta.servlet.http.HttpServletResponse;
 @Controller
 @RequestMapping("/accessDenied")
 public class AccessDeniedController {
-
     private static final Logger LOG = LoggerFactory.getLogger(AccessDeniedController.class);
 
     @GetMapping
@@ -24,6 +23,4 @@ public class AccessDeniedController {
         LOG.info("The IP {} tried to access the forbidden url {}.", request.getRemoteAddr(), request.getRequestURL());
         return new ModelAndView("accessDenied");
     }
-
-
 }

@@ -36,7 +36,7 @@ public class TagWSController {
      * Updated tags for a given music file.
      *
      * @return "UPDATED" if the new tags were updated, "SKIPPED" if no update was necessary.
-     *         Otherwise the error message is returned.
+     *         Otherwise, the error message is returned.
      */
     @MessageMapping("/edit")
     @SendToUser(broadcast = false)

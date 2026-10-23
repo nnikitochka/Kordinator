@@ -1,25 +1,7 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.auth0.jwt.interfaces.Payload;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.TransferStatus;
@@ -70,11 +52,8 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -85,13 +64,10 @@ import java.util.stream.Collectors;
 
 /**
  * Controller which produces the HLS (Http Live Streaming) playlist.
- *
- * @author Sindre Mehus
  */
 @Controller("hlsController")
 @RequestMapping({ "/hls", "/ext/hls" })
 public class HLSController {
-
     private static final Logger LOG = LoggerFactory.getLogger(HLSController.class);
 
     private static final int SEGMENT_DURATION = 10;
@@ -164,10 +140,8 @@ public class HLSController {
         if (bitRates.size() > 1) {
             generateVariantPlaylist(authentication, basePath, prefix, id, player, bitRates, writer);
         } else {
-            generateNormalPlaylist(authentication, basePath, prefix, id, player, bitRates.get(0), Math.round(duration), writer);
+            generateNormalPlaylist(authentication, basePath, prefix, id, player, bitRates.getFirst(), Math.round(duration), writer);
         }
-
-        return;
     }
 
     private List<Pair<Integer, Dimension>> parseBitRates(HttpServletRequest request) throws IllegalArgumentException {
@@ -224,7 +198,7 @@ public class HLSController {
                     .queryParam("maxBitRate", kbps + Optional.ofNullable(bitRate.getRight()).map(d -> "@" + d.width + "x" + d.height).orElse(""));
             if (authentication instanceof JWTAuthenticationToken) {
                 DecodedJWT token = (DecodedJWT) authentication.getDetails();
-                Instant expires = Optional.ofNullable(token).map(x -> x.getExpiresAt()).map(x -> x.toInstant()).orElse(null);
+                Instant expires = Optional.ofNullable(token).map(Payload::getExpiresAt).map(Date::toInstant).orElse(null);
                 url = jwtSecurityService.addJWTToken(authentication.getName(), url, expires);
             }
 
@@ -275,7 +249,7 @@ public class HLSController {
 
         if (authentication instanceof JWTAuthenticationToken) {
             DecodedJWT token = (DecodedJWT) authentication.getDetails();
-            Instant expires = Optional.ofNullable(token).map(x -> x.getExpiresAt()).map(x -> x.toInstant()).orElse(null);
+            Instant expires = Optional.ofNullable(token).map(Payload::getExpiresAt).map(Date::toInstant).orElse(null);
             builder = jwtSecurityService.addJWTToken(authentication.getName(), builder, expires);
         }
         return basePath + builder.toUriString();

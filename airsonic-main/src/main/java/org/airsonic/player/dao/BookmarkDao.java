@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.Bookmark;
@@ -30,6 +11,7 @@ import jakarta.annotation.PostConstruct;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -37,8 +19,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Provides database services for media file bookmarks.
- *
- * @author Sindre Mehus
  */
 @Repository
 public class BookmarkDao extends AbstractDao {
@@ -49,7 +29,7 @@ public class BookmarkDao extends AbstractDao {
 
     private final TransactionTemplate transactionTemplate;
     private final ReentrantLock[] locks = new ReentrantLock[LOCK_STRIPES];
-    private BookmarkRowMapper bookmarkRowMapper = new BookmarkRowMapper();
+    private final BookmarkRowMapper bookmarkRowMapper = new BookmarkRowMapper();
 
     public BookmarkDao(PlatformTransactionManager transactionManager) {
         this.transactionTemplate = new TransactionTemplate(transactionManager);
@@ -146,8 +126,11 @@ public class BookmarkDao extends AbstractDao {
     private static class BookmarkRowMapper implements RowMapper<Bookmark> {
         @Override
         public Bookmark mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new Bookmark(rs.getInt(1), rs.getInt(2), rs.getLong(3), rs.getString(4),
-                    rs.getString(5), Optional.ofNullable(rs.getTimestamp(6)).map(x -> x.toInstant()).orElse(null), Optional.ofNullable(rs.getTimestamp(7)).map(x -> x.toInstant()).orElse(null));
+            return new Bookmark(
+                    rs.getInt(1), rs.getInt(2), rs.getLong(3), rs.getString(4), rs.getString(5),
+                    Optional.ofNullable(rs.getTimestamp(6)).map(Timestamp::toInstant).orElse(null),
+                    Optional.ofNullable(rs.getTimestamp(7)).map(Timestamp::toInstant).orElse(null)
+            );
         }
     }
 }

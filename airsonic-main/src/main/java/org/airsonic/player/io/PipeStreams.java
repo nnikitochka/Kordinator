@@ -39,8 +39,6 @@ public class PipeStreams {
      * Multiple readers can read from this stream concurrently. The block asked for
      * by a reader is delivered completely, or until the end of the stream if less
      * is available. Other readers can't come in between.
-     *
-     * @author WD
      */
 
     public static class PipedInputStream extends InputStream {
@@ -217,8 +215,6 @@ public class PipeStreams {
      *
      * Multiple writers can write in this stream concurrently. The block written by
      * a writer is put in completely. Other writers can't come in between.
-     *
-     * @author WD
      */
 
     public static class PipedOutputStream extends OutputStream {
@@ -362,6 +358,7 @@ public class PipeStreams {
             this.inputStreamInit = inputStreamInit;
         }
 
+        @NotNull
         @Override
         public InputStream getInputStream() throws IOException {
             InputStream is = delegate.getInputStream();
@@ -374,16 +371,19 @@ public class PipeStreams {
             return delegate.exists();
         }
 
+        @NotNull
         @Override
         public URL getURL() throws IOException {
             return delegate.getURL();
         }
 
+        @NotNull
         @Override
         public URI getURI() throws IOException {
             return delegate.getURI();
         }
 
+        @NotNull
         @Override
         public File getFile() throws IOException {
             return delegate.getFile();
@@ -399,8 +399,9 @@ public class PipeStreams {
             return delegate.lastModified();
         }
 
+        @NotNull
         @Override
-        public Resource createRelative(String relativePath) throws IOException {
+        public Resource createRelative(@NotNull String relativePath) throws IOException {
             return delegate.createRelative(relativePath);
         }
 
@@ -409,6 +410,7 @@ public class PipeStreams {
             return delegate.getFilename();
         }
 
+        @NotNull
         @Override
         public String getDescription() {
             return delegate.getDescription();
@@ -448,8 +450,8 @@ public class PipeStreams {
         }
 
         @Override
-        public int read(byte b[], int off, int len) throws IOException {
-            int read = super.read(b, off, len);
+        public int read(@NotNull byte[] bytes, int off, int len) throws IOException {
+            int read = super.read(bytes, off, len);
             if (read > 0) {
                 acquire(read);
                 status.addBytesTransferred(read);
@@ -488,6 +490,7 @@ public class PipeStreams {
             this.inputStreamInit = inputStreamInit;
         }
 
+        @NotNull
         @Override
         public InputStream getInputStream() throws IOException {
             return new MonitoredInputStream(delegate.getInputStream(), rateLimiter, statusSupplier, statusCloser, inputStreamInit);
@@ -498,16 +501,19 @@ public class PipeStreams {
             return delegate.exists();
         }
 
+        @NotNull
         @Override
         public URL getURL() throws IOException {
             return delegate.getURL();
         }
 
+        @NotNull
         @Override
         public URI getURI() throws IOException {
             return delegate.getURI();
         }
 
+        @NotNull
         @Override
         public File getFile() throws IOException {
             return delegate.getFile();
@@ -523,8 +529,9 @@ public class PipeStreams {
             return delegate.lastModified();
         }
 
+        @NotNull
         @Override
-        public Resource createRelative(String relativePath) throws IOException {
+        public Resource createRelative(@NotNull String relativePath) throws IOException {
             return delegate.createRelative(relativePath);
         }
 
@@ -533,6 +540,7 @@ public class PipeStreams {
             return delegate.getFilename();
         }
 
+        @NotNull
         @Override
         public String getDescription() {
             return delegate.getDescription();

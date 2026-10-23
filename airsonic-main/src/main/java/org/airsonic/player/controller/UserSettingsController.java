@@ -1,27 +1,7 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import org.airsonic.player.command.UserSettingsCommand;
 import org.airsonic.player.domain.MusicFolder;
-import org.airsonic.player.domain.MusicFolder.Type;
 import org.airsonic.player.domain.TranscodeScheme;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.domain.User.Role;
@@ -35,7 +15,6 @@ import org.airsonic.player.service.TranscodingService;
 import org.airsonic.player.util.Util;
 import org.airsonic.player.validator.UserSettingsValidator;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -63,21 +42,21 @@ import java.util.Set;
 
 /**
  * Controller for the page used to administrate users.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/userSettings")
 public class UserSettingsController {
+    private final SecurityService securityService;
+    private final SettingsService settingsService;
+    private final MediaFolderService mediaFolderService;
+    private final TranscodingService transcodingService;
 
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
-    private TranscodingService transcodingService;
+    public UserSettingsController(SecurityService securityService, SettingsService settingsService, MediaFolderService mediaFolderService, TranscodingService transcodingService) {
+        this.securityService = securityService;
+        this.settingsService = settingsService;
+        this.mediaFolderService = mediaFolderService;
+        this.transcodingService = transcodingService;
+    }
 
     @InitBinder
     protected void initBinder(WebDataBinder binder, HttpServletRequest request) {
@@ -129,7 +108,7 @@ public class UserSettingsController {
     }
 
     private List<Integer> getAllowedMusicFolderIds(User user) {
-        List<Integer> result = new ArrayList<Integer>();
+        List<Integer> result = new ArrayList<>();
         List<MusicFolder> allowedMusicFolders = user == null
                 ? mediaFolderService.getAllMusicFolders()
                 : mediaFolderService.getMusicFoldersForUser(user.getUsername());

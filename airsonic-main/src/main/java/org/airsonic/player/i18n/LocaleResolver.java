@@ -1,28 +1,9 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.i18n;
 
 import org.airsonic.player.domain.UserSettings;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Nonnull;
@@ -36,17 +17,18 @@ import java.util.Set;
 
 /**
  * Locale resolver implementation which returns the locale selected in the settings.
- *
- * @author Sindre Mehus
  */
 @Service
 public class LocaleResolver implements org.springframework.web.servlet.LocaleResolver {
 
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private SettingsService settingsService;
     private Set<Locale> locales;
+    private SecurityService securityService;
+    private SettingsService settingsService;
+
+    public LocaleResolver(SecurityService securityService, SettingsService settingsService) {
+        this.securityService = securityService;
+        this.settingsService = settingsService;
+    }
 
     /**
     * Resolve the current locale via the given request.
@@ -54,6 +36,7 @@ public class LocaleResolver implements org.springframework.web.servlet.LocaleRes
     * @param request Request to be used for resolution.
     * @return The current locale.
     */
+    @NotNull
     @Override
     public Locale resolveLocale(HttpServletRequest request) {
         Locale locale = (Locale) request.getAttribute("airsonic.locale");
@@ -98,7 +81,7 @@ public class LocaleResolver implements org.springframework.web.servlet.LocaleRes
     private synchronized boolean localeExists(Locale locale) {
         // Lazily create set of locales.
         if (locales == null) {
-            locales = new HashSet<Locale>(Arrays.asList(settingsService.getAvailableLocales()));
+            locales = new HashSet<>(Arrays.asList(settingsService.getAvailableLocales()));
         }
 
         return locales.contains(locale);

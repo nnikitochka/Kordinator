@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import org.airsonic.player.command.SearchCommand;
@@ -31,7 +12,6 @@ import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.service.search.IndexType;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -53,27 +33,27 @@ import static java.util.stream.Collectors.toSet;
 
 /**
  * Controller for the search page.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/search")
 public class SearchController {
+    private final SecurityService securityService;
+    private final SettingsService settingsService;
+    private final PlayerService playerService;
+    private final SearchService searchService;
+    private final MediaFolderService mediaFolderService;
+    private final MediaFileService mediaFileService;
+    private final AlbumDao albumDao;
 
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private PlayerService playerService;
-    @Autowired
-    private SearchService searchService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
-    private MediaFileService mediaFileService;
-    @Autowired
-    private AlbumDao albumDao;
+    public SearchController(SecurityService securityService, SettingsService settingsService, PlayerService playerService, SearchService searchService, MediaFolderService mediaFolderService, MediaFileService mediaFileService, AlbumDao albumDao) {
+        this.securityService = securityService;
+        this.settingsService = settingsService;
+        this.playerService = playerService;
+        this.searchService = searchService;
+        this.mediaFolderService = mediaFolderService;
+        this.mediaFileService = mediaFileService;
+        this.albumDao = albumDao;
+    }
 
     @GetMapping
     protected String displayForm() {
@@ -104,8 +84,22 @@ public class SearchController {
 
             SearchResult artists = searchService.search(criteria, musicFolders, IndexType.ARTIST);
             SearchResult artistsId3 = searchService.search(criteria, musicFolders, IndexType.ARTIST_ID3);
-            artistsId3.getArtists().stream().map(Artist::getName).flatMap(ar -> albumDao.getAlbumsForArtist(ar, musicFolders).stream().map(al -> mediaFileService.getMediaFile(al.getPath(), al.getFolderId())).filter(Objects::nonNull).map(MediaFile::getId).map(m -> Pair.of(ar, m))).collect(groupingBy(p -> p.getKey(), mapping(p -> p.getValue(), toSet())));
-            artists.getMediaFiles().stream().map(m -> Pair.of(Optional.ofNullable(m.getArtist()).or(() -> Optional.ofNullable(m.getAlbumArtist())).orElse("(Unknown)"), m.getId()));
+            artistsId3.getArtists().stream().map(Artist::getName).flatMap(ar ->
+                    albumDao.getAlbumsForArtist(ar, musicFolders).stream().map(al ->
+                                    mediaFileService.getMediaFile(al.getPath(), al.getFolderId())
+                            )
+                            .filter(Objects::nonNull)
+                            .map(MediaFile::getId)
+                            .map(m -> Pair.of(ar, m))
+            ).collect(groupingBy(Pair::getKey, mapping(Pair::getValue, toSet())));
+
+            artists.getMediaFiles().stream().map(file ->
+                    Pair.of(
+                            Optional.ofNullable(file.getArtist()).or(() -> Optional.ofNullable(file.getAlbumArtist())).orElse("(Unknown)"),
+                            file.getId()
+                    )
+            );
+
             command.setArtists(Stream.concat(
                     artistsId3.getArtists().stream()
                         .map(Artist::getName)
@@ -120,7 +114,7 @@ public class SearchController {
                                     .or(() -> Optional.ofNullable(m.getAlbumArtist()))
                                     .orElse("(Unknown)"),
                                 m.getId())))
-                .collect(groupingBy(p -> p.getKey(), mapping(p -> p.getValue(), toSet()))));
+                .collect(groupingBy(Pair::getKey, mapping(Pair::getValue, toSet()))));
 
             SearchResult albums = searchService.search(criteria, musicFolders, IndexType.ALBUM);
             SearchResult albumsId3 = searchService.search(criteria, musicFolders, IndexType.ALBUM_ID3);
@@ -131,7 +125,7 @@ public class SearchController {
                             .filter(Objects::nonNull),
                             albums.getMediaFiles().stream()
                                     .map(m -> Pair.of(Pair.of(m.getAlbumName(), m.getAlbumArtist()), m.getId())))
-                    .collect(groupingBy(p -> p.getKey(), mapping(p -> p.getValue(), toSet()))));
+                    .collect(groupingBy(Pair::getKey, mapping(Pair::getValue, toSet()))));
 
             SearchResult songs = searchService.search(criteria, musicFolders, IndexType.SONG);
             command.setSongs(songs.getMediaFiles());

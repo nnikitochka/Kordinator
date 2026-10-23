@@ -3,9 +3,6 @@
  *
  * Swedish
  *
- * @author
- *   Petter (Twitter: @petter_j)
- *
  * @see core/i18n.js
  */
 (function (exports) {

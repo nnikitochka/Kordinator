@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.Avatar;
@@ -29,13 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * Provides database services for avatars.
- *
- * @author Sindre Mehus
  */
 @Repository
 public class AvatarDao extends AbstractDao {
@@ -97,7 +77,7 @@ public class AvatarDao extends AbstractDao {
 
     private static class AvatarRowMapper implements RowMapper<Avatar> {
         public Avatar mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new Avatar(rs.getInt(1), rs.getString(2), Optional.ofNullable(rs.getTimestamp(3)).map(x -> x.toInstant()).orElse(null), rs.getString(4),
+            return new Avatar(rs.getInt(1), rs.getString(2), Optional.ofNullable(rs.getTimestamp(3)).map(Timestamp::toInstant).orElse(null), rs.getString(4),
                               rs.getInt(5), rs.getInt(6), StringUtils.replace(rs.getString(7), "$[AIRSONIC_HOME]", SettingsService.getAirsonicHome().toString()));
         }
     }

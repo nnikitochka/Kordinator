@@ -9,7 +9,6 @@ import org.airsonic.player.service.SettingsService;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -36,23 +35,24 @@ import java.util.Properties;
 @Controller
 @RequestMapping("/recover")
 public class RecoverController {
-
-
     private static final Logger LOG = LoggerFactory.getLogger(RecoverController.class);
 
     private static final String SYMBOLS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
     private final SecureRandom random = new SecureRandom();
     private static final int PASSWORD_LENGTH = 32;
 
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private SecurityService securityService;
+    private final SettingsService settingsService;
+    private final SecurityService securityService;
+
+    public RecoverController(SettingsService settingsService, SecurityService securityService) {
+        this.settingsService = settingsService;
+        this.securityService = securityService;
+    }
 
     @RequestMapping(method = {RequestMethod.GET, RequestMethod.POST})
     public ModelAndView recover(HttpServletRequest request, HttpServletResponse response) {
 
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         String usernameOrEmail = StringUtils.trimToNull(request.getParameter("usernameOrEmail"));
 
         if (usernameOrEmail != null) {
@@ -156,16 +156,13 @@ public class RecoverController {
                     "airsonic.github.io/");
             message.setSentDate(Date.from(Instant.now()));
 
-            Transport trans = session.getTransport(prot);
-            try {
+            try (Transport trans = session.getTransport(prot)) {
                 if (props.get("mail." + prot + ".auth") != null && props.get("mail." + prot + ".auth").equals("true")) {
                     trans.connect(settingsService.getSmtpServer(), settingsService.getSmtpUser(), settingsService.getSmtpPassword());
                 } else {
                     trans.connect();
                 }
                 trans.sendMessage(message, message.getAllRecipients());
-            } finally {
-                trans.close();
             }
             return true;
 

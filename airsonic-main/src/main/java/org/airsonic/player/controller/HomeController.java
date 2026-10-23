@@ -1,27 +1,7 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import org.airsonic.player.domain.*;
 import org.airsonic.player.service.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,29 +19,29 @@ import static org.springframework.web.bind.ServletRequestUtils.getStringParamete
 
 /**
  * Controller for the home page.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/home")
 public class HomeController {
-
     private static final int LIST_SIZE = 40;
 
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private MediaScannerService mediaScannerService;
-    @Autowired
-    private RatingService ratingService;
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private MediaFileService mediaFileService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
-    private SearchService searchService;
+    private final SettingsService settingsService;
+    private final MediaScannerService mediaScannerService;
+    private final RatingService ratingService;
+    private final SecurityService securityService;
+    private final MediaFileService mediaFileService;
+    private final MediaFolderService mediaFolderService;
+    private final SearchService searchService;
+
+    public HomeController(SettingsService settingsService, MediaScannerService mediaScannerService, RatingService ratingService, SecurityService securityService, MediaFileService mediaFileService, MediaFolderService mediaFolderService, SearchService searchService) {
+        this.settingsService = settingsService;
+        this.mediaScannerService = mediaScannerService;
+        this.ratingService = ratingService;
+        this.securityService = securityService;
+        this.mediaFileService = mediaFileService;
+        this.mediaFolderService = mediaFolderService;
+        this.searchService = searchService;
+    }
 
     @GetMapping
     protected ModelAndView handleRequestInternal(HttpServletRequest request) throws Exception {
@@ -107,7 +87,7 @@ public class HomeController {
             case DECADE:
                 List<Integer> decades = createDecades();
                 map.put("decades", decades);
-                int decade = getIntParameter(request, "decade", decades.get(0));
+                int decade = getIntParameter(request, "decade", decades.getFirst());
                 map.put("decade", decade);
                 albums = getByYear(listOffset, LIST_SIZE, decade, decade + 9, musicFolders);
                 break;
@@ -115,7 +95,7 @@ public class HomeController {
                 List<Genre> genres = mediaFileService.getGenres(true);
                 map.put("genres", genres);
                 if (!genres.isEmpty()) {
-                    String genre = getStringParameter(request, "genre", genres.get(0).getName());
+                    String genre = getStringParameter(request, "genre", genres.getFirst().getName());
                     map.put("genre", genre);
                     albums = getByGenre(listOffset, LIST_SIZE, genre, musicFolders);
                 }

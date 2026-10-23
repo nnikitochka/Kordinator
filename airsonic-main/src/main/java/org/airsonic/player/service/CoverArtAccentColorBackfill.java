@@ -2,7 +2,6 @@ package org.airsonic.player.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -14,11 +13,13 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class CoverArtAccentColorBackfill {
-
     private static final Logger LOG = LoggerFactory.getLogger(CoverArtAccentColorBackfill.class);
 
-    @Autowired
-    private CoverArtService coverArtService;
+    private final CoverArtService coverArtService;
+
+    public CoverArtAccentColorBackfill(CoverArtService coverArtService) {
+        this.coverArtService = coverArtService;
+    }
 
     @EventListener(ApplicationReadyEvent.class)
     public void backfillAccentColors() {

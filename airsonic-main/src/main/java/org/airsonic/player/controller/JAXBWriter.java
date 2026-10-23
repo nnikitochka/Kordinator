@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import com.google.common.net.MediaType;
@@ -51,12 +32,7 @@ import java.util.Map.Entry;
 import static org.airsonic.player.util.XMLUtil.createSAXBuilder;
 import static org.springframework.web.bind.ServletRequestUtils.getStringParameter;
 
-/**
- * @author Sindre Mehus
- * @version $Id$
- */
 public class JAXBWriter {
-
     private static final Logger LOG = LoggerFactory.getLogger(JAXBWriter.class);
 
     private final jakarta.xml.bind.JAXBContext jaxbContext;
@@ -68,7 +44,7 @@ public class JAXBWriter {
             // Deterministically use MOXy (needed for the JSON media-type properties below);
             // don't rely on the ServiceLoader, as another jakarta JAXB provider may be on the
             // classpath (ehcache:jakarta pulls in glassfish jaxb-runtime).
-            jaxbContext = new JAXBContextFactory().createContext(new Class[] {Response.class}, null);
+            jaxbContext = JAXBContextFactory.createContext(new Class[] {Response.class}, null);
             datatypeFactory = DatatypeFactory.newInstance();
         } catch (Exception x) {
             throw new RuntimeException(x);
@@ -76,9 +52,8 @@ public class JAXBWriter {
     }
 
     private Marshaller createXmlMarshaller() {
-        Marshaller marshaller = null;
         try {
-            marshaller = jaxbContext.createMarshaller();
+            Marshaller marshaller = jaxbContext.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_ENCODING, StringUtil.ENCODING_UTF8);
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
             return marshaller;
@@ -89,8 +64,7 @@ public class JAXBWriter {
 
     private Marshaller createJsonMarshaller() {
         try {
-            Marshaller marshaller;
-            marshaller = jaxbContext.createMarshaller();
+            Marshaller marshaller = jaxbContext.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_ENCODING, StringUtil.ENCODING_UTF8);
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
             marshaller.setProperty(MarshallerProperties.MEDIA_TYPE, "application/json");

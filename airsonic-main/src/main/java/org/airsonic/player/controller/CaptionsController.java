@@ -61,18 +61,21 @@ public class CaptionsController {
     private static final String CAPTION_FORMAT_SRT = "srt";
     private static final Set<String> CAPTIONS_FORMATS = ImmutableSet.of(CAPTION_FORMAT_VTT, CAPTION_FORMAT_SRT);
 
-    @Autowired
     private MediaFileService mediaFileService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
+    private final MediaFolderService mediaFolderService;
     private SecurityService securityService;
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private MetaDataParserFactory metaDataParserFactory;
-    @Autowired
-    private JWTSecurityService jwtSecurityService;
+    private final SettingsService settingsService;
+    private final MetaDataParserFactory metaDataParserFactory;
+    private final JWTSecurityService jwtSecurityService;
+
+    public CaptionsController(MediaFileService mediaFileService, MediaFolderService mediaFolderService, SecurityService securityService, SettingsService settingsService, MetaDataParserFactory metaDataParserFactory, JWTSecurityService jwtSecurityService) {
+        this.mediaFileService = mediaFileService;
+        this.mediaFolderService = mediaFolderService;
+        this.securityService = securityService;
+        this.settingsService = settingsService;
+        this.metaDataParserFactory = metaDataParserFactory;
+        this.jwtSecurityService = jwtSecurityService;
+    }
 
     @GetMapping
     public ResponseEntity<Resource> handleRequest(
@@ -104,8 +107,8 @@ public class CaptionsController {
 
         String effectiveFormat = requiredFormat != null ? requiredFormat : res.getFormat();
 
-        Resource resource = null;
-        Instant time = null;
+        Resource resource;
+        Instant time;
 
         if (res.getLocation() == CaptionInfo.Location.external) {
             Path captionsFile = Paths.get(res.getIdentifier());
@@ -164,12 +167,8 @@ public class CaptionsController {
     }
 
     public static String getForceFormat(String format) {
-        switch (format) {
-            case "vtt":
-                return "webvtt";
-            default:
-                return format;
-        }
+        if (format.equals("vtt")) return "webvtt";
+        return format;
     }
 
     public static String getDisplayFormat(String format) {
@@ -266,7 +265,7 @@ public class CaptionsController {
 
         try (Stream<Path> children = Files.walk(parentPath)) {
             return children.parallel()
-                    .filter(c -> Files.isRegularFile(c))
+                    .filter(Files::isRegularFile)
                     .filter(c -> CAPTIONS_FORMATS.contains(MoreFiles.getFileExtension(c)))
                     .collect(Collectors.toList());
         } catch (IOException e) {

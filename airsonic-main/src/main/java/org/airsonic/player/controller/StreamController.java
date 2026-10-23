@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import com.google.common.io.ByteStreams;
@@ -34,9 +15,9 @@ import org.airsonic.player.spring.KnownLengthInputStreamResource;
 import org.airsonic.player.util.FileUtil;
 import org.airsonic.player.util.LambdaUtils;
 import org.airsonic.player.util.StringUtil;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -69,43 +50,51 @@ import java.util.regex.Pattern;
 /**
  * A controller which streams the content of a {@link PlayQueue} to a remote
  * {@link Player}.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping({ "/stream/**", "/ext/stream/**" })
 public class StreamController {
-
     private static final Logger LOG = LoggerFactory.getLogger(StreamController.class);
 
-    @Autowired
-    private StatusService statusService;
-    @Autowired
-    private PlayerService playerService;
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private TranscodingService transcodingService;
-    @Autowired
-    private AudioScrobblerService audioScrobblerService;
-    @Autowired
-    private MediaFileService mediaFileService;
-    @Autowired
-    private SearchService searchService;
-    @Autowired
-    private PlayerDaoPlayQueueFactory playQueueFactory;
+    private final StatusService statusService;
+    private final PlayerService playerService;
+    private final SecurityService securityService;
+    private final SettingsService settingsService;
+    private final TranscodingService transcodingService;
+    private final AudioScrobblerService audioScrobblerService;
+    private final MediaFileService mediaFileService;
+    private final SearchService searchService;
+    private final PlayerDaoPlayQueueFactory playQueueFactory;
+
+    public StreamController(StatusService statusService, PlayerService playerService, SecurityService securityService, SettingsService settingsService, TranscodingService transcodingService, AudioScrobblerService audioScrobblerService, MediaFileService mediaFileService, SearchService searchService, PlayerDaoPlayQueueFactory playQueueFactory) {
+        this.statusService = statusService;
+        this.playerService = playerService;
+        this.securityService = securityService;
+        this.settingsService = settingsService;
+        this.transcodingService = transcodingService;
+        this.audioScrobblerService = audioScrobblerService;
+        this.mediaFileService = mediaFileService;
+        this.searchService = searchService;
+        this.playQueueFactory = playQueueFactory;
+    }
 
     @GetMapping
-    public ResponseEntity<Resource> handleRequest(Authentication authentication,
-            @RequestParam(required = false) String format,
-            @RequestParam(required = false) String suffix,
-            @RequestParam Optional<Integer> maxBitRate,
-            @RequestParam Optional<Integer> id,
-            @RequestParam Optional<String> path,
-            @RequestParam(required = false) Double offsetSeconds,
-            ServletWebRequest swr) throws Exception {
+    public ResponseEntity<Resource> handleRequest(
+            Authentication authentication,
+            @RequestParam(required = false)
+            String format,
+            @RequestParam(required = false)
+            String suffix,
+            @RequestParam
+            Optional<Integer> maxBitRate,
+            @RequestParam
+            Optional<Integer> id,
+            @RequestParam
+            Optional<String> path,
+            @RequestParam(required = false)
+            Double offsetSeconds,
+            ServletWebRequest swr
+    ) throws Exception {
         Player player = playerService.getPlayer(swr.getRequest(), swr.getResponse(), false, true);
         User user = securityService.getUserByName(player.getUsername());
 
@@ -115,7 +104,6 @@ public class StreamController {
 
         Long expectedSize = null;
 
-        String targetFormat = format;
         Integer bitRate = maxBitRate.filter(x -> x != 0).orElse(null);
 
         VideoTranscodingSettings videoTranscodingSettings = null;
@@ -149,12 +137,14 @@ public class StreamController {
             playQueue.addFiles(true, file);
             player.setPlayQueue(playQueue);
 
-            if (file.isVideo() && !TranscodingService.FORMAT_RAW.equals(targetFormat)) {
+            if (file.isVideo() && !TranscodingService.FORMAT_RAW.equals(format)) {
                 videoTranscodingSettings = createVideoTranscodingSettings(file, swr.getRequest());
             }
 
-            TranscodingService.Parameters parameters = transcodingService.getParameters(file, player, bitRate,
-                    targetFormat, videoTranscodingSettings);
+            TranscodingService.Parameters parameters = transcodingService.getParameters(
+                    file, player, bitRate,
+                    format, videoTranscodingSettings
+            );
 
             // Support ranges as long as we're not transcoding blindly
             expectedSize = parameters.isRangeAllowed() ? parameters.getExpectedLength() : null;
@@ -172,7 +162,7 @@ public class StreamController {
             }
 
             // Set content type of response
-            suffix = transcodingService.getSuffix(player, file, targetFormat);
+            suffix = transcodingService.getSuffix(player, file, format);
         }
 
         // Terminate any other streams to this player.
@@ -204,7 +194,7 @@ public class StreamController {
         };
         Function<MediaFile, InputStream> streamGenerator = LambdaUtils.uncheckFunction(
             mediaFile -> transcodingService.getTranscodedInputStream(
-                    transcodingService.getParameters(mediaFile, player, bitRate, targetFormat, videoTranscodingSettingsF)));
+                    transcodingService.getParameters(mediaFile, player, bitRate, format, videoTranscodingSettingsF)));
 
         HttpHeaders headers = new HttpHeaders();
         InputStream playStream = new PlayQueueInputStream(player.getPlayQueue(), fileStartListener, fileEndListener, streamGenerator);
@@ -333,7 +323,7 @@ public class StreamController {
      *
      */
     private static class ThresholdInputStream extends FilterInputStream {
-        private long threshold;
+        private final long threshold;
         private long bytesRead = 0;
 
         protected ThresholdInputStream(InputStream in, long threshold) {
@@ -364,13 +354,13 @@ public class StreamController {
         private static byte[] zeros = new byte[4096];
 
         @Override
-        public int read(byte b[], int off, int len) throws IOException {
-            int read = super.read(b, off, len);
+        public int read(@NotNull byte[] bytes, int off, int len) throws IOException {
+            int read = super.read(bytes, off, len);
             if (read == -1 && bytesRead < threshold) {
                 if (zeros.length < len) {
                     zeros = new byte[len];
                 }
-                System.arraycopy(zeros, 0, b, off, len);
+                System.arraycopy(zeros, 0, bytes, off, len);
                 read = Math.min(len, (int) (threshold - bytesRead));
             } else if (read != -1 && bytesRead <= threshold && bytesRead + read > threshold) {
                 warn();
@@ -400,7 +390,7 @@ public class StreamController {
         return new VideoTranscodingSettings(dim.width, dim.height, timeOffset, duration);
     }
 
-    protected Dimension getRequestedVideoSize(String sizeSpec) {
+    public static Dimension getRequestedVideoSize(String sizeSpec) {
         if (sizeSpec == null) {
             return null;
         }

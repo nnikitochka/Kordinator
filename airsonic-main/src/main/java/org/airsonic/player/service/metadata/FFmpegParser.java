@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.service.metadata;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -30,12 +11,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedInputStream;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -47,8 +26,6 @@ import java.util.Optional;
  * Parses meta data from video files using FFmpeg (http://ffmpeg.org/).
  * <p/>
  * Currently duration, bitrate and dimension are supported.
- *
- * @author Sindre Mehus
  */
 @Service("ffmpegParser")
 @Order(100)
@@ -59,10 +36,13 @@ public class FFmpegParser extends MetaDataParser {
         "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams"
     };
 
-    @Autowired
     private TranscodingService transcodingService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
+    private final MediaFolderService mediaFolderService;
+
+    public FFmpegParser(TranscodingService transcodingService, MediaFolderService mediaFolderService) {
+        this.transcodingService = transcodingService;
+        this.mediaFolderService = mediaFolderService;
+    }
 
     /**
      * Parses meta data for the given music file. No guessing or reformatting is done.

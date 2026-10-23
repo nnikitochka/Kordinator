@@ -4,7 +4,6 @@ import org.airsonic.player.domain.Playlist;
 import org.airsonic.player.service.PlaylistService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.util.StringUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.ServletRequestUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,10 +20,13 @@ import jakarta.servlet.http.HttpServletResponse;
 @RequestMapping("/exportPlaylist")
 public class ExportPlayListController {
 
-    @Autowired
-    private PlaylistService playlistService;
-    @Autowired
-    private SecurityService securityService;
+    private final PlaylistService playlistService;
+    private final SecurityService securityService;
+
+    public ExportPlayListController(PlaylistService playlistService, SecurityService securityService) {
+        this.playlistService = playlistService;
+        this.securityService = securityService;
+    }
 
     @GetMapping
     public ModelAndView exportPlaylist(HttpServletRequest request, HttpServletResponse response) throws Exception {

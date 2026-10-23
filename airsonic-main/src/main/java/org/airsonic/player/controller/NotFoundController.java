@@ -14,7 +14,6 @@ import jakarta.servlet.http.HttpServletResponse;
 @Controller
 @RequestMapping("/notFound")
 public class NotFoundController {
-
     @GetMapping
     public ModelAndView notFound(HttpServletRequest request, HttpServletResponse response) {
         return new ModelAndView("notFound");

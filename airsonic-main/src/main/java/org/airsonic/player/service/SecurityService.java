@@ -1,28 +1,8 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.service;
 
 import org.airsonic.player.dao.UserDao;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
-import org.airsonic.player.domain.MusicFolder.Type;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.domain.UserCredential;
 import org.airsonic.player.domain.UserCredential.App;
@@ -33,7 +13,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -72,15 +51,17 @@ import java.util.stream.Stream;
 @Service
 @CacheConfig(cacheNames = "userCache")
 public class SecurityService implements UserDetailsService {
-
     private static final Logger LOG = LoggerFactory.getLogger(SecurityService.class);
 
-    @Autowired
     private UserDao userDao;
-    @Autowired
     private SettingsService settingsService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
+    private final MediaFolderService mediaFolderService;
+
+    public SecurityService(UserDao userDao, SettingsService settingsService, MediaFolderService mediaFolderService) {
+        this.userDao = userDao;
+        this.settingsService = settingsService;
+        this.mediaFolderService = mediaFolderService;
+    }
 
     /**
      * Locates the user based on the username.
@@ -150,7 +131,7 @@ public class SecurityService implements UserDetailsService {
     }
 
     // ensure we can't delete all airsonic creds
-    private Predicate<UserCredential> retainOneAirsonicCred = c ->
+    private final Predicate<UserCredential> retainOneAirsonicCred = c ->
             App.AIRSONIC != c.getApp()
             || !userDao.getCredentials(c.getUsername(), c.getApp()).isEmpty();
 
@@ -232,7 +213,7 @@ public class SecurityService implements UserDetailsService {
                 .collect(Collectors.toList());
     }
 
-    public static final String decodeCredentials(UserCredential reversibleCred) {
+    public static String decodeCredentials(UserCredential reversibleCred) {
         PasswordDecoder decoder = (PasswordDecoder) GlobalSecurityConfig.ENCODERS.get(reversibleCred.getEncoder());
         try {
             return decoder.decode(reversibleCred.getCredential());
@@ -398,8 +379,6 @@ public class SecurityService implements UserDetailsService {
 
     /**
      * Returns whether the given file may be uploaded.
-     *
-     * @return Whether the given file may be uploaded.
      */
     public void checkUploadAllowed(Path file, boolean checkFileExists) throws IOException {
         if (getMusicFolderForFile(file) == null) {
@@ -418,8 +397,7 @@ public class SecurityService implements UserDetailsService {
     public MusicFolder getMusicFolderForFile(Path file, boolean includeDisabled, boolean includeNonExisting) {
         return mediaFolderService.getAllMusicFolders(includeDisabled, includeNonExisting).stream()
                 .filter(folder -> isFileInFolder(file, folder.getPath()))
-                .sorted(Comparator.comparing(folder -> folder.getPath().getNameCount(), Comparator.reverseOrder()))
-                .findFirst().orElse(null);
+                .max(Comparator.comparing(folder -> folder.getPath().getNameCount())).orElse(null);
     }
 
     public boolean isFolderAccessAllowed(MediaFile file, String username) {

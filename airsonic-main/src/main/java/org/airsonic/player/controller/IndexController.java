@@ -3,7 +3,6 @@ package org.airsonic.player.controller;
 import org.airsonic.player.domain.UserSettings;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,10 +17,13 @@ import java.util.Map;
 @RequestMapping("/index")
 public class IndexController {
 
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private SettingsService settingsService;
+    private final SecurityService securityService;
+    private final SettingsService settingsService;
+
+    public IndexController(SecurityService securityService, SettingsService settingsService) {
+        this.securityService = securityService;
+        this.settingsService = settingsService;
+    }
 
     @GetMapping
     public ModelAndView index(HttpServletRequest request) {

@@ -29,7 +29,6 @@ import org.apache.commons.fileupload2.core.FileItemInputIterator;
 import org.apache.commons.fileupload2.jakarta.JakartaServletDiskFileUpload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -58,13 +57,10 @@ import java.util.function.Consumer;
 
 /**
  * Controller which receives uploaded files.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/upload")
 public class UploadController {
-
     private static final Logger LOG = LoggerFactory.getLogger(UploadController.class);
 
     private final SecurityService securityService;
@@ -282,7 +278,7 @@ public class UploadController {
             LOG.info("Trying zip-specific extraction method for {}", file);
             try (FileChannel channel = FileChannel.open(file); ZipFile zip = new ZipFile(channel)) {
                 Enumeration<ZipArchiveEntry> entries = zip.getEntries();
-                ZipArchiveEntry entry = null;
+                ZipArchiveEntry entry;
                 while (entries.hasMoreElements()) {
                     entry = entries.nextElement();
 
@@ -309,11 +305,11 @@ public class UploadController {
             LOG.info("Trying 7z-specific extraction method for {}", file);
             try (FileChannel channel = FileChannel.open(file); SevenZFile zip = new SevenZFile(channel)) {
                 byte[] buffer = new byte[8042];
-                SevenZArchiveEntry entry = null;
+                SevenZArchiveEntry entry;
                 while ((entry = zip.getNextEntry()) != null) {
                     copyEntry(file, entry, dest -> {
-                        int bytesRead = -1;
                         try (OutputStream os = Files.newOutputStream(dest)) {
+                            int bytesRead;
                             while ((bytesRead = zip.read(buffer)) != -1) {
                                 os.write(buffer, 0, bytesRead);
                             }
@@ -334,7 +330,8 @@ public class UploadController {
             LOG.info("Trying a generic extraction method for {}", file);
             try (BufferedInputStream bis = new BufferedInputStream(Files.newInputStream(file));
                     ArchiveInputStream ais = new ArchiveStreamFactory().createArchiveInputStream(bis)) {
-                ArchiveEntry entry = null;
+
+                ArchiveEntry entry;
                 while ((entry = ais.getNextEntry()) != null) {
                     if (!ais.canReadEntryData(entry)) {
                         LOG.info("Can't read {} in {}", entry.getName(), file);
@@ -356,7 +353,7 @@ public class UploadController {
         final Path toPath = file.resolveSibling(entry.getName());
         try {
             if (!toPath.normalize().startsWith(file.getParent())) {
-                throw new IOException("Bad zip filename: " + toPath.toString());
+                throw new IOException("Bad zip filename: " + toPath);
             }
             if (entry.isDirectory()) {
                 Files.createDirectories(toPath);
@@ -384,9 +381,9 @@ public class UploadController {
      * Receives callbacks as the file upload progresses.
      */
     private static class UploadListenerImpl implements UploadListener {
-        private TransferStatus status;
-        private SimpMessagingTemplate brokerTemplate;
-        private RateLimiter rateLimiter;
+        private final TransferStatus status;
+        private final SimpMessagingTemplate brokerTemplate;
+        private final RateLimiter rateLimiter;
         private volatile int lastBroadcastPercentage = 0;
 
         private UploadListenerImpl(TransferStatus status, RateLimiter rateLimiter,

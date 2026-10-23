@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.MusicFolder;
@@ -29,6 +10,7 @@ import jakarta.annotation.PostConstruct;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,17 +21,14 @@ import java.util.stream.Collectors;
 
 /**
  * Provides database services for shared media.
- *
- * @author Sindre Mehus
  */
 @Repository
 public class ShareDao extends AbstractDao {
-
     private static final String INSERT_COLUMNS = "name, description, username, created, expires, last_visited, visit_count";
     private static final String QUERY_COLUMNS = "id, " + INSERT_COLUMNS;
 
-    private ShareRowMapper shareRowMapper = new ShareRowMapper();
-    private ShareFileRowMapper shareFileRowMapper = new ShareFileRowMapper();
+    private final ShareRowMapper shareRowMapper = new ShareRowMapper();
+    private final ShareFileRowMapper shareFileRowMapper = new ShareFileRowMapper();
 
     @PostConstruct
     public void register() throws Exception {
@@ -120,8 +99,13 @@ public class ShareDao extends AbstractDao {
     private static class ShareRowMapper implements RowMapper<Share> {
         @Override
         public Share mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new Share(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), Optional.ofNullable(rs.getTimestamp(5)).map(x -> x.toInstant()).orElse(null),
-                    Optional.ofNullable(rs.getTimestamp(6)).map(x -> x.toInstant()).orElse(null), Optional.ofNullable(rs.getTimestamp(7)).map(x -> x.toInstant()).orElse(null), rs.getInt(8));
+            return new Share(
+                    rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4),
+                    Optional.ofNullable(rs.getTimestamp(5)).map(Timestamp::toInstant).orElse(null),
+                    Optional.ofNullable(rs.getTimestamp(6)).map(Timestamp::toInstant).orElse(null),
+                    Optional.ofNullable(rs.getTimestamp(7)).map(Timestamp::toInstant).orElse(null),
+                    rs.getInt(8)
+            );
         }
     }
 

@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import org.airsonic.player.command.DatabaseSettingsCommand;
@@ -36,7 +17,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -70,18 +50,21 @@ import java.util.function.Supplier;
 public class DatabaseSettingsController {
     private static final Logger LOG = LoggerFactory.getLogger(DatabaseSettingsController.class);
 
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private DatabaseService databaseService;
-    @Autowired
-    private PlayerService playerService;
-    @Autowired
-    private StatusService statusService;
-    @Autowired
-    private SecurityService securityService;
-
     private static final UUID DB_CONTROLLER_IMPORT_CALLBACK_ID = UUID.randomUUID();
+
+    private final SettingsService settingsService;
+    private final DatabaseService databaseService;
+    private final PlayerService playerService;
+    private final StatusService statusService;
+    private final SecurityService securityService;
+
+    public DatabaseSettingsController(SettingsService settingsService, DatabaseService databaseService, PlayerService playerService, StatusService statusService, SecurityService securityService) {
+        this.settingsService = settingsService;
+        this.databaseService = databaseService;
+        this.playerService = playerService;
+        this.statusService = statusService;
+        this.securityService = securityService;
+    }
 
     @PostConstruct
     public void registerWithUploadController() {

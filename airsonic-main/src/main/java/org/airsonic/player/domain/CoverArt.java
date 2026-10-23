@@ -124,8 +124,7 @@ public class CoverArt {
         CoverArt other = (CoverArt) obj;
         if (entityId != other.entityId)
             return false;
-        if (entityType != other.entityType)
-            return false;
-        return true;
+
+        return entityType == other.entityType;
     }
 }

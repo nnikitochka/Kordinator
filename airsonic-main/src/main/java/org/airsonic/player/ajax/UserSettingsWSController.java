@@ -2,7 +2,6 @@ package org.airsonic.player.ajax;
 
 import org.airsonic.player.domain.UserSettings;
 import org.airsonic.player.service.SettingsService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
@@ -13,8 +12,11 @@ import java.time.Instant;
 @Controller
 @MessageMapping("/settings")
 public class UserSettingsWSController {
-    @Autowired
     private SettingsService settingsService;
+
+    public UserSettingsWSController(SettingsService settingsService) {
+        this.settingsService = settingsService;
+    }
 
     @MessageMapping("/sidebar")
     @SendToUser

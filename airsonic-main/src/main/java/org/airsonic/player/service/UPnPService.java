@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.service;
 
 import org.airsonic.player.service.upnp.CustomContentDirectory;
@@ -45,7 +26,6 @@ import org.fourthline.cling.transport.spi.StreamClient;
 import org.fourthline.cling.transport.spi.StreamServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
@@ -55,25 +35,21 @@ import java.io.InputStream;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-/**
- * @author Sindre Mehus
- * @version $Id$
- */
 @Service
 public class UPnPService {
-
     private static final Logger LOG = LoggerFactory.getLogger(UPnPService.class);
-
-    @Autowired
-    private SettingsService settingsService;
 
     private UpnpService upnpService;
 
-    @Autowired
-    @Qualifier("dispatchingContentDirectory")
+    private SettingsService settingsService;
     private CustomContentDirectory dispatchingContentDirectory;
 
-    private AtomicReference<Boolean> running = new AtomicReference<>(false);
+    private final AtomicReference<Boolean> running = new AtomicReference<>(false);
+
+    public UPnPService(SettingsService settingsService, @Qualifier("dispatchingContentDirectory") CustomContentDirectory dispatchingContentDirectory) {
+        this.settingsService = settingsService;
+        this.dispatchingContentDirectory = dispatchingContentDirectory;
+    }
 
     @PostConstruct
     public void init() {
@@ -82,7 +58,7 @@ public class UPnPService {
             // Start DLNA media server?
             setMediaServerEnabled(true);
         }
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> ensureServiceStopped()));
+        Runtime.getRuntime().addShutdownHook(new Thread(this::ensureServiceStopped));
     }
 
     public void ensureServiceStarted() {
@@ -135,7 +111,7 @@ public class UPnPService {
                 upnpService.getRegistry().addDevice(createMediaServerDevice());
                 LOG.info("Enabling UPnP/DLNA media server");
             } catch (Exception x) {
-                LOG.error("Failed to start UPnP/DLNA media server: " + x, x);
+                LOG.error("Failed to start UPnP/DLNA media server: {}", x, x);
             }
         } else {
             ensureServiceStopped();

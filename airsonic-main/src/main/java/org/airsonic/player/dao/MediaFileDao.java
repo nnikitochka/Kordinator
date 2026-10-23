@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.dao;
 
 import com.google.common.collect.ImmutableMap;
@@ -34,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Consumer;
@@ -42,8 +24,6 @@ import java.util.stream.IntStream;
 
 /**
  * Provides database services for media files.
- *
- * @author Sindre Mehus
  */
 @Repository
 public class MediaFileDao extends AbstractDao {
@@ -126,10 +106,9 @@ public class MediaFileDao extends AbstractDao {
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void createOrUpdateMediaFile(MediaFile file, Consumer<MediaFile> preInsertionCallback) {
         LOG.trace("Creating/Updating new media file at {} in folder id {}", file.getPath(), file.getFolderId());
-        String sql = null;
+        String sql;
         if (file.getId() != null) {
-            sql = "" +
-                    "update media_file set " +
+            sql = "update media_file set " +
                     "path=:path," +
                     "folder_id=:fid," +
                     "type=:type," +
@@ -797,12 +776,12 @@ public class MediaFileDao extends AbstractDao {
                     rs.getInt("height") == 0 ? null : rs.getInt("height"),
                     rs.getString("parent_path"),
                     rs.getInt("play_count"),
-                    Optional.ofNullable(rs.getTimestamp("last_played")).map(x -> x.toInstant()).orElse(null),
+                    Optional.ofNullable(rs.getTimestamp("last_played")).map(Timestamp::toInstant).orElse(null),
                     rs.getString("comment"),
-                    Optional.ofNullable(rs.getTimestamp("created")).map(x -> x.toInstant()).orElse(null),
-                    Optional.ofNullable(rs.getTimestamp("changed")).map(x -> x.toInstant()).orElse(null),
-                    Optional.ofNullable(rs.getTimestamp("last_scanned")).map(x -> x.toInstant()).orElse(null),
-                    Optional.ofNullable(rs.getTimestamp("children_last_updated")).map(x -> x.toInstant()).orElse(null),
+                    Optional.ofNullable(rs.getTimestamp("created")).map(Timestamp::toInstant).orElse(null),
+                    Optional.ofNullable(rs.getTimestamp("changed")).map(Timestamp::toInstant).orElse(null),
+                    Optional.ofNullable(rs.getTimestamp("last_scanned")).map(Timestamp::toInstant).orElse(null),
+                    Optional.ofNullable(rs.getTimestamp("children_last_updated")).map(Timestamp::toInstant).orElse(null),
                     rs.getBoolean("present"),
                     rs.getInt("version"),
                     rs.getString("mb_release_id"),
@@ -815,7 +794,7 @@ public class MediaFileDao extends AbstractDao {
         public MediaFile mapRow(ResultSet rs, int rowNum) throws SQLException {
             MediaFile file = new MediaFile();
             file.setPlayCount(rs.getInt(1));
-            file.setLastPlayed(Optional.ofNullable(rs.getTimestamp(2)).map(x -> x.toInstant()).orElse(null));
+            file.setLastPlayed(Optional.ofNullable(rs.getTimestamp(2)).map(Timestamp::toInstant).orElse(null));
             file.setComment(rs.getString(3));
             return file;
         }

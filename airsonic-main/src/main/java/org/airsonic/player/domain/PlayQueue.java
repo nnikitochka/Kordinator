@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.domain;
 
 import org.apache.commons.lang.StringUtils;
@@ -28,11 +9,8 @@ import java.util.stream.IntStream;
 
 /**
  * A play queue is a list of music files that are associated to a remote player.
- *
- * @author Sindre Mehus
  */
 public class PlayQueue {
-
     private List<MediaFile> files = new ArrayList<>();
     private RepeatStatus repeatStatus = RepeatStatus.OFF;
     private String name = "(unnamed)";
@@ -40,7 +18,7 @@ public class PlayQueue {
 
     private RandomSearchCriteria randomSearchCriteria;
 
-    private Function<Integer, MusicFolder> folderIdToFolder;
+    private final Function<Integer, MusicFolder> folderIdToFolder;
 
     public PlayQueue(Function<Integer, MusicFolder> folderIdToFolder) {
         this.folderIdToFolder = folderIdToFolder;
@@ -449,12 +427,11 @@ public class PlayQueue {
         OFF, TRACK, QUEUE;
 
         public static RepeatStatus getNext(RepeatStatus status) {
-            switch (status) {
-                case OFF: return TRACK;
-                case TRACK: return QUEUE;
-                case QUEUE: return OFF;
-                default: return OFF;
-            }
+            return switch (status) {
+                case OFF -> TRACK;
+                case TRACK -> QUEUE;
+                default -> OFF;
+            };
         }
     }
 }

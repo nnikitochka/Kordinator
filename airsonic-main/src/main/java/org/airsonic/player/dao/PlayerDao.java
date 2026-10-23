@@ -1,28 +1,8 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
@@ -30,28 +10,29 @@ import jakarta.annotation.PostConstruct;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
  * Provides player-related database services.
- *
- * @author Sindre Mehus
  */
 @Repository
 public class PlayerDao extends AbstractDao {
-
     private static final Logger LOG = LoggerFactory.getLogger(PlayerDao.class);
     private static final String INSERT_COLUMNS = "name, type, username, ip_address, auto_control_enabled, m3u_bom_enabled, " +
                                                  "last_seen, transcode_scheme, dynamic_ip, technology, client_id";
     private static final String QUERY_COLUMNS = "id, " + INSERT_COLUMNS;
 
-    @Autowired
-    private PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory;
+    private final PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory;
 
-    private PlayerRowMapper rowMapper = new PlayerRowMapper();
-    private Map<Integer, PlayQueue> playlists = Collections.synchronizedMap(new HashMap<Integer, PlayQueue>());
+    private final PlayerRowMapper rowMapper = new PlayerRowMapper();
+    private final Map<Integer, PlayQueue> playlists = Collections.synchronizedMap(new HashMap<>());
+
+    public PlayerDao(PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory) {
+        this.playerDaoPlayQueueFactory = playerDaoPlayQueueFactory;
+    }
 
     @PostConstruct
     public void register() throws Exception {
@@ -188,7 +169,7 @@ public class PlayerDao extends AbstractDao {
             player.setIpAddress(rs.getString("ip_address"));
             player.setAutoControlEnabled(rs.getBoolean("auto_control_enabled"));
             player.setM3uBomEnabled(rs.getBoolean("m3u_bom_enabled"));
-            player.setLastSeen(Optional.ofNullable(rs.getTimestamp("last_seen")).map(x -> x.toInstant()).orElse(null));
+            player.setLastSeen(Optional.ofNullable(rs.getTimestamp("last_seen")).map(Timestamp::toInstant).orElse(null));
             player.setTranscodeScheme(TranscodeScheme.valueOf(rs.getString("transcode_scheme")));
             player.setDynamicIp(rs.getBoolean("dynamic_ip"));
             player.setTechnology(PlayerTechnology.valueOf(rs.getString("technology")));

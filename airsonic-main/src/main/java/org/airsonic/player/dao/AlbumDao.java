@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.Album;
@@ -30,13 +11,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
 
 /**
  * Provides database services for albums.
- *
- * @author Sindre Mehus
  */
 @Repository
 public class AlbumDao extends AbstractDao {
@@ -186,7 +166,7 @@ public class AlbumDao extends AbstractDao {
         if (musicFolders.isEmpty()) {
             return 0;
         }
-        Map<String, Object> args = new HashMap<String, Object>();
+        Map<String, Object> args = new HashMap<>();
         args.put("folders", MusicFolder.toIdList(musicFolders));
 
         return namedQueryForInt("select count(*) from album where present and folder_id in (:folders)", 0, args);
@@ -370,10 +350,10 @@ public class AlbumDao extends AbstractDao {
                     rs.getInt("year") == 0 ? null : rs.getInt("year"),
                     rs.getString("genre"),
                     rs.getInt("play_count"),
-                    Optional.ofNullable(rs.getTimestamp("last_played")).map(x -> x.toInstant()).orElse(null),
+                    Optional.ofNullable(rs.getTimestamp("last_played")).map(Timestamp::toInstant).orElse(null),
                     rs.getString("comment"),
-                    Optional.ofNullable(rs.getTimestamp("created")).map(x -> x.toInstant()).orElse(null),
-                    Optional.ofNullable(rs.getTimestamp("last_scanned")).map(x -> x.toInstant()).orElse(null),
+                    Optional.ofNullable(rs.getTimestamp("created")).map(Timestamp::toInstant).orElse(null),
+                    Optional.ofNullable(rs.getTimestamp("last_scanned")).map(Timestamp::toInstant).orElse(null),
                     rs.getBoolean("present"),
                     rs.getInt("folder_id"),
                     rs.getString("mb_release_id"));

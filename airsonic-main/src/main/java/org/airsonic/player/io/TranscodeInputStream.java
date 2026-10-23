@@ -1,26 +1,8 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.io;
 
 import org.airsonic.player.util.FileUtil;
 import org.apache.commons.io.IOUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,16 +17,14 @@ import java.util.stream.Collectors;
  * Subclass of {@link InputStream} which provides on-the-fly transcoding.
  * Instances of <code>TranscodeInputStream</code> can be chained together, for instance to convert
  * from OGG to WAV to MP3.
- *
- * @author Sindre Mehus
  */
 public class TranscodeInputStream extends InputStream {
 
     private static final Logger LOG = LoggerFactory.getLogger(TranscodeInputStream.class);
 
-    private InputStream processInputStream;
-    private OutputStream processOutputStream;
-    private Process process;
+    private final InputStream processInputStream;
+    private final OutputStream processOutputStream;
+    private final Process process;
     private final Path tmpFile;
 
     /**
@@ -65,7 +45,7 @@ public class TranscodeInputStream extends InputStream {
         processInputStream = process.getInputStream();
 
         // Must read stderr from the process, otherwise it may block.
-        final String name = processBuilder.command().get(0);
+        final String name = processBuilder.command().getFirst();
         new InputStreamReaderThread(process.getErrorStream(), name, true).start();
 
         // Copy data in a separate thread
@@ -102,16 +82,16 @@ public class TranscodeInputStream extends InputStream {
      * @see InputStream#read(byte[])
      */
     @Override
-    public int read(byte[] b) throws IOException {
-        return processInputStream.read(b);
+    public int read(@NotNull byte[] bytes) throws IOException {
+        return processInputStream.read(bytes);
     }
 
     /**
      * @see InputStream#read(byte[], int, int)
      */
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
-        return processInputStream.read(b, off, len);
+    public int read(@NotNull byte[] bytes, int off, int len) throws IOException {
+        return processInputStream.read(bytes, off, len);
     }
 
     /**

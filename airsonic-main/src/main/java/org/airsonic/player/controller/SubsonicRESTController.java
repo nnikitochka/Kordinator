@@ -1,27 +1,9 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import com.google.common.primitives.Ints;
 import org.airsonic.player.ajax.lyrics.LyricsInfo;
 import org.airsonic.player.ajax.lyrics.LyricsWSController;
+import org.airsonic.player.ajax.playing.NowPlayingInfo;
 import org.airsonic.player.command.UserSettingsCommand;
 import org.airsonic.player.dao.AlbumDao;
 import org.airsonic.player.dao.ArtistDao;
@@ -42,7 +24,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -83,78 +64,80 @@ import static org.springframework.web.bind.ServletRequestUtils.*;
 @Controller
 @RequestMapping(value = "/rest", method = {RequestMethod.GET, RequestMethod.POST})
 public class SubsonicRESTController {
-
     private static final Logger LOG = LoggerFactory.getLogger(SubsonicRESTController.class);
 
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private PlayerService playerService;
-    @Autowired
-    private MediaFileService mediaFileService;
-    @Autowired
-    private LastFmService lastFmService;
-    @Autowired
-    private MusicIndexService musicIndexService;
-    @Autowired
-    private TranscodingService transcodingService;
-    @Autowired
-    private DownloadController downloadController;
-    @Autowired
-    private CoverArtController coverArtController;
-    @Autowired
-    private AvatarController avatarController;
-    @Autowired
-    private UserSettingsController userSettingsController;
-    @Autowired
-    private LeftController leftController;
-    @Autowired
-    private StatusService statusService;
-    @Autowired
-    private StreamController streamController;
-    @Autowired
-    private HLSController hlsController;
-    @Autowired
-    private ShareService shareService;
-    @Autowired
-    private PlaylistService playlistService;
-    @Autowired
-    private LyricsWSController lyricsWSController;
-    @Autowired
-    private PlayQueueService playQueueService;
-    @Autowired
-    private JukeboxService jukeboxService;
-    @Autowired
-    private AudioScrobblerService audioScrobblerService;
-    @Autowired
-    private RatingService ratingService;
-    @Autowired
-    private SearchService searchService;
-    @Autowired
-    private MediaFileDao mediaFileDao;
-    @Autowired
-    private ArtistDao artistDao;
-    @Autowired
-    private AlbumDao albumDao;
-    @Autowired
-    private BookmarkService bookmarkService;
-    @Autowired
-    private PlayQueueDao playQueueDao;
-    @Autowired
-    private MediaScannerService mediaScannerService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
-    private CoverArtService coverArtService;
-    @Autowired
-    private LocaleResolver localeResolver;
+    private final SettingsService settingsService;
+    private final SecurityService securityService;
+    private final PlayerService playerService;
+    private final MediaFileService mediaFileService;
+    private final LastFmService lastFmService;
+    private final MusicIndexService musicIndexService;
+    private final TranscodingService transcodingService;
+    private final DownloadController downloadController;
+    private final CoverArtController coverArtController;
+    private final AvatarController avatarController;
+    private final UserSettingsController userSettingsController;
+    private final LeftController leftController;
+    private final StatusService statusService;
+    private final StreamController streamController;
+    private final HLSController hlsController;
+    private final ShareService shareService;
+    private final PlaylistService playlistService;
+    private final LyricsWSController lyricsWSController;
+    private final PlayQueueService playQueueService;
+    private final JukeboxService jukeboxService;
+    private final AudioScrobblerService audioScrobblerService;
+    private final RatingService ratingService;
+    private final SearchService searchService;
+    private final MediaFileDao mediaFileDao;
+    private final ArtistDao artistDao;
+    private final AlbumDao albumDao;
+    private final BookmarkService bookmarkService;
+    private final PlayQueueDao playQueueDao;
+    private final MediaScannerService mediaScannerService;
+    private final MediaFolderService mediaFolderService;
+    private final CoverArtService coverArtService;
+    private final LocaleResolver localeResolver;
 
     private final JAXBWriter jaxbWriter = new JAXBWriter();
 
     private static final String NOT_YET_IMPLEMENTED = "Not yet implemented";
     private static final String NO_LONGER_SUPPORTED = "No longer supported";
+
+    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, BookmarkService bookmarkService, AlbumDao albumDao, LeftController leftController, LocaleResolver localeResolver, SearchService searchService, AudioScrobblerService audioScrobblerService, MusicIndexService musicIndexService, StatusService statusService, ShareService shareService, CoverArtService coverArtService, TranscodingService transcodingService, PlaylistService playlistService, JukeboxService jukeboxService, DownloadController downloadController, MediaScannerService mediaScannerService, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, UserSettingsController userSettingsController, PlayQueueService playQueueService, PlayQueueDao playQueueDao, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController) {
+        this.avatarController = avatarController;
+        this.settingsService = settingsService;
+        this.securityService = securityService;
+        this.mediaFileDao = mediaFileDao;
+        this.playerService = playerService;
+        this.mediaFileService = mediaFileService;
+        this.lastFmService = lastFmService;
+        this.bookmarkService = bookmarkService;
+        this.albumDao = albumDao;
+        this.leftController = leftController;
+        this.localeResolver = localeResolver;
+        this.searchService = searchService;
+        this.audioScrobblerService = audioScrobblerService;
+        this.musicIndexService = musicIndexService;
+        this.statusService = statusService;
+        this.shareService = shareService;
+        this.coverArtService = coverArtService;
+        this.transcodingService = transcodingService;
+        this.playlistService = playlistService;
+        this.jukeboxService = jukeboxService;
+        this.downloadController = downloadController;
+        this.mediaScannerService = mediaScannerService;
+        this.lyricsWSController = lyricsWSController;
+        this.ratingService = ratingService;
+        this.coverArtController = coverArtController;
+        this.streamController = streamController;
+        this.userSettingsController = userSettingsController;
+        this.playQueueService = playQueueService;
+        this.playQueueDao = playQueueDao;
+        this.mediaFolderService = mediaFolderService;
+        this.artistDao = artistDao;
+        this.hlsController = hlsController;
+    }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public void handleMissingRequestParam(HttpServletRequest request,
@@ -305,7 +288,7 @@ public class SubsonicRESTController {
         String genre = getRequiredStringParameter(request, "genre");
         int offset = getIntParameter(request, "offset", 0);
         int count = getIntParameter(request, "count", 10);
-        count = Math.max(0, Math.min(count, 500));
+        count = Math.clamp(count, 0, 500);
         Integer musicFolderId = getIntParameter(request, "musicFolderId");
         List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username, musicFolderId);
 
@@ -973,7 +956,7 @@ public class SubsonicRESTController {
             playlistService.createPlaylist(playlist);
         }
 
-        List<MediaFile> songs = new ArrayList<MediaFile>();
+        List<MediaFile> songs = new ArrayList<>();
         for (int id : getIntParameters(request, "songId")) {
             MediaFile song = mediaFileService.getMediaFile(id);
             if (song != null) {
@@ -1032,11 +1015,11 @@ public class SubsonicRESTController {
         List<MediaFile> songs = playlistService.getFilesInPlaylist(id);
         boolean songsChanged = false;
 
-        SortedSet<Integer> tmp = new TreeSet<Integer>();
+        SortedSet<Integer> tmp = new TreeSet<>();
         for (int songIndexToRemove : getIntParameters(request, "songIndexToRemove")) {
             tmp.add(songIndexToRemove);
         }
-        List<Integer> songIndexesToRemove = new ArrayList<Integer>(tmp);
+        List<Integer> songIndexesToRemove = new ArrayList<>(tmp);
         Collections.reverse(songIndexesToRemove);
         for (Integer songIndexToRemove : songIndexesToRemove) {
             songs.remove(songIndexToRemove.intValue());
@@ -1091,31 +1074,22 @@ public class SubsonicRESTController {
         size = Math.max(0, Math.min(size, 500));
         String type = getRequiredStringParameter(request, "type");
 
-        List<MediaFile> albums;
-        if ("highest".equals(type)) {
-            albums = ratingService.getHighestRatedAlbums(offset, size, musicFolders);
-        } else if ("frequent".equals(type)) {
-            albums = mediaFileService.getMostFrequentlyPlayedAlbums(offset, size, musicFolders);
-        } else if ("recent".equals(type)) {
-            albums = mediaFileService.getMostRecentlyPlayedAlbums(offset, size, musicFolders);
-        } else if ("newest".equals(type)) {
-            albums = mediaFileService.getNewestAlbums(offset, size, musicFolders);
-        } else if ("starred".equals(type)) {
-            albums = mediaFileService.getStarredAlbums(offset, size, username, musicFolders);
-        } else if ("alphabeticalByArtist".equals(type)) {
-            albums = mediaFileService.getAlphabeticalAlbums(offset, size, true, musicFolders);
-        } else if ("alphabeticalByName".equals(type)) {
-            albums = mediaFileService.getAlphabeticalAlbums(offset, size, false, musicFolders);
-        } else if ("byGenre".equals(type)) {
-            albums = mediaFileService.getAlbumsByGenre(offset, size, getRequiredStringParameter(request, "genre"), musicFolders);
-        } else if ("byYear".equals(type)) {
-            albums = mediaFileService.getAlbumsByYear(offset, size, getRequiredIntParameter(request, "fromYear"),
-                    getRequiredIntParameter(request, "toYear"), musicFolders);
-        } else if ("random".equals(type)) {
-            albums = searchService.getRandomAlbums(size, musicFolders);
-        } else {
-            throw new Exception("Invalid list type: " + type);
-        }
+        List<MediaFile> albums = switch (type) {
+            case "highest" -> ratingService.getHighestRatedAlbums(offset, size, musicFolders);
+            case "frequent" -> mediaFileService.getMostFrequentlyPlayedAlbums(offset, size, musicFolders);
+            case "recent" -> mediaFileService.getMostRecentlyPlayedAlbums(offset, size, musicFolders);
+            case "newest" -> mediaFileService.getNewestAlbums(offset, size, musicFolders);
+            case "starred" -> mediaFileService.getStarredAlbums(offset, size, username, musicFolders);
+            case "alphabeticalByArtist" -> mediaFileService.getAlphabeticalAlbums(offset, size, true, musicFolders);
+            case "alphabeticalByName" -> mediaFileService.getAlphabeticalAlbums(offset, size, false, musicFolders);
+            case "byGenre" -> mediaFileService.getAlbumsByGenre(offset, size, getRequiredStringParameter(request, "genre"), musicFolders);
+            case "byYear" -> mediaFileService.getAlbumsByYear(
+                    offset, size, getRequiredIntParameter(request, "fromYear"),
+                    getRequiredIntParameter(request, "toYear"), musicFolders
+            );
+            case "random" -> searchService.getRandomAlbums(size, musicFolders);
+            default -> throw new Exception("Invalid list type: " + type);
+        };
 
         AlbumList result = new AlbumList();
         for (MediaFile album : albums) {
@@ -1139,29 +1113,21 @@ public class SubsonicRESTController {
         Integer musicFolderId = getIntParameter(request, "musicFolderId");
         List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username, musicFolderId);
 
-        List<Album> albums;
-        if ("frequent".equals(type)) {
-            albums = albumDao.getMostFrequentlyPlayedAlbums(offset, size, musicFolders);
-        } else if ("recent".equals(type)) {
-            albums = albumDao.getMostRecentlyPlayedAlbums(offset, size, musicFolders);
-        } else if ("newest".equals(type)) {
-            albums = albumDao.getNewestAlbums(offset, size, musicFolders);
-        } else if ("alphabeticalByArtist".equals(type)) {
-            albums = albumDao.getAlphabeticalAlbums(offset, size, true, false, musicFolders);
-        } else if ("alphabeticalByName".equals(type)) {
-            albums = albumDao.getAlphabeticalAlbums(offset, size, false, false, musicFolders);
-        } else if ("byGenre".equals(type)) {
-            albums = albumDao.getAlbumsByGenre(offset, size, getRequiredStringParameter(request, "genre"), musicFolders);
-        } else if ("byYear".equals(type)) {
-            albums = albumDao.getAlbumsByYear(offset, size, getRequiredIntParameter(request, "fromYear"),
-                                              getRequiredIntParameter(request, "toYear"), musicFolders);
-        } else if ("starred".equals(type)) {
-            albums = albumDao.getStarredAlbums(offset, size, securityService.getCurrentUser(request).getUsername(), musicFolders);
-        } else if ("random".equals(type)) {
-            albums = searchService.getRandomAlbumsId3(size, musicFolders);
-        } else {
-            throw new Exception("Invalid list type: " + type);
-        }
+        List<Album> albums = switch (type) {
+            case "frequent" -> albumDao.getMostFrequentlyPlayedAlbums(offset, size, musicFolders);
+            case "recent" -> albumDao.getMostRecentlyPlayedAlbums(offset, size, musicFolders);
+            case "newest" -> albumDao.getNewestAlbums(offset, size, musicFolders);
+            case "alphabeticalByArtist" -> albumDao.getAlphabeticalAlbums(offset, size, true, false, musicFolders);
+            case "alphabeticalByName" -> albumDao.getAlphabeticalAlbums(offset, size, false, false, musicFolders);
+            case "byGenre" -> albumDao.getAlbumsByGenre(offset, size, getRequiredStringParameter(request, "genre"), musicFolders);
+            case "byYear" -> albumDao.getAlbumsByYear(
+                    offset, size, getRequiredIntParameter(request, "fromYear"),
+                    getRequiredIntParameter(request, "toYear"), musicFolders
+            );
+            case "starred" -> albumDao.getStarredAlbums(offset, size, securityService.getCurrentUser(request).getUsername(), musicFolders);
+            case "random" -> searchService.getRandomAlbumsId3(size, musicFolders);
+            default -> throw new Exception("Invalid list type: " + type);
+        };
         AlbumList2 result = new AlbumList2();
         for (Album album : albums) {
             result.getAlbum().add(createJaxbAlbum(new AlbumID3(), album, username));
@@ -1221,7 +1187,7 @@ public class SubsonicRESTController {
 
         Stream.concat(statusService.getActivePlays().parallelStream(),
                 statusService.getInactivePlays().parallelStream())
-            .map(info -> info.fromPlayStatus())
+            .map(NowPlayingInfo::fromPlayStatus)
             .forEach(s -> {
                 NowPlayingEntry entry = new NowPlayingEntry();
                 entry.setUsername(s.getPlayer().getUsername());
@@ -1354,8 +1320,8 @@ public class SubsonicRESTController {
     }
 
     public static class APIException extends Exception {
-        private String message;
-        private ErrorCode error;
+        private final String message;
+        private final ErrorCode error;
 
         public APIException(ErrorCode error, String message) {
             this.message = message;
@@ -1434,7 +1400,7 @@ public class SubsonicRESTController {
             int id = ids[i];
             MediaFile file = mediaFileService.getMediaFile(id);
             if (file == null) {
-                LOG.warn("File to scrobble not found: " + id);
+                LOG.warn("File to scrobble not found: {}", id);
                 continue;
             }
             Instant time = times.length == 0 ? null : Instant.ofEpochMilli(times[i]);
@@ -1680,7 +1646,7 @@ public class SubsonicRESTController {
             return;
         }
 
-        List<MediaFile> files = new ArrayList<MediaFile>();
+        List<MediaFile> files = new ArrayList<>();
         for (int id : getRequiredIntParameters(request, "id")) {
             files.add(mediaFileService.getMediaFile(id));
         }
@@ -2195,7 +2161,7 @@ public class SubsonicRESTController {
         }
 
         // Return the player ID.
-        return !players.isEmpty() ? players.get(0).getId() : null;
+        return !players.isEmpty() ? players.getFirst().getId() : null;
     }
 
     public enum ErrorCode {

@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import org.airsonic.player.command.PlayerSettingsCommand;
@@ -27,7 +8,6 @@ import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.service.TranscodingService;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.ServletRequestUtils;
@@ -44,21 +24,21 @@ import java.util.List;
 
 /**
  * Controller for the player settings page.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/playerSettings")
 public class PlayerSettingsController {
+    private final PlayerService playerService;
+    private final SecurityService securityService;
+    private final TranscodingService transcodingService;
+    private final PlayQueueService playQueueService;
 
-    @Autowired
-    private PlayerService playerService;
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private TranscodingService transcodingService;
-    @Autowired
-    private PlayQueueService playQueueService;
+    public PlayerSettingsController(PlayerService playerService, SecurityService securityService, TranscodingService transcodingService, PlayQueueService playQueueService) {
+        this.playerService = playerService;
+        this.securityService = securityService;
+        this.transcodingService = transcodingService;
+        this.playQueueService = playQueueService;
+    }
 
     @GetMapping
     protected String displayForm() {
@@ -78,7 +58,7 @@ public class PlayerSettingsController {
         if (playerId != null) {
             player = playerService.getPlayerById(playerId);
         } else if (!players.isEmpty()) {
-            player = players.get(0);
+            player = players.getFirst();
         }
 
         if (player != null) {
@@ -167,7 +147,7 @@ public class PlayerSettingsController {
         User user = securityService.getCurrentUser(request);
         String username = user.getUsername();
         List<Player> players = playerService.getAllPlayers();
-        List<Player> authorizedPlayers = new ArrayList<Player>();
+        List<Player> authorizedPlayers = new ArrayList<>();
 
         for (Player player : players) {
             // Only display authorized players.

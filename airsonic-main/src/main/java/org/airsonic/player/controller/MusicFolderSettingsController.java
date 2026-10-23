@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import org.airsonic.player.command.MusicFolderSettingsCommand;
@@ -35,7 +16,6 @@ import org.airsonic.player.service.search.IndexManager;
 import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -52,33 +32,33 @@ import static java.util.stream.Collectors.toList;
 
 /**
  * Controller for the page used to administer the set of music folders.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/musicFolderSettings")
 public class MusicFolderSettingsController {
-
     private static final Logger LOG = LoggerFactory.getLogger(MusicFolderSettingsController.class);
 
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private MediaScannerService mediaScannerService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
-    private ArtistDao artistDao;
-    @Autowired
-    private AlbumDao albumDao;
-    @Autowired
-    private MediaFileDao mediaFileDao;
-    @Autowired
-    private IndexManager indexManager;
-    @Autowired
-    private PlaylistService playlistService;
-    @Autowired
-    private CoverArtService coverArtService;
+    private final SettingsService settingsService;
+    private final MediaScannerService mediaScannerService;
+    private final MediaFolderService mediaFolderService;
+    private final ArtistDao artistDao;
+    private final AlbumDao albumDao;
+    private final MediaFileDao mediaFileDao;
+    private final IndexManager indexManager;
+    private final PlaylistService playlistService;
+    private final CoverArtService coverArtService;
+
+    public MusicFolderSettingsController(SettingsService settingsService, MediaScannerService mediaScannerService, MediaFolderService mediaFolderService, ArtistDao artistDao, AlbumDao albumDao, MediaFileDao mediaFileDao, IndexManager indexManager, PlaylistService playlistService, CoverArtService coverArtService) {
+        this.settingsService = settingsService;
+        this.mediaScannerService = mediaScannerService;
+        this.mediaFolderService = mediaFolderService;
+        this.artistDao = artistDao;
+        this.albumDao = albumDao;
+        this.mediaFileDao = mediaFileDao;
+        this.indexManager = indexManager;
+        this.playlistService = playlistService;
+        this.coverArtService = coverArtService;
+    }
 
     @GetMapping
     protected String displayForm() {

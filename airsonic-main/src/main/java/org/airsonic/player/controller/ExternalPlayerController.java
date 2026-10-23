@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import com.google.common.io.MoreFiles;
@@ -27,7 +8,6 @@ import org.airsonic.player.util.StringUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -57,21 +37,23 @@ import static java.util.stream.Collectors.toList;
 @Controller
 @RequestMapping("/ext/share")
 public class ExternalPlayerController {
-
     private static final Logger LOG = LoggerFactory.getLogger(ExternalPlayerController.class);
 
-    @Autowired
-    private PlayerService playerService;
-    @Autowired
-    private ShareService shareService;
-    @Autowired
-    private MediaFileService mediaFileService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
-    private JWTSecurityService jwtSecurityService;
-    @Autowired
-    private VideoPlayerController videoPlayerController;
+    private final PlayerService playerService;
+    private final ShareService shareService;
+    private final MediaFileService mediaFileService;
+    private final MediaFolderService mediaFolderService;
+    private final JWTSecurityService jwtSecurityService;
+    private final VideoPlayerController videoPlayerController;
+
+    public ExternalPlayerController(PlayerService playerService, ShareService shareService, MediaFileService mediaFileService, MediaFolderService mediaFolderService, JWTSecurityService jwtSecurityService, VideoPlayerController videoPlayerController) {
+        this.playerService = playerService;
+        this.shareService = shareService;
+        this.mediaFileService = mediaFileService;
+        this.mediaFolderService = mediaFolderService;
+        this.jwtSecurityService = jwtSecurityService;
+        this.videoPlayerController = videoPlayerController;
+    }
 
     @GetMapping("/{shareName}")
     protected ModelAndView handleRequestInternal(

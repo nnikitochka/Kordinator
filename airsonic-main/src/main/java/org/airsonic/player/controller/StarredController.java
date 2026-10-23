@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.controller;
 
 import org.airsonic.player.dao.MediaFileDao;
@@ -26,7 +7,6 @@ import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.PlayerService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,25 +22,25 @@ import java.util.Map;
 
 /**
  * Controller for showing a user's starred items.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/starred")
 public class StarredController {
+    private final PlayerService playerService;
+    private final MediaFileDao mediaFileDao;
+    private final SecurityService securityService;
+    private final SettingsService settingsService;
+    private final MediaFileService mediaFileService;
+    private final MediaFolderService mediaFolderService;
 
-    @Autowired
-    private PlayerService playerService;
-    @Autowired
-    private MediaFileDao mediaFileDao;
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private MediaFileService mediaFileService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
+    public StarredController(PlayerService playerService, MediaFileDao mediaFileDao, SecurityService securityService, SettingsService settingsService, MediaFileService mediaFileService, MediaFolderService mediaFolderService) {
+        this.playerService = playerService;
+        this.mediaFileDao = mediaFileDao;
+        this.securityService = securityService;
+        this.settingsService = settingsService;
+        this.mediaFileService = mediaFileService;
+        this.mediaFolderService = mediaFolderService;
+    }
 
     @GetMapping
     protected ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -94,5 +74,4 @@ public class StarredController {
         map.put("videos", videos);
         return new ModelAndView("starred","model",map);
     }
-
 }

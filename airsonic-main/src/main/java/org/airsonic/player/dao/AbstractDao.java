@@ -1,22 +1,3 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
 package org.airsonic.player.dao;
 
 import com.google.common.base.CaseFormat;
@@ -30,6 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
+import org.springframework.jdbc.support.KeyHolder;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -54,8 +36,6 @@ import java.util.stream.Stream;
 
 /**
  * Abstract superclass for all DAO's.
- *
- * @author Sindre Mehus
  */
 public class AbstractDao {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractDao.class);
@@ -88,7 +68,7 @@ public class AbstractDao {
     protected static Object[] convertToDBTypes(Object[] args) {
         return args == null ? null : Stream.of(args)
                 .map(AbstractDao::convertToDBType)
-                .collect(Collectors.toList())
+                .toList()
                 .toArray();
     }
 
@@ -158,7 +138,7 @@ public class AbstractDao {
 
         // Log queries that take more than 2 seconds.
         if (millis > TimeUnit.SECONDS.toMillis(2L)) {
-            LOG.debug(millis + " ms:  " + sql);
+            LOG.debug("{} ms:  {}", millis, sql);
         }
     }
 
@@ -211,7 +191,7 @@ public class AbstractDao {
     }
 
     protected Instant queryForInstant(String sql, Instant defaultValue, Object... args) {
-        return queryForTypes(sql, Timestamp.class, args).stream().filter(Objects::nonNull).findFirst().map(x -> x.toInstant()).orElse(defaultValue);
+        return queryForTypes(sql, Timestamp.class, args).stream().filter(Objects::nonNull).findFirst().map(Timestamp::toInstant).orElse(defaultValue);
     }
 
     protected Long queryForLong(String sql, Long defaultValue, Object... args) {
@@ -224,18 +204,18 @@ public class AbstractDao {
 
     protected <T> T queryOne(String sql, RowMapper<T> rowMapper, Object... args) {
         List<T> list = query(sql, rowMapper, args);
-        return list.isEmpty() ? null : list.get(0);
+        return list.isEmpty() ? null : list.getFirst();
     }
 
     protected <T> T namedQueryOne(String sql, RowMapper<T> rowMapper, Map<String, Object> args) {
         List<T> list = namedQuery(sql, rowMapper, args);
-        return list.isEmpty() ? null : list.get(0);
+        return list.isEmpty() ? null : list.getFirst();
     }
 
-    private static Map<String, SimpleJdbcInsert> insertTemplates = new HashMap<>();
-    private static Map<String, Map<String, MethodHandle>> methods = new HashMap<>();
-    private static MethodHandles.Lookup lookup = MethodHandles.lookup();
-    private static List<Function<String, String>> colNameTransforms = Arrays.asList(Function.identity(),
+    private static final Map<String, SimpleJdbcInsert> insertTemplates = new HashMap<>();
+    private static final Map<String, Map<String, MethodHandle>> methods = new HashMap<>();
+    private static final MethodHandles.Lookup lookup = MethodHandles.lookup();
+    private static final List<Function<String, String>> colNameTransforms = Arrays.asList(Function.identity(),
         c -> CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, c),
         c -> CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, c).toLowerCase());
 
@@ -297,12 +277,12 @@ public class AbstractDao {
             return null;
         } else {
             var keyHolder = insertTemplates.get(table).executeAndReturnKeyHolder(args);
-            return Optional.ofNullable(keyHolder).map(k -> k.getKey()).map(Number::intValue).orElse(null);
+            return Optional.ofNullable(keyHolder).map(KeyHolder::getKey).map(Number::intValue).orElse(null);
         }
     }
 
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Column {
-        public String value();
+        String value();
     }
 }

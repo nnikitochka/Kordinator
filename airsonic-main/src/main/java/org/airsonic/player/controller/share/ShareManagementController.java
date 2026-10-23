@@ -1,30 +1,10 @@
-/*
- This file is part of Airsonic.
-
- Airsonic is free software: you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation, either version 3 of the License, or
- (at your option) any later version.
-
- Airsonic is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with Airsonic.  If not, see <http://www.gnu.org/licenses/>.
-
- Copyright 2016 (C) Airsonic Authors
- Based upon Subsonic, Copyright 2009 (C) Sindre Mehus
- */
-package org.airsonic.player.controller;
+package org.airsonic.player.controller.share;
 
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.PlayQueue;
 import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.Share;
 import org.airsonic.player.service.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.ServletRequestUtils;
@@ -39,37 +19,36 @@ import java.util.*;
 
 /**
  * Controller for sharing music on Twitter, Facebook etc.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/createShare")
 public class ShareManagementController {
+    private final MediaFileService mediaFileService;
+    private final ShareService shareService;
+    private final PlayerService playerService;
+    private final PlaylistService playlistService;
+    private final SecurityService securityService;
 
-    @Autowired
-    private MediaFileService mediaFileService;
-    @Autowired
-    private ShareService shareService;
-    @Autowired
-    private PlayerService playerService;
-    @Autowired
-    private PlaylistService playlistService;
-    @Autowired
-    private SecurityService securityService;
+    public ShareManagementController(MediaFileService mediaFileService, ShareService shareService, PlayerService playerService, PlaylistService playlistService, SecurityService securityService) {
+        this.mediaFileService = mediaFileService;
+        this.shareService = shareService;
+        this.playerService = playerService;
+        this.playlistService = playlistService;
+        this.securityService = securityService;
+    }
 
     @GetMapping
     public ModelAndView createShare(HttpServletRequest request, HttpServletResponse response) throws Exception {
-
         List<MediaFile> files = getMediaFiles(request);
         MediaFile dir = null;
         if (!files.isEmpty()) {
-            dir = files.get(0);
+            dir = files.getFirst();
             if (!dir.isAlbum()) {
                 dir = mediaFileService.getParentOf(dir);
             }
         }
 
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         map.put("dir", dir);
         map.put("user", securityService.getCurrentUser(request));
 
@@ -101,7 +80,7 @@ public class ShareManagementController {
             MediaFile album = mediaFileService.getMediaFile(id);
             int[] indexes = ServletRequestUtils.getIntParameters(request, "i");
             if (indexes.length == 0) {
-                return Arrays.asList(album);
+                return Collections.singletonList(album);
             }
             List<MediaFile> children = mediaFileService.getChildrenOf(album, true, false, true);
             for (int index : indexes) {
@@ -117,5 +96,4 @@ public class ShareManagementController {
 
         return result;
     }
-
 }
