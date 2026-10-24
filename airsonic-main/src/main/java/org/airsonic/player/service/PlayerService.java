@@ -9,7 +9,6 @@ import org.airsonic.player.domain.User.Role;
 import org.airsonic.player.util.StringUtil;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -38,16 +37,19 @@ public class PlayerService {
     private static final String COOKIE_NAME = "player";
     private static final int COOKIE_EXPIRY = 365 * 24 * 3600; // One year
 
-    @Autowired
     private PlayerDao playerDao;
-    @Autowired
     private StatusService statusService;
-    @Autowired
     private SecurityService securityService;
-    @Autowired
     private TranscodingService transcodingService;
-    @Autowired
-    private SimpMessagingTemplate brokerTemplate;
+    private final SimpMessagingTemplate brokerTemplate;
+
+    public PlayerService(PlayerDao playerDao, StatusService statusService, SecurityService securityService, TranscodingService transcodingService, SimpMessagingTemplate brokerTemplate) {
+        this.playerDao = playerDao;
+        this.statusService = statusService;
+        this.securityService = securityService;
+        this.transcodingService = transcodingService;
+        this.brokerTemplate = brokerTemplate;
+    }
 
     @PostConstruct
     public void init() {
@@ -333,7 +335,7 @@ public class PlayerService {
         // Look for existing player.
         List<Player> players = getPlayersForUserAndClientId(User.USERNAME_GUEST, null);
         if (!players.isEmpty()) {
-            return players.get(0);
+            return players.getFirst();
         }
 
         // Create player if necessary.

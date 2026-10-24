@@ -36,7 +36,7 @@ public class PathWatcherService {
     private final ExecutorService watcherThread = Executors.newSingleThreadExecutor(Util.getDaemonThreadfactory("path-watcher-thread-"));
     private final ExecutorService watcherFunctionThreadPool = Executors.newCachedThreadPool(Util.getDaemonThreadfactory("path-watcher-function-thread-"));
 
-    private final Map<WatchKey, Map<Kind<? extends Object>, BiConsumer<Path, WatchEvent<Path>>>> watchFunctions = new ConcurrentHashMap<>();
+    private final Map<WatchKey, Map<Kind<?>, BiConsumer<Path, WatchEvent<Path>>>> watchFunctions = new ConcurrentHashMap<>();
     private final Map<String, WatchKey> watchNames = new ConcurrentHashMap<>();
     private WatchService watchService;
     private final Runnable watcherTask = () -> {
@@ -48,7 +48,7 @@ public class PathWatcherService {
                 LOG.warn("Watch service unable to poll. Directory monitoring may be off", e);
                 continue;
             }
-            Map<Kind<? extends Object>, BiConsumer<Path, WatchEvent<Path>>> fs = watchFunctions.get(key);
+            Map<Kind<?>, BiConsumer<Path, WatchEvent<Path>>> fs = watchFunctions.get(key);
             if (fs == null) {
                 continue;
             }
@@ -76,7 +76,7 @@ public class PathWatcherService {
             BiConsumer<Path, WatchEvent<Path>> entryDeleteConsumer,
             BiConsumer<Path, WatchEvent<Path>> entryModifyConsumer, BiConsumer<Path, WatchEvent<Path>> overflowConsumer)
             throws IOException {
-        Map<Kind<? extends Object>, BiConsumer<Path, WatchEvent<Path>>> fnMap = new HashMap<>();
+        Map<Kind<?>, BiConsumer<Path, WatchEvent<Path>>> fnMap = new HashMap<>();
         fnMap.put(StandardWatchEventKinds.ENTRY_CREATE, entryCreateConsumer);
         fnMap.put(StandardWatchEventKinds.ENTRY_DELETE, entryDeleteConsumer);
         fnMap.put(StandardWatchEventKinds.ENTRY_MODIFY, entryModifyConsumer);
@@ -84,7 +84,7 @@ public class PathWatcherService {
         setWatcher(id, watchable, fnMap);
     }
 
-    public void setWatcher(String id, Path watchable, Map<Kind<? extends Object>, BiConsumer<Path, WatchEvent<Path>>> fnMap) throws IOException {
+    public void setWatcher(String id, Path watchable, Map<Kind<?>, BiConsumer<Path, WatchEvent<Path>>> fnMap) throws IOException {
         WatchKey key = watchable.register(watchService, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.OVERFLOW);
         watchFunctions.put(key, fnMap);
         watchNames.compute(id, (k, v) -> {
@@ -123,7 +123,7 @@ public class PathWatcherService {
         @ReadOperation
         public WebEndpointResponse<Map<String, String>> info() {
             return new WebEndpointResponse<>(pathWatcherService.watchNames.entrySet().stream()
-                    .collect(toMap(e -> e.getKey(), e -> e.getValue().watchable().toString())));
+                    .collect(toMap(Map.Entry::getKey, e -> e.getValue().watchable().toString())));
         }
     }
 

@@ -155,7 +155,7 @@ public class SecurityService implements UserDetailsService {
                 .collect(Collectors.groupingByConcurrent(
                         UserCredential::getApp,
                         Collectors.collectingAndThen(
-                                Collectors.maxBy(Comparator.comparing(c -> c.getUpdated())), o -> o.orElse(null))));
+                                Collectors.maxBy(Comparator.comparing(UserCredential::getUpdated)), o -> o.orElse(null))));
     }
 
     public boolean checkDefaultAdminCredsPresent() {
