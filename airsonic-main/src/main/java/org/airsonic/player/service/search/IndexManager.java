@@ -14,7 +14,6 @@ import org.apache.lucene.search.SearcherManager;
 import org.apache.lucene.store.FSDirectory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -41,7 +40,6 @@ import java.util.stream.Stream;
  */
 @Component
 public class IndexManager {
-
     private static final Logger LOG = LoggerFactory.getLogger(IndexManager.class);
 
     /**
@@ -70,20 +68,25 @@ public class IndexManager {
      */
     private Function<IndexType, Path> getIndexDirectory = (indexType) -> rootIndexDirectory.resolve(indexType.toString().toLowerCase());
 
-    @Autowired
-    private AnalyzerFactory analyzerFactory;
+    private final AnalyzerFactory analyzerFactory;
+    private final DocumentFactory documentFactory;
+    private final MediaFileDao mediaFileDao;
+    private final ArtistDao artistDao;
+    private final AlbumDao albumDao;
 
-    @Autowired
-    private DocumentFactory documentFactory;
-
-    @Autowired
-    private MediaFileDao mediaFileDao;
-
-    @Autowired
-    private ArtistDao artistDao;
-
-    @Autowired
-    private AlbumDao albumDao;
+    public IndexManager(
+            AnalyzerFactory analyzerFactory,
+            DocumentFactory documentFactory,
+            MediaFileDao mediaFileDao,
+            ArtistDao artistDao,
+            AlbumDao albumDao
+    ) {
+        this.analyzerFactory = analyzerFactory;
+        this.documentFactory = documentFactory;
+        this.mediaFileDao = mediaFileDao;
+        this.artistDao = artistDao;
+        this.albumDao = albumDao;
+    }
 
     private Map<IndexType, SearcherManager> searchers = new ConcurrentHashMap<>();
 
