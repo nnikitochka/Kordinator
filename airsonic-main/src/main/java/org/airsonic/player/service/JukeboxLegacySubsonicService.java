@@ -13,12 +13,9 @@ import java.io.InputStream;
 
 /**
  * Plays music on the local audio device.
- *
- * @author Sindre Mehus
  */
 @Service
 public class JukeboxLegacySubsonicService implements AudioPlayer.Listener {
-
     private static final Logger LOG = LoggerFactory.getLogger(JukeboxLegacySubsonicService.class);
 
     @Autowired

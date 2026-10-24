@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class HlsSession {
-    private final Logger LOG;
+    private final Logger logger;
 
     private static final ScheduledExecutorService EXECUTOR = Executors.newSingleThreadScheduledExecutor(Util.getDaemonThreadfactory("hls-destroy-session"));
 
@@ -45,19 +45,19 @@ public class HlsSession {
     private ScheduledFuture<?> destroySessionFuture;
 
     public HlsSession(Key sessionKey, MediaFile mediaFile, TranscodingService transcodingService) {
-        this.LOG = LoggerFactory.getLogger(HlsSession.class + "-" + sessionKey.id());
-        this.LOG.info("Creating HLS session {}: {}", sessionKey.id(), sessionKey);
+        this.logger = LoggerFactory.getLogger(HlsSession.class + "-" + sessionKey.id());
+        this.logger.info("Creating HLS session {}: {}", sessionKey.id(), sessionKey);
         this.sessionKey = sessionKey;
         this.mediaFile = mediaFile;
         this.transcodingService = transcodingService;
     }
 
     public Path waitForSegment(int segmentIndex, long timeoutMillis) throws Exception {
-        this.LOG.debug("Requesting hls segment {}", segmentIndex);
+        this.logger.debug("Requesting hls segment {}", segmentIndex);
         scheduleSessionDestruction();
         Path segment = getSegment(segmentIndex);
         if (segment != null) {
-            this.LOG.debug("Segment {} already produced.", segmentIndex);
+            this.logger.debug("Segment {} already produced.", segmentIndex);
             return segment;
         }
         if (!isProcessAlive()) {
@@ -72,14 +72,14 @@ public class HlsSession {
         }
         long timeout = currentTimeMillis() + timeoutMillis;
         while (segment == null && currentTimeMillis() < timeout && isProcessAlive()) {
-            this.LOG.debug("Segment {} not yet produced. Waiting.", segmentIndex);
+            this.logger.debug("Segment {} not yet produced. Waiting.", segmentIndex);
             Thread.sleep(2000L);
             segment = getSegment(segmentIndex);
         }
         if (segment != null) {
-            this.LOG.debug("Segment {} produced.", segmentIndex);
+            this.logger.debug("Segment {} produced.", segmentIndex);
         } else {
-            this.LOG.warn("Timed out for segment {}", segmentIndex);
+            this.logger.warn("Timed out for segment {}", segmentIndex);
         }
         return segment;
     }
@@ -91,7 +91,7 @@ public class HlsSession {
     }
 
     public void destroySession() {
-        this.LOG.debug("Destroying hls session");
+        this.logger.debug("Destroying hls session");
         killProcess();
         FileUtil.delete(getDirectory());
     }
@@ -116,7 +116,7 @@ public class HlsSession {
             }
             return result;
         } catch (IOException e) {
-            LOG.warn("Could not retrieve directory list for {} to find segment files", getDirectory(), e);
+            logger.warn("Could not retrieve directory list for {} to find segment files", getDirectory(), e);
 
             return Collections.emptySortedSet();
         }
@@ -127,9 +127,9 @@ public class HlsSession {
         if (!Files.exists(dir)) {
             try {
                 dir = Files.createDirectories(dir);
-                LOG.info("Created hls cache {}", dir);
+                logger.info("Created hls cache {}", dir);
             } catch (Exception e) {
-                LOG.error("Failed to create hls cache {}", dir, e);
+                logger.error("Failed to create hls cache {}", dir, e);
             }
         }
 
@@ -156,11 +156,11 @@ public class HlsSession {
 
     private void killProcess() {
         if (this.process != null) {
-            this.LOG.info("Killing hls process");
+            this.logger.info("Killing hls process");
             try {
                 this.process.destroy();
             } catch (Exception e) {
-                this.LOG.error("Failed to kill hls process", e);
+                this.logger.error("Failed to kill hls process", e);
             }
         }
     }
