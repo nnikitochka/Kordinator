@@ -1,42 +1,38 @@
-package org.airsonic.player.domain;
+package org.airsonic.player.domain
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Represents a musical genre.
  */
-public class Genre {
-    private final String name;
-    private final AtomicInteger songCount = new AtomicInteger(0);
-    private final AtomicInteger albumCount = new AtomicInteger(0);
+class Genre {
+    val name: String
+    private val songCount = AtomicInteger(0)
+    private val albumCount = AtomicInteger(0)
 
-    public Genre(String name) {
-        this.name = name;
+    constructor(name: String) {
+        this.name = name
     }
 
-    public Genre(String name, int songCount, int albumCount) {
-        this.name = name;
-        this.songCount.set(songCount);
-        this.albumCount.set(albumCount);
+    constructor(name: String, songCount: Int, albumCount: Int) {
+        this.name = name
+        this.songCount.set(songCount)
+        this.albumCount.set(albumCount)
     }
 
-    public String getName() {
-        return name;
+    fun getSongCount(): Int {
+        return songCount.get()
     }
 
-    public int getSongCount() {
-        return songCount.get();
+    fun getAlbumCount(): Int {
+        return albumCount.get()
     }
 
-    public int getAlbumCount() {
-        return albumCount.get();
+    fun incrementAlbumCount() {
+        albumCount.incrementAndGet()
     }
 
-    public void incrementAlbumCount() {
-        albumCount.incrementAndGet();
-    }
-
-    public void incrementSongCount() {
-        songCount.incrementAndGet();
+    fun incrementSongCount() {
+        songCount.incrementAndGet()
     }
 }
