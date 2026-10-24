@@ -25,8 +25,6 @@ import java.util.Map;
 
 /**
  * Controller for the help page.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/help")

@@ -18,9 +18,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.lang.Nullable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.util.Assert;
 
 import jakarta.annotation.PostConstruct;
 
@@ -45,7 +45,6 @@ import static java.util.concurrent.CompletableFuture.runAsync;
  */
 @Service
 public class PlaylistService {
-
     private static final Logger LOG = LoggerFactory.getLogger(PlaylistService.class);
     private final MediaFileDao mediaFileDao;
     private PlaylistDao playlistDao;
@@ -66,12 +65,12 @@ public class PlaylistService {
             SimpMessagingTemplate brokerTemplate,
             PathWatcherService pathWatcherService
     ) {
-        Assert.notNull(mediaFileDao, "mediaFileDao must not be null");
-        Assert.notNull(playlistDao, "playlistDao must not be null");
-        Assert.notNull(securityService, "securityservice must not be null");
-        Assert.notNull(settingsService, "settingsService must not be null");
-        Assert.notNull(exportHandlers, "exportHandlers must not be null");
-        Assert.notNull(importHandlers, "importHandlers must not be null");
+        notNull(mediaFileDao, "mediaFileDao must not be null");
+        notNull(playlistDao, "playlistDao must not be null");
+        notNull(securityService, "securityservice must not be null");
+        notNull(settingsService, "settingsService must not be null");
+        notNull(exportHandlers, "exportHandlers must not be null");
+        notNull(importHandlers, "importHandlers must not be null");
         this.mediaFileDao = mediaFileDao;
         this.playlistDao = playlistDao;
         this.securityService = securityService;
@@ -84,6 +83,12 @@ public class PlaylistService {
                 .toList();
         this.brokerTemplate = brokerTemplate;
         this.pathWatcherService = pathWatcherService;
+    }
+
+    public static void notNull(@Nullable Object object, String message) {
+        if (object == null) {
+            throw new IllegalArgumentException(message);
+        }
     }
 
     @PostConstruct
@@ -302,18 +307,17 @@ public class PlaylistService {
         }
     }
 
-    private void importPlaylist(Path f, List<Playlist> allPlaylists) {
-        if (Files.isRegularFile(f) && Files.isReadable(f)) {
+    private void importPlaylist(Path file, List<Playlist> allPlaylists) {
+        if (Files.isRegularFile(file) && Files.isReadable(file)) {
             try {
-                importPlaylistIfUpdated(f, allPlaylists.stream().filter(p -> f.getFileName().toString().equals(p.getImportedFrom())).findAny().orElse(null));
+                importPlaylistIfUpdated(file, allPlaylists.stream().filter(p -> file.getFileName().toString().equals(p.getImportedFrom())).findAny().orElse(null));
             } catch (Exception x) {
-                LOG.warn("Failed to auto-import playlist {}", f, x);
+                LOG.warn("Failed to auto-import playlist {}", file, x);
             }
         }
     }
 
     public Playlist importPlaylist(String username, String playlistName, String fileName, Path file, InputStream inputStream, Playlist existingPlaylist) throws Exception {
-
         // TODO: handle other encodings
         final SpecificPlaylist inputSpecificPlaylist = SpecificPlaylistFactory.getInstance().readFrom(inputStream, "UTF-8");
         if (inputSpecificPlaylist == null) {
