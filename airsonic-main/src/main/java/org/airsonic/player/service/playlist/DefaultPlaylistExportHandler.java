@@ -10,8 +10,6 @@ import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.util.StringUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -19,11 +17,13 @@ import java.util.List;
 @Component
 public class DefaultPlaylistExportHandler implements PlaylistExportHandler {
 
-    @Autowired
-    MediaFileDao mediaFileDao;
+    private final MediaFileDao mediaFileDao;
+    private final MediaFolderService mediaFolderService;
 
-    @Autowired
-    private MediaFolderService mediaFolderService;
+    public DefaultPlaylistExportHandler(MediaFileDao mediaFileDao, MediaFolderService mediaFolderService) {
+        this.mediaFileDao = mediaFileDao;
+        this.mediaFolderService = mediaFolderService;
+    }
 
     @Override
     public boolean canHandle(Class<? extends SpecificPlaylistProvider> providerClass) {
@@ -69,6 +69,6 @@ public class DefaultPlaylistExportHandler implements PlaylistExportHandler {
 
     @Override
     public int getOrder() {
-        return Ordered.LOWEST_PRECEDENCE;
+        return Integer.MAX_VALUE;
     }
 }
