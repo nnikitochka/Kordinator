@@ -91,6 +91,14 @@ public abstract class MetaDataParser {
      */
     public abstract boolean isEditingSupported();
 
+    /**
+     * Returns the sort order/priority of this parser.
+     * Lower values have higher priority.
+     */
+    public int getOrder() {
+        return Integer.MAX_VALUE;
+    }
+
     abstract MediaFolderService getMediaFolderService();
 
     /**

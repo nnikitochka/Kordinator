@@ -2,8 +2,6 @@ package org.airsonic.player.service.metadata;
 
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.service.MediaFolderService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Files;
@@ -15,10 +13,8 @@ import java.nio.file.Path;
  * @author Sindre Mehus
  */
 @Service
-@Order(200)
 public class DefaultMetaDataParser extends MetaDataParser {
 
-    @Autowired
     private MediaFolderService mediaFolderService;
 
     public DefaultMetaDataParser(MediaFolderService mediaFolderService) {
@@ -61,6 +57,11 @@ public class DefaultMetaDataParser extends MetaDataParser {
     @Override
     public boolean isEditingSupported() {
         return false;
+    }
+
+    @Override
+    public int getOrder() {
+        return 200;
     }
 
     @Override

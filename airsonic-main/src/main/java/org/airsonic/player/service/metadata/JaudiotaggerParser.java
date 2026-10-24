@@ -14,8 +14,6 @@ import org.jaudiotagger.tag.images.Artwork;
 import org.jaudiotagger.tag.reference.PictureTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Files;
@@ -31,11 +29,8 @@ import java.util.logging.LogManager;
  * @author Sindre Mehus
  */
 @Service
-@Order(0)
 public class JaudiotaggerParser extends MetaDataParser {
-
     private static final Logger LOG = LoggerFactory.getLogger(JaudiotaggerParser.class);
-    @Autowired
     private MediaFolderService mediaFolderService;
 
     public JaudiotaggerParser(MediaFolderService mediaFolderService) {
@@ -203,6 +198,11 @@ public class JaudiotaggerParser extends MetaDataParser {
             artwork = artworkOptional.orElse(tag.getFirstArtwork());
         }
         return artwork;
+    }
+
+    @Override
+    public int getOrder() {
+        return 0;
     }
 
     @Override

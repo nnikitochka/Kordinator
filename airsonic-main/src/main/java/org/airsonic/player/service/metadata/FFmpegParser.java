@@ -11,7 +11,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedInputStream;
@@ -28,9 +27,7 @@ import java.util.Optional;
  * Currently duration, bitrate and dimension are supported.
  */
 @Service("ffmpegParser")
-@Order(100)
 public class FFmpegParser extends MetaDataParser {
-
     private static final Logger LOG = LoggerFactory.getLogger(FFmpegParser.class);
     private static final String[] FFPROBE_OPTIONS = {
         "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams"
@@ -164,6 +161,11 @@ public class FFmpegParser extends MetaDataParser {
 
     public void setTranscodingService(TranscodingService transcodingService) {
         this.transcodingService = transcodingService;
+    }
+
+    @Override
+    public int getOrder() {
+        return 100;
     }
 
     @Override
