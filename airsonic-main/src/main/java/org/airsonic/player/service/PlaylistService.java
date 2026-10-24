@@ -16,7 +16,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -42,30 +41,20 @@ import static java.util.concurrent.CompletableFuture.runAsync;
 
 /**
  * Provides services for loading and saving playlists to and from persistent storage.
- *
- * @author Sindre Mehus
  * @see PlayQueue
  */
 @Service
 public class PlaylistService {
 
     private static final Logger LOG = LoggerFactory.getLogger(PlaylistService.class);
-    @Autowired
-    private MediaFileDao mediaFileDao;
-    @Autowired
+    private final MediaFileDao mediaFileDao;
     private PlaylistDao playlistDao;
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private List<PlaylistExportHandler> exportHandlers;
-    @Autowired
-    private List<PlaylistImportHandler> importHandlers;
-    @Autowired
-    private SimpMessagingTemplate brokerTemplate;
-    @Autowired
-    private PathWatcherService pathWatcherService;
+    private final SecurityService securityService;
+    private final SettingsService settingsService;
+    private final List<PlaylistExportHandler> exportHandlers;
+    private final List<PlaylistImportHandler> importHandlers;
+    private final SimpMessagingTemplate brokerTemplate;
+    private final PathWatcherService pathWatcherService;
 
     public PlaylistService(
             MediaFileDao mediaFileDao,
@@ -73,7 +62,9 @@ public class PlaylistService {
             SecurityService securityService,
             SettingsService settingsService,
             List<PlaylistExportHandler> exportHandlers,
-            List<PlaylistImportHandler> importHandlers
+            List<PlaylistImportHandler> importHandlers,
+            SimpMessagingTemplate brokerTemplate,
+            PathWatcherService pathWatcherService
     ) {
         Assert.notNull(mediaFileDao, "mediaFileDao must not be null");
         Assert.notNull(playlistDao, "playlistDao must not be null");
@@ -85,8 +76,14 @@ public class PlaylistService {
         this.playlistDao = playlistDao;
         this.securityService = securityService;
         this.settingsService = settingsService;
-        this.exportHandlers = exportHandlers;
-        this.importHandlers = importHandlers;
+        this.exportHandlers = exportHandlers.stream()
+                .sorted(Comparator.comparingInt(PlaylistExportHandler::getOrder))
+                .toList();
+        this.importHandlers = importHandlers.stream()
+                .sorted(Comparator.comparingInt(PlaylistImportHandler::getOrder))
+                .toList();
+        this.brokerTemplate = brokerTemplate;
+        this.pathWatcherService = pathWatcherService;
     }
 
     @PostConstruct
