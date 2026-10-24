@@ -89,7 +89,7 @@ public class DocumentFactory {
     };
 
     private Consumer<Document, String, Integer> fieldYear = (doc, fieldName, value) -> {
-        if (isEmpty(value)) {
+        if (value == null) {
             return;
         }
         doc.add(new IntPoint(fieldName, value));

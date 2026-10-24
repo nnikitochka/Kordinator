@@ -18,8 +18,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.springframework.util.ObjectUtils.isEmpty;
-
 /**
  * Analyzer provider.
  * This class is a division of what was once part of SearchService and added functionality.
@@ -128,7 +126,7 @@ public final class AnalyzerFactory {
      * @see DocumentFactory
      */
     public Analyzer getAnalyzer() throws IOException {
-        if (isEmpty(analyzer)) {
+        if (analyzer == null) {
             try {
 
                 Analyzer defaultAnalyzer = createDefaultAnalyzerBuilder().build();
@@ -161,7 +159,7 @@ public final class AnalyzerFactory {
      * @see QueryFactory
      */
     public Analyzer getQueryAnalyzer() throws IOException {
-        if (isEmpty(queryAnalyzer)) {
+        if (queryAnalyzer == null) {
             try {
 
                 Analyzer defaultAnalyzer = createDefaultAnalyzerBuilder().build();
