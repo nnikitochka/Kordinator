@@ -48,6 +48,28 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Ktor shares the existing servlet container during migration. -->
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-http-jvm</artifactId>
+            <version>${ktor.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-utils-jvm</artifactId>
+            <version>${ktor.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-server-core-jvm</artifactId>
+            <version>${ktor.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-server-servlet-jakarta-jvm</artifactId>
+            <version>${ktor.version}</version>
+        </dependency>
+
         <!-- Metrics
              Metrics is a cool framework used here
              to compute musures and statistics during automated testing

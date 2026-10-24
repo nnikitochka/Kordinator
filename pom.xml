@@ -26,6 +26,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>25</java.version>
         <kotlin.version>2.3.20</kotlin.version>
+        <ktor.version>3.6.0</ktor.version>
+        <kotlin-coroutines.version>1.11.0</kotlin-coroutines.version>
+        <kotlin-serialization.version>1.11.0</kotlin-serialization.version>
         <docker.container.repo>airsonicadvanced/airsonic-advanced</docker.container.repo>
     </properties>
 
@@ -73,6 +76,11 @@
                 <scope>import</scope>
             </dependency>
             <!-- Fix convergence issues -->
+            <dependency>
+                <groupId>org.jetbrains</groupId>
+                <artifactId>annotations</artifactId>
+                <version>23.0.0</version>
+            </dependency>
             <dependency>
                 <groupId>org.ow2.asm</groupId>
                 <artifactId>asm</artifactId>
