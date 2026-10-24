@@ -16,6 +16,9 @@ enum class AlbumListType(
 
     companion object {
         @JvmStatic
-        fun fromId(id: String): AlbumListType? = entries.firstOrNull { it.id == id }
+        fun fromId(id: String?): AlbumListType? {
+            id ?: return null
+            return entries.firstOrNull { it.id == id }
+        }
     }
 }
