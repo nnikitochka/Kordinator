@@ -10,15 +10,12 @@ import org.airsonic.player.domain.SearchResult;
 import org.airsonic.player.service.MediaFileService;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.lucene.document.Document;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-
-import static org.springframework.util.ObjectUtils.isEmpty;
 
 /**
  * Termination used by SearchService.
@@ -34,11 +31,9 @@ import static org.springframework.util.ObjectUtils.isEmpty;
 public class SearchServiceUtilities {
 
     /* Search by id only. */
-    @Autowired
     private ArtistDao artistDao;
 
     /* Search by id only. */
-    @Autowired
     private AlbumDao albumDao;
 
     /*
@@ -47,8 +42,13 @@ public class SearchServiceUtilities {
      * mediaFileService has a caching mechanism.
      * Service is used instead of Dao until you are sure you need to use mediaFileDao.
      */
-    @Autowired
     private MediaFileService mediaFileService;
+
+    public SearchServiceUtilities(ArtistDao artistDao, AlbumDao albumDao, MediaFileService mediaFileService) {
+        this.artistDao = artistDao;
+        this.albumDao = albumDao;
+        this.mediaFileService = mediaFileService;
+    }
 
     public final Function<Long, Integer> round = (i) -> {
         // return
@@ -63,7 +63,7 @@ public class SearchServiceUtilities {
     public final BiConsumer<List<MediaFile>, Integer> addMediaFileIfAnyMatch = (dist, id) -> {
         if (!dist.stream().anyMatch(m -> id.equals(m.getId()))) {
             MediaFile mediaFile = mediaFileService.getMediaFile(id);
-            if (!isEmpty(mediaFile)) {
+            if (mediaFile != null) {
                 dist.add(mediaFile);
             }
         }
@@ -72,7 +72,7 @@ public class SearchServiceUtilities {
     public final BiConsumer<List<Artist>, Integer> addArtistId3IfAnyMatch = (dist, id) -> {
         if (!dist.stream().anyMatch(a -> id.equals(a.getId()))) {
             Artist artist = artistDao.getArtist(id);
-            if (!isEmpty(artist)) {
+            if (artist != null) {
                 dist.add(artist);
             }
         }
@@ -105,7 +105,7 @@ public class SearchServiceUtilities {
     public final BiConsumer<List<Album>, Integer> addAlbumId3IfAnyMatch = (dist, subjectId) -> {
         if (!dist.stream().anyMatch(a -> subjectId == a.getId())) {
             Album album = albumDao.getAlbum(subjectId);
-            if (!isEmpty(album)) {
+            if (album != null) {
                 dist.add(album);
             }
         }

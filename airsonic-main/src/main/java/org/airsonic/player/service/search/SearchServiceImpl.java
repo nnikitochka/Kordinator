@@ -6,7 +6,6 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.search.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -22,12 +21,15 @@ public class SearchServiceImpl implements SearchService {
 
     private static final Logger LOG = LoggerFactory.getLogger(SearchServiceImpl.class);
 
-    @Autowired
-    private QueryFactory queryFactory;
-    @Autowired
-    private IndexManager indexManager;
-    @Autowired
-    private SearchServiceUtilities util;
+    private final QueryFactory queryFactory;
+    private final IndexManager indexManager;
+    private final SearchServiceUtilities util;
+
+    public SearchServiceImpl(QueryFactory queryFactory, IndexManager indexManager, SearchServiceUtilities util) {
+        this.queryFactory = queryFactory;
+        this.indexManager = indexManager;
+        this.util = util;
+    }
 
     // TODO Should be changed to SecureRandom?
     private final Random random = new Random(System.currentTimeMillis());
@@ -45,7 +47,7 @@ public class SearchServiceImpl implements SearchService {
             return result;
 
         IndexSearcher searcher = indexManager.getSearcher(indexType);
-        if (isEmpty(searcher)) {
+        if (searcher == null) {
             return result;
         }
 
@@ -100,7 +102,7 @@ public class SearchServiceImpl implements SearchService {
     public List<MediaFile> getRandomSongs(RandomSearchCriteria criteria) {
 
         IndexSearcher searcher = indexManager.getSearcher(SONG);
-        if (isEmpty(searcher)) {
+        if (searcher == null) {
             // At first start
             return Collections.emptyList();
         }
@@ -123,7 +125,7 @@ public class SearchServiceImpl implements SearchService {
     public List<MediaFile> getRandomAlbums(int count, List<MusicFolder> musicFolders) {
 
         IndexSearcher searcher = indexManager.getSearcher(IndexType.ALBUM);
-        if (isEmpty(searcher)) {
+        if (searcher == null) {
             return Collections.emptyList();
         }
 
@@ -146,7 +148,7 @@ public class SearchServiceImpl implements SearchService {
     public List<Album> getRandomAlbumsId3(int count, List<MusicFolder> musicFolders) {
 
         IndexSearcher searcher = indexManager.getSearcher(IndexType.ALBUM_ID3);
-        if (isEmpty(searcher)) {
+        if (searcher == null) {
             return Collections.emptyList();
         }
 
@@ -176,12 +178,12 @@ public class SearchServiceImpl implements SearchService {
         ParamSearchResult<T> result = new ParamSearchResult<T>();
         result.setOffset(offset);
 
-        if (isEmpty(indexType) || isEmpty(fieldName) || count <= 0) {
+        if (indexType == null || isEmpty(fieldName) || count <= 0) {
             return result;
         }
 
         IndexSearcher searcher = indexManager.getSearcher(indexType);
-        if (isEmpty(searcher)) {
+        if (searcher == null) {
             return result;
         }
 

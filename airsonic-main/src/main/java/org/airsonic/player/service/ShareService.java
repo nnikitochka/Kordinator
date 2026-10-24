@@ -9,7 +9,6 @@ import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -33,14 +32,18 @@ public class ShareService {
 
     private static final Logger LOG = LoggerFactory.getLogger(ShareService.class);
 
-    @Autowired
     private ShareDao shareDao;
-    @Autowired
     private SecurityService securityService;
-    @Autowired
     private MediaFileService mediaFileService;
-    @Autowired
     private JWTSecurityService jwtSecurityService;
+
+    public ShareService(ShareDao shareDao, SecurityService securityService,
+                        MediaFileService mediaFileService, JWTSecurityService jwtSecurityService) {
+        this.shareDao = shareDao;
+        this.securityService = securityService;
+        this.mediaFileService = mediaFileService;
+        this.jwtSecurityService = jwtSecurityService;
+    }
 
     public List<Share> getAllShares() {
         return shareDao.getAllShares();
