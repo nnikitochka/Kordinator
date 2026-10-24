@@ -4,6 +4,8 @@ import chameleon.playlist.SpecificPlaylist;
 import chameleon.playlist.xspf.Playlist;
 import chameleon.playlist.xspf.StringContainer;
 import org.airsonic.player.domain.MediaFile;
+import org.airsonic.player.service.MediaFileService;
+import org.airsonic.player.service.SettingsService;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +15,10 @@ import java.util.List;
 
 @Component
 public class XspfPlaylistImportHandler extends PlaylistImportHandler {
+
+    public XspfPlaylistImportHandler(MediaFileService mediaFileService, SettingsService settingsService) {
+        super(mediaFileService, settingsService);
+    }
     @Override
     public boolean canHandle(Class<? extends SpecificPlaylist> playlistClass) {
         return Playlist.class.equals(playlistClass);

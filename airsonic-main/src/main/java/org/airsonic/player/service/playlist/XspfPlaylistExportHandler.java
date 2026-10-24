@@ -13,7 +13,6 @@ import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.Playlist;
 import org.airsonic.player.service.CoverArtService;
 import org.airsonic.player.service.MediaFolderService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -24,17 +23,22 @@ import java.util.Optional;
 @Component
 public class XspfPlaylistExportHandler implements PlaylistExportHandler {
 
-    @Autowired
-    MediaFileDao mediaFileDao;
+    private final MediaFileDao mediaFileDao;
+    private final PlaylistDao playlistDao;
+    private final MediaFolderService mediaFolderService;
+    private final CoverArtService coverArtService;
 
-    @Autowired
-    PlaylistDao playlistDao;
-
-    @Autowired
-    MediaFolderService mediaFolderService;
-
-    @Autowired
-    CoverArtService coverArtService;
+    public XspfPlaylistExportHandler(
+            MediaFileDao mediaFileDao,
+            PlaylistDao playlistDao,
+            MediaFolderService mediaFolderService,
+            CoverArtService coverArtService
+    ) {
+        this.mediaFileDao = mediaFileDao;
+        this.playlistDao = playlistDao;
+        this.mediaFolderService = mediaFolderService;
+        this.coverArtService = coverArtService;
+    }
 
     @Override
     public boolean canHandle(Class<? extends SpecificPlaylistProvider> providerClass) {

@@ -2,8 +2,9 @@ package org.airsonic.player.service.playlist;
 
 import chameleon.playlist.*;
 import org.airsonic.player.domain.MediaFile;
+import org.airsonic.player.service.MediaFileService;
+import org.airsonic.player.service.SettingsService;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
@@ -12,6 +13,10 @@ import java.util.List;
 
 @Component
 public class DefaultPlaylistImportHandler extends PlaylistImportHandler {
+
+    public DefaultPlaylistImportHandler(MediaFileService mediaFileService, SettingsService settingsService) {
+        super(mediaFileService, settingsService);
+    }
     @Override
     public boolean canHandle(Class<? extends SpecificPlaylist> playlistClass) {
         return true;
@@ -49,6 +54,6 @@ public class DefaultPlaylistImportHandler extends PlaylistImportHandler {
 
     @Override
     public int getOrder() {
-        return Ordered.LOWEST_PRECEDENCE;
+        return Integer.MAX_VALUE;
     }
 }

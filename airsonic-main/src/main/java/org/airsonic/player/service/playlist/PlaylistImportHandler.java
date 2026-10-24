@@ -7,8 +7,6 @@ import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.SettingsService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.Ordered;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,12 +19,18 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 
-public abstract class PlaylistImportHandler implements Ordered {
-    @Autowired
-    MediaFileService mediaFileService;
+public abstract class PlaylistImportHandler {
+    protected final MediaFileService mediaFileService;
+    protected final SettingsService settingsService;
 
-    @Autowired
-    SettingsService settingsService;
+    public PlaylistImportHandler(MediaFileService mediaFileService, SettingsService settingsService) {
+        this.mediaFileService = mediaFileService;
+        this.settingsService = settingsService;
+    }
+
+    public int getOrder() {
+        return Integer.MAX_VALUE;
+    }
 
     abstract public boolean canHandle(Class<? extends SpecificPlaylist> playlistClass);
 
