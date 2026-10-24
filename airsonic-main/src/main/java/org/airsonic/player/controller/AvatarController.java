@@ -6,7 +6,6 @@ import org.airsonic.player.domain.UserSettings;
 import org.airsonic.player.service.SettingsService;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Controller;
@@ -26,11 +25,13 @@ import jakarta.servlet.http.HttpServletResponse;
 @Controller
 @RequestMapping("/avatar")
 public class AvatarController implements LastModified {
+    private final SettingsService settingsService;
+    private final ResourceLoader loader;
 
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private ResourceLoader loader;
+    public AvatarController(SettingsService settingsService, ResourceLoader loader) {
+        this.settingsService = settingsService;
+        this.loader = loader;
+    }
 
     @Override
     public long getLastModified(@NotNull HttpServletRequest request) {

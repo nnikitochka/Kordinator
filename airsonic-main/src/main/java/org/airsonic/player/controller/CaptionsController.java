@@ -80,11 +80,14 @@ public class CaptionsController {
     @GetMapping
     public ResponseEntity<Resource> handleRequest(
             Authentication authentication,
-            @RequestParam int id,
-            @RequestParam(required = false) String captionId,
-            @RequestParam(required = false, name = "format") String requiredFormat,
-            HttpServletRequest request)
-            throws Exception {
+            @RequestParam
+            int id,
+            @RequestParam(required = false)
+            String captionId,
+            @RequestParam(required = false, name = "format")
+            String requiredFormat,
+            HttpServletRequest request
+    ) throws Exception {
 
         User user = securityService.getUserByName(authentication.getName());
         MediaFile video = this.mediaFileService.getMediaFile(id);

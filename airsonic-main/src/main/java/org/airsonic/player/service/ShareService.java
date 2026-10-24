@@ -24,7 +24,6 @@ import static java.util.stream.Collectors.toList;
 /**
  * Provides services for sharing media.
  *
- * @author Sindre Mehus
  * @see Share
  */
 @Service

@@ -32,13 +32,10 @@ import java.util.Map;
 
 /**
  * Controller which receives uploaded avatar images.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/avatarUpload")
 public class AvatarUploadController {
-
     private static final Logger LOG = LoggerFactory.getLogger(AvatarUploadController.class);
     private static final int MAX_AVATAR_SIZE = 64;
 
@@ -52,7 +49,6 @@ public class AvatarUploadController {
 
     @PostMapping
     protected ModelAndView handleRequestInternal(HttpServletRequest request) throws Exception {
-
         String username = securityService.getCurrentUsername(request);
 
         // Check that we have a file upload request.
@@ -60,7 +56,7 @@ public class AvatarUploadController {
             throw new Exception("Illegal request.");
         }
 
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         JakartaServletDiskFileUpload upload = new JakartaServletDiskFileUpload();
         List<DiskFileItem> items = upload.parseRequest(request);
 
