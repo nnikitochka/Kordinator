@@ -6,7 +6,6 @@ import org.airsonic.player.service.jukebox.AudioPlayerFactory;
 import org.airsonic.player.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
@@ -18,20 +17,12 @@ import java.io.InputStream;
 public class JukeboxLegacySubsonicService implements AudioPlayer.Listener {
     private static final Logger LOG = LoggerFactory.getLogger(JukeboxLegacySubsonicService.class);
 
-    @Autowired
     private TranscodingService transcodingService;
-    @Autowired
     private AudioScrobblerService audioScrobblerService;
-    @Autowired
     private StatusService statusService;
-    @Autowired
     private SettingsService settingsService;
-    @Autowired
     private SecurityService securityService;
-    @Autowired
     private MediaFileService mediaFileService;
-    @Autowired
-    private AudioPlayerFactory audioPlayerFactory;
 
     private AudioPlayer audioPlayer;
     private Player player;
@@ -40,6 +31,15 @@ public class JukeboxLegacySubsonicService implements AudioPlayer.Listener {
     private MediaFile currentPlayingFile;
     private float gain = AudioPlayer.DEFAULT_GAIN;
     private int offset;
+
+    public JukeboxLegacySubsonicService(TranscodingService transcodingService, AudioScrobblerService audioScrobblerService, StatusService statusService, SettingsService settingsService, SecurityService securityService, MediaFileService mediaFileService) {
+        this.transcodingService = transcodingService;
+        this.audioScrobblerService = audioScrobblerService;
+        this.statusService = statusService;
+        this.settingsService = settingsService;
+        this.securityService = securityService;
+        this.mediaFileService = mediaFileService;
+    }
 
     /**
      * Updates the jukebox by starting or pausing playback on the local audio device.
@@ -92,7 +92,7 @@ public class JukeboxLegacySubsonicService implements AudioPlayer.Listener {
                     String command = settingsService.getJukeboxCommand();
                     parameters.setTranscoding(new Transcoding(null, "Jukebox", null, null, command, null, null, false));
                     in = transcodingService.getTranscodedInputStream(parameters);
-                    audioPlayer = audioPlayerFactory.createAudioPlayer(in, this);
+                    audioPlayer = AudioPlayerFactory.createAudioPlayer(in, this);
                     audioPlayer.setGain(gain);
                     audioPlayer.play();
                     onSongStart(file);
