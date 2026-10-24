@@ -9,6 +9,7 @@ import org.airsonic.player.service.playlist.DefaultPlaylistImportHandler;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -21,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -58,6 +60,12 @@ public class PlaylistServiceTestImport {
     @Mock
     SecurityService securityService;
 
+    @Mock
+    SimpMessagingTemplate brokerTemplate;
+
+    @Mock
+    PathWatcherService pathWatcherService;
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
@@ -69,13 +77,22 @@ public class PlaylistServiceTestImport {
 
     @Before
     public void setup() {
+        when(playlistDao.getPlaylist(anyInt())).thenAnswer(inv -> {
+            Playlist p = new Playlist();
+            p.setId(inv.getArgument(0));
+            return p;
+        });
+        when(playlistDao.getPlaylistFileStats(anyInt())).thenReturn(Pair.of(3, 100.0));
+
         playlistService = new PlaylistService(
                 mediaFileDao,
                 playlistDao,
                 securityService,
                 settingsService,
                 Collections.emptyList(),
-                Lists.newArrayList(defaultPlaylistImportHandler));
+                Lists.newArrayList(defaultPlaylistImportHandler),
+                brokerTemplate,
+                pathWatcherService);
 
     }
 
@@ -202,9 +219,9 @@ public class PlaylistServiceTestImport {
 
         @Override
         public Object answer(InvocationOnMock invocationOnMock) {
-            File file = invocationOnMock.getArgument(0);
+            Path file = invocationOnMock.getArgument(0);
             MediaFile mediaFile = new MediaFile();
-            mediaFile.setPath(file.getPath());
+            mediaFile.setPath(file.toString());
             return mediaFile;
         }
     }

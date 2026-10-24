@@ -5,6 +5,8 @@ import org.airsonic.player.domain.MusicIndex;
 
 import java.util.List;
 
+import static org.mockito.Mockito.mock;
+
 /**
  * Unit test of {@link MusicIndex}.
  *
@@ -12,7 +14,8 @@ import java.util.List;
  */
 public class MusicIndexServiceTestCase extends TestCase {
 
-    private final MusicIndexService musicIndexService = new MusicIndexService();
+    private final MusicIndexService musicIndexService = new MusicIndexService(
+            mock(SettingsService.class), mock(MediaFileService.class));
 
     public void testCreateIndexFromExpression() {
         MusicIndex index = musicIndexService.createIndexFromExpression("A");

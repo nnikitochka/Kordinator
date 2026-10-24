@@ -2,6 +2,8 @@ package org.airsonic.player.service;
 
 import com.google.common.collect.ImmutableMap;
 import org.airsonic.player.TestCaseUtils;
+import org.airsonic.player.dao.AvatarDao;
+import org.airsonic.player.dao.UserDao;
 import org.airsonic.player.util.HomeRule;
 import org.apache.commons.configuration2.spring.ConfigurationPropertySource;
 import org.junit.Before;
@@ -25,6 +27,7 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 /**
  * Unit test of {@link SettingsService}.
@@ -51,9 +54,8 @@ public class SettingsServiceTestCase {
     }
 
     private SettingsService newSettingsService() {
-        SettingsService settingsService = new SettingsService();
+        SettingsService settingsService = new SettingsService(mock(UserDao.class), mock(AvatarDao.class), env);
         env.getPropertySources().addFirst(new ConfigurationPropertySource("airsonic-pre-init-configs", ConfigurationPropertiesService.getInstance().getConfiguration()));
-        settingsService.setEnvironment(env);
         return settingsService;
     }
 

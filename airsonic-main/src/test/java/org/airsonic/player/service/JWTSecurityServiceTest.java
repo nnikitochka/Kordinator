@@ -14,6 +14,8 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
 public class JWTSecurityServiceTest {
@@ -51,12 +53,9 @@ public class JWTSecurityServiceTest {
     }
 
     private SettingsService settingsWithKey(String jwtKey) {
-        return new SettingsService() {
-            @Override
-            public String getJWTKey() {
-                return jwtKey;
-            }
-        };
+        SettingsService settings = mock(SettingsService.class);
+        when(settings.getJWTKey()).thenReturn(jwtKey);
+        return settings;
     }
 
 }

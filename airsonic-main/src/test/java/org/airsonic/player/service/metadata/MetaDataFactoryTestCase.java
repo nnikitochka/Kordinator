@@ -11,6 +11,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Comparator;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -42,19 +44,34 @@ public class MetaDataFactoryTestCase {
     @Autowired
     SettingsService settingsService;
 
+    @Autowired
+    List<MetaDataParser> parsers;
+
     @Test
     public void testorder() {
+        assertParserOrder(metaDataParserFactory);
+    }
+
+    @Test
+    public void testOrderWhenConstructedWithReversedParsers() {
+        List<MetaDataParser> reversed = parsers.stream()
+                .sorted(Comparator.comparingInt(MetaDataParser::getOrder).reversed())
+                .toList();
+        assertParserOrder(new MetaDataParserFactory(reversed));
+    }
+
+    private void assertParserOrder(MetaDataParserFactory factory) {
         MetaDataParser parser;
 
         settingsService.setVideoFileTypes("mp3 flv");
 
-        parser = metaDataParserFactory.getParser(someMp3);
+        parser = factory.getParser(someMp3);
         assertThat(parser, instanceOf(JaudiotaggerParser.class));
 
-        parser = metaDataParserFactory.getParser(someFlv);
+        parser = factory.getParser(someFlv);
         assertThat(parser, instanceOf(FFmpegParser.class));
 
-        parser = metaDataParserFactory.getParser(someJunk);
+        parser = factory.getParser(someJunk);
         assertThat(parser, instanceOf(FFmpegParser.class));
     }
 

@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.dao.PlaylistDao;
 import org.airsonic.player.domain.MediaFile;
+import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.Playlist;
 import org.airsonic.player.service.playlist.DefaultPlaylistExportHandler;
 import org.apache.commons.io.IOUtils;
@@ -19,11 +20,14 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -45,10 +49,19 @@ public class PlaylistServiceTestExport {
     MediaFileService mediaFileService;
 
     @Mock
+    MediaFolderService mediaFolderService;
+
+    @Mock
     SettingsService settingsService;
 
     @Mock
     SecurityService securityService;
+
+    @Mock
+    SimpMessagingTemplate brokerTemplate;
+
+    @Mock
+    PathWatcherService pathWatcherService;
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -61,13 +74,16 @@ public class PlaylistServiceTestExport {
 
     @Before
     public void setup() {
+        when(mediaFolderService.getMusicFolderById(any())).thenReturn(new MusicFolder(1, Paths.get(""), "Music", MusicFolder.Type.MEDIA, true, null));
         playlistService = new PlaylistService(mediaFileDao,
                                               playlistDao,
                                               securityService,
                                               settingsService,
                                               Lists.newArrayList(
                                                       defaultPlaylistExportHandler),
-                                              Collections.emptyList());
+                                              Collections.emptyList(),
+                                              brokerTemplate,
+                                              pathWatcherService);
     }
 
     @Test
