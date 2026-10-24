@@ -41,15 +41,15 @@ public class StatisticsController {
         List<TransferStatusHolder> transferStatuses = new ArrayList<>();
         streamStatuses.stream()
                 .filter(x -> ((x.getMillisSinceLastUpdate() / 1000L / 60L) < 60L))
-                .map(x -> new TransferStatusHolder(x, TransferType.stream, locale))
+                .map(x -> new TransferStatusHolder(x, TransferType.STREAM, locale))
                 .forEach(transferStatuses::add);
 
         downloadStatuses.stream()
-                .map(x -> new TransferStatusHolder(x, TransferType.download, locale))
+                .map(x -> new TransferStatusHolder(x, TransferType.DOWNLOAD, locale))
                 .forEach(transferStatuses::add);
 
         uploadStatuses.stream()
-                .map(x -> new TransferStatusHolder(x, TransferType.upload, locale))
+                .map(x -> new TransferStatusHolder(x, TransferType.UPLOAD, locale))
                 .forEach(transferStatuses::add);
 
         return transferStatuses;

@@ -1,5 +1,5 @@
-package org.airsonic.player.controller.statistics;
+package org.airsonic.player.controller.statistics
 
-public enum TransferType {
-    stream, download, upload
+enum class TransferType {
+    STREAM, DOWNLOAD, UPLOAD
 }
