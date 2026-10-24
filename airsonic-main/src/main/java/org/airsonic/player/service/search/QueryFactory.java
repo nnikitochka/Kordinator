@@ -15,7 +15,6 @@ import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.WildcardQuery;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -41,8 +40,11 @@ public class QueryFactory {
 
     private static final String ASTERISK = "*";
 
-    @Autowired
-    private AnalyzerFactory analyzerFactory;
+    private final AnalyzerFactory analyzerFactory;
+
+    public QueryFactory(AnalyzerFactory analyzerFactory) {
+        this.analyzerFactory = analyzerFactory;
+    }
 
     private final Function<MusicFolder, Query> toFolderIdQuery = (folder) -> {
         // Unanalyzed field
@@ -133,8 +135,8 @@ public class QueryFactory {
     private final BiFunction<Integer, Integer, Query> toYearRangeQuery =
         (from, to) -> {
             return IntPoint.newRangeQuery(FieldNames.YEAR,
-                isEmpty(from) ? Integer.MIN_VALUE : from,
-                isEmpty(to) ? Integer.MAX_VALUE : to);
+                from == null ? Integer.MIN_VALUE : from,
+                to == null ? Integer.MAX_VALUE : to);
         };
 
     /**
@@ -187,7 +189,7 @@ public class QueryFactory {
             }
         }
 
-        if (!(isEmpty(criteria.getFromYear()) && isEmpty(criteria.getToYear()))) {
+        if (criteria.getFromYear() != null || criteria.getToYear() != null) {
             query.add(toYearRangeQuery.apply(criteria.getFromYear(), criteria.getToYear()), Occur.MUST);
         }
 
