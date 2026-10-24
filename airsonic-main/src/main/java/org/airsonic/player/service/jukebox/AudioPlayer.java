@@ -21,9 +21,8 @@ import static org.airsonic.player.service.jukebox.AudioPlayer.State.*;
  * Supports pause and resume, but not restarting.
  */
 public class AudioPlayer implements AutoCloseable {
-
+    private static final Logger logger = LoggerFactory.getLogger(AudioPlayer.class);
     public static final float DEFAULT_GAIN = 0.75f;
-    private static final Logger LOG = LoggerFactory.getLogger(AudioPlayer.class);
 
     private final InputStream in;
     private final Listener listener;
@@ -38,7 +37,7 @@ public class AudioPlayer implements AutoCloseable {
         AudioFormat format = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 44100.0F, 16, 2, 4, 44100.0F, true);
         line = AudioSystem.getSourceDataLine(format);
         line.open(format);
-        LOG.debug("Opened line " + line);
+        logger.debug("Opened line " + line);
 
         if (line.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
             gainControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
@@ -83,15 +82,15 @@ public class AudioPlayer implements AutoCloseable {
         try {
             line.stop();
         } catch (Throwable x) {
-            LOG.warn("Failed to stop player: " + x, x);
+            logger.warn("Failed to stop player: " + x, x);
         }
         try {
             if (line.isOpen()) {
                 line.close();
-                LOG.debug("Closed line " + line);
+                logger.debug("Closed line " + line);
             }
         } catch (Throwable x) {
-            LOG.warn("Failed to close player: " + x, x);
+            logger.warn("Failed to close player: " + x, x);
         }
         FileUtil.closeQuietly(in);
     }
@@ -169,7 +168,7 @@ public class AudioPlayer implements AutoCloseable {
                     }
                 }
             } catch (Throwable x) {
-                LOG.warn("Error when copying audio data: {}", x, x);
+                logger.warn("Error when copying audio data: {}", x, x);
             } finally {
                 close();
             }
