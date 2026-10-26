@@ -6,7 +6,6 @@ import org.airsonic.player.domain.UserCredential.App;
 import org.airsonic.player.domain.UserSettings;
 import org.airsonic.player.service.scrobbler.LastFMScrobbler;
 import org.airsonic.player.service.scrobbler.ListenBrainzScrobbler;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -21,10 +20,13 @@ import java.util.Map;
 public class AudioScrobblerService {
     private LastFMScrobbler lastFMScrobbler;
     private ListenBrainzScrobbler listenBrainzScrobbler;
-    @Autowired
     private SettingsService settingsService;
-    @Autowired
     private SecurityService securityService;
+
+    public AudioScrobblerService(SettingsService settingsService, SecurityService securityService) {
+        this.settingsService = settingsService;
+        this.securityService = securityService;
+    }
 
     /**
      * Registers the given media file at audio scrobble service.
