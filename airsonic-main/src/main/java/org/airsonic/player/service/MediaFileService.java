@@ -17,7 +17,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -40,28 +39,30 @@ import java.util.stream.Stream;
  */
 @Service
 public class MediaFileService {
-
     private static final Logger LOG = LoggerFactory.getLogger(MediaFileService.class);
 
-    @Autowired
     private SecurityService securityService;
-    @Autowired
     private SettingsService settingsService;
-    @Autowired
     private MediaFileDao mediaFileDao;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
+    private final MediaFolderService mediaFolderService;
     private AlbumDao albumDao;
-    @Autowired
     private JaudiotaggerParser parser;
-    @Autowired
     private MetaDataParserFactory metaDataParserFactory;
-    @Autowired
-    private CoverArtService coverArtService;
-    @Autowired
-    private LocaleResolver localeResolver;
+    private final CoverArtService coverArtService;
+    private final LocaleResolver localeResolver;
     private boolean memoryCacheEnabled = true;
+
+    public MediaFileService(SecurityService securityService, SettingsService settingsService, MediaFileDao mediaFileDao, MediaFolderService mediaFolderService, AlbumDao albumDao, JaudiotaggerParser parser, MetaDataParserFactory metaDataParserFactory, CoverArtService coverArtService, LocaleResolver localeResolver) {
+        this.securityService = securityService;
+        this.settingsService = settingsService;
+        this.mediaFileDao = mediaFileDao;
+        this.mediaFolderService = mediaFolderService;
+        this.albumDao = albumDao;
+        this.parser = parser;
+        this.metaDataParserFactory = metaDataParserFactory;
+        this.coverArtService = coverArtService;
+        this.localeResolver = localeResolver;
+    }
 
     public MediaFile getMediaFile(String pathName) {
         return getMediaFile(Paths.get(pathName));
@@ -209,7 +210,7 @@ public class MediaFileService {
 
         // Make sure children are stored and up-to-date in the database.
         if (!minimizeDiskAccess) {
-            resultStream = Optional.ofNullable(updateChildren(parent)).map(x -> x.parallelStream()).orElse(null);
+            resultStream = Optional.ofNullable(updateChildren(parent)).map(Collection::parallelStream).orElse(null);
         }
 
         if (resultStream == null) {
@@ -392,7 +393,7 @@ public class MediaFileService {
             return null;
         }
 
-        Map<String, MediaFile> storedChildrenMap = mediaFileDao.getChildrenOf(parent.getPath(), parent.getFolderId(), false).parallelStream().collect(Collectors.toConcurrentMap(i -> i.getPath(), i -> i));
+        Map<String, MediaFile> storedChildrenMap = mediaFileDao.getChildrenOf(parent.getPath(), parent.getFolderId(), false).parallelStream().collect(Collectors.toConcurrentMap(MediaFile::getPath, i -> i));
         MusicFolder folder = mediaFolderService.getMusicFolderById(parent.getFolderId());
         try (Stream<Path> children = Files.list(parent.getFullPath(folder.getPath()))) {
             List<MediaFile> result = children.parallel()
@@ -459,7 +460,7 @@ public class MediaFileService {
         }
         String name = file.getFileName().toString();
         if (settingsService.getExcludePattern() != null && settingsService.getExcludePattern().matcher(name).find()) {
-            LOG.info("excluding file which matches exclude pattern {}: {}", settingsService.getExcludePatternString(), file.toString());
+            LOG.info("excluding file which matches exclude pattern {}: {}", settingsService.getExcludePatternString(), file);
             return true;
         }
 
@@ -536,8 +537,8 @@ public class MediaFileService {
                 try (Stream<Path> stream = Files.list(file)) {
                     List<Path> children = stream.parallel().collect(Collectors.toList());
                     Path firstChild = children.parallelStream()
-                            .filter(x -> includeMediaFile(x))
-                            .filter(x -> Files.isRegularFile(x))
+                            .filter(this::includeMediaFile)
+                            .filter(Files::isRegularFile)
                             .findFirst().orElse(null);
 
                     if (firstChild != null) {
@@ -564,7 +565,7 @@ public class MediaFileService {
                     }
 
                 } catch (IOException e) {
-                    LOG.warn("Could not retrieve children for {}.", file.toString(), e);
+                    LOG.warn("Could not retrieve children for {}.", file, e);
 
                     mediaFile.setArtist(file.getFileName().toString());
                 }
@@ -607,7 +608,7 @@ public class MediaFileService {
      * Finds a cover art image for the given directory, by looking for it on the disk.
      */
     private Path findCoverArt(Collection<Path> candidates) {
-        Path candidate = null;
+        Path candidate;
         var coverArtSource = settingsService.getCoverArtSource();
         switch (coverArtSource) {
             case TAGFILE:
@@ -680,7 +681,7 @@ public class MediaFileService {
             return Arrays.asList(ancestor);
         }
 
-        List<MediaFile> result = new ArrayList<MediaFile>();
+        List<MediaFile> result = new ArrayList<>();
 
         for (MediaFile child : getChildrenOf(ancestor, true, true, sort)) {
             if (child.isDirectory()) {

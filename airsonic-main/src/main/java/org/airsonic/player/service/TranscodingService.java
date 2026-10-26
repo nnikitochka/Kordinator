@@ -10,7 +10,6 @@ import org.airsonic.player.util.Util;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
@@ -46,15 +45,18 @@ public class TranscodingService {
     private static final Logger LOG = LoggerFactory.getLogger(TranscodingService.class);
     public static final String FORMAT_RAW = "raw";
 
-    @Autowired
     private TranscodingDao transcodingDao;
-    @Autowired
     private SettingsService settingsService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
+    private final MediaFolderService mediaFolderService;
     @Lazy // used to deal with circular dependencies between PlayerService and TranscodingService
     private PlayerService playerService;
+
+    public TranscodingService(TranscodingDao transcodingDao, SettingsService settingsService, MediaFolderService mediaFolderService, PlayerService playerService) {
+        this.transcodingDao = transcodingDao;
+        this.settingsService = settingsService;
+        this.mediaFolderService = mediaFolderService;
+        this.playerService = playerService;
+    }
 
     /**
      * Returns all transcodings.

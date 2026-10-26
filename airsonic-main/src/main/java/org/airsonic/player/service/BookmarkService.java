@@ -5,7 +5,6 @@ import org.airsonic.player.domain.Bookmark;
 import org.airsonic.player.domain.MediaFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +18,6 @@ public class BookmarkService {
     private final MediaFileService mediaFileService;
     private final SimpMessagingTemplate brokerTemplate;
 
-    @Autowired
     public BookmarkService(BookmarkDao dao, MediaFileService mediaFileService, SimpMessagingTemplate brokerTemplate) {
         this.dao = dao;
         this.mediaFileService = mediaFileService;

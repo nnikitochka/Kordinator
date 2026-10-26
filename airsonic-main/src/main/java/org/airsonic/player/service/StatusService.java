@@ -5,7 +5,6 @@ import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.PlayStatus;
 import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.TransferStatus;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -30,26 +29,27 @@ import java.util.stream.Stream;
  * <p/>
  * Note that for stream statuses, the last inactive status is also stored.
  *
- * @author Sindre Mehus
  * @see TransferStatus
  */
 @Service
 public class StatusService {
-
-    @Autowired
     private MediaFileService mediaFileService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
+    private final MediaFolderService mediaFolderService;
     private SettingsService settingsService;
-    @Autowired
     private SimpMessagingTemplate messagingTemplate;
-    @Autowired
-    private TaskSchedulingService taskService;
+    private final TaskSchedulingService taskService;
+
+    public StatusService(MediaFileService mediaFileService, MediaFolderService mediaFolderService, SettingsService settingsService, SimpMessagingTemplate messagingTemplate, TaskSchedulingService taskService) {
+        this.mediaFileService = mediaFileService;
+        this.mediaFolderService = mediaFolderService;
+        this.settingsService = settingsService;
+        this.messagingTemplate = messagingTemplate;
+        this.taskService = taskService;
+    }
 
     @PostConstruct
     public void cleanup() {
-        taskService.scheduleFixedDelayTask("remote-playstatus-cleanup", () -> cleanupRemotePlays(), Instant.now().plus(3, ChronoUnit.HOURS), Duration.ofHours(3), true);
+        taskService.scheduleFixedDelayTask("remote-playstatus-cleanup", this::cleanupRemotePlays, Instant.now().plus(3, ChronoUnit.HOURS), Duration.ofHours(3), true);
     }
 
     private final List<TransferStatus> streamStatuses = Collections.synchronizedList(new ArrayList<>());

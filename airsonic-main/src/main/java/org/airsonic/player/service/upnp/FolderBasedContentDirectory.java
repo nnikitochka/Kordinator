@@ -17,7 +17,6 @@ import org.fourthline.cling.support.model.item.Item;
 import org.fourthline.cling.support.model.item.MusicTrack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -25,10 +24,6 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * @author Sindre Mehus
- * @version $Id$
- */
 @Service
 public class FolderBasedContentDirectory extends CustomContentDirectory {
 
@@ -36,14 +31,17 @@ public class FolderBasedContentDirectory extends CustomContentDirectory {
     private static final String CONTAINER_ID_PLAYLIST_ROOT = "playlists";
     private static final String CONTAINER_ID_PLAYLIST_PREFIX = "playlist-";
     private static final String CONTAINER_ID_FOLDER_PREFIX = "folder-";
-    @Autowired
     private MediaFileService mediaFileService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
+    private final MediaFolderService mediaFolderService;
     private PlaylistService playlistService;
-    @Autowired
-    private IndexManager indexManager;
+    private final IndexManager indexManager;
+
+    public FolderBasedContentDirectory(MediaFileService mediaFileService, MediaFolderService mediaFolderService, PlaylistService playlistService, IndexManager indexManager) {
+        this.mediaFileService = mediaFileService;
+        this.mediaFolderService = mediaFolderService;
+        this.playlistService = playlistService;
+        this.indexManager = indexManager;
+    }
 
     @Override
     public BrowseResult browse(String objectId, BrowseFlag browseFlag, String filter, long firstResult,

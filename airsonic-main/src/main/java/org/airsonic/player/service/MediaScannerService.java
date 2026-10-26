@@ -41,34 +41,50 @@ public class MediaScannerService {
 
     private volatile boolean scanning;
 
-    @Autowired
     private SettingsService settingsService;
-    @Autowired
-    private IndexManager indexManager;
-    @Autowired
+    private final IndexManager indexManager;
     private PlaylistService playlistService;
-    @Autowired
     private MediaFileService mediaFileService;
-    @Autowired
-    private MediaFolderService mediaFolderService;
-    @Autowired
-    private CoverArtService coverArtService;
-    @Autowired
+    private final MediaFolderService mediaFolderService;
+    private final CoverArtService coverArtService;
     private MediaFileDao mediaFileDao;
-    @Autowired
     private ArtistDao artistDao;
-    @Autowired
     private AlbumDao albumDao;
-    @Autowired
-    private TaskSchedulingService taskService;
-    @Autowired
+    private final TaskSchedulingService taskService;
     private SimpMessagingTemplate messagingTemplate;
 
-    @Autowired
     @Value("${MediaScannerParallelism:#{T(java.lang.Runtime).getRuntime().availableProcessors() + 1}}")
-    private int scannerParallelism;
+    private final int scannerParallelism;
 
     private final AtomicInteger scanCount = new AtomicInteger(0);
+
+    public MediaScannerService(
+            PlaylistService playlistService,
+            SettingsService settingsService,
+            IndexManager indexManager,
+            MediaFileService mediaFileService,
+            MediaFolderService mediaFolderService,
+            CoverArtService coverArtService,
+            MediaFileDao mediaFileDao,
+            ArtistDao artistDao,
+            AlbumDao albumDao,
+            TaskSchedulingService taskService,
+            SimpMessagingTemplate messagingTemplate,
+            int scannerParallelism
+    ) {
+        this.playlistService = playlistService;
+        this.settingsService = settingsService;
+        this.indexManager = indexManager;
+        this.mediaFileService = mediaFileService;
+        this.mediaFolderService = mediaFolderService;
+        this.coverArtService = coverArtService;
+        this.mediaFileDao = mediaFileDao;
+        this.artistDao = artistDao;
+        this.albumDao = albumDao;
+        this.taskService = taskService;
+        this.messagingTemplate = messagingTemplate;
+        this.scannerParallelism = scannerParallelism;
+    }
 
     @PostConstruct
     public void init() {

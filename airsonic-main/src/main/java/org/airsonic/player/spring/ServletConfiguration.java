@@ -6,7 +6,6 @@ import org.airsonic.player.filter.ParameterDecodingFilter;
 import org.airsonic.player.filter.RESTFilter;
 import org.airsonic.player.filter.RequestEncodingFilter;
 import org.airsonic.player.filter.ResponseHeaderFilter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
@@ -24,6 +23,9 @@ import jakarta.servlet.Filter;
 
 @Configuration
 public class ServletConfiguration implements WebMvcConfigurer {
+    public ServletConfiguration(MessageSource messageSource) {
+        this.messageSource = messageSource;
+    }
 
     @Bean
     public LegacyViewSuffixHandlerMapping legacyViewSuffixHandlerMapping() {
@@ -141,8 +143,7 @@ public class ServletConfiguration implements WebMvcConfigurer {
         return resolver;
     }
 
-    @Autowired
-    private MessageSource ms;
+    private final MessageSource messageSource;
 
     @Override
     public void configurePathMatch(PathMatchConfigurer configurer) {
@@ -155,7 +156,7 @@ public class ServletConfiguration implements WebMvcConfigurer {
     public Validator getValidator() {
         // need to get constraint violation message codes translated
         LocalValidatorFactoryBean factory = new LocalValidatorFactoryBean();
-        factory.setValidationMessageSource(ms);
+        factory.setValidationMessageSource(messageSource);
         return factory;
     }
 }

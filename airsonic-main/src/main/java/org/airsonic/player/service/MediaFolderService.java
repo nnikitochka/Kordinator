@@ -29,13 +29,16 @@ import static java.util.stream.Collectors.toList;
 public class MediaFolderService {
     private static final Logger LOG = LoggerFactory.getLogger(MediaFolderService.class);
 
-    @Autowired
-    private MusicFolderDao musicFolderDao;
-    @Autowired
-    private MediaFileDao mediaFileDao;
+    private final MusicFolderDao musicFolderDao;
+    private final MediaFileDao mediaFileDao;
 
     private List<MusicFolder> cachedMusicFolders;
     private final ConcurrentMap<String, List<MusicFolder>> cachedMusicFoldersPerUser = new ConcurrentHashMap<>();
+
+    public MediaFolderService(MusicFolderDao musicFolderDao, MediaFileDao mediaFileDao) {
+        this.musicFolderDao = musicFolderDao;
+        this.mediaFileDao = mediaFileDao;
+    }
 
     /**
      * Returns all music folders. Non-existing and disabled folders are not included.

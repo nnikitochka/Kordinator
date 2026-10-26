@@ -11,18 +11,12 @@ import org.fourthline.cling.support.model.item.Item;
 import org.fourthline.cling.support.model.item.MusicTrack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.Arrays;
 
-/**
- * @author Allen Petersen
- * @author Sindre Mehus
- * @version $Id$
- */
 @Service
 public class DispatchingContentDirectory extends CustomContentDirectory {
 
@@ -39,35 +33,40 @@ public class DispatchingContentDirectory extends CustomContentDirectory {
 
     protected static final String SEPARATOR = "-";
 
-    @Autowired
     private PlaylistUpnpProcessor playlistProcessor;
-    @Autowired
     private MediaFileUpnpProcessor mediaFileProcessor;
     //@Autowired can't autowire because of the subclassing :P
-    @Autowired//first checks type then field name to autowire
+    //first checks type then field name to autowire
     private AlbumUpnpProcessor albumUpnpProcessor;
     //@Autowired can't autowire because of the subclassing :P
-    @Autowired//first checks type then field name to autowire
+    //first checks type then field name to autowire
     private RecentAlbumUpnpProcessor recentAlbumUpnpProcessor;
-    @Autowired
     private ArtistUpnpProcessor artistProcessor;
-    @Autowired
     private GenreUpnpProcessor genreProcessor;
-    @Autowired
     private RootUpnpProcessor rootProcessor;
 
-    @Autowired
     private MediaFileService mediaFileService;
-    @Autowired
     private MediaFolderService mediaFolderService;
-    @Autowired
     private PlaylistService playlistService;
 
-    @Autowired
     private MusicIndexService musicIndexService;
 
-    @Autowired
     private SearchService searchService;
+
+    public DispatchingContentDirectory(MediaFileUpnpProcessor mediaFileProcessor, PlaylistUpnpProcessor playlistProcessor, AlbumUpnpProcessor albumUpnpProcessor, RecentAlbumUpnpProcessor recentAlbumUpnpProcessor, ArtistUpnpProcessor artistProcessor, GenreUpnpProcessor genreProcessor, RootUpnpProcessor rootProcessor, MediaFileService mediaFileService, MediaFolderService mediaFolderService, PlaylistService playlistService, SearchService searchService, MusicIndexService musicIndexService) {
+        this.mediaFileProcessor = mediaFileProcessor;
+        this.playlistProcessor = playlistProcessor;
+        this.albumUpnpProcessor = albumUpnpProcessor;
+        this.recentAlbumUpnpProcessor = recentAlbumUpnpProcessor;
+        this.artistProcessor = artistProcessor;
+        this.genreProcessor = genreProcessor;
+        this.rootProcessor = rootProcessor;
+        this.mediaFileService = mediaFileService;
+        this.mediaFolderService = mediaFolderService;
+        this.playlistService = playlistService;
+        this.searchService = searchService;
+        this.musicIndexService = musicIndexService;
+    }
 
 
     @Override
@@ -135,23 +134,16 @@ public class DispatchingContentDirectory extends CustomContentDirectory {
 
 
     private UpnpContentProcessor findProcessor(String type) {
-        switch (type) {
-            case CONTAINER_ID_ROOT:
-                return getRootProcessor();
-            case CONTAINER_ID_PLAYLIST_PREFIX:
-                return getPlaylistProcessor();
-            case CONTAINER_ID_FOLDER_PREFIX:
-                return getMediaFileProcessor();
-            case CONTAINER_ID_ALBUM_PREFIX:
-                return getAlbumProcessor();
-            case CONTAINER_ID_RECENT_PREFIX:
-                return getRecentAlbumProcessor();
-            case CONTAINER_ID_ARTIST_PREFIX:
-                return getArtistProcessor();
-            case CONTAINER_ID_GENRE_PREFIX:
-                return getGenreProcessor();
-        }
-        return null;
+        return switch (type) {
+            case CONTAINER_ID_ROOT -> getRootProcessor();
+            case CONTAINER_ID_PLAYLIST_PREFIX -> getPlaylistProcessor();
+            case CONTAINER_ID_FOLDER_PREFIX -> getMediaFileProcessor();
+            case CONTAINER_ID_ALBUM_PREFIX -> getAlbumProcessor();
+            case CONTAINER_ID_RECENT_PREFIX -> getRecentAlbumProcessor();
+            case CONTAINER_ID_ARTIST_PREFIX -> getArtistProcessor();
+            case CONTAINER_ID_GENRE_PREFIX -> getGenreProcessor();
+            default -> null;
+        };
     }
 
     public Item createItem(MediaFile song) {

@@ -9,7 +9,6 @@ import org.airsonic.player.domain.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -33,12 +32,15 @@ public class LastFmService {
     private static final long CACHE_TIME_TO_LIVE_MILLIS = 6 * 30 * 24 * 3600 * 1000L; // 6 months
     private static final Logger LOG = LoggerFactory.getLogger(LastFmService.class);
 
-    @Autowired
     private MediaFileDao mediaFileDao;
-    @Autowired
     private MediaFileService mediaFileService;
-    @Autowired
     private ArtistDao artistDao;
+
+    public LastFmService(MediaFileDao mediaFileDao, MediaFileService mediaFileService, ArtistDao artistDao) {
+        this.mediaFileDao = mediaFileDao;
+        this.mediaFileService = mediaFileService;
+        this.artistDao = artistDao;
+    }
 
     @PostConstruct
     public void init() {

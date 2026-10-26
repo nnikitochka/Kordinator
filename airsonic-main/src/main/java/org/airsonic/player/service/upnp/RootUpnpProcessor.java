@@ -18,9 +18,11 @@ import java.util.List;
  */
 @Component
 public class RootUpnpProcessor extends UpnpContentProcessor <Container, Container> {
+    final IndexManager indexManager;
 
-    @Autowired
-    IndexManager indexManager;
+    public RootUpnpProcessor(IndexManager indexManager) {
+        this.indexManager = indexManager;
+    }
 
     public Container createRootContainer() {
         StorageFolder root = new StorageFolder();

@@ -117,8 +117,11 @@ public class PathWatcherService {
     @Component
     @Endpoint(id = "pathwatcher")
     public static class PathWatcherEndpoint {
-        @Autowired
-        private PathWatcherService pathWatcherService;
+        private final PathWatcherService pathWatcherService;
+
+        public PathWatcherEndpoint(PathWatcherService pathWatcherService) {
+            this.pathWatcherService = pathWatcherService;
+        }
 
         @ReadOperation
         public WebEndpointResponse<Map<String, String>> info() {

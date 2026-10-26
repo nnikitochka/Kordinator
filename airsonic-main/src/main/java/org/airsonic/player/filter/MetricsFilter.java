@@ -8,9 +8,6 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 
-/**
- * Created by remi on 12/01/17.
- */
 public class MetricsFilter implements Filter {
 
     @Autowired

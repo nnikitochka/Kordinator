@@ -101,17 +101,20 @@ public class GlobalSecurityConfig {
     public static final Set<String> NONLEGACY_DECODABLE_ENCODERS = Sets.intersection(DECODABLE_ENCODERS, NONLEGACY_ENCODERS);
     public static final Set<String> NONLEGACY_NONDECODABLE_ENCODERS = Sets.difference(NONLEGACY_ENCODERS, DECODABLE_ENCODERS);
 
-    @Autowired
-    private CsrfSecurityRequestMatcher csrfSecurityRequestMatcher;
+    private final CsrfSecurityRequestMatcher csrfSecurityRequestMatcher;
 
-    @Autowired
-    private SecurityService securityService;
+    private final SecurityService securityService;
 
-    @Autowired
-    SettingsService settingsService;
+    final SettingsService settingsService;
 
-    @Autowired
-    MultipleCredsMatchingAuthenticationProvider multipleCredsProvider;
+    final MultipleCredsMatchingAuthenticationProvider multipleCredsProvider;
+
+    public GlobalSecurityConfig(CsrfSecurityRequestMatcher csrfSecurityRequestMatcher, SecurityService securityService, SettingsService settingsService, MultipleCredsMatchingAuthenticationProvider multipleCredsProvider) {
+        this.csrfSecurityRequestMatcher = csrfSecurityRequestMatcher;
+        this.securityService = securityService;
+        this.settingsService = settingsService;
+        this.multipleCredsProvider = multipleCredsProvider;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {

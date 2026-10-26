@@ -73,22 +73,25 @@ public class HLSController {
     private static final int SEGMENT_DURATION = 10;
     private static final Pattern BITRATE_PATTERN = Pattern.compile("(\\d+)(@(\\d+)x(\\d+))?");
 
-    @Autowired
-    private PlayerService playerService;
-    @Autowired
-    private MediaFileService mediaFileService;
-    @Autowired
-    private SecurityService securityService;
-    @Autowired
-    private JWTSecurityService jwtSecurityService;
-    @Autowired
-    private StatusService statusService;
-    @Autowired
-    private SettingsService settingsService;
-    @Autowired
-    private TranscodingService transcodingService;
+    private final PlayerService playerService;
+    private final MediaFileService mediaFileService;
+    private final SecurityService securityService;
+    private final JWTSecurityService jwtSecurityService;
+    private final StatusService statusService;
+    private final SettingsService settingsService;
+    private final TranscodingService transcodingService;
 
     private final Map<HlsSession.Key, HlsSession> sessions = new ConcurrentHashMap<>();
+
+    public HLSController(PlayerService playerService, MediaFileService mediaFileService, SecurityService securityService, JWTSecurityService jwtSecurityService, StatusService statusService, SettingsService settingsService, TranscodingService transcodingService) {
+        this.playerService = playerService;
+        this.mediaFileService = mediaFileService;
+        this.securityService = securityService;
+        this.jwtSecurityService = jwtSecurityService;
+        this.statusService = statusService;
+        this.settingsService = settingsService;
+        this.transcodingService = transcodingService;
+    }
 
     @PostConstruct
     public void init() {
