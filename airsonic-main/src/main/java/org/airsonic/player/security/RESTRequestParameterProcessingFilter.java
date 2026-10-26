@@ -1,9 +1,8 @@
 package org.airsonic.player.security;
 
 import org.airsonic.player.controller.JAXBWriter;
-import org.airsonic.player.controller.SubsonicRESTController;
-import org.airsonic.player.controller.SubsonicRESTController.APIException;
-import org.airsonic.player.controller.SubsonicRESTController.ErrorCode;
+import org.airsonic.player.controller.rest.error.APIException;
+import org.airsonic.player.controller.rest.error.ErrorCode;
 import org.airsonic.player.domain.Version;
 import org.airsonic.player.util.StringUtil;
 import org.apache.commons.lang.StringUtils;
@@ -146,7 +145,7 @@ public class RESTRequestParameterProcessingFilter extends AbstractAuthentication
         }
 
         private static void sendErrorXml(HttpServletRequest request, HttpServletResponse response,
-                SubsonicRESTController.ErrorCode errorCode) {
+                ErrorCode errorCode) {
             try {
                 jaxbWriter.writeErrorResponse(request, response, errorCode, errorCode.getMessage());
             } catch (Exception e) {

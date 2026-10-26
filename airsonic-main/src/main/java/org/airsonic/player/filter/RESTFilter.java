@@ -1,7 +1,7 @@
 package org.airsonic.player.filter;
 
 import org.airsonic.player.controller.JAXBWriter;
-import org.airsonic.player.controller.SubsonicRESTController;
+import org.airsonic.player.controller.rest.error.ErrorCode;
 import org.airsonic.player.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +35,7 @@ public class RESTFilter implements Filter {
             x = x.getCause();
         }
 
-        SubsonicRESTController.ErrorCode code = (x instanceof ServletRequestBindingException) ? SubsonicRESTController.ErrorCode.MISSING_PARAMETER : SubsonicRESTController.ErrorCode.GENERIC;
+        ErrorCode code = (x instanceof ServletRequestBindingException) ? ErrorCode.MISSING_PARAMETER : ErrorCode.GENERIC;
         String msg = getErrorMessage(x);
 
         // This happens often and outside of the control of the server, so

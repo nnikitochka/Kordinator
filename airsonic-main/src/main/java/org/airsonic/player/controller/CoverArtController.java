@@ -45,8 +45,6 @@ import java.util.stream.Collectors;
 
 /**
  * Controller which produces cover art images.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping({"/coverArt", "/ext/coverArt"})

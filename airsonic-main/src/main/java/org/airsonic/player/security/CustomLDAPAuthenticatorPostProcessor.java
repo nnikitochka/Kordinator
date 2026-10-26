@@ -1,7 +1,7 @@
 package org.airsonic.player.security;
 
-import org.airsonic.player.controller.SubsonicRESTController.APIException;
-import org.airsonic.player.controller.SubsonicRESTController.ErrorCode;
+import org.airsonic.player.controller.rest.error.APIException;
+import org.airsonic.player.controller.rest.error.ErrorCode;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.domain.User.Role;
 import org.airsonic.player.service.SecurityService;

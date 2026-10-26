@@ -1,23 +1,24 @@
-package org.airsonic.player.controller;
+package org.airsonic.player.controller.rest;
 
 import com.google.common.primitives.Ints;
 import org.airsonic.player.ajax.lyrics.LyricsInfo;
 import org.airsonic.player.ajax.lyrics.LyricsWSController;
 import org.airsonic.player.ajax.playing.NowPlayingInfo;
 import org.airsonic.player.command.UserSettingsCommand;
+import org.airsonic.player.controller.*;
+import org.airsonic.player.controller.rest.error.APIException;
+import org.airsonic.player.controller.rest.error.ErrorCode;
 import org.airsonic.player.dao.AlbumDao;
 import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.dao.PlayQueueDao;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.domain.Bookmark;
-import org.airsonic.player.domain.CoverArt.EntityType;
 import org.airsonic.player.domain.PlayQueue;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.domain.UserCredential.App;
 import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.*;
-import org.airsonic.player.service.search.IndexType;
 import org.airsonic.player.util.StringUtil;
 import org.airsonic.player.util.Util;
 import org.apache.commons.lang.StringUtils;
@@ -58,8 +59,6 @@ import static org.springframework.web.bind.ServletRequestUtils.*;
  * For documentation, please refer to api.jsp.
  * <p/>
  * Note: Exceptions thrown from the methods are intercepted by RESTFilter.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping(value = "/rest", method = {RequestMethod.GET, RequestMethod.POST})
@@ -1319,29 +1318,6 @@ public class SubsonicRESTController {
                 new ServletWebRequest(request, swr.getResponse()));
     }
 
-    public static class APIException extends Exception {
-        private final String message;
-        private final ErrorCode error;
-
-        public APIException(ErrorCode error, String message) {
-            this.message = message;
-            this.error = error;
-        }
-
-        public APIException(ErrorCode error) {
-            this(error, error.getMessage());
-        }
-
-        @Override
-        public String getMessage() {
-            return message;
-        }
-
-        public ErrorCode getError() {
-            return error;
-        }
-    }
-
     @ExceptionHandler(APIException.class)
     public ResponseEntity<String> apiException(ServletWebRequest swr, APIException exception) {
         Entry<String, String> exceptionResponse = jaxbWriter.serializeForType(swr.getRequest(),
@@ -1960,16 +1936,6 @@ public class SubsonicRESTController {
         writeEmptyResponse(request, response);
     }
 
-    @RequestMapping("/getChatMessages")
-    public ResponseEntity<String> getChatMessages(HttpServletRequest request, HttpServletResponse response) {
-        return ResponseEntity.status(HttpStatus.SC_GONE).body(NO_LONGER_SUPPORTED);
-    }
-
-    @RequestMapping("/addChatMessage")
-    public ResponseEntity<String> addChatMessage(HttpServletRequest request, HttpServletResponse response) {
-        return ResponseEntity.status(HttpStatus.SC_GONE).body(NO_LONGER_SUPPORTED);
-    }
-
     @RequestMapping("/getLyrics")
     public void getLyrics(HttpServletRequest request, HttpServletResponse response) {
         request = wrapRequest(request);
@@ -2016,7 +1982,7 @@ public class SubsonicRESTController {
 
         MediaFile mediaFile = this.mediaFileService.getMediaFile(id);
         if (mediaFile == null) {
-            error(request, response, SubsonicRESTController.ErrorCode.NOT_FOUND, "Media file not found.");
+            error(request, response, ErrorCode.NOT_FOUND, "Media file not found.");
             return;
         }
         AlbumNotes albumNotes = this.lastFmService.getAlbumNotes(mediaFile);
@@ -2035,7 +2001,7 @@ public class SubsonicRESTController {
 
         Album album = this.albumDao.getAlbum(id);
         if (album == null) {
-            error(request, response, SubsonicRESTController.ErrorCode.NOT_FOUND, "Album not found.");
+            error(request, response, ErrorCode.NOT_FOUND, "Album not found.");
             return;
         }
         AlbumNotes albumNotes = this.lastFmService.getAlbumNotes(album);
@@ -2164,31 +2130,4 @@ public class SubsonicRESTController {
         return !players.isEmpty() ? players.getFirst().getId() : null;
     }
 
-    public enum ErrorCode {
-
-        GENERIC(0, "A generic error."),
-        MISSING_PARAMETER(10, "Required parameter is missing."),
-        PROTOCOL_MISMATCH_CLIENT_TOO_OLD(20, "Incompatible Airsonic REST protocol version. Client must upgrade."),
-        PROTOCOL_MISMATCH_SERVER_TOO_OLD(30, "Incompatible Airsonic REST protocol version. Server must upgrade."),
-        NOT_AUTHENTICATED(40, "Wrong username or password."),
-        NOT_AUTHENTICATED_UPGRADE_TO_NON_HASHED(41, "Wrong username or password, but try authenticating via non-hashed password."),
-        NOT_AUTHORIZED(50, "User is not authorized for the given operation."),
-        NOT_FOUND(70, "Requested data was not found.");
-
-        private final int code;
-        private final String message;
-
-        ErrorCode(int code, String message) {
-            this.code = code;
-            this.message = message;
-        }
-
-        public int getCode() {
-            return code;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-    }
 }

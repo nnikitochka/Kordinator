@@ -1,7 +1,8 @@
 package org.airsonic.player.controller;
 
 import com.google.common.net.MediaType;
-import org.airsonic.player.controller.SubsonicRESTController.APIException;
+import org.airsonic.player.controller.rest.error.ErrorCode;
+import org.airsonic.player.controller.rest.error.APIException;
 import org.airsonic.player.util.StringUtil;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.persistence.jaxb.JAXBContextFactory;
@@ -111,7 +112,7 @@ public class JAXBWriter {
     }
 
     public void writeErrorResponse(HttpServletRequest request, HttpServletResponse response,
-            SubsonicRESTController.ErrorCode code, String message) {
+                                   ErrorCode code, String message) {
         Response res = createErrorResponse(code, message);
         writeResponse(request, response, res);
     }
@@ -120,7 +121,7 @@ public class JAXBWriter {
         return createErrorResponse(e.getError(), e.getMessage());
     }
 
-    public Response createErrorResponse(SubsonicRESTController.ErrorCode code, String message) {
+    public Response createErrorResponse(ErrorCode code, String message) {
         Response res = createResponse(false);
         Error error = new Error();
         res.setError(error);

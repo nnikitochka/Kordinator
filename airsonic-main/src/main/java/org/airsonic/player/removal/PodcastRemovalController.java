@@ -1,7 +1,7 @@
 package org.airsonic.player.removal;
 
 import org.airsonic.player.controller.JAXBWriter;
-import org.airsonic.player.controller.SubsonicRESTController;
+import org.airsonic.player.controller.rest.error.ErrorCode;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -87,7 +87,7 @@ public class PodcastRemovalController {
     }
 
     private void notSupported(HttpServletRequest request, HttpServletResponse response) {
-        jaxbWriter.writeErrorResponse(request, response, SubsonicRESTController.ErrorCode.NOT_AUTHORIZED,
+        jaxbWriter.writeErrorResponse(request, response, ErrorCode.NOT_AUTHORIZED,
                 "This operation is not authorized: " + PODCASTS_NOT_SUPPORTED + ".");
     }
 }
