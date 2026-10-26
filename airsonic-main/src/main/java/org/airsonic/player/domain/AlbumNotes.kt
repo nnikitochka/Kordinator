@@ -1,7 +1,7 @@
 package org.airsonic.player.domain
 
 data class AlbumNotes(
-    val notes: String,
+    val notes: String?,
     val musicBrainzId: String,
     val lastFmUrl: String,
     val smallImageUrl: String,
