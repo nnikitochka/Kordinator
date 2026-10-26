@@ -16,12 +16,14 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import org.airsonic.player.controller.rest.RestPlayerResolver
+import org.airsonic.player.controller.rest.musicfolders.SubsonicMusicFoldersController
 import org.airsonic.player.controller.rest.search.SubsonicSearchController
 import org.airsonic.player.service.PlayerService
 import org.airsonic.player.service.SecurityService
 
 class AirsonicKtorServlet(
     private val searchController: SubsonicSearchController,
+    private val musicFoldersController: SubsonicMusicFoldersController,
     private val playerResolver: RestPlayerResolver,
     private val playerService: PlayerService,
     private val securityService: SecurityService,
@@ -35,9 +37,15 @@ class AirsonicKtorServlet(
             if (searchRequest != null) {
                 call.attributes.put(SEARCH_REQUEST_KEY, searchRequest)
             }
+            val musicFoldersRequest = request.getAttribute(MUSIC_FOLDERS_REQUEST)
+                as? SubsonicMusicFoldersController.Request
+            if (musicFoldersRequest != null) {
+                call.attributes.put(MUSIC_FOLDERS_REQUEST_KEY, musicFoldersRequest)
+            }
         }
         application.routing {
             searchController.routes(this) { call -> call.attributes[SEARCH_REQUEST_KEY] }
+            musicFoldersController.routes(this) { call -> call.attributes[MUSIC_FOLDERS_REQUEST_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
         // Keep this compatibility code in the temporary servlet adapter.
@@ -53,7 +61,8 @@ class AirsonicKtorServlet(
     }
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
-        if (request.servletPath in SubsonicSearchController.PATHS) {
+        val path = request.servletPath
+        if (path in SubsonicSearchController.PATHS) {
             // Capture Spring's thread-bound authentication before Ktor dispatches to a coroutine.
             val username = requireNotNull(securityService.getCurrentUsername(request))
             val playerId = playerResolver.getOrCreatePlayerId(
@@ -64,19 +73,32 @@ class AirsonicKtorServlet(
                     if (name == "player") playerId?.toString() else super.getParameter(name)
             }
             val player = playerService.getPlayer(playerRequest, response)
-            // Security filters may already have consumed a POST body. Use the servlet's parsed parameters.
-            val parameters = Parameters.build {
-                request.parameterNames.asSequence().distinct().forEach { name ->
-                    request.getParameterValues(name)?.let { appendAll(name, it.toList()) }
-                }
-            }
-            request.setAttribute(SEARCH_REQUEST, SubsonicSearchController.Request(username, player, parameters))
+            request.setAttribute(SEARCH_REQUEST, SubsonicSearchController.Request(username, player, parameters(request)))
+        } else if (path in SubsonicMusicFoldersController.PATHS) {
+            // The legacy wrapRequest() created a REST player for this endpoint too.
+            playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            val username = requireNotNull(securityService.getCurrentUsername(request))
+            request.setAttribute(
+                MUSIC_FOLDERS_REQUEST,
+                SubsonicMusicFoldersController.Request(username, parameters(request))
+            )
         }
         super.service(request, response)
+    }
+
+    private fun parameters(request: HttpServletRequest): Parameters = Parameters.build {
+        // Security filters may already have consumed a POST body. Use the servlet's parsed parameters.
+        request.parameterNames.asSequence().distinct().forEach { name ->
+            request.getParameterValues(name)?.let { appendAll(name, it.toList()) }
+        }
     }
 
     private companion object {
         const val SEARCH_REQUEST = "org.airsonic.player.searchRequest"
         val SEARCH_REQUEST_KEY = AttributeKey<SubsonicSearchController.Request>(SEARCH_REQUEST)
+        const val MUSIC_FOLDERS_REQUEST = "org.airsonic.player.musicFoldersRequest"
+        val MUSIC_FOLDERS_REQUEST_KEY = AttributeKey<SubsonicMusicFoldersController.Request>(
+            MUSIC_FOLDERS_REQUEST
+        )
     }
 }

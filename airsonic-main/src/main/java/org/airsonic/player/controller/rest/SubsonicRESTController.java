@@ -175,23 +175,6 @@ public class SubsonicRESTController {
     }
 
 
-    @RequestMapping("/getMusicFolders")
-    public void getMusicFolders(HttpServletRequest request, HttpServletResponse response) {
-        request = wrapRequest(request);
-
-        MusicFolders musicFolders = new MusicFolders();
-        String username = securityService.getCurrentUsername(request);
-        for (org.airsonic.player.domain.MusicFolder musicFolder : mediaFolderService.getMusicFoldersForUser(username)) {
-            org.subsonic.restapi.MusicFolder mf = new org.subsonic.restapi.MusicFolder();
-            mf.setId(musicFolder.getId());
-            mf.setName(musicFolder.getName());
-            musicFolders.getMusicFolder().add(mf);
-        }
-        Response res = createResponse();
-        res.setMusicFolders(musicFolders);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
     @RequestMapping("/getIndexes")
     public void getIndexes(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);

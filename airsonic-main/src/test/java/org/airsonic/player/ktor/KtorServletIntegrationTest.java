@@ -94,6 +94,35 @@ public class KtorServletIntegrationTest {
     }
 
     @Test
+    public void musicFolderRoutesPreserveClientContract() throws Exception {
+        List<MusicFolder> folders = MusicFolderTestData.getTestMusicFolders();
+        UUID cleanupId = ScanningTestUtils.before(folders, mediaFolderService, mediaScannerService);
+        try {
+            for (String suffix : List.of("", ".view")) {
+                String path = "/rest/getMusicFolders" + suffix;
+                HttpResponse<String> json = get(path + "?" + credentials() + "&f=json", false);
+                JsonNode musicFolders = subsonic(json).path("musicFolders").path("musicFolder");
+                assertEquals(json.body(), folders.get(0).getId().intValue(), musicFolders.path(0).path("id").asInt());
+                assertEquals(json.body(), folders.get(0).getName(), musicFolders.path(0).path("name").asText());
+                assertTrue(json.headers().firstValue("content-type").orElseThrow().startsWith("application/json"));
+
+                HttpResponse<String> xml = get(path + "?c=ktor-test", true);
+                assertEquals(xml.body(), 200, xml.statusCode());
+                assertTrue(xml.body(), xml.body().contains("<musicFolders>"));
+                assertTrue(xml.body(), xml.body().contains("id=\"" + folders.get(0).getId() + "\""));
+                assertTrue(xml.headers().firstValue("content-type").orElseThrow().startsWith("text/xml"));
+            }
+
+            String form = credentials() + "&f=json";
+            JsonNode posted = subsonic(post("/rest/getMusicFolders.view", form)).path("musicFolders").path("musicFolder");
+            assertEquals(folders.get(0).getName(), posted.path(0).path("name").asText());
+            assertEquals(403, post("/rest/getMusicFolders", form).statusCode());
+        } finally {
+            ScanningTestUtils.after(cleanupId, mediaFolderService);
+        }
+    }
+
+    @Test
     public void searchRoutesPreserveClientContract() throws Exception {
         List<MusicFolder> folders = MusicFolderTestData.getTestMusicFolders();
         UUID cleanupId = ScanningTestUtils.before(folders, mediaFolderService, mediaScannerService);

@@ -3,6 +3,8 @@ package org.airsonic.player.spring;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.controller.rest.SubsonicResponseMapper;
+import org.airsonic.player.controller.rest.musicfolders.SubsonicMusicFoldersController;
+import org.airsonic.player.controller.rest.musicfolders.SubsonicMusicFoldersService;
 import org.airsonic.player.controller.rest.search.SubsonicSearchController;
 import org.airsonic.player.controller.rest.search.SubsonicSearchService;
 import org.airsonic.player.dao.AlbumDao;
@@ -30,6 +32,17 @@ public class RestApiConfiguration {
     @Bean
     public RestPlayerResolver restPlayerResolver(PlayerService playerService) {
         return new RestPlayerResolver(playerService);
+    }
+
+    @Bean
+    public SubsonicMusicFoldersService subsonicMusicFoldersService(MediaFolderService mediaFolderService) {
+        return new SubsonicMusicFoldersService(mediaFolderService::getMusicFoldersForUser);
+    }
+
+    @Bean
+    public SubsonicMusicFoldersController subsonicMusicFoldersController(
+            SubsonicMusicFoldersService musicFoldersService, JAXBWriter subsonicJaxbWriter) {
+        return new SubsonicMusicFoldersController(musicFoldersService, subsonicJaxbWriter);
     }
 
     @Bean
