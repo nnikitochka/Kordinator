@@ -2,6 +2,7 @@ package org.airsonic.player.spring;
 
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
+import org.airsonic.player.controller.rest.genres.SubsonicGenresController;
 import org.airsonic.player.controller.rest.musicfolders.SubsonicMusicFoldersController;
 import org.airsonic.player.controller.rest.search.SubsonicSearchController;
 import org.airsonic.player.service.PlayerService;
@@ -18,17 +19,19 @@ public class KtorConfiguration {
     public ServletRegistrationBean<ServletApplicationEngine> ktorServletRegistration(
             SubsonicSearchController searchController,
             SubsonicMusicFoldersController musicFoldersController,
+            SubsonicGenresController genresController,
             RestPlayerResolver playerResolver,
             PlayerService playerService,
             SecurityService securityService
     ) {
         ServletRegistrationBean<ServletApplicationEngine> registration =
                 new ServletRegistrationBean<>(
-                        new AirsonicKtorServlet(searchController, musicFoldersController, playerResolver,
+                        new AirsonicKtorServlet(searchController, musicFoldersController, genresController, playerResolver,
                                 playerService, securityService),
                         "/internal/ktor/*");
         registration.addUrlMappings(SubsonicSearchController.PATHS);
         registration.addUrlMappings(SubsonicMusicFoldersController.PATHS);
+        registration.addUrlMappings(SubsonicGenresController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);

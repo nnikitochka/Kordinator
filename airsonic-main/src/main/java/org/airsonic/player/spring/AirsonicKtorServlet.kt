@@ -16,6 +16,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import org.airsonic.player.controller.rest.RestPlayerResolver
+import org.airsonic.player.controller.rest.genres.SubsonicGenresController
 import org.airsonic.player.controller.rest.musicfolders.SubsonicMusicFoldersController
 import org.airsonic.player.controller.rest.search.SubsonicSearchController
 import org.airsonic.player.service.PlayerService
@@ -24,6 +25,7 @@ import org.airsonic.player.service.SecurityService
 class AirsonicKtorServlet(
     private val searchController: SubsonicSearchController,
     private val musicFoldersController: SubsonicMusicFoldersController,
+    private val genresController: SubsonicGenresController,
     private val playerResolver: RestPlayerResolver,
     private val playerService: PlayerService,
     private val securityService: SecurityService,
@@ -42,10 +44,15 @@ class AirsonicKtorServlet(
             if (musicFoldersRequest != null) {
                 call.attributes.put(MUSIC_FOLDERS_REQUEST_KEY, musicFoldersRequest)
             }
+            val parameters = request.getAttribute(REST_PARAMETERS) as? Parameters
+            if (parameters != null) {
+                call.attributes.put(REST_PARAMETERS_KEY, parameters)
+            }
         }
         application.routing {
             searchController.routes(this) { call -> call.attributes[SEARCH_REQUEST_KEY] }
             musicFoldersController.routes(this) { call -> call.attributes[MUSIC_FOLDERS_REQUEST_KEY] }
+            genresController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
         // Keep this compatibility code in the temporary servlet adapter.
@@ -82,6 +89,10 @@ class AirsonicKtorServlet(
                 MUSIC_FOLDERS_REQUEST,
                 SubsonicMusicFoldersController.Request(username, parameters(request))
             )
+        } else if (path in SubsonicGenresController.PATHS) {
+            // Preserve the REST player creation previously performed by wrapRequest().
+            playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            request.setAttribute(REST_PARAMETERS, parameters(request))
         }
         super.service(request, response)
     }
@@ -94,6 +105,8 @@ class AirsonicKtorServlet(
     }
 
     private companion object {
+        const val REST_PARAMETERS = "org.airsonic.player.restParameters"
+        val REST_PARAMETERS_KEY = AttributeKey<Parameters>(REST_PARAMETERS)
         const val SEARCH_REQUEST = "org.airsonic.player.searchRequest"
         val SEARCH_REQUEST_KEY = AttributeKey<SubsonicSearchController.Request>(SEARCH_REQUEST)
         const val MUSIC_FOLDERS_REQUEST = "org.airsonic.player.musicFoldersRequest"

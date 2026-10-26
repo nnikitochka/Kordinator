@@ -3,6 +3,7 @@ package org.airsonic.player.spring;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.controller.rest.SubsonicResponseMapper;
+import org.airsonic.player.controller.rest.genres.SubsonicGenresController;
 import org.airsonic.player.controller.rest.genres.SubsonicGenresService;
 import org.airsonic.player.controller.rest.musicfolders.SubsonicMusicFoldersController;
 import org.airsonic.player.controller.rest.musicfolders.SubsonicMusicFoldersService;
@@ -38,6 +39,12 @@ public class RestApiConfiguration {
     @Bean
     public SubsonicGenresService subsonicGenresService(MediaFileDao mediaFileDao) {
         return new SubsonicGenresService(() -> mediaFileDao.getGenres(false));
+    }
+
+    @Bean
+    public SubsonicGenresController subsonicGenresController(
+            SubsonicGenresService genresService, JAXBWriter subsonicJaxbWriter) {
+        return new SubsonicGenresController(genresService, subsonicJaxbWriter);
     }
 
     @Bean
