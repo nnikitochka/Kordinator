@@ -245,23 +245,6 @@ public class SubsonicRESTController {
         jaxbWriter.writeResponse(request, response, res);
     }
 
-    @RequestMapping("/getGenres")
-    public void getGenres(HttpServletRequest request, HttpServletResponse response) {
-        request = wrapRequest(request);
-        org.subsonic.restapi.Genres genres = new org.subsonic.restapi.Genres();
-
-        for (org.airsonic.player.domain.Genre genre : mediaFileDao.getGenres(false)) {
-            org.subsonic.restapi.Genre g = new org.subsonic.restapi.Genre();
-            genres.getGenre().add(g);
-            g.setContent(genre.getName());
-            g.setAlbumCount(genre.getAlbumCount());
-            g.setSongCount(genre.getSongCount());
-        }
-        Response res = createResponse();
-        res.setGenres(genres);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
     @RequestMapping("/getSongsByGenre")
     public void getSongsByGenre(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
