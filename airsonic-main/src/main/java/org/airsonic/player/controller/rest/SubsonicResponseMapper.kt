@@ -1,4 +1,4 @@
-package org.airsonic.player.controller.rest.search
+package org.airsonic.player.controller.rest
 
 import org.airsonic.player.controller.CoverArtController
 import org.airsonic.player.controller.JAXBWriter

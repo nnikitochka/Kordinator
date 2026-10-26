@@ -1,8 +1,8 @@
 package org.airsonic.player.spring;
 
 import org.airsonic.player.controller.JAXBWriter;
-import org.airsonic.player.controller.rest.search.RestPlayerResolver;
-import org.airsonic.player.controller.rest.search.SubsonicResponseMapper;
+import org.airsonic.player.controller.rest.RestPlayerResolver;
+import org.airsonic.player.controller.rest.SubsonicResponseMapper;
 import org.airsonic.player.controller.rest.search.SubsonicSearchService;
 import org.airsonic.player.dao.AlbumDao;
 import org.airsonic.player.dao.ArtistDao;

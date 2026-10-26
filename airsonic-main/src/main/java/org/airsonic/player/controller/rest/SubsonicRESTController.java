@@ -8,8 +8,6 @@ import org.airsonic.player.command.UserSettingsCommand;
 import org.airsonic.player.controller.*;
 import org.airsonic.player.controller.rest.error.APIException;
 import org.airsonic.player.controller.rest.error.ErrorCode;
-import org.airsonic.player.controller.rest.search.RestPlayerResolver;
-import org.airsonic.player.controller.rest.search.SubsonicResponseMapper;
 import org.airsonic.player.dao.AlbumDao;
 import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.dao.MediaFileDao;

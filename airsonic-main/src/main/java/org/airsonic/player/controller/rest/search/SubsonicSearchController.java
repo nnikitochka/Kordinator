@@ -1,6 +1,7 @@
 package org.airsonic.player.controller.rest.search;
 
 import org.airsonic.player.controller.JAXBWriter;
+import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.domain.Player;
 import org.airsonic.player.service.PlayerService;
 import org.airsonic.player.service.SecurityService;
