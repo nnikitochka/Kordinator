@@ -8,7 +8,7 @@ import org.airsonic.player.service.PlayerService
 class RestPlayerResolver(
     private val playerService: PlayerService
 ) {
-    fun getOrCreatePlayerId(username: String?, clientId: String, ipAddress: String, jukebox: Boolean): Int? {
+    fun getOrCreatePlayerId(username: String?, clientId: String?, ipAddress: String, jukebox: Boolean): Int? {
         val effectiveClientId = if (jukebox) "$clientId-jukebox" else clientId
         var players = playerService.getPlayersForUserAndClientId(username, effectiveClientId)
 

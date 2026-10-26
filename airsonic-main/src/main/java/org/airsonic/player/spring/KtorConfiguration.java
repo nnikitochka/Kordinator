@@ -1,6 +1,10 @@
 package org.airsonic.player.spring;
 
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
+import org.airsonic.player.controller.rest.RestPlayerResolver;
+import org.airsonic.player.controller.rest.search.SubsonicSearchController;
+import org.airsonic.player.service.PlayerService;
+import org.airsonic.player.service.SecurityService;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,9 +14,14 @@ import org.springframework.context.annotation.Configuration;
 public class KtorConfiguration {
 
     @Bean
-    public ServletRegistrationBean<ServletApplicationEngine> ktorServletRegistration() {
+    public ServletRegistrationBean<ServletApplicationEngine> ktorServletRegistration(
+            SubsonicSearchController searchController, RestPlayerResolver playerResolver,
+            PlayerService playerService, SecurityService securityService) {
         ServletRegistrationBean<ServletApplicationEngine> registration =
-                new ServletRegistrationBean<>(new AirsonicKtorServlet(), "/internal/ktor/*");
+                new ServletRegistrationBean<>(
+                        new AirsonicKtorServlet(searchController, playerResolver, playerService, securityService),
+                        "/internal/ktor/*");
+        registration.addUrlMappings(SubsonicSearchController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);

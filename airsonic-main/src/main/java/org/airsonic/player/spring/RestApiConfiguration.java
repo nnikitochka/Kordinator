@@ -3,6 +3,7 @@ package org.airsonic.player.spring;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.controller.rest.SubsonicResponseMapper;
+import org.airsonic.player.controller.rest.search.SubsonicSearchController;
 import org.airsonic.player.controller.rest.search.SubsonicSearchService;
 import org.airsonic.player.dao.AlbumDao;
 import org.airsonic.player.dao.ArtistDao;
@@ -38,6 +39,12 @@ public class RestApiConfiguration {
             ArtistDao artistDao, JAXBWriter subsonicJaxbWriter) {
         return new SubsonicResponseMapper(mediaFileService, mediaFileDao, ratingService, coverArtService,
                 transcodingService, albumDao, artistDao, subsonicJaxbWriter);
+    }
+
+    @Bean
+    public SubsonicSearchController subsonicSearchController(SubsonicSearchService searchService,
+                                                            JAXBWriter subsonicJaxbWriter) {
+        return new SubsonicSearchController(searchService, subsonicJaxbWriter);
     }
 
     @Bean

@@ -133,6 +133,10 @@ public class JAXBWriter {
     public Entry<String, String> serializeForType(HttpServletRequest request, Response resp) {
         String format = getStringParameter(request, "f", "xml");
         String jsonpCallback = request.getParameter("callback");
+        return serializeForType(format, jsonpCallback, resp);
+    }
+
+    public Entry<String, String> serializeForType(String format, String jsonpCallback, Response resp) {
         boolean json = "json".equals(format);
         boolean jsonp = "jsonp".equals(format) && jsonpCallback != null;
         Marshaller marshaller;
