@@ -268,31 +268,6 @@ public class SubsonicRESTController {
         jaxbWriter.writeResponse(request, response, res);
     }
 
-    @RequestMapping("/getArtists")
-    public void getArtists(HttpServletRequest request, HttpServletResponse response) {
-        request = wrapRequest(request);
-        String username = securityService.getCurrentUsername(request);
-
-        ArtistsID3 result = new ArtistsID3();
-        result.setIgnoredArticles(settingsService.getIgnoredArticles());
-        List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username);
-
-        List<org.airsonic.player.domain.Artist> artists = artistDao.getAlphabetialArtists(0, Integer.MAX_VALUE, musicFolders);
-        SortedMap<MusicIndex, List<MusicIndex.SortableArtistWithArtist>> indexedArtists = musicIndexService.getIndexedArtists(artists);
-        for (Map.Entry<MusicIndex, List<MusicIndex.SortableArtistWithArtist>> entry : indexedArtists.entrySet()) {
-            IndexID3 index = new IndexID3();
-            result.getIndex().add(index);
-            index.setName(entry.getKey().getIndex());
-            for (MusicIndex.SortableArtistWithArtist sortableArtist : entry.getValue()) {
-                index.getArtist().add(createJaxbArtist(new ArtistID3(), sortableArtist.getArtist(), username));
-            }
-        }
-
-        Response res = createResponse();
-        res.setArtists(result);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
     @RequestMapping("/getSimilarSongs")
     public void getSimilarSongs(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);

@@ -3,6 +3,7 @@ package org.airsonic.player.spring;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.controller.rest.SubsonicResponseMapper;
+import org.airsonic.player.controller.rest.artists.ArtistsService;
 import org.airsonic.player.controller.rest.genres.GenresController;
 import org.airsonic.player.controller.rest.genres.GenresService;
 import org.airsonic.player.controller.rest.musicfolders.MusicFoldersController;
@@ -15,7 +16,9 @@ import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.service.CoverArtService;
 import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.MediaFolderService;
+import org.airsonic.player.service.MusicIndexService;
 import org.airsonic.player.service.PlayerService;
+import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.service.RatingService;
 import org.airsonic.player.service.TranscodingService;
 import org.springframework.context.annotation.Bean;
@@ -47,6 +50,19 @@ public class RestApiConfiguration {
     }
 
     @Bean
+    public ArtistsService subsonicArtistsService(ArtistDao artistDao, MusicIndexService musicIndexService,
+                                                 SettingsService settingsService,
+                                                 MediaFolderService mediaFolderService,
+                                                 SubsonicResponseMapper subsonicResponseMapper) {
+        return new ArtistsService(
+                musicFolders -> artistDao.getAlphabetialArtists(0, Integer.MAX_VALUE, musicFolders),
+                musicIndexService,
+                settingsService::getIgnoredArticles,
+                mediaFolderService::getMusicFoldersForUser,
+                (target, artist, username) -> subsonicResponseMapper.artist(target, artist, username));
+    }
+
+    @Bean
     public MusicFoldersService subsonicMusicFoldersService(MediaFolderService mediaFolderService) {
         return new MusicFoldersService(mediaFolderService::getMusicFoldersForUser);
     }
@@ -73,7 +89,7 @@ public class RestApiConfiguration {
     }
 
     @Bean
-    public SearchService subsonicSearchService(SearchService searchService,
+    public SearchService subsonicSearchService(org.airsonic.player.service.SearchService searchService,
                                                MediaFolderService mediaFolderService,
                                                SubsonicResponseMapper subsonicResponseMapper,
                                                JAXBWriter subsonicJaxbWriter) {
