@@ -1,40 +1,27 @@
-package org.airsonic.player.controller;
+package org.airsonic.player.controller
 
-import org.airsonic.player.domain.UserSettings;
-import org.airsonic.player.service.SecurityService;
-import org.airsonic.player.service.SettingsService;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.ModelAndView;
-
-import jakarta.servlet.http.HttpServletRequest;
-
-import java.util.HashMap;
-import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest
+import org.airsonic.player.service.SecurityService
+import org.airsonic.player.service.SettingsService
+import org.springframework.stereotype.Controller
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.servlet.ModelAndView
 
 @Controller
 @RequestMapping("/index")
-public class IndexController {
-
-    private final SecurityService securityService;
-    private final SettingsService settingsService;
-
-    public IndexController(SecurityService securityService, SettingsService settingsService) {
-        this.securityService = securityService;
-        this.settingsService = settingsService;
-    }
-
+class IndexController(private val securityService: SecurityService, private val settingsService: SettingsService) {
     @GetMapping
-    public ModelAndView index(HttpServletRequest request) {
-        UserSettings userSettings = settingsService.getUserSettings(securityService.getCurrentUsername(request));
+    fun index(request: HttpServletRequest?): ModelAndView {
+        val userSettings = settingsService.getUserSettings(securityService.getCurrentUsername(request))
 
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.put("showRight", userSettings.getShowNowPlayingEnabled());
-        map.put("autoHidePlayQueue", userSettings.getAutoHidePlayQueue());
-        map.put("keyboardShortcutsEnabled", userSettings.getKeyboardShortcutsEnabled());
-        map.put("showSideBar", userSettings.getShowSideBar());
-        map.put("brand", settingsService.getBrand());
-        return new ModelAndView("index", "model", map);
+        val map = mapOf(
+            "showRight" to userSettings.showNowPlayingEnabled,
+            "autoHidePlayQueue" to userSettings.autoHidePlayQueue,
+            "keyboardShortcutsEnabled" to userSettings.keyboardShortcutsEnabled,
+            "showSideBar" to userSettings.showSideBar,
+            "brand" to settingsService.brand
+        )
+        return ModelAndView("index", "model", map)
     }
 }

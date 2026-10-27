@@ -1,44 +1,31 @@
-package org.airsonic.player.controller;
+package org.airsonic.player.controller
 
-import org.airsonic.player.domain.AvatarScheme;
-import org.airsonic.player.domain.User;
-import org.airsonic.player.domain.UserSettings;
-import org.airsonic.player.service.SecurityService;
-import org.airsonic.player.service.SettingsService;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.ModelAndView;
-
-import jakarta.servlet.http.HttpServletRequest;
-
-import java.util.HashMap;
-import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest
+import org.airsonic.player.domain.AvatarScheme
+import org.airsonic.player.service.SecurityService
+import org.airsonic.player.service.SettingsService
+import org.springframework.stereotype.Controller
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.servlet.ModelAndView
 
 /**
  * Controller for the top frame.
  */
 @Controller
 @RequestMapping("/top")
-public class TopController {
-    private final SettingsService settingsService;
-    private final SecurityService securityService;
-
-    public TopController(SettingsService settingsService, SecurityService securityService) {
-        this.settingsService = settingsService;
-        this.securityService = securityService;
-    }
-
+class TopController(private val settingsService: SettingsService, private val securityService: SecurityService) {
     @GetMapping
-    protected ModelAndView handleRequestInternal(HttpServletRequest request) {
-        Map<String, Object> map = new HashMap<>();
+    protected fun handleRequestInternal(request: HttpServletRequest?): ModelAndView {
+        val user = securityService.getCurrentUser(request)
+        val userSettings = settingsService.getUserSettings(user.username)
 
-        User user = securityService.getCurrentUser(request);
-        UserSettings userSettings = settingsService.getUserSettings(user.getUsername());
+        val map = mapOf(
+            "user" to user,
+            "showSideBar" to userSettings.showSideBar,
+            "showAvatar" to (userSettings.avatarScheme != AvatarScheme.NONE)
+        )
 
-        map.put("user", user);
-        map.put("showSideBar", userSettings.getShowSideBar());
-        map.put("showAvatar", userSettings.getAvatarScheme() != AvatarScheme.NONE);
-        return new ModelAndView("top","model", map);
+        return ModelAndView("top", "model", map)
     }
 }

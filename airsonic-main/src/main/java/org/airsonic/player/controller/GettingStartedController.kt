@@ -1,39 +1,25 @@
-package org.airsonic.player.controller;
+package org.airsonic.player.controller
 
-import org.airsonic.player.service.SettingsService;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.view.RedirectView;
-
-import jakarta.servlet.http.HttpServletRequest;
-
-import java.util.HashMap;
-import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest
+import org.airsonic.player.service.SettingsService
+import org.springframework.stereotype.Controller
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.servlet.ModelAndView
+import org.springframework.web.servlet.view.RedirectView
 
 @Controller
 @RequestMapping("/gettingStarted")
-public class GettingStartedController {
-
-    private final SettingsService settingsService;
-
-    public GettingStartedController(SettingsService settingsService) {
-        this.settingsService = settingsService;
-    }
-
+class GettingStartedController(private val settingsService: SettingsService) {
     @GetMapping
-    public ModelAndView gettingStarted(HttpServletRequest request) {
-
+    fun gettingStarted(request: HttpServletRequest): ModelAndView {
         if (request.getParameter("hide") != null) {
-            settingsService.setGettingStartedEnabled(false);
-            settingsService.save();
-            return new ModelAndView(new RedirectView("home.view"));
+            settingsService.isGettingStartedEnabled = false
+            settingsService.save()
+            return ModelAndView(RedirectView("home.view"))
         }
 
-        Map<String, Object> map = new HashMap<>();
-        map.put("runningAsRoot", "root".equals(System.getProperty("user.name")));
-        return new ModelAndView("gettingStarted", "model", map);
+        val map = mapOf("runningAsRoot" to ("root" == System.getProperty("user.name")))
+        return ModelAndView("gettingStarted", "model", map)
     }
-
 }

@@ -1,56 +1,54 @@
-package org.airsonic.player.controller;
+package org.airsonic.player.controller
 
-import org.airsonic.player.util.FileUtil;
-import org.apache.commons.io.IOUtils;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.ServletRequestUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.ModelAndView;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
-import java.io.InputStream;
-
-import static org.springframework.http.HttpStatus.OK;
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import org.airsonic.player.util.FileUtil
+import org.apache.commons.io.IOUtils
+import org.apache.http.client.config.RequestConfig
+import org.apache.http.client.methods.HttpGet
+import org.apache.http.impl.client.HttpClients
+import org.springframework.http.HttpStatus
+import org.springframework.stereotype.Controller
+import org.springframework.web.bind.ServletRequestUtils
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.servlet.ModelAndView
+import java.io.InputStream
 
 /**
  * A proxy for external HTTP requests.
  */
 @Controller
 @RequestMapping("/proxy")
-public class ProxyController {
+class ProxyController {
     @GetMapping
-    public ModelAndView handleRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        String url = ServletRequestUtils.getRequiredStringParameter(request, "url");
+    @Throws(Exception::class)
+    fun handleRequest(request: HttpServletRequest, response: HttpServletResponse): ModelAndView? {
+        val url = ServletRequestUtils.getRequiredStringParameter(request, "url")
 
-        RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectTimeout(15000)
-                .setSocketTimeout(15000)
-                .build();
-        HttpGet method = new HttpGet(url);
-        method.setConfig(requestConfig);
+        val requestConfig = RequestConfig.custom()
+            .setConnectTimeout(15000)
+            .setSocketTimeout(15000)
+            .build()
+        val method = HttpGet(url)
+        method.config = requestConfig
 
-        InputStream in = null;
-        try (CloseableHttpClient client = HttpClients.createDefault()) {
-            try (CloseableHttpResponse resp = client.execute(method)) {
-                int statusCode = resp.getStatusLine().getStatusCode();
-                if (statusCode != OK.value()) {
-                    response.sendError(statusCode);
-                } else {
-                    in = resp.getEntity().getContent();
-                    IOUtils.copy(in, response.getOutputStream());
+        var input: InputStream? = null
+        try {
+            HttpClients.createDefault().use { client ->
+                client.execute(method).use { resp ->
+                    val statusCode = resp.statusLine.statusCode
+                    if (statusCode != HttpStatus.OK.value()) {
+                        response.sendError(statusCode)
+                    } else {
+                        input = resp.entity.content
+                        IOUtils.copy(input, response.outputStream)
+                    }
                 }
             }
         } finally {
-            FileUtil.closeQuietly(in);
+            FileUtil.closeQuietly(input)
         }
-        return null;
+        return null
     }
 }

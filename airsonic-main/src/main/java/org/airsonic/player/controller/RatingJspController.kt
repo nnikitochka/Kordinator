@@ -1,18 +1,17 @@
-package org.airsonic.player.controller;
+package org.airsonic.player.controller
 
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.ModelAndView;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import org.springframework.stereotype.Controller
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.servlet.ModelAndView
 
 @Controller
 @RequestMapping("/ratingJsp")
-public class RatingJspController {
+class RatingJspController {
     @GetMapping
-    public ModelAndView get(HttpServletRequest request, HttpServletResponse response) {
-        return new ModelAndView("rating", request.getParameterMap());
+    fun get(request: HttpServletRequest, response: HttpServletResponse): ModelAndView {
+        return ModelAndView("rating", request.parameterMap)
     }
 }

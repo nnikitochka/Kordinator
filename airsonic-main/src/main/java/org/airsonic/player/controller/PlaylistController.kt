@@ -1,66 +1,50 @@
-package org.airsonic.player.controller;
+package org.airsonic.player.controller
 
-import org.airsonic.player.domain.Player;
-import org.airsonic.player.domain.Playlist;
-import org.airsonic.player.domain.User;
-import org.airsonic.player.domain.UserSettings;
-import org.airsonic.player.service.PlayerService;
-import org.airsonic.player.service.PlaylistService;
-import org.airsonic.player.service.SecurityService;
-import org.airsonic.player.service.SettingsService;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.ServletRequestUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.view.RedirectView;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
-import java.util.HashMap;
-import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import org.airsonic.player.service.PlayerService
+import org.airsonic.player.service.PlaylistService
+import org.airsonic.player.service.SecurityService
+import org.airsonic.player.service.SettingsService
+import org.springframework.stereotype.Controller
+import org.springframework.web.bind.ServletRequestUtils
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.servlet.ModelAndView
+import org.springframework.web.servlet.view.RedirectView
 
 /**
  * Controller for the playlist page.
  */
 @Controller
 @RequestMapping("/playlist")
-public class PlaylistController {
-    private final SecurityService securityService;
-    private final PlaylistService playlistService;
-    private final SettingsService settingsService;
-    private final PlayerService playerService;
-
-    public PlaylistController(SecurityService securityService, PlaylistService playlistService, SettingsService settingsService, PlayerService playerService) {
-        this.securityService = securityService;
-        this.playlistService = playlistService;
-        this.settingsService = settingsService;
-        this.playerService = playerService;
-    }
-
+class PlaylistController(
+    private val securityService: SecurityService,
+    private val playlistService: PlaylistService,
+    private val settingsService: SettingsService,
+    private val playerService: PlayerService
+) {
     @GetMapping
-    protected ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        Map<String, Object> map = new HashMap<>();
+    @Throws(Exception::class)
+    protected fun handleRequestInternal(request: HttpServletRequest, response: HttpServletResponse?): ModelAndView {
+        val id = ServletRequestUtils.getRequiredIntParameter(request, "id")
+        val user = securityService.getCurrentUser(request)
+        val username = user.username
+        val userSettings = settingsService.getUserSettings(username)
+        val player = playerService.getPlayer(request, response)
+        val playlist = playlistService.getPlaylist(id)
+            ?: return ModelAndView(RedirectView("notFound"))
 
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
-        User user = securityService.getCurrentUser(request);
-        String username = user.getUsername();
-        UserSettings userSettings = settingsService.getUserSettings(username);
-        Player player = playerService.getPlayer(request, response);
-        Playlist playlist = playlistService.getPlaylist(id);
-        if (playlist == null) {
-            return new ModelAndView(new RedirectView("notFound"));
-        }
+        val map = mapOf(
+            "playlist" to playlist,
+            "user" to user,
+            "player" to player,
+            "visibility" to userSettings.playlistVisibility,
+            "editAllowed" to (username == playlist.username || securityService.isAdmin(username)),
+            "partyMode" to userSettings.partyModeEnabled,
+            "initialPaginationSize" to userSettings.paginationSizePlaylist,
+        )
 
-        map.put("playlist", playlist);
-        map.put("user", user);
-        map.put("player", player);
-        map.put("visibility", userSettings.getPlaylistVisibility());
-        map.put("editAllowed", username.equals(playlist.getUsername()) || securityService.isAdmin(username));
-        map.put("partyMode", userSettings.getPartyModeEnabled());
-        map.put("initialPaginationSize", userSettings.getPaginationSizePlaylist());
-
-        return new ModelAndView("playlist","model",map);
+        return ModelAndView("playlist", "model", map)
     }
 }

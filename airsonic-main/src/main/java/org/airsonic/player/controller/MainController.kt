@@ -1,69 +1,59 @@
-package org.airsonic.player.controller;
+package org.airsonic.player.controller
 
-import org.airsonic.player.domain.*;
-import org.airsonic.player.service.*;
-import org.airsonic.player.util.Util;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.ServletRequestUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.ModelAndView;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
-import java.util.*;
-import java.util.stream.Stream;
-
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toSet;
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import org.airsonic.player.domain.CoverArtScheme
+import org.airsonic.player.service.SecurityService
+import org.airsonic.player.service.SettingsService
+import org.airsonic.player.util.Util
+import org.apache.commons.lang3.StringUtils
+import org.springframework.stereotype.Controller
+import org.springframework.web.bind.ServletRequestUtils
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.servlet.ModelAndView
 
 /**
  * Controller for the main page.
- *
+ * 
  * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/main")
-public class MainController {
-    private final SecurityService securityService;
-    private final SettingsService settingsService;
-
-    public MainController(SecurityService securityService, SettingsService settingsService) {
-        this.securityService = securityService;
-        this.settingsService = settingsService;
-    }
-
+class MainController(private val securityService: SecurityService, private val settingsService: SettingsService) {
     @GetMapping
-    protected ModelAndView handleRequestInternal(
-            HttpServletRequest request,
-            HttpServletResponse response
-    ) throws Exception {
-        Map<String, Object> map = new HashMap<>();
+    @Throws(Exception::class)
+    protected fun handleRequestInternal(
+        request: HttpServletRequest,
+        response: HttpServletResponse?
+    ): ModelAndView {
+        val username = securityService.getCurrentUsername(request)
+        val userSettings = settingsService.getUserSettings(username)
 
-        String username = securityService.getCurrentUsername(request);
-        UserSettings userSettings = settingsService.getUserSettings(username);
+        val map = buildMap {
+            put("coverArtSizeMedium", CoverArtScheme.MEDIUM.size)
+            put("coverArtSizeLarge", CoverArtScheme.LARGE.size)
+            put("user", securityService.getCurrentUser(request))
+            put("visibility", userSettings.mainVisibility)
+            put("showAlbumYear", settingsService.isSortAlbumsByYear)
+            put("showArtistInfo", userSettings.showArtistInfoEnabled)
+            put("partyMode", userSettings.partyModeEnabled)
+            put("brand", settingsService.brand)
+            put("viewAsList", userSettings.viewAsList)
+            put("initialPaginationSizeFiles", userSettings.paginationSizeFiles)
+            put("initialPaginationSizeFolders", userSettings.paginationSizeFolders)
+            put("initialPathsJSON", Util.toJson(
+                ServletRequestUtils.getStringParameters(request, "path")
+                    .map { StringUtils.split(it, ":", 2) }
+                    .groupBy { it[0] }
+                    .mapValues { (_, values) ->
+                        values.map { it.getOrNull(1) ?: "" }.toSet()
+                    }
+            ))
 
-        map.put("coverArtSizeMedium", CoverArtScheme.MEDIUM.getSize());
-        map.put("coverArtSizeLarge", CoverArtScheme.LARGE.getSize());
-        map.put("user", securityService.getCurrentUser(request));
-        map.put("visibility", userSettings.getMainVisibility());
-        map.put("showAlbumYear", settingsService.isSortAlbumsByYear());
-        map.put("showArtistInfo", userSettings.getShowArtistInfoEnabled());
-        map.put("partyMode", userSettings.getPartyModeEnabled());
-        map.put("brand", settingsService.getBrand());
-        map.put("viewAsList", userSettings.getViewAsList());
-        map.put("initialPaginationSizeFiles", userSettings.getPaginationSizeFiles());
-        map.put("initialPaginationSizeFolders", userSettings.getPaginationSizeFolders());
-        map.put("initialPathsJSON",
-                Util.toJson(Stream.of(ServletRequestUtils.getStringParameters(request, "path"))
-                        .map(pf -> StringUtils.split(pf, ":", 2))
-                        .collect(groupingBy(pf -> pf[0], mapping(pf -> pf.length == 1 ? "" : pf[1], toSet())))));
-        map.put("initialIdsJSON", Util.toJson(ServletRequestUtils.getIntParameters(request, "id")));
+            put("initialIdsJSON", Util.toJson(ServletRequestUtils.getIntParameters(request, "id")))
+        }
 
-        return new ModelAndView("mediaMain", "model", map);
+        return ModelAndView("mediaMain", "model", map)
     }
 }
