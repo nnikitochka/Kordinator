@@ -3,6 +3,7 @@ package org.airsonic.player.spring;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.controller.rest.SubsonicResponseMapper;
+import org.airsonic.player.controller.rest.artists.ArtistsController;
 import org.airsonic.player.controller.rest.artists.ArtistsService;
 import org.airsonic.player.controller.rest.genres.GenresController;
 import org.airsonic.player.controller.rest.genres.GenresService;
@@ -60,6 +61,12 @@ public class RestApiConfiguration {
                 settingsService::getIgnoredArticles,
                 mediaFolderService::getMusicFoldersForUser,
                 (target, artist, username) -> subsonicResponseMapper.artist(target, artist, username));
+    }
+
+    @Bean
+    public ArtistsController subsonicArtistsController(
+            ArtistsService artistsService, JAXBWriter subsonicJaxbWriter) {
+        return new ArtistsController(artistsService, subsonicJaxbWriter);
     }
 
     @Bean

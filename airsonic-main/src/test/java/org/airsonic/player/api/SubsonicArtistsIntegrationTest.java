@@ -140,6 +140,16 @@ public class SubsonicArtistsIntegrationTest {
                 assertError(send(path, null, false), 10);
                 assertError(send(path + "&v=" + TestCaseUtils.restApiVersion() + "&c=test&u=admin&p=wrong", null, false), 40);
                 assertError(send(path + "&v=999.0.0&c=test&u=admin&p=admin", null, false), 30);
+                // Parameter authentication.
+                JsonNode authed = body(send(path + "&v=" + TestCaseUtils.restApiVersion() + "&c=test&u=admin&p=admin",
+                        null, false));
+                assertEquals("ok", authed.path("status").asText());
+                // Basic authentication.
+                JsonNode basic = body(send(path + "&v=" + TestCaseUtils.restApiVersion() + "&c=test", null,
+                        "admin:admin"));
+                assertEquals("ok", basic.path("status").asText());
+                assertEquals(401, send(path + "&v=" + TestCaseUtils.restApiVersion() + "&c=test", null,
+                        "admin:wrongpassword").statusCode());
             }
         } finally {
             testFolders.forEach(folder -> mediaFolderService.deleteMusicFolder(folder.getId()));
@@ -168,12 +178,16 @@ public class SubsonicArtistsIntegrationTest {
     }
 
     private HttpResponse<String> send(String path, String form, boolean basicAuth) throws Exception {
+        return send(path, form, basicAuth ? "admin:admin" : null);
+    }
+
+    private HttpResponse<String> send(String path, String form, String basicUserPass) throws Exception {
         HttpRequest.Builder request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:" + port + "/airsonic" + path))
                 .timeout(Duration.ofSeconds(10));
-        if (basicAuth) {
+        if (basicUserPass != null) {
             request.header("Authorization", "Basic " + Base64.getEncoder()
-                    .encodeToString("admin:admin".getBytes(StandardCharsets.UTF_8)));
+                    .encodeToString(basicUserPass.getBytes(StandardCharsets.UTF_8)));
         }
         if (form != null) {
             request.header("Content-Type", "application/x-www-form-urlencoded")
