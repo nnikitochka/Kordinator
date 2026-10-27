@@ -8,7 +8,7 @@ fun interface MusicFolderLookup {
 }
 
 /** Builds the Subsonic representation of the music folders available to a user. */
-class SubsonicMusicFoldersService(
+class MusicFoldersService(
     private val musicFolderLookup: MusicFolderLookup,
 ) {
     fun getMusicFolders(username: String): MusicFolders = MusicFolders().also { result ->

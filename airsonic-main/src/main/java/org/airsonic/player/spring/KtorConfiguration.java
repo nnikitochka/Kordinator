@@ -2,9 +2,9 @@ package org.airsonic.player.spring;
 
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
-import org.airsonic.player.controller.rest.genres.SubsonicGenresController;
-import org.airsonic.player.controller.rest.musicfolders.SubsonicMusicFoldersController;
-import org.airsonic.player.controller.rest.search.SubsonicSearchController;
+import org.airsonic.player.controller.rest.genres.GenresController;
+import org.airsonic.player.controller.rest.musicfolders.MusicFoldersController;
+import org.airsonic.player.controller.rest.search.SearchController;
 import org.airsonic.player.service.PlayerService;
 import org.airsonic.player.service.SecurityService;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
@@ -17,9 +17,9 @@ public class KtorConfiguration {
 
     @Bean
     public ServletRegistrationBean<ServletApplicationEngine> ktorServletRegistration(
-            SubsonicSearchController searchController,
-            SubsonicMusicFoldersController musicFoldersController,
-            SubsonicGenresController genresController,
+            SearchController searchController,
+            MusicFoldersController musicFoldersController,
+            GenresController genresController,
             RestPlayerResolver playerResolver,
             PlayerService playerService,
             SecurityService securityService
@@ -29,9 +29,9 @@ public class KtorConfiguration {
                         new AirsonicKtorServlet(searchController, musicFoldersController, genresController, playerResolver,
                                 playerService, securityService),
                         "/internal/ktor/*");
-        registration.addUrlMappings(SubsonicSearchController.PATHS);
-        registration.addUrlMappings(SubsonicMusicFoldersController.PATHS);
-        registration.addUrlMappings(SubsonicGenresController.PATHS);
+        registration.addUrlMappings(SearchController.PATHS);
+        registration.addUrlMappings(MusicFoldersController.PATHS);
+        registration.addUrlMappings(GenresController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);

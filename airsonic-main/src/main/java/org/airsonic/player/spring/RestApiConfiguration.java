@@ -3,12 +3,12 @@ package org.airsonic.player.spring;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.controller.rest.SubsonicResponseMapper;
-import org.airsonic.player.controller.rest.genres.SubsonicGenresController;
-import org.airsonic.player.controller.rest.genres.SubsonicGenresService;
-import org.airsonic.player.controller.rest.musicfolders.SubsonicMusicFoldersController;
-import org.airsonic.player.controller.rest.musicfolders.SubsonicMusicFoldersService;
-import org.airsonic.player.controller.rest.search.SubsonicSearchController;
-import org.airsonic.player.controller.rest.search.SubsonicSearchService;
+import org.airsonic.player.controller.rest.genres.GenresController;
+import org.airsonic.player.controller.rest.genres.GenresService;
+import org.airsonic.player.controller.rest.musicfolders.MusicFoldersController;
+import org.airsonic.player.controller.rest.musicfolders.MusicFoldersService;
+import org.airsonic.player.controller.rest.search.SearchController;
+import org.airsonic.player.controller.rest.search.SearchService;
 import org.airsonic.player.dao.AlbumDao;
 import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.dao.MediaFileDao;
@@ -17,7 +17,6 @@ import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.PlayerService;
 import org.airsonic.player.service.RatingService;
-import org.airsonic.player.service.SearchService;
 import org.airsonic.player.service.TranscodingService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,25 +36,25 @@ public class RestApiConfiguration {
     }
 
     @Bean
-    public SubsonicGenresService subsonicGenresService(MediaFileDao mediaFileDao) {
-        return new SubsonicGenresService(() -> mediaFileDao.getGenres(false));
+    public GenresService subsonicGenresService(MediaFileDao mediaFileDao) {
+        return new GenresService(() -> mediaFileDao.getGenres(false));
     }
 
     @Bean
-    public SubsonicGenresController subsonicGenresController(
-            SubsonicGenresService genresService, JAXBWriter subsonicJaxbWriter) {
-        return new SubsonicGenresController(genresService, subsonicJaxbWriter);
+    public GenresController subsonicGenresController(
+            GenresService genresService, JAXBWriter subsonicJaxbWriter) {
+        return new GenresController(genresService, subsonicJaxbWriter);
     }
 
     @Bean
-    public SubsonicMusicFoldersService subsonicMusicFoldersService(MediaFolderService mediaFolderService) {
-        return new SubsonicMusicFoldersService(mediaFolderService::getMusicFoldersForUser);
+    public MusicFoldersService subsonicMusicFoldersService(MediaFolderService mediaFolderService) {
+        return new MusicFoldersService(mediaFolderService::getMusicFoldersForUser);
     }
 
     @Bean
-    public SubsonicMusicFoldersController subsonicMusicFoldersController(
-            SubsonicMusicFoldersService musicFoldersService, JAXBWriter subsonicJaxbWriter) {
-        return new SubsonicMusicFoldersController(musicFoldersService, subsonicJaxbWriter);
+    public MusicFoldersController subsonicMusicFoldersController(
+            MusicFoldersService musicFoldersService, JAXBWriter subsonicJaxbWriter) {
+        return new MusicFoldersController(musicFoldersService, subsonicJaxbWriter);
     }
 
     @Bean
@@ -68,16 +67,16 @@ public class RestApiConfiguration {
     }
 
     @Bean
-    public SubsonicSearchController subsonicSearchController(SubsonicSearchService searchService,
-                                                            JAXBWriter subsonicJaxbWriter) {
-        return new SubsonicSearchController(searchService, subsonicJaxbWriter);
+    public SearchController subsonicSearchController(SearchService searchService,
+                                                     JAXBWriter subsonicJaxbWriter) {
+        return new SearchController(searchService, subsonicJaxbWriter);
     }
 
     @Bean
-    public SubsonicSearchService subsonicSearchService(SearchService searchService,
-                                                        MediaFolderService mediaFolderService,
-                                                        SubsonicResponseMapper subsonicResponseMapper,
-                                                        JAXBWriter subsonicJaxbWriter) {
-        return new SubsonicSearchService(searchService, mediaFolderService, subsonicResponseMapper, subsonicJaxbWriter);
+    public SearchService subsonicSearchService(SearchService searchService,
+                                               MediaFolderService mediaFolderService,
+                                               SubsonicResponseMapper subsonicResponseMapper,
+                                               JAXBWriter subsonicJaxbWriter) {
+        return new SearchService(searchService, mediaFolderService, subsonicResponseMapper, subsonicJaxbWriter);
     }
 }

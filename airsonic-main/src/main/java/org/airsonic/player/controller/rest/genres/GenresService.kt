@@ -8,7 +8,7 @@ fun interface GenreLookup {
 }
 
 /** Builds the API representation in the order supplied by the existing genre lookup. */
-class SubsonicGenresService(private val genreLookup: GenreLookup) {
+class GenresService(private val genreLookup: GenreLookup) {
     fun getGenres(): Genres = Genres().also { result ->
         genreLookup.getGenres().forEach { genre ->
             result.genre += org.subsonic.restapi.Genre().apply {

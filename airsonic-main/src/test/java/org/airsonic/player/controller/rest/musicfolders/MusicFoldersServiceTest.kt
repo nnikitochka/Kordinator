@@ -6,7 +6,7 @@ import java.nio.file.Path
 import java.time.Instant
 import kotlin.test.assertEquals
 
-class SubsonicMusicFoldersServiceTest {
+class MusicFoldersServiceTest {
     @Test
     fun `returns the current user's folders with their API ids and names`() {
         val folders = listOf(
@@ -19,7 +19,7 @@ class SubsonicMusicFoldersServiceTest {
             folders
         }
 
-        val result = SubsonicMusicFoldersService(musicFolderLookup).getMusicFolders("alice")
+        val result = MusicFoldersService(musicFolderLookup).getMusicFolders("alice")
 
         assertEquals(listOf(7, 9), result.musicFolder.map { it.id })
         assertEquals(listOf("First", "Second"), result.musicFolder.map { it.name })

@@ -5,10 +5,10 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class SubsonicGenresServiceTest {
+class GenresServiceTest {
     @Test
     fun `preserves genre names counts and lookup order`() {
-        val service = SubsonicGenresService {
+        val service = GenresService {
             listOf(Genre("Рок & Jazz", 3, 2), Genre("Ambient", 7, 1))
         }
 
@@ -21,6 +21,6 @@ class SubsonicGenresServiceTest {
 
     @Test
     fun `returns an empty genre list for an empty library`() {
-        assertTrue(SubsonicGenresService { emptyList() }.getGenres().genre.isEmpty())
+        assertTrue(GenresService { emptyList() }.getGenres().genre.isEmpty())
     }
 }

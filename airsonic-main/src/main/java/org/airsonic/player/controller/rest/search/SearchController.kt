@@ -15,8 +15,8 @@ import org.subsonic.restapi.Response
 import kotlin.coroutines.cancellation.CancellationException
 
 /** Ktor routes for all three versions of the Subsonic search API. */
-class SubsonicSearchController(
-    private val searchService: SubsonicSearchService,
+class SearchController(
+    private val searchService: SearchService,
     private val jaxbWriter: JAXBWriter,
 ) {
     /** The temporary servlet adapter supplies the authenticated user and merged query/form parameters. */
@@ -83,7 +83,7 @@ class SubsonicSearchController(
     private class InvalidParameter(message: String) : IllegalArgumentException(message)
 
     companion object {
-        private val LOG = LoggerFactory.getLogger(SubsonicSearchController::class.java)
+        private val LOG = LoggerFactory.getLogger(SearchController::class.java)
 
         @JvmField
         val PATHS = arrayOf(

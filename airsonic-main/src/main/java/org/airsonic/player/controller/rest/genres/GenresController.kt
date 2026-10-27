@@ -13,8 +13,8 @@ import org.slf4j.LoggerFactory
 import kotlin.coroutines.cancellation.CancellationException
 
 /** Ktor routes for the Subsonic genre list. */
-class SubsonicGenresController(
-    private val genresService: SubsonicGenresService,
+class GenresController(
+    private val genresService: GenresService,
     private val jaxbWriter: JAXBWriter,
 ) {
     fun routes(root: Route, parameters: (ApplicationCall) -> Parameters) {
@@ -40,7 +40,7 @@ class SubsonicGenresController(
     }
 
     companion object {
-        private val LOG = LoggerFactory.getLogger(SubsonicGenresController::class.java)
+        private val LOG = LoggerFactory.getLogger(GenresController::class.java)
 
         @JvmField
         val PATHS = arrayOf("/rest/getGenres", "/rest/getGenres.view")

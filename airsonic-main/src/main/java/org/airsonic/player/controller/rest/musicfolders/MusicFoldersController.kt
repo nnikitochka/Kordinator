@@ -13,8 +13,8 @@ import org.slf4j.LoggerFactory
 import kotlin.coroutines.cancellation.CancellationException
 
 /** Ktor routes for the Subsonic music-folders API. */
-class SubsonicMusicFoldersController(
-    private val musicFoldersService: SubsonicMusicFoldersService,
+class MusicFoldersController(
+    private val musicFoldersService: MusicFoldersService,
     private val jaxbWriter: JAXBWriter,
 ) {
     /** The temporary servlet adapter supplies the authenticated user and merged query/form parameters. */
@@ -47,7 +47,7 @@ class SubsonicMusicFoldersController(
     }
 
     companion object {
-        private val LOG = LoggerFactory.getLogger(SubsonicMusicFoldersController::class.java)
+        private val LOG = LoggerFactory.getLogger(MusicFoldersController::class.java)
 
         @JvmField
         val PATHS = arrayOf("/rest/getMusicFolders", "/rest/getMusicFolders.view")

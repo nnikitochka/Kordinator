@@ -15,7 +15,7 @@ import org.subsonic.restapi.SearchResult2
 import org.subsonic.restapi.SearchResult3
 
 /** Application logic for the three versions of the Subsonic search API. */
-class SubsonicSearchService(
+class SearchService(
     private val searchService: SearchService,
     private val mediaFolderService: MediaFolderService,
     private val responseMapper: SubsonicResponseMapper,
