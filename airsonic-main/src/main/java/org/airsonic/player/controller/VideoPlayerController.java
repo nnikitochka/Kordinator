@@ -2,6 +2,8 @@ package org.airsonic.player.controller;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.MoreFiles;
+import org.airsonic.player.controller.captions.CaptionInfo;
+import org.airsonic.player.controller.captions.CaptionsController;
 import org.airsonic.player.domain.Bookmark;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.User;
@@ -90,7 +92,7 @@ public class VideoPlayerController {
         boolean castable = isCastable(file);
 
         Pair<String, Map<String, String>> streamUrls = getStreamUrls(file, user, url, streamable, playerId);
-        List<CaptionsController.CaptionInfo> captions = captionsController.listCaptions(file, NetworkService.getBaseUrl(request));
+        List<CaptionInfo> captions = captionsController.listCaptions(file, NetworkService.getBaseUrl(request));
 
         Map<String, Object> map = new HashMap<>();
         map.put("video", file);

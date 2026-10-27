@@ -1,6 +1,6 @@
 package org.airsonic.player.controller.rest
 
-import org.airsonic.player.controller.CoverArtController
+import org.airsonic.player.controller.cover.CoverArtController
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.dao.AlbumDao
 import org.airsonic.player.dao.ArtistDao

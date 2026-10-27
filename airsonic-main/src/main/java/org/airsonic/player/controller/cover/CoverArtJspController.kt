@@ -1,4 +1,4 @@
-package org.airsonic.player.controller
+package org.airsonic.player.controller.cover
 
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
