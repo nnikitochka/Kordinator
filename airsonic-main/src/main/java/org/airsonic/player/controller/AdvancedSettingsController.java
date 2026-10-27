@@ -13,8 +13,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
  * Controller for the page used to administrate advanced settings.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/advancedSettings")

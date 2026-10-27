@@ -1,5 +1,6 @@
 package org.airsonic.player.controller;
 
+import org.airsonic.player.controller.cover.CoverArtController;
 import org.airsonic.player.domain.Avatar;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
@@ -118,6 +119,4 @@ public class AvatarUploadController {
             map.put("error", x);
         }
     }
-
-
 }

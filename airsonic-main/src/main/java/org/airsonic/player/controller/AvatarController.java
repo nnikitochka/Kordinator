@@ -19,8 +19,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Controller which produces avatar images.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/avatar")
@@ -86,5 +84,4 @@ public class AvatarController implements LastModified {
         }
         return settingsService.getSystemAvatar(userSettings.getSystemAvatarId());
     }
-
 }
