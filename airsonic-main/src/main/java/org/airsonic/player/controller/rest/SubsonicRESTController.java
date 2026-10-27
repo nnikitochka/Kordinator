@@ -682,7 +682,7 @@ public class SubsonicRESTController {
                 break;
             case "remove":
                 index = getRequiredIntParameter(request, "index");
-                playQueueService.remove(player, Arrays.asList(index));
+                playQueueService.remove(player, List.of(index));
                 break;
             case "shuffle":
                 playQueueService.shuffle(player);
@@ -886,7 +886,7 @@ public class SubsonicRESTController {
 
         List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username, musicFolderId);
 
-        size = Math.max(0, Math.min(size, 500));
+        size = Math.clamp(size, 0, 500);
         String type = getRequiredStringParameter(request, "type");
 
         List<MediaFile> albums = switch (type) {
