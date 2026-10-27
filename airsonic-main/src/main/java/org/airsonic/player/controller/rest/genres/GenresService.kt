@@ -1,11 +1,6 @@
 package org.airsonic.player.controller.rest.genres
 
-import org.airsonic.player.domain.Genre
 import org.subsonic.restapi.Genres
-
-fun interface GenreLookup {
-    fun getGenres(): List<Genre>
-}
 
 /** Builds the API representation in the order supplied by the existing genre lookup. */
 class GenresService(private val genreLookup: GenreLookup) {
