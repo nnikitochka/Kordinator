@@ -1,0 +1,13 @@
+package org.airsonic.player.controller.captions
+
+class CaptionInfo(
+    val identifier: String,
+    val location: Location,
+    val format: String,
+    val language: String,
+    val url: String
+) {
+    enum class Location {
+        INTERNAL, EXTERNAL
+    }
+}

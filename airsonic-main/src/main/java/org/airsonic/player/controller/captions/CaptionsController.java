@@ -1,4 +1,4 @@
-package org.airsonic.player.controller;
+package org.airsonic.player.controller.captions;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.MoreFiles;
@@ -19,7 +19,6 @@ import org.apache.commons.io.input.BOMInputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.PathResource;
 import org.springframework.core.io.Resource;
@@ -113,7 +112,7 @@ public class CaptionsController {
         Resource resource;
         Instant time;
 
-        if (res.getLocation() == CaptionInfo.Location.external) {
+        if (res.getLocation() == CaptionInfo.Location.EXTERNAL) {
             Path captionsFile = Paths.get(res.getIdentifier());
 
             if (effectiveFormat.equalsIgnoreCase(res.getFormat())) {
@@ -214,7 +213,7 @@ public class CaptionsController {
             internalCaptions = metaData.getSubtitleTracks().stream()
                     .map(c -> new CaptionInfo(
                             String.valueOf(c.getId()),
-                            CaptionInfo.Location.internal,
+                            CaptionInfo.Location.INTERNAL,
                             getDisplayFormat(c.getCodec()),
                             c.getLanguage(),
                             getUrl(basePath, externalUser, externalExpiration, video.getId(),
@@ -223,7 +222,7 @@ public class CaptionsController {
 
         Stream<CaptionInfo> externalCaptions = findExternalCaptionsForVideo(video).stream()
                 .map(c -> new CaptionInfo(c.toString(), // leaks internal structure for now
-                        CaptionInfo.Location.external,
+                        CaptionInfo.Location.EXTERNAL,
                         MoreFiles.getFileExtension(c),
                         c.getFileName().toString(),
                         getUrl(basePath, externalUser, externalExpiration, video.getId(),
@@ -275,46 +274,6 @@ public class CaptionsController {
             LOG.warn("Could not retrieve directory list for {} to find subtitle files for {}", parentPath, video, e);
 
             return Collections.emptyList();
-        }
-    }
-
-    public static class CaptionInfo {
-        public enum Location {
-            internal, external
-        }
-
-        private final String identifier;
-        private final Location location;
-        private final String format;
-        private final String language;
-        private final String url;
-
-        public CaptionInfo(String identifier, Location location, String format, String language, String url) {
-            this.identifier = identifier;
-            this.location = location;
-            this.format = format;
-            this.language = language;
-            this.url = url;
-        }
-
-        public String getIdentifier() {
-            return identifier;
-        }
-
-        public Location getLocation() {
-            return location;
-        }
-
-        public String getFormat() {
-            return format;
-        }
-
-        public String getLanguage() {
-            return language;
-        }
-
-        public String getUrl() {
-            return url;
         }
     }
 

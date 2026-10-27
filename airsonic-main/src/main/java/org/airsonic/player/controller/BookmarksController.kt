@@ -1,29 +1,22 @@
-package org.airsonic.player.controller;
+package org.airsonic.player.controller
 
-import org.airsonic.player.service.SettingsService;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.ModelAndView;
-
-import jakarta.servlet.http.HttpServletRequest;
-
-import java.security.Principal;
-import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest
+import org.airsonic.player.service.SettingsService
+import org.springframework.stereotype.Controller
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.servlet.ModelAndView
+import java.security.Principal
 
 @Controller
 @RequestMapping("/bookmarks")
-public class BookmarksController {
-    private final SettingsService settingsService;
-
-    public BookmarksController(SettingsService settingsService) {
-        this.settingsService = settingsService;
-    }
-
+class BookmarksController(private val settingsService: SettingsService) {
     @GetMapping
-    public ModelAndView doGet(Principal user, HttpServletRequest request) {
-        return new ModelAndView("bookmarks", "model",
-                Map.of("initialPaginationSize",
-                        settingsService.getUserSettings(user.getName()).getPaginationSizeBookmarks()));
+    fun doGet(user: Principal, request: HttpServletRequest?): ModelAndView {
+        val map = mapOf(
+            "initialPaginationSize" to settingsService.getUserSettings(user.name).paginationSizeBookmarks
+        )
+
+        return ModelAndView("bookmarks", "model", map)
     }
 }
