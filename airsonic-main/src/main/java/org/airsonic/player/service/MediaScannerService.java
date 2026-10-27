@@ -53,7 +53,6 @@ public class MediaScannerService {
     private final TaskSchedulingService taskService;
     private SimpMessagingTemplate messagingTemplate;
 
-    @Value("${MediaScannerParallelism:#{T(java.lang.Runtime).getRuntime().availableProcessors() + 1}}")
     private final int scannerParallelism;
 
     private final AtomicInteger scanCount = new AtomicInteger(0);
@@ -70,7 +69,7 @@ public class MediaScannerService {
             AlbumDao albumDao,
             TaskSchedulingService taskService,
             SimpMessagingTemplate messagingTemplate,
-            int scannerParallelism
+            @Value("${MediaScannerParallelism:#{T(java.lang.Runtime).getRuntime().availableProcessors() + 1}}") int scannerParallelism
     ) {
         this.playlistService = playlistService;
         this.settingsService = settingsService;

@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableList;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.SettingsService;
-import org.airsonic.player.service.TranscodingService;
 import org.airsonic.player.util.Util;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -33,11 +32,9 @@ public class FFmpegParser extends MetaDataParser {
         "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams"
     };
 
-    private TranscodingService transcodingService;
     private final MediaFolderService mediaFolderService;
 
-    public FFmpegParser(TranscodingService transcodingService, MediaFolderService mediaFolderService) {
-        this.transcodingService = transcodingService;
+    public FFmpegParser(MediaFolderService mediaFolderService) {
         this.mediaFolderService = mediaFolderService;
     }
 
@@ -157,10 +154,6 @@ public class FFmpegParser extends MetaDataParser {
     @Override
     public boolean isApplicable(Path path) {
         return Files.isRegularFile(path);
-    }
-
-    public void setTranscodingService(TranscodingService transcodingService) {
-        this.transcodingService = transcodingService;
     }
 
     @Override

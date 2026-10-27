@@ -48,10 +48,9 @@ public class TranscodingService {
     private TranscodingDao transcodingDao;
     private SettingsService settingsService;
     private final MediaFolderService mediaFolderService;
-    @Lazy // used to deal with circular dependencies between PlayerService and TranscodingService
     private PlayerService playerService;
 
-    public TranscodingService(TranscodingDao transcodingDao, SettingsService settingsService, MediaFolderService mediaFolderService, PlayerService playerService) {
+    public TranscodingService(TranscodingDao transcodingDao, SettingsService settingsService, MediaFolderService mediaFolderService, @Lazy PlayerService playerService) {
         this.transcodingDao = transcodingDao;
         this.settingsService = settingsService;
         this.mediaFolderService = mediaFolderService;

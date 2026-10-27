@@ -44,7 +44,11 @@ public class StatusServiceTestCase {
     @Mock
     private MediaFileService mediaFileService;
     @Mock
+    private MediaFolderService mediaFolderService;
+    @Mock
     private SettingsService settingsService;
+    @Mock
+    private TaskSchedulingService taskSchedulingService;
     @Mock
     private UserSettings settings;
 
@@ -53,10 +57,8 @@ public class StatusServiceTestCase {
         doReturn(new MediaFile()).when(mediaFileService).getMediaFile(any(Path.class));
         doReturn(settings).when(settingsService).getUserSettings(any(String.class));
         doReturn(true).when(settings).getNowPlayingAllowed();
-        service = new StatusService();
-        service.setMessagingTemplate(messagingTemplate);
-        service.setMediaFileService(mediaFileService);
-        service.setSettingsService(settingsService);
+        service = new StatusService(mediaFileService, mediaFolderService, settingsService, messagingTemplate,
+                taskSchedulingService);
         player1 = new Player();
         player1.setId(1);
         player1.setUsername("p1");

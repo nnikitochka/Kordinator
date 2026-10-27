@@ -6,6 +6,7 @@ import org.airsonic.player.domain.UserCredential;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SecurityService.UserDetail;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.CredentialsExpiredException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
@@ -93,7 +94,7 @@ public class MultipleCredsMatchingAuthenticationProvider extends DaoAuthenticati
 
     @Override
     @Autowired
-    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
+    public void setPasswordEncoder(@Lazy PasswordEncoder passwordEncoder) {
         super.setPasswordEncoder(passwordEncoder);
     }
 }

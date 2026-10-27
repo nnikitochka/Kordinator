@@ -12,7 +12,8 @@ import java.awt.*;
 public class HLSControllerTestCase extends TestCase {
 
     public void testParseBitRate() {
-        HLSController controller = new HLSController();
+        // The test only exercises pure bit-rate parsing; controller services are not needed.
+        HLSController controller = new HLSController(null, null, null, null, null, null, null);
 
         Pair<Integer, Dimension> pair = controller.parseBitRate("1000", null);
         assertEquals(1000, pair.getLeft().intValue());
