@@ -23,6 +23,8 @@ import org.airsonic.player.controller.rest.artists.ArtistsRequest
 import org.airsonic.player.controller.rest.genres.GenresController
 import org.airsonic.player.controller.rest.musicfolders.MusicFoldersController
 import org.airsonic.player.controller.rest.ping.PingController
+import org.airsonic.player.controller.rest.playlists.PlaylistsController
+import org.airsonic.player.controller.rest.playlists.PlaylistsRequest
 import org.airsonic.player.controller.rest.scan.ScanController
 import org.airsonic.player.controller.rest.search.SearchController
 import org.airsonic.player.controller.rest.similarsongs.SimilarSongsController
@@ -45,6 +47,7 @@ class AirsonicKtorServlet(
     private val scanController: ScanController,
     private val similarSongsController: SimilarSongsController,
     private val artistInfoController: ArtistInfoController,
+    private val playlistsController: PlaylistsController,
     private val mediaFileService: MediaFileService,
     private val playerResolver: RestPlayerResolver,
     private val playerService: PlayerService,
@@ -78,6 +81,10 @@ class AirsonicKtorServlet(
             if (artistInfoRequest != null) {
                 call.attributes.put(ARTIST_INFO_REQUEST_KEY, artistInfoRequest)
             }
+            val playlistsRequest = request.getAttribute(PLAYLISTS_REQUEST) as? PlaylistsRequest
+            if (playlistsRequest != null) {
+                call.attributes.put(PLAYLISTS_REQUEST_KEY, playlistsRequest)
+            }
             val parameters = request.getAttribute(REST_PARAMETERS) as? Parameters
             if (parameters != null) {
                 call.attributes.put(REST_PARAMETERS_KEY, parameters)
@@ -92,6 +99,7 @@ class AirsonicKtorServlet(
             scanController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             similarSongsController.routes(this) { call -> call.attributes[SIMILAR_SONGS_REQUEST_KEY] }
             artistInfoController.routes(this) { call -> call.attributes[ARTIST_INFO_REQUEST_KEY] }
+            playlistsController.routes(this) { call -> call.attributes[PLAYLISTS_REQUEST_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
         // Keep this compatibility code in the temporary servlet adapter.
@@ -189,6 +197,33 @@ class AirsonicKtorServlet(
                     SecurityContextHolder.setContext(previousContext)
                 }
             })
+        } else if (path in PlaylistsController.PATHS) {
+            val operation = path.substringAfterLast('/').removeSuffix(".view")
+            val jukebox = operation == "createPlaylist" || operation == "updatePlaylist" || operation == "deletePlaylist"
+            val playerId = playerResolver.getOrCreatePlayerId(
+                request.remoteUser, request.getParameter("c"), request.remoteAddr, jukebox
+            )
+            val player = if (operation == "getPlaylist") {
+                val wrappedRequest = object : HttpServletRequestWrapper(request) {
+                    override fun getParameter(name: String): String? =
+                        if (name == "player") playerId?.toString() else super.getParameter(name)
+                }
+                playerService.getPlayer(wrappedRequest, response)
+            } else null
+            val username = requireNotNull(securityService.getCurrentUsername(request))
+            val admin = operation == "getPlaylists" && requireNotNull(securityService.getCurrentUser(request)).isAdminRole
+            val rawId = when (operation) {
+                "getPlaylist", "deletePlaylist" -> mapRestId(request.getParameter("id"))
+                "createPlaylist", "updatePlaylist" -> request.getParameter("playlistId")
+                else -> null
+            }
+            val id = if (rawId == null) null else try {
+                Integer.parseInt(rawId)
+            } catch (_: NumberFormatException) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST)
+                return
+            }
+            request.setAttribute(PLAYLISTS_REQUEST, PlaylistsRequest(username, admin, parameters(request), id, player))
         }
         super.service(request, response)
     }
@@ -222,6 +257,8 @@ class AirsonicKtorServlet(
         )
         const val ARTISTS_REQUEST = "org.airsonic.player.artistsRequest"
         val ARTISTS_REQUEST_KEY = AttributeKey<ArtistsRequest>(ARTISTS_REQUEST)
+        const val PLAYLISTS_REQUEST = "org.airsonic.player.playlistsRequest"
+        val PLAYLISTS_REQUEST_KEY = AttributeKey<PlaylistsRequest>(PLAYLISTS_REQUEST)
         const val ARTIST_INFO_REQUEST = "org.airsonic.player.artistInfoRequest"
         val ARTIST_INFO_REQUEST_KEY = AttributeKey<ArtistInfoRequest>(ARTIST_INFO_REQUEST)
         const val SIMILAR_SONGS_REQUEST = "org.airsonic.player.similarSongsRequest"

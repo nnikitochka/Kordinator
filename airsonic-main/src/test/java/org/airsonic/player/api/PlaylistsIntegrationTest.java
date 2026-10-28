@@ -107,6 +107,10 @@ public class PlaylistsIntegrationTest {
             assertEquals(2, filtered.path("songCount").asInt());
             assertEquals(1, body(call("getPlaylists.view", "username=playlist-reader", null)).path("playlists").path("playlist").size());
 
+            assertOk(call("updatePlaylist", "playlistId=" + id + "&songIndexToRemove=0&songIndexToRemove=bad&songIdToAdd=" + a + "&songIdToAdd=bad", null));
+            assertEquals(2, playlists.getFilesInPlaylist(id).size());
+            assertOk(call("createPlaylist", "playlistId=" + id + "&songId=" + a + "&songId=bad", null));
+            assertEquals(0, playlists.getFilesInPlaylist(id).size());
             assertOk(call("createPlaylist", "playlistId=" + id + "&songId=" + b + "&songId=2147483647", null));
             assertEquals(1, playlists.getFilesInPlaylist(id).size());
             assertEquals(b, playlists.getFilesInPlaylist(id).get(0).getId().intValue());
