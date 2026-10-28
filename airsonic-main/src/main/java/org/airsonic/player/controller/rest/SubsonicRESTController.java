@@ -6,6 +6,7 @@ import org.airsonic.player.ajax.lyrics.LyricsWSController;
 import org.airsonic.player.ajax.playing.NowPlayingInfo;
 import org.airsonic.player.command.UserSettingsCommand;
 import org.airsonic.player.controller.*;
+import org.airsonic.player.controller.cover.CoverArtController;
 import org.airsonic.player.controller.rest.error.APIException;
 import org.airsonic.player.controller.rest.error.ErrorCode;
 import org.airsonic.player.dao.AlbumDao;
