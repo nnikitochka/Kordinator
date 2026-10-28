@@ -119,8 +119,8 @@
             <td><fmt:message key="generalsettings.coverartsource"/></td>
             <td>
                 <form:select path="coverArtSource" cssStyle="width:15em">
-                    <form:option value="${CoverArtSource.FILETAG}"><fmt:message key="generalsettings.coverartsource.option.filetag"/></form:option>
-                    <form:option value="${CoverArtSource.TAGFILE}"><fmt:message key="generalsettings.coverartsource.option.tagfile"/></form:option>>
+                    <form:option value="${CoverArtSource.FILE_TAG}"><fmt:message key="generalsettings.coverartsource.option.filetag"/></form:option>
+                    <form:option value="${CoverArtSource.TAG_FILE}"><fmt:message key="generalsettings.coverartsource.option.tagfile"/></form:option>>
                     <form:option value="${CoverArtSource.FILE}"><fmt:message key="generalsettings.coverartsource.option.file"/></form:option>
                     <form:option value="${CoverArtSource.TAG}"><fmt:message key="generalsettings.coverartsource.option.tag"/></form:option>
                 </form:select>
