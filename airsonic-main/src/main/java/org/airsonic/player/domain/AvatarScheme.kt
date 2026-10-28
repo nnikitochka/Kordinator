@@ -1,9 +1,11 @@
-package org.airsonic.player.domain;
+package org.airsonic.player.domain
 
 /**
  * Enumeration of avatar schemes.
  */
-public enum AvatarScheme {
+enum class AvatarScheme(
+    val code: Int
+) {
     /**
      * No avatar should be displayed.
      */
@@ -17,15 +19,5 @@ public enum AvatarScheme {
     /**
      * The custom avatar should be displayed.
      */
-    CUSTOM(-2);
-
-    private final int code;
-
-    AvatarScheme(int code) {
-        this.code = code;
-    }
-
-    public int getCode() {
-        return code;
-    }
+    CUSTOM(-2)
 }

@@ -1,34 +1,11 @@
-package org.airsonic.player.domain;
-
-import java.util.ArrayList;
-import java.util.List;
+package org.airsonic.player.domain
 
 /**
  * The outcome of a search.
  */
-public class ParamSearchResult<T> {
-    private final List<T> items = new ArrayList<>();
+class ParamSearchResult<T> {
+    val items: MutableList<T> = ArrayList()
 
-    private int offset;
-    private int totalHits;
-
-    public List<T> getItems() {
-        return items;
-    }
-
-    public int getOffset() {
-        return offset;
-    }
-
-    public void setOffset(int offset) {
-        this.offset = offset;
-    }
-
-    public int getTotalHits() {
-        return totalHits;
-    }
-
-    public void setTotalHits(int totalHits) {
-        this.totalHits = totalHits;
-    }
+    var offset: Int = 0
+    var totalHits: Int = 0
 }

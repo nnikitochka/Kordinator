@@ -1,9 +1,9 @@
-package org.airsonic.player.domain;
+package org.airsonic.player.domain
 
 /**
  * Enumeration of player technologies.
  */
-public enum PlayerTechnology {
+enum class PlayerTechnology {
     /**
      * Plays music directly in the web browser using the integrated Flash player.
      */
