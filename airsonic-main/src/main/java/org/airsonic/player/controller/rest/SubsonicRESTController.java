@@ -149,13 +149,6 @@ public class SubsonicRESTController {
         error(request, response, ErrorCode.MISSING_PARAMETER, "Required param (" + exception.getParameterName() + ") is missing");
     }
 
-    @RequestMapping("/ping")
-    public void ping(HttpServletRequest request, HttpServletResponse response) {
-        Response res = createResponse();
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
-
     /**
      * CAUTION : this method is required by mobile applications and must not be removed.
      */

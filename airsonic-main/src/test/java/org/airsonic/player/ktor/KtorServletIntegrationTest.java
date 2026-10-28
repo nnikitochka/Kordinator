@@ -82,15 +82,32 @@ public class KtorServletIntegrationTest {
     }
 
     @Test
-    public void existingSubsonicRoutesStillWork() throws Exception {
+    public void pingPreservesClientContract() throws Exception {
         for (String path : List.of("/rest/ping", "/rest/ping.view")) {
-            HttpResponse<String> response = get(path + "?v=1.15.0&c=ktor-test&f=json", true);
+            HttpResponse<String> json = get(path + "?" + credentials() + "&f=json", false);
+            subsonic(json);
+            assertTrue(json.headers().firstValue("content-type").orElseThrow().startsWith("application/json"));
+            subsonic(get(path + "?f=json", true));
 
-            assertEquals(path + ": " + response.body(), 200, response.statusCode());
-            assertNotNull(response.body());
-            assertEquals("ok", new ObjectMapper().readTree(response.body())
-                    .path("subsonic-response").path("status").asText());
+            HttpResponse<String> xml = get(path + "?" + credentials(), false);
+            assertEquals(200, xml.statusCode());
+            assertTrue(xml.body(), xml.body().contains("status=\"ok\""));
+            assertTrue(xml.headers().firstValue("content-type").orElseThrow().startsWith("text/xml"));
+
+            HttpResponse<String> jsonp = get(path + "?" + credentials() + "&f=jsonp&callback=client.ping", false);
+            assertEquals(200, jsonp.statusCode());
+            assertTrue(jsonp.body(), jsonp.body().startsWith("client.ping("));
+            assertTrue(jsonp.body(), jsonp.body().endsWith(");"));
+            assertTrue(jsonp.headers().firstValue("content-type").orElseThrow().startsWith("application/javascript"));
+
+            assertEquals(10, responseBody(get(path + "?f=json", false)).path("error").path("code").asInt());
+            assertEquals(40, responseBody(get(path + "?v=" + TestCaseUtils.restApiVersion()
+                    + "&c=ktor-test&u=admin&p=wrong&f=json", false)).path("error").path("code").asInt());
+            assertEquals(30, responseBody(get(path + "?v=999.0.0&c=ktor-test&u=admin&p=admin&f=json", false))
+                    .path("error").path("code").asInt());
         }
+        subsonic(post("/rest/ping.view", credentials() + "&f=json"));
+        assertEquals(403, post("/rest/ping", credentials() + "&f=json").statusCode());
     }
 
     @Test
