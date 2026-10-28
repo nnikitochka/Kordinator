@@ -94,7 +94,6 @@ public class SubsonicRESTController {
     private final AlbumDao albumDao;
     private final BookmarkService bookmarkService;
     private final PlayQueueDao playQueueDao;
-    private final MediaScannerService mediaScannerService;
     private final MediaFolderService mediaFolderService;
     private final CoverArtService coverArtService;
     private final LocaleResolver localeResolver;
@@ -105,7 +104,7 @@ public class SubsonicRESTController {
 
     private static final String NOT_YET_IMPLEMENTED = "Not yet implemented";
 
-    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, BookmarkService bookmarkService, AlbumDao albumDao, LeftController leftController, LocaleResolver localeResolver, SearchService searchService, AudioScrobblerService audioScrobblerService, MusicIndexService musicIndexService, StatusService statusService, ShareService shareService, CoverArtService coverArtService, TranscodingService transcodingService, PlaylistService playlistService, JukeboxService jukeboxService, DownloadController downloadController, MediaScannerService mediaScannerService, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, UserSettingsController userSettingsController, PlayQueueService playQueueService, PlayQueueDao playQueueDao, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
+    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, BookmarkService bookmarkService, AlbumDao albumDao, LeftController leftController, LocaleResolver localeResolver, SearchService searchService, AudioScrobblerService audioScrobblerService, MusicIndexService musicIndexService, StatusService statusService, ShareService shareService, CoverArtService coverArtService, TranscodingService transcodingService, PlaylistService playlistService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, UserSettingsController userSettingsController, PlayQueueService playQueueService, PlayQueueDao playQueueDao, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.avatarController = avatarController;
         this.settingsService = settingsService;
         this.securityService = securityService;
@@ -127,7 +126,6 @@ public class SubsonicRESTController {
         this.playlistService = playlistService;
         this.jukeboxService = jukeboxService;
         this.downloadController = downloadController;
-        this.mediaScannerService = mediaScannerService;
         this.lyricsWSController = lyricsWSController;
         this.ratingService = ratingService;
         this.coverArtController = coverArtController;
@@ -1737,25 +1735,6 @@ public class SubsonicRESTController {
     @RequestMapping("/getCaptions")
     public ResponseEntity<String> getCaptions() {
         return ResponseEntity.status(HttpStatus.SC_NOT_IMPLEMENTED).body(NOT_YET_IMPLEMENTED);
-    }
-
-    @RequestMapping("/startScan")
-    public void startScan(HttpServletRequest request, HttpServletResponse response) {
-        request = wrapRequest(request);
-        mediaScannerService.scanLibrary();
-        getScanStatus(request, response);
-    }
-
-    @RequestMapping("/getScanStatus")
-    public void getScanStatus(HttpServletRequest request, HttpServletResponse response) {
-        request = wrapRequest(request);
-        ScanStatus scanStatus = new ScanStatus();
-        scanStatus.setScanning(this.mediaScannerService.isScanning());
-        scanStatus.setCount((long) this.mediaScannerService.getScanCount());
-
-        Response res = createResponse();
-        res.setScanStatus(scanStatus);
-        this.jaxbWriter.writeResponse(request, response, res);
     }
 
     private HttpServletRequest wrapRequest(HttpServletRequest request) {

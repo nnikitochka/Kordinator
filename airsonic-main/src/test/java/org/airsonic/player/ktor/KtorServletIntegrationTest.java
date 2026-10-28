@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.api.ScanningTestUtils;
+import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.MediaScannerService;
@@ -51,6 +52,9 @@ public class KtorServletIntegrationTest {
 
     @Autowired
     private MediaScannerService mediaScannerService;
+
+    @Autowired
+    private MediaFileDao mediaFileDao;
 
     private final HttpClient client = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.NEVER)
@@ -118,6 +122,32 @@ public class KtorServletIntegrationTest {
         HttpResponse<String> cors = client.send(preflight, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, cors.statusCode());
         assertTrue(cors.headers().firstValue("access-control-allow-origin").isPresent());
+    }
+
+    @Test
+    public void scanEndpointActuallyIndexesLibrary() throws Exception {
+        List<MusicFolder> folders = MusicFolderTestData.getTestMusicFolders();
+        folders.forEach(mediaFolderService::createMusicFolder);
+        try {
+            JsonNode started = subsonic(get("/rest/startScan?" + credentials() + "&f=json", false));
+            assertTrue(started.has("scanStatus"));
+            long deadline = System.nanoTime() + Duration.ofSeconds(30).toNanos();
+            while (mediaScannerService.isScanning() && System.nanoTime() < deadline) {
+                Thread.sleep(100);
+            }
+            assertTrue("Scan did not finish", !mediaScannerService.isScanning());
+            JsonNode status = subsonic(get("/rest/getScanStatus?" + credentials() + "&f=json", false))
+                    .path("scanStatus");
+            assertTrue(status.toString(), !status.path("scanning").asBoolean());
+            assertTrue(status.toString(), status.path("count").asInt() > 0);
+            assertNotNull(mediaFileDao.getMediaFile(
+                    "_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", folders.get(0).getId()));
+        } finally {
+            if (!mediaScannerService.isScanning()) {
+                folders.forEach(folder -> mediaFolderService.deleteMusicFolder(folder.getId()));
+                mediaFolderService.expunge();
+            }
+        }
     }
 
     @Test
