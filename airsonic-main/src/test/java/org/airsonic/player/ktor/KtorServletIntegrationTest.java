@@ -119,6 +119,7 @@ public class KtorServletIntegrationTest {
             assertEquals(403, post("/rest/getMusicFolders", form).statusCode());
         } finally {
             ScanningTestUtils.after(cleanupId, mediaFolderService);
+            mediaFolderService.expunge();
         }
     }
 
@@ -210,6 +211,7 @@ public class KtorServletIntegrationTest {
             }
         } finally {
             ScanningTestUtils.after(cleanupId, mediaFolderService);
+            mediaFolderService.expunge();
         }
     }
 
