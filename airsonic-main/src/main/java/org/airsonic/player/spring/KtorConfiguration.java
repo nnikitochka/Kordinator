@@ -4,6 +4,7 @@ import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.controller.rest.artists.ArtistsController;
+import org.airsonic.player.controller.rest.artistinfo.ArtistInfoController;
 import org.airsonic.player.controller.rest.genres.GenresController;
 import org.airsonic.player.controller.rest.musicfolders.MusicFoldersController;
 import org.airsonic.player.controller.rest.ping.PingController;
@@ -12,6 +13,7 @@ import org.airsonic.player.controller.rest.search.SearchController;
 import org.airsonic.player.controller.rest.similarsongs.SimilarSongsController;
 import org.airsonic.player.controller.rest.SubsonicResponseMapper;
 import org.airsonic.player.dao.ArtistDao;
+import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.LastFmService;
 import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.MediaFolderService;
@@ -41,15 +43,18 @@ public class KtorConfiguration {
             SubsonicResponseMapper responseMapper,
             RestPlayerResolver playerResolver,
             PlayerService playerService,
-            SecurityService securityService
+            SecurityService securityService,
+            LocaleResolver localeResolver
     ) {
         ServletRegistrationBean<ServletApplicationEngine> registration =
                 new ServletRegistrationBean<>(
                         new AirsonicKtorServlet(searchController, musicFoldersController, genresController,
                                 artistsController, new PingController(jaxbWriter), new ScanController(mediaScannerService, jaxbWriter),
                                 new SimilarSongsController(mediaFileService, artistDao, lastFmService,
+                                        mediaFolderService, responseMapper, jaxbWriter),
+                                new ArtistInfoController(mediaFileService, artistDao, lastFmService,
                                         mediaFolderService, responseMapper, jaxbWriter), mediaFileService,
-                                playerResolver, playerService, securityService),
+                                playerResolver, playerService, securityService, localeResolver),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);
@@ -58,6 +63,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(PingController.PATHS);
         registration.addUrlMappings(ScanController.PATHS);
         registration.addUrlMappings(SimilarSongsController.PATHS);
+        registration.addUrlMappings(ArtistInfoController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);

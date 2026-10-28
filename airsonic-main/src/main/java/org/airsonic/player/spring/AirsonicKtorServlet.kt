@@ -16,6 +16,8 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import org.airsonic.player.controller.rest.RestPlayerResolver
+import org.airsonic.player.controller.rest.artistinfo.ArtistInfoController
+import org.airsonic.player.controller.rest.artistinfo.ArtistInfoRequest
 import org.airsonic.player.controller.rest.artists.ArtistsController
 import org.airsonic.player.controller.rest.artists.ArtistsRequest
 import org.airsonic.player.controller.rest.genres.GenresController
@@ -26,6 +28,7 @@ import org.airsonic.player.controller.rest.search.SearchController
 import org.airsonic.player.controller.rest.similarsongs.SimilarSongsController
 import org.airsonic.player.controller.rest.similarsongs.SimilarSongsRequest
 import org.airsonic.player.controller.cover.CoverArtController
+import org.airsonic.player.i18n.LocaleResolver
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.PlayerService
 import org.airsonic.player.service.SecurityService
@@ -41,10 +44,12 @@ class AirsonicKtorServlet(
     private val pingController: PingController,
     private val scanController: ScanController,
     private val similarSongsController: SimilarSongsController,
+    private val artistInfoController: ArtistInfoController,
     private val mediaFileService: MediaFileService,
     private val playerResolver: RestPlayerResolver,
     private val playerService: PlayerService,
     private val securityService: SecurityService,
+    private val localeResolver: LocaleResolver,
 ) : ServletApplicationEngine() {
     @OptIn(InternalAPI::class)
     override fun init() {
@@ -69,6 +74,10 @@ class AirsonicKtorServlet(
             if (similarSongsRequest != null) {
                 call.attributes.put(SIMILAR_SONGS_REQUEST_KEY, similarSongsRequest)
             }
+            val artistInfoRequest = request.getAttribute(ARTIST_INFO_REQUEST) as? ArtistInfoRequest
+            if (artistInfoRequest != null) {
+                call.attributes.put(ARTIST_INFO_REQUEST_KEY, artistInfoRequest)
+            }
             val parameters = request.getAttribute(REST_PARAMETERS) as? Parameters
             if (parameters != null) {
                 call.attributes.put(REST_PARAMETERS_KEY, parameters)
@@ -82,6 +91,7 @@ class AirsonicKtorServlet(
             pingController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             scanController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             similarSongsController.routes(this) { call -> call.attributes[SIMILAR_SONGS_REQUEST_KEY] }
+            artistInfoController.routes(this) { call -> call.attributes[ARTIST_INFO_REQUEST_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
         // Keep this compatibility code in the temporary servlet adapter.
@@ -137,7 +147,7 @@ class AirsonicKtorServlet(
                 request.remoteUser, request.getParameter("c"), request.remoteAddr, false
             )
             val username = requireNotNull(securityService.getCurrentUsername(request))
-            val id = mapSimilarSongsId(request.getParameter("id"))
+            val id = mapRestId(request.getParameter("id"))
             val parsedId = if (id == null) null else try {
                 Integer.parseInt(id)
             } catch (_: NumberFormatException) {
@@ -159,6 +169,26 @@ class AirsonicKtorServlet(
                     SecurityContextHolder.setContext(previousContext)
                 }
             })
+        } else if (path in ArtistInfoController.PATHS) {
+            playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            val username = requireNotNull(securityService.getCurrentUsername(request))
+            val id = mapRestId(request.getParameter("id"))
+            val parsedId = if (id == null) null else try {
+                Integer.parseInt(id)
+            } catch (_: NumberFormatException) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST)
+                return
+            }
+            val securityContext = SecurityContextHolder.getContext()
+            request.setAttribute(ARTIST_INFO_REQUEST, ArtistInfoRequest(username, parameters(request), parsedId) {
+                val previousContext = SecurityContextHolder.getContext()
+                try {
+                    SecurityContextHolder.setContext(securityContext)
+                    localeResolver.resolveLocale(request)
+                } finally {
+                    SecurityContextHolder.setContext(previousContext)
+                }
+            })
         }
         super.service(request, response)
     }
@@ -170,7 +200,7 @@ class AirsonicKtorServlet(
         }
     }
 
-    private fun mapSimilarSongsId(id: String?): String? {
+    private fun mapRestId(id: String?): String? {
         if (id == null || id.startsWith(CoverArtController.ALBUM_COVERART_PREFIX) ||
             id.startsWith(CoverArtController.ARTIST_COVERART_PREFIX) || StringUtils.isNumeric(id)
         ) return id
@@ -192,6 +222,8 @@ class AirsonicKtorServlet(
         )
         const val ARTISTS_REQUEST = "org.airsonic.player.artistsRequest"
         val ARTISTS_REQUEST_KEY = AttributeKey<ArtistsRequest>(ARTISTS_REQUEST)
+        const val ARTIST_INFO_REQUEST = "org.airsonic.player.artistInfoRequest"
+        val ARTIST_INFO_REQUEST_KEY = AttributeKey<ArtistInfoRequest>(ARTIST_INFO_REQUEST)
         const val SIMILAR_SONGS_REQUEST = "org.airsonic.player.similarSongsRequest"
         val SIMILAR_SONGS_REQUEST_KEY = AttributeKey<SimilarSongsRequest>(SIMILAR_SONGS_REQUEST)
     }

@@ -18,7 +18,6 @@ import org.airsonic.player.domain.Bookmark;
 import org.airsonic.player.domain.PlayQueue;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.domain.UserCredential.App;
-import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.*;
 import org.airsonic.player.util.StringUtil;
 import org.airsonic.player.util.Util;
@@ -96,7 +95,6 @@ public class SubsonicRESTController {
     private final PlayQueueDao playQueueDao;
     private final MediaFolderService mediaFolderService;
     private final CoverArtService coverArtService;
-    private final LocaleResolver localeResolver;
     private final SubsonicResponseMapper responseMapper;
     private final RestPlayerResolver playerResolver;
 
@@ -104,7 +102,7 @@ public class SubsonicRESTController {
 
     private static final String NOT_YET_IMPLEMENTED = "Not yet implemented";
 
-    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, BookmarkService bookmarkService, AlbumDao albumDao, LeftController leftController, LocaleResolver localeResolver, SearchService searchService, AudioScrobblerService audioScrobblerService, MusicIndexService musicIndexService, StatusService statusService, ShareService shareService, CoverArtService coverArtService, TranscodingService transcodingService, PlaylistService playlistService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, UserSettingsController userSettingsController, PlayQueueService playQueueService, PlayQueueDao playQueueDao, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
+    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, BookmarkService bookmarkService, AlbumDao albumDao, LeftController leftController, SearchService searchService, AudioScrobblerService audioScrobblerService, MusicIndexService musicIndexService, StatusService statusService, ShareService shareService, CoverArtService coverArtService, TranscodingService transcodingService, PlaylistService playlistService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, UserSettingsController userSettingsController, PlayQueueService playQueueService, PlayQueueDao playQueueDao, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.avatarController = avatarController;
         this.settingsService = settingsService;
         this.securityService = securityService;
@@ -115,7 +113,6 @@ public class SubsonicRESTController {
         this.bookmarkService = bookmarkService;
         this.albumDao = albumDao;
         this.leftController = leftController;
-        this.localeResolver = localeResolver;
         this.searchService = searchService;
         this.audioScrobblerService = audioScrobblerService;
         this.musicIndexService = musicIndexService;

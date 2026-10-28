@@ -10,10 +10,12 @@ import org.airsonic.player.domain.ArtistBio;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.User;
+import org.airsonic.player.domain.UserSettings;
 import org.airsonic.player.service.LastFmService;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.MediaScannerService;
 import org.airsonic.player.service.SecurityService;
+import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.util.HomeRule;
 import org.airsonic.player.util.MusicFolderTestData;
 import org.airsonic.player.util.StringUtil;
@@ -36,6 +38,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import static org.junit.Assert.*;
@@ -62,6 +65,8 @@ public class ArtistInfoIntegrationTest {
     private ArtistDao artistDao;
     @Autowired
     private SecurityService securityService;
+    @Autowired
+    private SettingsService settings;
     @MockitoBean
     private LastFmService lastFm;
 
@@ -87,6 +92,9 @@ public class ArtistInfoIntegrationTest {
             when(lastFm.getArtistBio(any(Artist.class), any())).thenReturn(bio);
             securityService.createUser(new User("artist-info-user", null), "secret", "artist info test");
             folders.setMusicFoldersForUser("artist-info-user", List.of(library.get(0).getId()));
+            UserSettings userSettings = settings.getUserSettings("artist-info-user");
+            userSettings.setLocale(Locale.FRENCH);
+            settings.updateUserSettings(userSettings);
             for (String endpoint : List.of("getArtistInfo", "getArtistInfo2")) {
                 boolean second = endpoint.endsWith("2");
                 int id = second ? artist.getId() : album.getId();
@@ -111,9 +119,14 @@ public class ArtistInfoIntegrationTest {
                 assertInfo(body(send("/rest/" + endpoint + ".view", credentials() + "&f=json&id=" + id, null)), key, id);
                 assertEquals(403, send("/rest/" + endpoint, credentials() + "&f=json&id=" + id, null).statusCode());
                 assertInfo(body(send("/rest/" + endpoint + "?f=json&id=" + id + "&count=bad&includeNotPresent=bad", null, "artist-info-user:secret")), key, id);
+                assertInfo(body(send("/rest/" + endpoint + "?f=json&id=" + id + "&count=7&includeNotPresent=YES", null, "artist-info-user:secret")), key, id);
             }
             String oldId = StringUtil.utf8HexEncode(album.getFullPath(library.get(0).getPath()).toString());
             assertInfo(body(send("/rest/getArtistInfo?" + credentials() + "&f=json&id=" + oldId, null, null)), "artistInfo", album.getId());
+            verify(lastFm, atLeastOnce()).getArtistBio(any(MediaFile.class), eq(Locale.FRENCH));
+            verify(lastFm, atLeastOnce()).getArtistBio(any(Artist.class), eq(Locale.FRENCH));
+            verify(lastFm, atLeastOnce()).getSimilarArtists(any(MediaFile.class), eq(7), eq(true), anyList());
+            verify(lastFm, atLeastOnce()).getSimilarArtists(any(Artist.class), eq(7), eq(true), anyList());
             verify(lastFm, atLeastOnce()).getSimilarArtists(any(MediaFile.class), eq(3), eq(true), anyList());
             verify(lastFm, atLeastOnce()).getSimilarArtists(any(Artist.class), eq(3), eq(true), anyList());
             verify(lastFm, atLeastOnce()).getSimilarArtists(any(MediaFile.class), eq(20), eq(false), argThat(f -> f.size() == 1 && f.get(0).getId().equals(library.get(0).getId())));
