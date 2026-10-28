@@ -38,8 +38,6 @@ import java.util.stream.Stream;
 
 /**
  * Controller for the page used to play videos.
- *
- * @author Sindre Mehus
  */
 @Controller
 @RequestMapping("/videoPlayer")
