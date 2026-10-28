@@ -260,61 +260,6 @@ public class SubsonicRESTController {
         jaxbWriter.writeResponse(request, response, res);
     }
 
-    @RequestMapping("/getSimilarSongs")
-    public void getSimilarSongs(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        String username = securityService.getCurrentUsername(request);
-
-        int id = getRequiredIntParameter(request, "id");
-        int count = getIntParameter(request, "count", 50);
-
-        SimilarSongs result = new SimilarSongs();
-
-        MediaFile mediaFile = mediaFileService.getMediaFile(id);
-        if (mediaFile == null) {
-            error(request, response, ErrorCode.NOT_FOUND, "Media file not found.");
-            return;
-        }
-        List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username);
-        List<MediaFile> similarSongs = lastFmService.getSimilarSongs(mediaFile, count, musicFolders);
-        Player player = playerService.getPlayer(request, response);
-        for (MediaFile similarSong : similarSongs) {
-            result.getSong().add(createJaxbChild(player, similarSong, username));
-        }
-
-        Response res = createResponse();
-        res.setSimilarSongs(result);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
-    @RequestMapping("/getSimilarSongs2")
-    public void getSimilarSongs2(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        String username = securityService.getCurrentUsername(request);
-
-        int id = getRequiredIntParameter(request, "id");
-        int count = getIntParameter(request, "count", 50);
-
-        SimilarSongs2 result = new SimilarSongs2();
-
-        org.airsonic.player.domain.Artist artist = artistDao.getArtist(id);
-        if (artist == null) {
-            error(request, response, ErrorCode.NOT_FOUND, "Artist not found.");
-            return;
-        }
-
-        List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username);
-        List<MediaFile> similarSongs = lastFmService.getSimilarSongs(artist, count, musicFolders);
-        Player player = playerService.getPlayer(request, response);
-        for (MediaFile similarSong : similarSongs) {
-            result.getSong().add(createJaxbChild(player, similarSong, username));
-        }
-
-        Response res = createResponse();
-        res.setSimilarSongs2(result);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
     @RequestMapping("/getTopSongs")
     public void getTopSongs(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
