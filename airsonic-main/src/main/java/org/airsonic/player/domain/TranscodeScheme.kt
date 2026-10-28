@@ -1,11 +1,17 @@
-package org.airsonic.player.domain;
+package org.airsonic.player.domain
 
 /**
  * Enumeration of transcoding schemes. Transcoding is the process of
  * converting an audio stream to a lower bit rate.
  */
-public enum TranscodeScheme {
-
+enum class TranscodeScheme(
+    /**
+     * Returns the maximum bit rate for this transcoding scheme.
+     * 
+     * @return The maximum bit rate for this transcoding scheme.
+     */
+    val maxBitRate: Int
+) {
     OFF(0),
     MAX_32(32),
     MAX_40(40),
@@ -22,72 +28,56 @@ public enum TranscodeScheme {
     MAX_256(256),
     MAX_320(320);
 
-    private final int maxBitRate;
-
-    TranscodeScheme(int maxBitRate) {
-        this.maxBitRate = maxBitRate;
-    }
-
-    /**
-     * Returns the maximum bit rate for this transcoding scheme.
-     *
-     * @return The maximum bit rate for this transcoding scheme.
-     */
-    public int getMaxBitRate() {
-        return maxBitRate;
-    }
-
     /**
      * Returns the strictest transcode scheme (i.e., the scheme with the lowest max bitrate).
-     *
-     * @param other The other transcode scheme. May be <code>null</code>, in which case 'this' is returned.
+     * 
+     * @param other The other transcode scheme. May be `null`, in which case 'this' is returned.
      * @return The strictest scheme.
      */
-    public TranscodeScheme strictest(TranscodeScheme other) {
-        if (other == null || other == TranscodeScheme.OFF) {
-            return this;
+    fun strictest(other: TranscodeScheme?): TranscodeScheme {
+        if (other == null || other == OFF) {
+            return this
         }
 
-        if (this == TranscodeScheme.OFF) {
-            return other;
-        }
+        if (this == OFF) return other
 
-        return maxBitRate < other.maxBitRate ? this : other;
+        return if (maxBitRate < other.maxBitRate) this else other
     }
 
     /**
      * Returns a human-readable string representation of this object.
-     *
+     * 
      * @return A human-readable string representation of this object.
      */
-    public String toString() {
-        if (this == OFF) {
-            return "No limit";
-        }
-        return getMaxBitRate() + " Kbps";
+    override fun toString(): String {
+        return if (this == OFF) "No limit"
+        else "$maxBitRate Kbps"
     }
 
-    /**
-     * Returns the enum constant which corresponds to the given max bit rate.
-     *
-     * @param maxBitRate The max bit rate.
-     * @return The corresponding enum, or <code>null</code> if not found.
-     */
-    public static TranscodeScheme valueOf(int maxBitRate) {
-        for (TranscodeScheme scheme : values()) {
-            if (scheme.getMaxBitRate() == maxBitRate) {
-                return scheme;
+    companion object {
+        /**
+         * Returns the enum constant which corresponds to the given max bit rate.
+         * 
+         * @param maxBitRate The max bit rate.
+         * @return The corresponding enum, or `null` if not found.
+         */
+        fun valueOf(maxBitRate: Int): TranscodeScheme? {
+            for (scheme in entries) {
+                if (scheme.maxBitRate == maxBitRate) {
+                    return scheme
+                }
             }
+            return null
         }
-        return null;
-    }
 
-    public static TranscodeScheme fromMaxBitRate(int maxBitRate) {
-        for (TranscodeScheme transcodeScheme : TranscodeScheme.values()) {
-            if (maxBitRate == transcodeScheme.getMaxBitRate()) {
-                return transcodeScheme;
+        @JvmStatic
+        fun fromMaxBitRate(maxBitRate: Int): TranscodeScheme? {
+            for (transcodeScheme in entries) {
+                if (maxBitRate == transcodeScheme.maxBitRate) {
+                    return transcodeScheme
+                }
             }
+            return null
         }
-        return null;
     }
 }
