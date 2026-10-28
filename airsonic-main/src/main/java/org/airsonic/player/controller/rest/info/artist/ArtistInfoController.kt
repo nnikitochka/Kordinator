@@ -1,4 +1,4 @@
-package org.airsonic.player.controller.rest.artistinfo
+package org.airsonic.player.controller.rest.info.artist
 
 import io.ktor.http.ContentType
 import io.ktor.server.application.ApplicationCall

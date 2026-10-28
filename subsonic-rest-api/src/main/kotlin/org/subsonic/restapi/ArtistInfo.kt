@@ -12,5 +12,4 @@ import jakarta.xml.bind.annotation.XmlType
 class ArtistInfo : ArtistInfoBase() {
     @field:XmlElement(name = "similarArtist")
     val similarArtist: MutableList<Artist> = mutableListOf()
-
 }
