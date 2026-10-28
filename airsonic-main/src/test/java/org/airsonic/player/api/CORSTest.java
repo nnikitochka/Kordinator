@@ -53,7 +53,7 @@ public class CORSTest {
 
     @Test
     public void corsHeadersShouldBeAddedToSuccessResponses() throws Exception {
-        mvc.perform(get("/rest/ping")
+        mvc.perform(get("/rest/getLicense")
                 .param("v", AIRSONIC_API_VERSION)
                 .param("c", CLIENT_NAME)
                 .param("u", AIRSONIC_USER)

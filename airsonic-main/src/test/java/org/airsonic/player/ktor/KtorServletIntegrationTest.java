@@ -108,6 +108,16 @@ public class KtorServletIntegrationTest {
         }
         subsonic(post("/rest/ping.view", credentials() + "&f=json"));
         assertEquals(403, post("/rest/ping", credentials() + "&f=json").statusCode());
+
+        HttpRequest preflight = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + port + "/airsonic/rest/ping"))
+                .header("Origin", "https://example.com")
+                .header("Access-Control-Request-Method", "GET")
+                .method("OPTIONS", HttpRequest.BodyPublishers.noBody())
+                .build();
+        HttpResponse<String> cors = client.send(preflight, HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, cors.statusCode());
+        assertTrue(cors.headers().firstValue("access-control-allow-origin").isPresent());
     }
 
     @Test

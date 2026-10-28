@@ -55,8 +55,8 @@ public class AirsonicRestApiIntTest {
     public static final HomeRule classRule = new HomeRule(); // sets airsonic.home to a temporary dir
 
     @Test
-    public void pingTest() throws Exception {
-        mvc.perform(get("/rest/ping")
+    public void licenseTest() throws Exception {
+        mvc.perform(get("/rest/getLicense")
                 .param("v", AIRSONIC_API_VERSION)
                 .param("c", CLIENT_NAME)
                 .param("u", AIRSONIC_USER)

@@ -20,6 +20,7 @@ import org.airsonic.player.controller.rest.artists.ArtistsController
 import org.airsonic.player.controller.rest.artists.ArtistsRequest
 import org.airsonic.player.controller.rest.genres.GenresController
 import org.airsonic.player.controller.rest.musicfolders.MusicFoldersController
+import org.airsonic.player.controller.rest.ping.PingController
 import org.airsonic.player.controller.rest.search.SearchController
 import org.airsonic.player.service.PlayerService
 import org.airsonic.player.service.SecurityService
@@ -29,6 +30,7 @@ class AirsonicKtorServlet(
     private val musicFoldersController: MusicFoldersController,
     private val genresController: GenresController,
     private val artistsController: ArtistsController,
+    private val pingController: PingController,
     private val playerResolver: RestPlayerResolver,
     private val playerService: PlayerService,
     private val securityService: SecurityService,
@@ -62,6 +64,7 @@ class AirsonicKtorServlet(
             musicFoldersController.routes(this) { call -> call.attributes[MUSIC_FOLDERS_REQUEST_KEY] }
             genresController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             artistsController.routes(this) { call -> call.attributes[ARTISTS_REQUEST_KEY] }
+            pingController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
         // Keep this compatibility code in the temporary servlet adapter.
@@ -107,6 +110,8 @@ class AirsonicKtorServlet(
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val username = requireNotNull(securityService.getCurrentUsername(request))
             request.setAttribute(ARTISTS_REQUEST, ArtistsRequest(username, parameters(request)))
+        } else if (path in PingController.PATHS) {
+            request.setAttribute(REST_PARAMETERS, parameters(request))
         }
         super.service(request, response)
     }
