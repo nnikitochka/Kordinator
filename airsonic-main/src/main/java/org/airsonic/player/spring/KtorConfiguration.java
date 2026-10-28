@@ -9,6 +9,12 @@ import org.airsonic.player.controller.rest.musicfolders.MusicFoldersController;
 import org.airsonic.player.controller.rest.ping.PingController;
 import org.airsonic.player.controller.rest.scan.ScanController;
 import org.airsonic.player.controller.rest.search.SearchController;
+import org.airsonic.player.controller.rest.similarsongs.SimilarSongsController;
+import org.airsonic.player.controller.rest.SubsonicResponseMapper;
+import org.airsonic.player.dao.ArtistDao;
+import org.airsonic.player.service.LastFmService;
+import org.airsonic.player.service.MediaFileService;
+import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.PlayerService;
 import org.airsonic.player.service.MediaScannerService;
 import org.airsonic.player.service.SecurityService;
@@ -28,6 +34,11 @@ public class KtorConfiguration {
             ArtistsController artistsController,
             JAXBWriter jaxbWriter,
             MediaScannerService mediaScannerService,
+            MediaFileService mediaFileService,
+            ArtistDao artistDao,
+            LastFmService lastFmService,
+            MediaFolderService mediaFolderService,
+            SubsonicResponseMapper responseMapper,
             RestPlayerResolver playerResolver,
             PlayerService playerService,
             SecurityService securityService
@@ -36,6 +47,8 @@ public class KtorConfiguration {
                 new ServletRegistrationBean<>(
                         new AirsonicKtorServlet(searchController, musicFoldersController, genresController,
                                 artistsController, new PingController(jaxbWriter), new ScanController(mediaScannerService, jaxbWriter),
+                                new SimilarSongsController(mediaFileService, artistDao, lastFmService,
+                                        mediaFolderService, responseMapper, jaxbWriter), mediaFileService,
                                 playerResolver, playerService, securityService),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
@@ -44,6 +57,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(ArtistsController.PATHS);
         registration.addUrlMappings(PingController.PATHS);
         registration.addUrlMappings(ScanController.PATHS);
+        registration.addUrlMappings(SimilarSongsController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);
