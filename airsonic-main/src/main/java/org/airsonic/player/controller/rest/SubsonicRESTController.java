@@ -80,7 +80,6 @@ public class SubsonicRESTController {
     private final StatusService statusService;
     private final StreamController streamController;
     private final HLSController hlsController;
-    private final ShareService shareService;
     private final LyricsWSController lyricsWSController;
     private final PlayQueueService playQueueService;
     private final JukeboxService jukeboxService;
@@ -101,7 +100,7 @@ public class SubsonicRESTController {
 
     private static final String NOT_YET_IMPLEMENTED = "Not yet implemented";
 
-    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, BookmarkService bookmarkService, AlbumDao albumDao, LeftController leftController, SearchService searchService, AudioScrobblerService audioScrobblerService, MusicIndexService musicIndexService, StatusService statusService, ShareService shareService, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, UserSettingsController userSettingsController, PlayQueueService playQueueService, PlayQueueDao playQueueDao, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
+    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, BookmarkService bookmarkService, AlbumDao albumDao, LeftController leftController, SearchService searchService, AudioScrobblerService audioScrobblerService, MusicIndexService musicIndexService, StatusService statusService, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, UserSettingsController userSettingsController, PlayQueueService playQueueService, PlayQueueDao playQueueDao, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.avatarController = avatarController;
         this.settingsService = settingsService;
         this.securityService = securityService;
@@ -116,7 +115,6 @@ public class SubsonicRESTController {
         this.audioScrobblerService = audioScrobblerService;
         this.musicIndexService = musicIndexService;
         this.statusService = statusService;
-        this.shareService = shareService;
         this.coverArtService = coverArtService;
         this.transcodingService = transcodingService;
         this.jukeboxService = jukeboxService;
@@ -945,127 +943,6 @@ public class SubsonicRESTController {
         SavedPlayQueue playQueue = new SavedPlayQueue(null, username, mediaFileIds, current, position, Instant.now(), changedBy);
         playQueueDao.savePlayQueue(playQueue);
         writeEmptyResponse(request, response);
-    }
-
-    @RequestMapping("/getShares")
-    public void getShares(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        Player player = playerService.getPlayer(request, response);
-        String username = securityService.getCurrentUsername(request);
-        org.airsonic.player.domain.User user = securityService.getCurrentUser(request);
-        List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username);
-
-        Shares result = new Shares();
-        for (org.airsonic.player.domain.Share share : shareService.getSharesForUser(user)) {
-            org.subsonic.restapi.Share s = createJaxbShare(request, share);
-            result.getShare().add(s);
-
-            for (MediaFile mediaFile : shareService.getSharedFiles(share.getId(), musicFolders)) {
-                s.getEntry().add(createJaxbChild(player, mediaFile, username));
-            }
-        }
-        Response res = createResponse();
-        res.setShares(result);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
-    @RequestMapping("/createShare")
-    public void createShare(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        Player player = playerService.getPlayer(request, response);
-        String username = securityService.getCurrentUsername(request);
-
-        org.airsonic.player.domain.User user = securityService.getCurrentUser(request);
-        if (!user.isShareRole()) {
-            error(request, response, ErrorCode.NOT_AUTHORIZED, user.getUsername() + " is not authorized to share media.");
-            return;
-        }
-
-        List<MediaFile> files = new ArrayList<>();
-        for (int id : getRequiredIntParameters(request, "id")) {
-            files.add(mediaFileService.getMediaFile(id));
-        }
-
-        org.airsonic.player.domain.Share share = shareService.createShare(request, files);
-        share.setDescription(request.getParameter("description"));
-        long expires = getLongParameter(request, "expires", 0L);
-        if (expires != 0) {
-            share.setExpires(Instant.ofEpochMilli(expires));
-        }
-        shareService.updateShare(share);
-
-        Shares result = new Shares();
-        org.subsonic.restapi.Share s = createJaxbShare(request, share);
-        result.getShare().add(s);
-
-        List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username);
-
-        for (MediaFile mediaFile : shareService.getSharedFiles(share.getId(), musicFolders)) {
-            s.getEntry().add(createJaxbChild(player, mediaFile, username));
-        }
-
-        Response res = createResponse();
-        res.setShares(result);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
-    @RequestMapping("/deleteShare")
-    public void deleteShare(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        org.airsonic.player.domain.User user = securityService.getCurrentUser(request);
-        int id = getRequiredIntParameter(request, "id");
-
-        org.airsonic.player.domain.Share share = shareService.getShareById(id);
-        if (share == null) {
-            error(request, response, ErrorCode.NOT_FOUND, "Shared media not found.");
-            return;
-        }
-        if (!user.isAdminRole() && !share.getUsername().equals(user.getUsername())) {
-            error(request, response, ErrorCode.NOT_AUTHORIZED, "Not authorized to delete shared media.");
-            return;
-        }
-
-        shareService.deleteShare(id);
-        writeEmptyResponse(request, response);
-    }
-
-    @RequestMapping("/updateShare")
-    public void updateShare(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        org.airsonic.player.domain.User user = securityService.getCurrentUser(request);
-        int id = getRequiredIntParameter(request, "id");
-
-        org.airsonic.player.domain.Share share = shareService.getShareById(id);
-        if (share == null) {
-            error(request, response, ErrorCode.NOT_FOUND, "Shared media not found.");
-            return;
-        }
-        if (!user.isAdminRole() && !share.getUsername().equals(user.getUsername())) {
-            error(request, response, ErrorCode.NOT_AUTHORIZED, "Not authorized to modify shared media.");
-            return;
-        }
-
-        share.setDescription(request.getParameter("description"));
-        String expiresString = request.getParameter("expires");
-        if (expiresString != null) {
-            long expires = Long.parseLong(expiresString);
-            share.setExpires(expires == 0L ? null : Instant.ofEpochMilli(expires));
-        }
-        shareService.updateShare(share);
-        writeEmptyResponse(request, response);
-    }
-
-    private org.subsonic.restapi.Share createJaxbShare(HttpServletRequest request, org.airsonic.player.domain.Share share) {
-        org.subsonic.restapi.Share result = new org.subsonic.restapi.Share();
-        result.setId(String.valueOf(share.getId()));
-        result.setUrl(shareService.getShareUrl(request, share));
-        result.setUsername(share.getUsername());
-        result.setCreated(jaxbWriter.convertDate(share.getCreated()));
-        result.setVisitCount(share.getVisitCount());
-        result.setDescription(share.getDescription());
-        result.setExpires(jaxbWriter.convertDate(share.getExpires()));
-        result.setLastVisited(jaxbWriter.convertDate(share.getLastVisited()));
-        return result;
     }
 
     @RequestMapping("/getCoverArt")
