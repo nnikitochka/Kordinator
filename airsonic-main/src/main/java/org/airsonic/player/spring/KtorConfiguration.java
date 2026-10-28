@@ -7,8 +7,10 @@ import org.airsonic.player.controller.rest.artists.ArtistsController;
 import org.airsonic.player.controller.rest.genres.GenresController;
 import org.airsonic.player.controller.rest.musicfolders.MusicFoldersController;
 import org.airsonic.player.controller.rest.ping.PingController;
+import org.airsonic.player.controller.rest.scan.ScanController;
 import org.airsonic.player.controller.rest.search.SearchController;
 import org.airsonic.player.service.PlayerService;
+import org.airsonic.player.service.MediaScannerService;
 import org.airsonic.player.service.SecurityService;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -25,6 +27,7 @@ public class KtorConfiguration {
             GenresController genresController,
             ArtistsController artistsController,
             JAXBWriter jaxbWriter,
+            MediaScannerService mediaScannerService,
             RestPlayerResolver playerResolver,
             PlayerService playerService,
             SecurityService securityService
@@ -32,13 +35,15 @@ public class KtorConfiguration {
         ServletRegistrationBean<ServletApplicationEngine> registration =
                 new ServletRegistrationBean<>(
                         new AirsonicKtorServlet(searchController, musicFoldersController, genresController,
-                                artistsController, new PingController(jaxbWriter), playerResolver, playerService, securityService),
+                                artistsController, new PingController(jaxbWriter), new ScanController(mediaScannerService, jaxbWriter),
+                                playerResolver, playerService, securityService),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);
         registration.addUrlMappings(GenresController.PATHS);
         registration.addUrlMappings(ArtistsController.PATHS);
         registration.addUrlMappings(PingController.PATHS);
+        registration.addUrlMappings(ScanController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);
