@@ -1333,57 +1333,6 @@ public class SubsonicRESTController {
         writeEmptyResponse(request, response);
     }
 
-    @RequestMapping(path = "/getAlbumInfo")
-    public void getAlbumInfo(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
-
-        MediaFile mediaFile = this.mediaFileService.getMediaFile(id);
-        if (mediaFile == null) {
-            error(request, response, ErrorCode.NOT_FOUND, "Media file not found.");
-            return;
-        }
-        AlbumNotes albumNotes = this.lastFmService.getAlbumNotes(mediaFile);
-
-        AlbumInfo result = getAlbumInfoInternal(albumNotes);
-        Response res = createResponse();
-        res.setAlbumInfo(result);
-        this.jaxbWriter.writeResponse(request, response, res);
-    }
-
-    @RequestMapping(path = "/getAlbumInfo2")
-    public void getAlbumInfo2(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-
-        int id = ServletRequestUtils.getRequiredIntParameter(request, "id");
-
-        Album album = this.albumDao.getAlbum(id);
-        if (album == null) {
-            error(request, response, ErrorCode.NOT_FOUND, "Album not found.");
-            return;
-        }
-        AlbumNotes albumNotes = this.lastFmService.getAlbumNotes(album);
-
-        AlbumInfo result = getAlbumInfoInternal(albumNotes);
-        Response res = createResponse();
-        res.setAlbumInfo(result);
-        this.jaxbWriter.writeResponse(request, response, res);
-    }
-
-    private AlbumInfo getAlbumInfoInternal(AlbumNotes albumNotes) {
-        AlbumInfo result = new AlbumInfo();
-        if (albumNotes != null) {
-            result.setNotes(albumNotes.getNotes());
-            result.setMusicBrainzId(albumNotes.getMusicBrainzId());
-            result.setLastFmUrl(albumNotes.getLastFmUrl());
-            result.setSmallImageUrl(albumNotes.getSmallImageUrl());
-            result.setMediumImageUrl(albumNotes.getMediumImageUrl());
-            result.setLargeImageUrl(albumNotes.getLargeImageUrl());
-        }
-        return result;
-    }
-
     @RequestMapping("/getVideoInfo")
     public ResponseEntity<String> getVideoInfo() {
         return ResponseEntity.status(HttpStatus.SC_NOT_IMPLEMENTED).body(NOT_YET_IMPLEMENTED);
