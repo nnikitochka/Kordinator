@@ -18,8 +18,8 @@ import jakarta.servlet.http.HttpServletResponse
 import org.airsonic.player.controller.rest.RestPlayerResolver
 import org.airsonic.player.controller.rest.info.album.AlbumInfoController
 import org.airsonic.player.controller.rest.info.album.AlbumInfoRequest
-import org.airsonic.player.controller.rest.artistinfo.ArtistInfoController
-import org.airsonic.player.controller.rest.artistinfo.ArtistInfoRequest
+import org.airsonic.player.controller.rest.info.artist.ArtistInfoController
+import org.airsonic.player.controller.rest.info.artist.ArtistInfoRequest
 import org.airsonic.player.controller.rest.artists.ArtistsController
 import org.airsonic.player.controller.rest.artists.ArtistsRequest
 import org.airsonic.player.controller.rest.genres.GenresController
