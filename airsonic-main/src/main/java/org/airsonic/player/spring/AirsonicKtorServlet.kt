@@ -28,6 +28,8 @@ import org.airsonic.player.controller.rest.ping.PingController
 import org.airsonic.player.controller.rest.playlists.PlaylistsController
 import org.airsonic.player.controller.rest.playlists.PlaylistsRequest
 import org.airsonic.player.controller.rest.scan.ScanController
+import org.airsonic.player.controller.rest.shares.SharesController
+import org.airsonic.player.controller.rest.shares.SharesRequest
 import org.airsonic.player.controller.rest.search.SearchController
 import org.airsonic.player.controller.rest.similarsongs.SimilarSongsController
 import org.airsonic.player.controller.rest.similarsongs.SimilarSongsRequest
@@ -36,6 +38,7 @@ import org.airsonic.player.i18n.LocaleResolver
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.PlayerService
 import org.airsonic.player.service.SecurityService
+import org.airsonic.player.service.ShareService
 import org.airsonic.player.util.StringUtil
 import org.apache.commons.lang.StringUtils
 import org.springframework.security.core.context.SecurityContextHolder
@@ -51,6 +54,8 @@ class AirsonicKtorServlet(
     private val artistInfoController: ArtistInfoController,
     private val albumInfoController: AlbumInfoController,
     private val playlistsController: PlaylistsController,
+    private val sharesController: SharesController,
+    private val shareService: ShareService,
     private val mediaFileService: MediaFileService,
     private val playerResolver: RestPlayerResolver,
     private val playerService: PlayerService,
@@ -92,6 +97,10 @@ class AirsonicKtorServlet(
             if (albumInfoRequest != null) {
                 call.attributes.put(ALBUM_INFO_REQUEST_KEY, albumInfoRequest)
             }
+            val sharesRequest = request.getAttribute(SHARES_REQUEST) as? SharesRequest
+            if (sharesRequest != null) {
+                call.attributes.put(SHARES_REQUEST_KEY, sharesRequest)
+            }
             val parameters = request.getAttribute(REST_PARAMETERS) as? Parameters
             if (parameters != null) {
                 call.attributes.put(REST_PARAMETERS_KEY, parameters)
@@ -108,6 +117,7 @@ class AirsonicKtorServlet(
             artistInfoController.routes(this) { call -> call.attributes[ARTIST_INFO_REQUEST_KEY] }
             albumInfoController.routes(this) { call -> call.attributes[ALBUM_INFO_REQUEST_KEY] }
             playlistsController.routes(this) { call -> call.attributes[PLAYLISTS_REQUEST_KEY] }
+            sharesController.routes(this) { call -> call.attributes[SHARES_REQUEST_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
         // Keep this compatibility code in the temporary servlet adapter.
@@ -215,6 +225,31 @@ class AirsonicKtorServlet(
                 return
             }
             request.setAttribute(ALBUM_INFO_REQUEST, AlbumInfoRequest(parameters(request), id))
+        } else if (path in SharesController.PATHS) {
+            val operation = path.substringAfterLast('/').removeSuffix(".view")
+            val playerId = playerResolver.getOrCreatePlayerId(
+                request.remoteUser, request.getParameter("c"), request.remoteAddr, false
+            )
+            val player = if (operation == "getShares" || operation == "createShare") {
+                val wrappedRequest = object : HttpServletRequestWrapper(request) {
+                    override fun getParameter(name: String): String? =
+                        if (name == "player") playerId?.toString() else super.getParameter(name)
+                }
+                playerService.getPlayer(wrappedRequest, response)
+            } else null
+            val user = requireNotNull(securityService.getCurrentUser(request))
+            val id = if (operation == "updateShare" || operation == "deleteShare")
+                mapRestId(request.getParameter("id")) else null
+            val context = SecurityContextHolder.getContext()
+            request.setAttribute(SHARES_REQUEST, SharesRequest(parameters(request), user, player, id, { files ->
+                val previous = SecurityContextHolder.getContext()
+                try {
+                    SecurityContextHolder.setContext(context)
+                    shareService.createShare(request, files)
+                } finally {
+                    SecurityContextHolder.setContext(previous)
+                }
+            }, { share -> shareService.getShareUrl(request, share) }))
         } else if (path in PlaylistsController.PATHS) {
             val operation = path.substringAfterLast('/').removeSuffix(".view")
             val jukebox = operation == "createPlaylist" || operation == "updatePlaylist" || operation == "deletePlaylist"
@@ -277,6 +312,8 @@ class AirsonicKtorServlet(
         val ARTISTS_REQUEST_KEY = AttributeKey<ArtistsRequest>(ARTISTS_REQUEST)
         const val ALBUM_INFO_REQUEST = "org.airsonic.player.albumInfoRequest"
         val ALBUM_INFO_REQUEST_KEY = AttributeKey<AlbumInfoRequest>(ALBUM_INFO_REQUEST)
+        const val SHARES_REQUEST = "org.airsonic.player.sharesRequest"
+        val SHARES_REQUEST_KEY = AttributeKey<SharesRequest>(SHARES_REQUEST)
         const val PLAYLISTS_REQUEST = "org.airsonic.player.playlistsRequest"
         val PLAYLISTS_REQUEST_KEY = AttributeKey<PlaylistsRequest>(PLAYLISTS_REQUEST)
         const val ARTIST_INFO_REQUEST = "org.airsonic.player.artistInfoRequest"

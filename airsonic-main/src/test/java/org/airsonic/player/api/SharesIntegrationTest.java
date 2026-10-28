@@ -61,16 +61,20 @@ public class SharesIntegrationTest {
             String reader = "share-reader:secret";
             assertError(call("createShare", "", null), 10);
             assertError(call("createShare", "id=" + song, reader), 50);
+            assertError(call("createShare", "id=bad", reader), 50);
+            assertEquals(400, call("createShare", "id=bad", null).statusCode());
+            assertEquals(400, call("createShare", "id=" + song + "&id=bad", null).statusCode());
             for (String endpoint : List.of("updateShare", "deleteShare")) {
                 assertError(call(endpoint, "", null), 10);
                 assertError(call(endpoint, "id=2147483647", null), 70);
                 assertEquals(400, call(endpoint, "id=bad", null).statusCode());
             }
-            JsonNode created = body(post("createShare.view", "id=" + song + "&description=Original&expires=2000000000000", null)).path("shares").path("share").get(0);
+            JsonNode created = body(post("createShare.view", "id=" + song + "&id=" + songs.get(1).getId() + "&description=Original&expires=2000000000000", null)).path("shares").path("share").get(0);
             int id = created.path("id").asInt();
             assertEquals("admin", created.path("username").asText());
             assertEquals("Original", created.path("description").asText());
             assertTrue(created.path("url").asText().contains("/airsonic/ext/share/"));
+            assertEquals(2, created.path("entry").size());
             assertEquals(String.valueOf(song), created.path("entry").get(0).path("id").asText());
             assertEquals(1, body(call("getShares", "", null)).path("shares").path("share").size());
             assertEquals(0, body(call("getShares.view", "", reader)).path("shares").path("share").size());
@@ -79,6 +83,11 @@ public class SharesIntegrationTest {
             assertOk(post("updateShare.view", "id=" + id + "&description=Changed&expires=0", null));
             assertEquals("Changed", shares.getShareById(id).getDescription());
             assertNull(shares.getShareById(id).getExpires());
+            assertOk(call("updateShare", "id=" + id + "&expires=2000000000000", null));
+            assertNull(shares.getShareById(id).getDescription());
+            assertEquals(2000000000000L, shares.getShareById(id).getExpires().toEpochMilli());
+            assertOk(call("updateShare", "id=" + id + "&description=Again", null));
+            assertEquals(2000000000000L, shares.getShareById(id).getExpires().toEpochMilli());
             HttpResponse<String> xml = raw("getShares.view", "", null, null, false);
             assertEquals(200, xml.statusCode());
             assertTrue(xml.body(), xml.body().contains("<shares>"));
@@ -87,6 +96,19 @@ public class SharesIntegrationTest {
             assertEquals(403, post("deleteShare", "id=" + id, null).statusCode());
             assertOk(post("deleteShare.view", "id=" + id, null));
             assertError(call("deleteShare", "id=" + id, null), 70);
+
+            User owner = new User("share-owner", null);
+            owner.setRoles(java.util.Set.of(User.Role.SHARE));
+            security.createUser(owner, "secret", "share test");
+            folders.setMusicFoldersForUser("share-owner", List.of(library.get(0).getId()));
+            String ownerAuth = "share-owner:secret";
+            JsonNode own = body(call("createShare", "id=" + song + "&expires=bad", ownerAuth)).path("shares").path("share").get(0);
+            int ownId = own.path("id").asInt();
+            assertEquals("share-owner", own.path("username").asText());
+            assertNotNull(shares.getShareById(ownId).getExpires());
+            assertOk(call("updateShare", "id=" + ownId + "&description=Owned", ownerAuth));
+            assertEquals("Owned", shares.getShareById(ownId).getDescription());
+            assertOk(call("deleteShare", "id=" + ownId, null));
         } finally {
             ScanningTestUtils.after(cleanup, folders);
             folders.expunge();
