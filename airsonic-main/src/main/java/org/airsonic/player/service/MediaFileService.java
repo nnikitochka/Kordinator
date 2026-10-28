@@ -611,7 +611,7 @@ public class MediaFileService {
         Path candidate;
         var coverArtSource = settingsService.getCoverArtSource();
         switch (coverArtSource) {
-            case TAGFILE:
+            case TAG_FILE:
                 candidate = findTagCover(candidates);
                 if (candidate != null) {
                     return candidate;
@@ -622,7 +622,7 @@ public class MediaFileService {
                 return findFileCover(candidates);
             case TAG:
                 return findTagCover(candidates);
-            case FILETAG:
+            case FILE_TAG:
             default:
                 candidate = findFileCover(candidates);
                 if (candidate != null) {

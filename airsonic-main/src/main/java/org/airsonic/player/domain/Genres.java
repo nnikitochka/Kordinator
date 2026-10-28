@@ -12,7 +12,6 @@ import java.util.stream.Stream;
  * Represents a list of genres.
  */
 public class Genres {
-
     private final Map<String, Genre> genres = new ConcurrentHashMap<>();
 
     // genre names can be ([genre] --> [split to])

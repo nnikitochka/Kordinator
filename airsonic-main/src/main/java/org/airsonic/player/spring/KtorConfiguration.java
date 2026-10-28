@@ -5,7 +5,7 @@ import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.controller.rest.info.album.AlbumInfoController;
 import org.airsonic.player.controller.rest.artists.ArtistsController;
-import org.airsonic.player.controller.rest.artistinfo.ArtistInfoController;
+import org.airsonic.player.controller.rest.info.artist.ArtistInfoController;
 import org.airsonic.player.controller.rest.genres.GenresController;
 import org.airsonic.player.controller.rest.musicfolders.MusicFoldersController;
 import org.airsonic.player.controller.rest.ping.PingController;

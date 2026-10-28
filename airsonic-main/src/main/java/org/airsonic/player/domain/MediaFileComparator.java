@@ -13,46 +13,46 @@ public class MediaFileComparator implements Comparator<MediaFile> {
         this.sortAlbumsByYear = sortAlbumsByYear;
     }
 
-    public int compare(MediaFile a, MediaFile b) {
+    public int compare(MediaFile first, MediaFile second) {
 
         // Directories before files.
-        if (a.isFile() && b.isDirectory()) {
+        if (first.isFile() && second.isDirectory()) {
             return 1;
         }
-        if (a.isDirectory() && b.isFile()) {
+        if (first.isDirectory() && second.isFile()) {
             return -1;
         }
 
         // Non-album directories before album directories.
-        if (a.isAlbum() && b.getMediaType() == MediaFile.MediaType.DIRECTORY) {
+        if (first.isAlbum() && second.getMediaType() == MediaFile.MediaType.DIRECTORY) {
             return 1;
         }
-        if (a.getMediaType() == MediaFile.MediaType.DIRECTORY && b.isAlbum()) {
+        if (first.getMediaType() == MediaFile.MediaType.DIRECTORY && second.isAlbum()) {
             return -1;
         }
 
         // Sort albums by year
-        if (sortAlbumsByYear && a.isAlbum() && b.isAlbum()) {
-            int i = nullSafeCompare(a.getYear(), b.getYear(), false);
+        if (sortAlbumsByYear && first.isAlbum() && second.isAlbum()) {
+            int i = nullSafeCompare(first.getYear(), second.getYear(), false);
             if (i != 0) {
                 return i;
             }
         }
 
-        if (a.isDirectory() && b.isDirectory()) {
-            int n = a.getName().compareToIgnoreCase(b.getName());
-            return n == 0 ? a.getPath().compareToIgnoreCase(b.getPath()) : n; // To make it consistent to MediaFile.equals()
+        if (first.isDirectory() && second.isDirectory()) {
+            int n = first.getName().compareToIgnoreCase(second.getName());
+            return n == 0 ? first.getPath().compareToIgnoreCase(second.getPath()) : n; // To make it consistent to MediaFile.equals()
         }
 
         // Compare by disc and track numbers, if present.
-        Integer trackA = getSortableDiscAndTrackNumber(a);
-        Integer trackB = getSortableDiscAndTrackNumber(b);
+        Integer trackA = getSortableDiscAndTrackNumber(first);
+        Integer trackB = getSortableDiscAndTrackNumber(second);
         int i = nullSafeCompare(trackA, trackB, false);
         if (i != 0) {
             return i;
         }
 
-        return a.getPath().compareToIgnoreCase(b.getPath());
+        return first.getPath().compareToIgnoreCase(second.getPath());
     }
 
     private <T extends Comparable<T>> int nullSafeCompare(T a, T b, boolean nullIsSmaller) {
