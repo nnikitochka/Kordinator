@@ -4,7 +4,6 @@ import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.controller.rest.SubsonicResponseMapper;
 import org.airsonic.player.controller.rest.artists.ArtistsController;
-import org.airsonic.player.controller.rest.artists.ArtistsService;
 import org.airsonic.player.controller.rest.genres.GenresController;
 import org.airsonic.player.controller.rest.genres.GenresService;
 import org.airsonic.player.controller.rest.musicfolders.MusicFoldersController;
@@ -51,22 +50,12 @@ public class RestApiConfiguration {
     }
 
     @Bean
-    public ArtistsService subsonicArtistsService(ArtistDao artistDao, MusicIndexService musicIndexService,
-                                                 SettingsService settingsService,
-                                                 MediaFolderService mediaFolderService,
-                                                 SubsonicResponseMapper subsonicResponseMapper) {
-        return new ArtistsService(
-                musicFolders -> artistDao.getAlphabetialArtists(0, Integer.MAX_VALUE, musicFolders),
-                musicIndexService,
-                settingsService::getIgnoredArticles,
-                mediaFolderService::getMusicFoldersForUser,
-                (target, artist, username) -> subsonicResponseMapper.artist(target, artist, username));
-    }
-
-    @Bean
     public ArtistsController subsonicArtistsController(
-            ArtistsService artistsService, JAXBWriter subsonicJaxbWriter) {
-        return new ArtistsController(artistsService, subsonicJaxbWriter);
+            ArtistDao artistDao, MusicIndexService musicIndexService, SettingsService settingsService,
+            MediaFolderService mediaFolderService, SubsonicResponseMapper subsonicResponseMapper,
+            JAXBWriter subsonicJaxbWriter) {
+        return new ArtistsController(artistDao, musicIndexService, settingsService, mediaFolderService,
+                subsonicResponseMapper, subsonicJaxbWriter);
     }
 
     @Bean

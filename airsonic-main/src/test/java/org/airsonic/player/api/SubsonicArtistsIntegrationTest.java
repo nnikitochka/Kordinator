@@ -6,7 +6,9 @@ import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.domain.Artist;
 import org.airsonic.player.domain.MusicFolder;
+import org.airsonic.player.domain.User;
 import org.airsonic.player.service.MediaFolderService;
+import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.util.HomeRule;
 import org.airsonic.player.util.MusicFolderTestData;
 import org.junit.Before;
@@ -53,6 +55,9 @@ public class SubsonicArtistsIntegrationTest {
     @Autowired
     private ArtistDao artistDao;
 
+    @Autowired
+    private SecurityService securityService;
+
     private List<MusicFolder> testFolders;
 
     private final HttpClient client = HttpClient.newBuilder()
@@ -78,7 +83,7 @@ public class SubsonicArtistsIntegrationTest {
             assertEquals(0, empty.path("artists").path("index").size());
 
             Artist alpha = insertArtist("Alpha", folderId);
-            Artist bravo = insertArtist("Bravo", folderId);
+            Artist bravo = insertArtist("Bravo", testFolders.get(1).getId());
 
             for (String suffix : List.of("", ".view")) {
                 String path = "/rest/getArtists" + suffix;
@@ -116,6 +121,30 @@ public class SubsonicArtistsIntegrationTest {
                 assertEquals("3", artistNodes.item(0).getAttributes().getNamedItem("albumCount").getNodeValue());
                 assertEquals("Bravo", artistNodes.item(1).getAttributes().getNamedItem("name").getNodeValue());
             }
+
+            // A different user can see only their allowed folder and their own starred state.
+            securityService.createUser(new User("limited", null), "secret", "artists test");
+            mediaFolderService.setMusicFoldersForUser("limited", List.of(folderId));
+            artistDao.starArtist(alpha.getId(), "limited");
+            String limitedPath = "/rest/getArtists?v=" + TestCaseUtils.restApiVersion() + "&c=test&f=json";
+            JsonNode limited = body(send(limitedPath, null, "limited:secret")).path("artists").path("index");
+            assertEquals(limited.toString(), 1, limited.size());
+            JsonNode visible = limited.path(0).path("artist").path(0);
+            assertEquals(String.valueOf(alpha.getId()), visible.path("id").asText());
+            assertTrue(visible.toString(), visible.hasNonNull("starred"));
+            JsonNode adminAlpha = body(send("/rest/getArtists?" + credentials() + "&f=json", null, false))
+                    .path("artists").path("index").path(0).path("artist").path(0);
+            assertTrue(adminAlpha.toString(), !adminAlpha.hasNonNull("starred"));
+
+            mediaFolderService.setMusicFoldersForUser("limited", List.of(testFolders.get(1).getId()));
+            JsonNode otherFolder = body(send(limitedPath, null, "limited:secret")).path("artists").path("index");
+            assertEquals(otherFolder.toString(), 1, otherFolder.size());
+            assertEquals(String.valueOf(bravo.getId()), otherFolder.path(0).path("artist").path(0).path("id").asText());
+            assertTrue(!otherFolder.path(0).path("artist").path(0).hasNonNull("starred"));
+
+            mediaFolderService.setMusicFoldersForUser("limited", List.of());
+            JsonNode noFolders = body(send(limitedPath, null, "limited:secret")).path("artists").path("index");
+            assertEquals(noFolders.toString(), 0, noFolders.size());
 
             HttpResponse<String> jsonp = send("/rest/getArtists?" + credentials() + "&f=jsonp&callback=client.artists",
                     null, false);

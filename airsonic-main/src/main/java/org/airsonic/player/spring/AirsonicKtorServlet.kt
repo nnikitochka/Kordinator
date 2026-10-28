@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import org.airsonic.player.controller.rest.RestPlayerResolver
 import org.airsonic.player.controller.rest.artists.ArtistsController
+import org.airsonic.player.controller.rest.artists.ArtistsRequest
 import org.airsonic.player.controller.rest.genres.GenresController
 import org.airsonic.player.controller.rest.musicfolders.MusicFoldersController
 import org.airsonic.player.controller.rest.search.SearchController
@@ -47,7 +48,7 @@ class AirsonicKtorServlet(
                 call.attributes.put(MUSIC_FOLDERS_REQUEST_KEY, musicFoldersRequest)
             }
             val artistsRequest = request.getAttribute(ARTISTS_REQUEST)
-                as? ArtistsController.Request
+                as? ArtistsRequest
             if (artistsRequest != null) {
                 call.attributes.put(ARTISTS_REQUEST_KEY, artistsRequest)
             }
@@ -105,7 +106,7 @@ class AirsonicKtorServlet(
             // The legacy wrapRequest() created a REST player for this endpoint too.
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val username = requireNotNull(securityService.getCurrentUsername(request))
-            request.setAttribute(ARTISTS_REQUEST, ArtistsController.Request(username, parameters(request)))
+            request.setAttribute(ARTISTS_REQUEST, ArtistsRequest(username, parameters(request)))
         }
         super.service(request, response)
     }
@@ -127,6 +128,6 @@ class AirsonicKtorServlet(
             MUSIC_FOLDERS_REQUEST
         )
         const val ARTISTS_REQUEST = "org.airsonic.player.artistsRequest"
-        val ARTISTS_REQUEST_KEY = AttributeKey<ArtistsController.Request>(ARTISTS_REQUEST)
+        val ARTISTS_REQUEST_KEY = AttributeKey<ArtistsRequest>(ARTISTS_REQUEST)
     }
 }
