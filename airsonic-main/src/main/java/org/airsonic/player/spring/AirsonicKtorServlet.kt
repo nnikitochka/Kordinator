@@ -178,7 +178,14 @@ class AirsonicKtorServlet(
             // The legacy wrapRequest() created a REST player for this endpoint too.
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val username = requireNotNull(securityService.getCurrentUsername(request))
-            request.setAttribute(ARTISTS_REQUEST, ArtistsRequest(username, parameters(request)))
+            val rawId = if (path.substringAfterLast('/').removeSuffix(".view") == "getArtist") mapRestId(request.getParameter("id")) else null
+            val id = if (rawId == null) null else try {
+                Integer.parseInt(rawId)
+            } catch (_: NumberFormatException) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST)
+                return
+            }
+            request.setAttribute(ARTISTS_REQUEST, ArtistsRequest(username, parameters(request), id))
         } else if (path in PingController.PATHS) {
             request.setAttribute(REST_PARAMETERS, parameters(request))
         } else if (path in ScanController.PATHS) {

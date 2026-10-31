@@ -51,10 +51,10 @@ public class RestApiConfiguration {
 
     @Bean
     public ArtistsController subsonicArtistsController(
-            ArtistDao artistDao, MusicIndexService musicIndexService, SettingsService settingsService,
+            ArtistDao artistDao, AlbumDao albumDao, MusicIndexService musicIndexService, SettingsService settingsService,
             MediaFolderService mediaFolderService, SubsonicResponseMapper subsonicResponseMapper,
             JAXBWriter subsonicJaxbWriter) {
-        return new ArtistsController(artistDao, musicIndexService, settingsService, mediaFolderService,
+        return new ArtistsController(artistDao, albumDao, musicIndexService, settingsService, mediaFolderService,
                 subsonicResponseMapper, subsonicJaxbWriter);
     }
 
