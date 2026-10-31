@@ -65,6 +65,8 @@ import org.airsonic.player.controller.rest.music.song.SongRequest
 import org.airsonic.player.controller.rest.videos.VideosController
 import org.airsonic.player.controller.rest.videos.VideosRequest
 import org.airsonic.player.controller.rest.lyrics.LyricsController
+import org.airsonic.player.controller.rest.rating.RatingController
+import org.airsonic.player.controller.rest.rating.RatingRequest
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingController
 import org.airsonic.player.controller.rest.download.DownloadRestController
 import org.airsonic.player.controller.rest.download.DownloadRequest
@@ -114,6 +116,7 @@ class AirsonicKtorServlet(
     private val songController: SongController,
     private val videosController: VideosController,
     private val lyricsController: LyricsController,
+    private val ratingController: RatingController,
     private val downloadRestController: DownloadRestController,
     private val downloads: DownloadService,
     private val shareService: ShareService,
@@ -175,6 +178,8 @@ class AirsonicKtorServlet(
             if (songRequest != null) call.attributes.put(SONG_REQUEST_KEY, songRequest)
             val videosRequest = request.getAttribute(VIDEOS_REQUEST) as? VideosRequest
             if (videosRequest != null) call.attributes.put(VIDEOS_REQUEST_KEY, videosRequest)
+            val ratingRequest = request.getAttribute(RATING_REQUEST) as? RatingRequest
+            if (ratingRequest != null) call.attributes.put(RATING_REQUEST_KEY, ratingRequest)
             val topSongsRequest = request.getAttribute(TOP_SONGS_REQUEST) as? TopSongsRequest
             if (topSongsRequest != null) call.attributes.put(TOP_SONGS_REQUEST_KEY, topSongsRequest)
             val genreSongsRequest = request.getAttribute(GENRE_SONGS_REQUEST) as? SongsByGenreRequest
@@ -234,6 +239,7 @@ class AirsonicKtorServlet(
             songController.routes(this) { call -> call.attributes[SONG_REQUEST_KEY] }
             videosController.routes(this) { call -> call.attributes[VIDEOS_REQUEST_KEY] }
             lyricsController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
+            ratingController.routes(this) { call -> call.attributes[RATING_REQUEST_KEY] }
             topSongsController.routes(this) { call -> call.attributes[TOP_SONGS_REQUEST_KEY] }
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
         }
@@ -476,6 +482,11 @@ class AirsonicKtorServlet(
             // The legacy wrapRequest() created a REST player for this endpoint too.
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             request.setAttribute(REST_PARAMETERS, parameters(request))
+        } else if (path in RatingController.PATHS) {
+            // The legacy wrapRequest() created a REST player for this endpoint too.
+            playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            val username = requireNotNull(securityService.getCurrentUsername(request))
+            request.setAttribute(RATING_REQUEST, RatingRequest(username, parameters(request)))
         } else if (path in TopSongsController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val username = requireNotNull(securityService.getCurrentUsername(request))
@@ -681,6 +692,8 @@ class AirsonicKtorServlet(
         val SONG_REQUEST_KEY = AttributeKey<SongRequest>(SONG_REQUEST)
         const val VIDEOS_REQUEST = "org.airsonic.player.videosRequest"
         val VIDEOS_REQUEST_KEY = AttributeKey<VideosRequest>(VIDEOS_REQUEST)
+        const val RATING_REQUEST = "org.airsonic.player.ratingRequest"
+        val RATING_REQUEST_KEY = AttributeKey<RatingRequest>(RATING_REQUEST)
         const val TOP_SONGS_REQUEST = "org.airsonic.player.topSongsRequest"
         val TOP_SONGS_REQUEST_KEY = AttributeKey<TopSongsRequest>(TOP_SONGS_REQUEST)
         const val GENRE_SONGS_REQUEST = "org.airsonic.player.genreSongsRequest"
