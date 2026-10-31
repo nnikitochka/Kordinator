@@ -140,29 +140,6 @@ public class SubsonicRESTController {
     }
 
 
-    @RequestMapping("/getSongsByGenre")
-    public void getSongsByGenre(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        Player player = playerService.getPlayer(request, response);
-        String username = securityService.getCurrentUsername(request);
-
-        Songs songs = new Songs();
-
-        String genre = getRequiredStringParameter(request, "genre");
-        int offset = getIntParameter(request, "offset", 0);
-        int count = getIntParameter(request, "count", 10);
-        count = Math.clamp(count, 0, 500);
-        Integer musicFolderId = getIntParameter(request, "musicFolderId");
-        List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username, musicFolderId);
-
-        for (MediaFile mediaFile : mediaFileDao.getSongsByGenre(genre, offset, count, musicFolders)) {
-            songs.getSong().add(createJaxbChild(player, mediaFile, username));
-        }
-        Response res = createResponse();
-        res.setSongsByGenre(songs);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
     @RequestMapping("/getTopSongs")
     public void getTopSongs(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
