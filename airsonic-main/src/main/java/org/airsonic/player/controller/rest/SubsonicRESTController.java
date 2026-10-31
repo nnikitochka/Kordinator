@@ -170,52 +170,6 @@ public class SubsonicRESTController {
         jaxbWriter.writeResponse(request, response, res);
     }
 
-    @RequestMapping("/getMusicDirectory")
-    public void getMusicDirectory(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        Player player = playerService.getPlayer(request, response);
-        String username = securityService.getCurrentUsername(request);
-
-        int id = getRequiredIntParameter(request, "id");
-        MediaFile dir = mediaFileService.getMediaFile(id);
-        if (dir == null) {
-            error(request, response, ErrorCode.NOT_FOUND, "Directory not found");
-            return;
-        }
-        if (!securityService.isFolderAccessAllowed(dir, username)) {
-            error(request, response, ErrorCode.NOT_AUTHORIZED, "Access denied");
-            return;
-        }
-
-        MediaFile parent = mediaFileService.getParentOf(dir);
-        Directory directory = new Directory();
-        directory.setId(String.valueOf(id));
-        try {
-            if (!mediaFileService.isRoot(parent)) {
-                directory.setParent(String.valueOf(parent.getId()));
-            }
-        } catch (SecurityException x) {
-            // Ignored.
-        }
-        directory.setName(dir.getName());
-        directory.setStarred(jaxbWriter.convertDate(mediaFileDao.getMediaFileStarredDate(id, username)));
-        directory.setPlayCount((long) dir.getPlayCount());
-        directory.setAccentColor(getAccentColor(dir, parent));
-
-        if (dir.isAlbum()) {
-            directory.setAverageRating(ratingService.getAverageRating(dir));
-            directory.setUserRating(ratingService.getRatingForUser(username, dir));
-        }
-
-        for (MediaFile child : mediaFileService.getChildrenOf(dir, true, true, true)) {
-            directory.getChild().add(createJaxbChild(player, child, username));
-        }
-
-        Response res = createResponse();
-        res.setDirectory(directory);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
     @RequestMapping("/getRandomSongs")
     public void getRandomSongs(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
@@ -287,15 +241,6 @@ public class SubsonicRESTController {
 
     private <T extends Child> T createJaxbChild(T child, Player player, MediaFile mediaFile, String username) {
         return responseMapper.child(child, player, mediaFile, username);
-    }
-
-    /**
-     * Returns the accent color of the cover art shown for the given media file.
-     * For non-directory files the cover art (and thus the accent color) belongs to the
-     * parent (album) directory, mirroring the resolution used for the coverArt attribute.
-     */
-    private String getAccentColor(MediaFile mediaFile, MediaFile parent) {
-        return responseMapper.accentColor(mediaFile, parent);
     }
 
     @RequestMapping("/download")
