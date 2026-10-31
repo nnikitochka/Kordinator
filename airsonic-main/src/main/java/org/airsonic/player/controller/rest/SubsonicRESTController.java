@@ -59,8 +59,6 @@ public class SubsonicRESTController {
     private final MediaFileService mediaFileService;
     private final LastFmService lastFmService;
     private final TranscodingService transcodingService;
-    private final CoverArtController coverArtController;
-    private final AvatarController avatarController;
     private final StreamController streamController;
     private final HLSController hlsController;
     private final PlayQueueService playQueueService;
@@ -75,8 +73,7 @@ public class SubsonicRESTController {
 
     private final JAXBWriter jaxbWriter = new JAXBWriter();
 
-    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
-        this.avatarController = avatarController;
+    public SubsonicRESTController(SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.settingsService = settingsService;
         this.securityService = securityService;
         this.mediaFileDao = mediaFileDao;
@@ -87,7 +84,6 @@ public class SubsonicRESTController {
         this.coverArtService = coverArtService;
         this.transcodingService = transcodingService;
         this.jukeboxService = jukeboxService;
-        this.coverArtController = coverArtController;
         this.streamController = streamController;
         this.playQueueService = playQueueService;
         this.mediaFolderService = mediaFolderService;
@@ -174,18 +170,6 @@ public class SubsonicRESTController {
         }
 
         hlsController.handleHlsRequest(authentication, id, request, response);
-    }
-
-    @RequestMapping("/getCoverArt")
-    public void getCoverArt(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        coverArtController.handleRequest(request, response);
-    }
-
-    @RequestMapping("/getAvatar")
-    public void getAvatar(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        avatarController.handleRequest(request, response);
     }
 
     private HttpServletRequest wrapRequest(HttpServletRequest request) {

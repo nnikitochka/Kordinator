@@ -42,6 +42,8 @@ import org.airsonic.player.controller.rest.search.SearchController
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsController
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsRequest
 import org.airsonic.player.controller.cover.CoverArtController
+import org.airsonic.player.controller.rest.avatar.AvatarRestController
+import org.airsonic.player.controller.rest.cover.CoverArtRestController
 import org.airsonic.player.controller.rest.users.UsersController
 import org.airsonic.player.controller.rest.users.PasswordController
 import org.airsonic.player.controller.rest.users.UsersRequest
@@ -126,6 +128,8 @@ class AirsonicKtorServlet(
     private val securityService: SecurityService,
     private val localeResolver: LocaleResolver,
     private val leftController: LeftController,
+    private val coverArtRestController: CoverArtRestController,
+    private val avatarRestController: AvatarRestController,
 ) : ServletApplicationEngine() {
     @OptIn(InternalAPI::class)
     override fun init() {
@@ -643,6 +647,26 @@ class AirsonicKtorServlet(
                 return
             }
             request.setAttribute(PLAYLISTS_REQUEST, PlaylistsRequest(username, admin, parameters(request), id, player))
+        } else if (path in CoverArtRestController.PATHS || path in AvatarRestController.PATHS) {
+            // These endpoints are binary servlet responses.  Keep their existing image
+            // controllers as the sole implementation while moving REST dispatch out of
+            // SubsonicRESTController.
+            val playerId = playerResolver.getOrCreatePlayerId(
+                request.remoteUser, request.getParameter("c"), request.remoteAddr, false
+            )
+            val wrappedRequest = object : HttpServletRequestWrapper(request) {
+                override fun getParameter(name: String): String? = when (name) {
+                    "player" -> playerId?.toString()
+                    "id" -> mapRestId(super.getParameter(name))
+                    else -> super.getParameter(name)
+                }
+            }
+            if (path in CoverArtRestController.PATHS) {
+                coverArtRestController.handleRequest(wrappedRequest, response)
+            } else {
+                avatarRestController.handleRequest(wrappedRequest, response)
+            }
+            return
         }
         super.service(request, response)
     }

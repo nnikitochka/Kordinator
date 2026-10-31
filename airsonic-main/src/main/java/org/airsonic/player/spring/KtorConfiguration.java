@@ -4,6 +4,10 @@ import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
 import org.airsonic.player.ajax.lyrics.LyricsWSController;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.LeftController;
+import org.airsonic.player.controller.AvatarController;
+import org.airsonic.player.controller.cover.CoverArtController;
+import org.airsonic.player.controller.rest.cover.CoverArtRestController;
+import org.airsonic.player.controller.rest.avatar.AvatarRestController;
 import org.airsonic.player.controller.rest.indexes.IndexesController;
 import org.airsonic.player.controller.rest.music.genre.SongsByGenreController;
 import org.airsonic.player.controller.rest.music.top.TopSongsController;
@@ -111,7 +115,9 @@ public class KtorConfiguration {
             DownloadService downloadService,
             LeftController leftController,
             UserSettingsController userSettingsController,
-            LocaleResolver localeResolver
+            LocaleResolver localeResolver,
+            CoverArtController coverArtController,
+            AvatarController avatarController
     ) {
         ServletRegistrationBean<ServletApplicationEngine> registration =
                 new ServletRegistrationBean<>(
@@ -145,7 +151,8 @@ public class KtorConfiguration {
                                 new RatingController(mediaFileService, ratingService, jaxbWriter),
                                 new DownloadRestController(jaxbWriter), downloadService,
                                 shareService, mediaFileService,
-                                playerResolver, playerService, securityService, localeResolver, leftController),
+                                playerResolver, playerService, securityService, localeResolver, leftController,
+                                new CoverArtRestController(coverArtController), new AvatarRestController(avatarController)),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);
@@ -177,6 +184,8 @@ public class KtorConfiguration {
         registration.addUrlMappings(ScrobbleController.PATHS);
         registration.addUrlMappings(NowPlayingController.PATHS);
         registration.addUrlMappings(DownloadRestController.PATHS);
+        registration.addUrlMappings(CoverArtRestController.PATHS);
+        registration.addUrlMappings(AvatarRestController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);

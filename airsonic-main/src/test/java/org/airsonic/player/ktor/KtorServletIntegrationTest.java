@@ -6,8 +6,11 @@ import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.api.ScanningTestUtils;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.MusicFolder;
+import org.airsonic.player.domain.MediaFile;
+import org.airsonic.player.domain.Avatar;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.MediaScannerService;
+import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.util.HomeRule;
 import org.airsonic.player.util.MusicFolderTestData;
 import org.airsonic.player.util.StringUtil;
@@ -26,12 +29,16 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -55,6 +62,9 @@ public class KtorServletIntegrationTest {
 
     @Autowired
     private MediaFileDao mediaFileDao;
+
+    @Autowired
+    private SettingsService settingsService;
 
     private final HttpClient client = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.NEVER)
@@ -122,6 +132,44 @@ public class KtorServletIntegrationTest {
         HttpResponse<String> cors = client.send(preflight, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, cors.statusCode());
         assertTrue(cors.headers().firstValue("access-control-allow-origin").isPresent());
+    }
+
+    @Test
+    public void imageRoutesRemainAvailableThroughKtorServlet() throws Exception {
+        List<MusicFolder> folders = MusicFolderTestData.getTestMusicFolders();
+        UUID cleanupId = ScanningTestUtils.before(folders, mediaFolderService, mediaScannerService);
+        Avatar previousAvatar = settingsService.getCustomAvatar("admin");
+        try {
+            MediaFile album = mediaFileDao.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", folders.get(0).getId());
+            Path image = folders.get(0).getPath().resolve("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes/cover.jpg");
+            byte[] expected = Files.readAllBytes(image);
+            settingsService.setCustomAvatar(new Avatar(0, "test", Instant.now(), "image/jpeg", 1, 1, image), "admin");
+            String legacyId = StringUtil.utf8HexEncode(album.getFullPath(folders.get(0).getPath()).toString());
+            for (String suffix : List.of("", ".view")) {
+                HttpResponse<byte[]> coverArt = getBytes("/rest/getCoverArt" + suffix + "?" + credentials() + "&id=" + album.getId());
+                assertEquals(200, coverArt.statusCode());
+                assertEquals("image/jpeg", coverArt.headers().firstValue("content-type").orElseThrow());
+                assertArrayEquals(expected, coverArt.body());
+                assertArrayEquals(expected, getBytes("/rest/getCoverArt" + suffix + "?" + credentials() + "&id=" + legacyId).body());
+
+                HttpResponse<byte[]> avatar = getBytes("/rest/getAvatar" + suffix + "?" + credentials() + "&username=admin&forceCustom=true");
+                assertEquals(200, avatar.statusCode());
+                assertEquals("image/jpeg", avatar.headers().firstValue("content-type").orElseThrow());
+                assertArrayEquals(expected, avatar.body());
+                assertEquals(404, getBytes("/rest/getAvatar" + suffix + "?" + credentials()).statusCode());
+            }
+        } finally {
+            settingsService.setCustomAvatar(previousAvatar, "admin");
+            ScanningTestUtils.after(cleanupId, mediaFolderService);
+            mediaFolderService.expunge();
+        }
+    }
+
+    private HttpResponse<byte[]> getBytes(String path) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + port + "/airsonic" + path))
+                .timeout(Duration.ofSeconds(10)).GET().build();
+        return client.send(request, HttpResponse.BodyHandlers.ofByteArray());
     }
 
     @Test
