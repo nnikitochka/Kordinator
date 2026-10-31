@@ -10,7 +10,6 @@ import org.airsonic.player.controller.rest.error.ErrorCode;
 import org.airsonic.player.dao.AlbumDao;
 import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.dao.MediaFileDao;
-import org.airsonic.player.dao.PlayQueueDao;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.domain.PlayQueue;
 import org.airsonic.player.domain.User;
@@ -44,7 +43,6 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Stream;
 
-import static java.util.stream.Collectors.toList;
 import static org.springframework.web.bind.ServletRequestUtils.*;
 
 /**
@@ -82,7 +80,6 @@ public class SubsonicRESTController {
     private final MediaFileDao mediaFileDao;
     private final ArtistDao artistDao;
     private final AlbumDao albumDao;
-    private final PlayQueueDao playQueueDao;
     private final MediaFolderService mediaFolderService;
     private final CoverArtService coverArtService;
     private final SubsonicResponseMapper responseMapper;
@@ -90,7 +87,7 @@ public class SubsonicRESTController {
 
     private final JAXBWriter jaxbWriter = new JAXBWriter();
 
-    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, LeftController leftController, SearchService searchService, AudioScrobblerService audioScrobblerService, MusicIndexService musicIndexService, StatusService statusService, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, PlayQueueDao playQueueDao, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
+    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, LeftController leftController, SearchService searchService, AudioScrobblerService audioScrobblerService, MusicIndexService musicIndexService, StatusService statusService, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.avatarController = avatarController;
         this.settingsService = settingsService;
         this.securityService = securityService;
@@ -113,7 +110,6 @@ public class SubsonicRESTController {
         this.coverArtController = coverArtController;
         this.streamController = streamController;
         this.playQueueService = playQueueService;
-        this.playQueueDao = playQueueDao;
         this.mediaFolderService = mediaFolderService;
         this.artistDao = artistDao;
         this.hlsController = hlsController;
@@ -512,56 +508,6 @@ public class SubsonicRESTController {
             audioScrobblerService.register(file, player.getUsername(), submission, time);
         }
 
-        writeEmptyResponse(request, response);
-    }
-
-    @RequestMapping("/getPlayQueue")
-    public void getPlayQueue(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        String username = securityService.getCurrentUsername(request);
-        Player player = playerService.getPlayer(request, response);
-
-        SavedPlayQueue playQueue = playQueueDao.getPlayQueue(username);
-        if (playQueue == null) {
-            writeEmptyResponse(request, response);
-            return;
-        }
-
-        org.subsonic.restapi.PlayQueue restPlayQueue = new org.subsonic.restapi.PlayQueue();
-        restPlayQueue.setUsername(playQueue.getUsername());
-        restPlayQueue.setCurrent(playQueue.getCurrentMediaFileId());
-        restPlayQueue.setPosition(playQueue.getPositionMillis());
-        restPlayQueue.setChanged(jaxbWriter.convertDate(playQueue.getChanged()));
-        restPlayQueue.setChangedBy(playQueue.getChangedBy());
-
-        for (Integer mediaFileId : playQueue.getMediaFileIds()) {
-            MediaFile mediaFile = mediaFileService.getMediaFile(mediaFileId);
-            if (mediaFile != null) {
-                restPlayQueue.getEntry().add(createJaxbChild(player, mediaFile, username));
-            }
-        }
-
-        Response res = createResponse();
-        res.setPlayQueue(restPlayQueue);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
-    @RequestMapping("/savePlayQueue")
-    public void savePlayQueue(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        String username = securityService.getCurrentUsername(request);
-        List<Integer> mediaFileIds = Arrays.stream(getIntParameters(request, "id")).boxed().collect(toList());
-        Integer current = getIntParameter(request, "current");
-        Long position = getLongParameter(request, "position");
-        String changedBy = getRequiredStringParameter(request, "c");
-
-        if (!mediaFileIds.contains(current)) {
-            error(request, response, ErrorCode.GENERIC, "Current track is not included in play queue");
-            return;
-        }
-
-        SavedPlayQueue playQueue = new SavedPlayQueue(null, username, mediaFileIds, current, position, Instant.now(), changedBy);
-        playQueueDao.savePlayQueue(playQueue);
         writeEmptyResponse(request, response);
     }
 
