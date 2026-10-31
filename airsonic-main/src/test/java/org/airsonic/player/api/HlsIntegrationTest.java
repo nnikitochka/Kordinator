@@ -52,12 +52,24 @@ public class HlsIntegrationTest {
             User denied = new User("hls-denied", null);
             denied.setRoles(Set.of(User.Role.DOWNLOAD));
             security.createUser(denied, "secret", "test");
+            User restricted = new User("hls-restricted", null);
+            restricted.setRoles(Set.of(User.Role.STREAM));
+            security.createUser(restricted, "secret", "test");
+            folders.setMusicFoldersForUser(restricted.getUsername(), Set.of(library.get(1).getId()));
             for (String suffix : List.of("", ".view")) {
                 HttpResponse<String> response = send(suffix, "id=" + song.getId(), "admin", "admin", false);
                 assertEquals(response.body(), 200, response.statusCode());
                 assertTrue(response.body(), response.body().startsWith("#EXTM3U"));
+                assertTrue(response.body(), response.body().contains("#EXTINF:"));
+                assertTrue(response.body(), response.body().contains("segment.ts"));
                 assertTrue(response.headers().firstValue("content-type").orElse("").startsWith("application/x-mpegurl"));
+                HttpResponse<String> variants = send(suffix, "id=" + song.getId() + "&maxBitRate=300&maxBitRate=600", "admin", "admin", false);
+                assertTrue(variants.body(), variants.body().contains("#EXT-X-STREAM-INF:"));
+                assertTrue(variants.body(), variants.body().contains("hls.m3u8"));
                 assertEquals(50, error(send(suffix, "id=" + song.getId() + "&f=json", "hls-denied", "secret", false)));
+                HttpResponse<String> forbidden = send(suffix, "id=" + song.getId() + "&f=json", "hls-restricted", "secret", false);
+                if (suffix.isEmpty()) assertEquals(0, error(forbidden));
+                else assertEquals(403, forbidden.statusCode());
                 assertEquals(10, error(send(suffix, "f=json", "admin", "admin", false)));
                 assertEquals(400, send(suffix, "id=bad", "admin", "admin", false).statusCode());
                 assertEquals(404, send(suffix, "id=" + album.getId(), "admin", "admin", false).statusCode());

@@ -5,6 +5,8 @@ import org.airsonic.player.ajax.lyrics.LyricsWSController;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.LeftController;
 import org.airsonic.player.controller.AvatarController;
+import org.airsonic.player.controller.HLSController;
+import org.airsonic.player.controller.rest.hls.HlsRestController;
 import org.airsonic.player.controller.cover.CoverArtController;
 import org.airsonic.player.controller.rest.cover.CoverArtRestController;
 import org.airsonic.player.controller.rest.avatar.AvatarRestController;
@@ -117,7 +119,8 @@ public class KtorConfiguration {
             UserSettingsController userSettingsController,
             LocaleResolver localeResolver,
             CoverArtController coverArtController,
-            AvatarController avatarController
+            AvatarController avatarController,
+            HLSController hlsController
     ) {
         ServletRegistrationBean<ServletApplicationEngine> registration =
                 new ServletRegistrationBean<>(
@@ -152,7 +155,8 @@ public class KtorConfiguration {
                                 new DownloadRestController(jaxbWriter), downloadService,
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver, leftController,
-                                new CoverArtRestController(coverArtController), new AvatarRestController(avatarController)),
+                                new CoverArtRestController(coverArtController), new AvatarRestController(avatarController),
+                                new HlsRestController(), hlsController, jaxbWriter),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);
@@ -186,6 +190,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(DownloadRestController.PATHS);
         registration.addUrlMappings(CoverArtRestController.PATHS);
         registration.addUrlMappings(AvatarRestController.PATHS);
+        registration.addUrlMappings(HlsRestController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);
