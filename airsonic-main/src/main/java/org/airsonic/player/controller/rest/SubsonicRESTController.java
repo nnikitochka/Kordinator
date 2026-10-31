@@ -310,29 +310,6 @@ public class SubsonicRESTController {
         return responseMapper.album(jaxbAlbum, album, username);
     }
 
-    @RequestMapping("/getAlbum")
-    public void getAlbum(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        Player player = playerService.getPlayer(request, response);
-        String username = securityService.getCurrentUsername(request);
-
-        int id = getRequiredIntParameter(request, "id");
-        Album album = albumDao.getAlbum(id);
-        if (album == null) {
-            error(request, response, ErrorCode.NOT_FOUND, "Album not found.");
-            return;
-        }
-
-        AlbumWithSongsID3 result = createJaxbAlbum(new AlbumWithSongsID3(), album, username);
-        for (MediaFile mediaFile : mediaFileDao.getSongsForAlbum(album.getArtist(), album.getName())) {
-            result.getSong().add(createJaxbChild(player, mediaFile, username));
-        }
-
-        Response res = createResponse();
-        res.setAlbum(result);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
     @RequestMapping("/getSong")
     public void getSong(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
@@ -493,84 +470,6 @@ public class SubsonicRESTController {
             result.setPosition(position);
         }
 
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
-    @RequestMapping("/getAlbumList")
-    public void getAlbumList(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        Player player = playerService.getPlayer(request, response);
-        String username = securityService.getCurrentUsername(request);
-
-        int size = getIntParameter(request, "size", 10);
-        int offset = getIntParameter(request, "offset", 0);
-        Integer musicFolderId = getIntParameter(request, "musicFolderId");
-
-        List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username, musicFolderId);
-
-        size = Math.clamp(size, 0, 500);
-        String type = getRequiredStringParameter(request, "type");
-
-        List<MediaFile> albums = switch (type) {
-            case "highest" -> ratingService.getHighestRatedAlbums(offset, size, musicFolders);
-            case "frequent" -> mediaFileService.getMostFrequentlyPlayedAlbums(offset, size, musicFolders);
-            case "recent" -> mediaFileService.getMostRecentlyPlayedAlbums(offset, size, musicFolders);
-            case "newest" -> mediaFileService.getNewestAlbums(offset, size, musicFolders);
-            case "starred" -> mediaFileService.getStarredAlbums(offset, size, username, musicFolders);
-            case "alphabeticalByArtist" -> mediaFileService.getAlphabeticalAlbums(offset, size, true, musicFolders);
-            case "alphabeticalByName" -> mediaFileService.getAlphabeticalAlbums(offset, size, false, musicFolders);
-            case "byGenre" -> mediaFileService.getAlbumsByGenre(offset, size, getRequiredStringParameter(request, "genre"), musicFolders);
-            case "byYear" -> mediaFileService.getAlbumsByYear(
-                    offset, size, getRequiredIntParameter(request, "fromYear"),
-                    getRequiredIntParameter(request, "toYear"), musicFolders
-            );
-            case "random" -> searchService.getRandomAlbums(size, musicFolders);
-            default -> throw new Exception("Invalid list type: " + type);
-        };
-
-        AlbumList result = new AlbumList();
-        for (MediaFile album : albums) {
-            result.getAlbum().add(createJaxbChild(player, album, username));
-        }
-
-        Response res = createResponse();
-        res.setAlbumList(result);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
-    @RequestMapping("/getAlbumList2")
-    public void getAlbumList2(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-
-        int size = getIntParameter(request, "size", 10);
-        int offset = getIntParameter(request, "offset", 0);
-        size = Math.max(0, Math.min(size, 500));
-        String type = getRequiredStringParameter(request, "type");
-        String username = securityService.getCurrentUsername(request);
-        Integer musicFolderId = getIntParameter(request, "musicFolderId");
-        List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username, musicFolderId);
-
-        List<Album> albums = switch (type) {
-            case "frequent" -> albumDao.getMostFrequentlyPlayedAlbums(offset, size, musicFolders);
-            case "recent" -> albumDao.getMostRecentlyPlayedAlbums(offset, size, musicFolders);
-            case "newest" -> albumDao.getNewestAlbums(offset, size, musicFolders);
-            case "alphabeticalByArtist" -> albumDao.getAlphabeticalAlbums(offset, size, true, false, musicFolders);
-            case "alphabeticalByName" -> albumDao.getAlphabeticalAlbums(offset, size, false, false, musicFolders);
-            case "byGenre" -> albumDao.getAlbumsByGenre(offset, size, getRequiredStringParameter(request, "genre"), musicFolders);
-            case "byYear" -> albumDao.getAlbumsByYear(
-                    offset, size, getRequiredIntParameter(request, "fromYear"),
-                    getRequiredIntParameter(request, "toYear"), musicFolders
-            );
-            case "starred" -> albumDao.getStarredAlbums(offset, size, securityService.getCurrentUser(request).getUsername(), musicFolders);
-            case "random" -> searchService.getRandomAlbumsId3(size, musicFolders);
-            default -> throw new Exception("Invalid list type: " + type);
-        };
-        AlbumList2 result = new AlbumList2();
-        for (Album album : albums) {
-            result.getAlbum().add(createJaxbAlbum(new AlbumID3(), album, username));
-        }
-        Response res = createResponse();
-        res.setAlbumList2(result);
         jaxbWriter.writeResponse(request, response, res);
     }
 
