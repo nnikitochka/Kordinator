@@ -10,6 +10,7 @@ import org.airsonic.player.controller.rest.music.directory.MusicDirectoryControl
 import org.airsonic.player.controller.rest.music.random.RandomSongsController;
 import org.airsonic.player.controller.rest.scrobble.ScrobbleController;
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingController;
+import org.airsonic.player.controller.rest.download.DownloadRestController;
 import org.airsonic.player.service.AudioScrobblerService;
 import org.airsonic.player.service.StatusService;
 import org.airsonic.player.service.MusicIndexService;
@@ -101,6 +102,7 @@ public class KtorConfiguration {
             MusicIndexService musicIndexService,
             AudioScrobblerService audioScrobblerService,
             StatusService statusService,
+            DownloadService downloadService,
             LeftController leftController,
             UserSettingsController userSettingsController,
             LocaleResolver localeResolver
@@ -131,6 +133,7 @@ public class KtorConfiguration {
                                 new RandomSongsController(albumSearchService, mediaFolderService, responseMapper, jaxbWriter),
                                 new ScrobbleController(mediaFileService, statusService, audioScrobblerService, jaxbWriter),
                                 new NowPlayingController(statusService, responseMapper, jaxbWriter),
+                                new DownloadRestController(jaxbWriter), downloadService,
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver, leftController),
                         "/internal/ktor/*");
@@ -159,6 +162,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(RandomSongsController.PATHS);
         registration.addUrlMappings(ScrobbleController.PATHS);
         registration.addUrlMappings(NowPlayingController.PATHS);
+        registration.addUrlMappings(DownloadRestController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);

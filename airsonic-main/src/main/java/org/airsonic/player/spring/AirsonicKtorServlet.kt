@@ -61,6 +61,16 @@ import org.airsonic.player.controller.rest.music.random.RandomSongsRequest
 import org.airsonic.player.controller.rest.scrobble.ScrobbleController
 import org.airsonic.player.controller.rest.scrobble.ScrobbleRequest
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingController
+import org.airsonic.player.controller.rest.download.DownloadRestController
+import org.airsonic.player.controller.rest.download.DownloadRequest
+import org.airsonic.player.controller.rest.error.ErrorCode
+import org.airsonic.player.service.DownloadService
+import org.springframework.http.ContentDisposition
+import org.springframework.web.context.request.ServletWebRequest
+import org.springframework.security.access.AccessDeniedException
+import org.apache.commons.io.FilenameUtils
+import java.nio.charset.StandardCharsets
+import java.util.Optional
 import org.airsonic.player.i18n.LocaleResolver
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.PlayerService
@@ -96,6 +106,8 @@ class AirsonicKtorServlet(
     private val randomSongsController: RandomSongsController,
     private val scrobbleController: ScrobbleController,
     private val nowPlayingController: NowPlayingController,
+    private val downloadRestController: DownloadRestController,
+    private val downloads: DownloadService,
     private val shareService: ShareService,
     private val mediaFileService: MediaFileService,
     private val playerResolver: RestPlayerResolver,
@@ -145,6 +157,8 @@ class AirsonicKtorServlet(
             if (playQueueRequest != null) call.attributes.put(PLAY_QUEUE_REQUEST_KEY, playQueueRequest)
             val scrobbleRequest = request.getAttribute(SCROBBLE_REQUEST) as? ScrobbleRequest
             if (scrobbleRequest != null) call.attributes.put(SCROBBLE_REQUEST_KEY, scrobbleRequest)
+            val downloadRequest = request.getAttribute(DOWNLOAD_REQUEST) as? DownloadRequest
+            if (downloadRequest != null) call.attributes.put(DOWNLOAD_REQUEST_KEY, downloadRequest)
             val randomSongsRequest = request.getAttribute(RANDOM_SONGS_REQUEST) as? RandomSongsRequest
             if (randomSongsRequest != null) call.attributes.put(RANDOM_SONGS_REQUEST_KEY, randomSongsRequest)
             val musicDirectoryRequest = request.getAttribute(MUSIC_DIRECTORY_REQUEST) as? MusicDirectoryRequest
@@ -200,6 +214,7 @@ class AirsonicKtorServlet(
             playQueueController.routes(this) { call -> call.attributes[PLAY_QUEUE_REQUEST_KEY] }
             indexesController.routes(this) { call -> call.attributes[INDEXES_REQUEST_KEY] }
             songsByGenreController.routes(this) { call -> call.attributes[GENRE_SONGS_REQUEST_KEY] }
+            downloadRestController.routes(this) { call -> call.attributes[DOWNLOAD_REQUEST_KEY] }
             nowPlayingController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             scrobbleController.routes(this) { call -> call.attributes[SCROBBLE_REQUEST_KEY] }
             randomSongsController.routes(this) { call -> call.attributes[RANDOM_SONGS_REQUEST_KEY] }
@@ -352,6 +367,49 @@ class AirsonicKtorServlet(
             val username = if (listing) requireNotNull(securityService.getCurrentUsername(request))
                 else requireNotNull(securityService.getCurrentUser(request)).username
             request.setAttribute(STARRED_REQUEST, StarredRequest(username, parameters(request), player))
+        } else if (path in DownloadRestController.PATHS) {
+            val params = parameters(request)
+            val rawPlaylist = params["playlist"]
+            val rawPlayer = params["player"]
+            val playlist = rawPlaylist?.takeIf { it.isNotEmpty() }?.toIntOrNull()
+            val suppliedPlayer = rawPlayer?.takeIf { it.isNotEmpty() }?.toIntOrNull()
+            val rawIndices = params.getAll("i")?.flatMap { it.split(',') }
+            val indices = rawIndices?.map { it.trim().toIntOrNull() }
+            if ((rawPlaylist != null && rawPlaylist.isNotEmpty() && playlist == null) ||
+                (rawPlayer != null && rawPlayer.isNotEmpty() && suppliedPlayer == null) ||
+                (indices != null && indices.any { it == null })) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST)
+                return
+            }
+            val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            val wrapped = object : HttpServletRequestWrapper(request) {
+                override fun getParameter(name: String): String? = when (name) {
+                    "player" -> playerId?.toString()
+                    "id" -> mapRestId(super.getParameter(name))
+                    else -> super.getParameter(name)
+                }
+            }
+            val id = mapRestId(params["id"])?.takeIf { StringUtils.isNumeric(it) }?.let { Integer.valueOf(it) }
+            val user = requireNotNull(securityService.getUserByName(request.userPrincipal.name))
+            if (!user.isDownloadRole) {
+                request.setAttribute(DOWNLOAD_REQUEST, DownloadRequest(params, null, ErrorCode.NOT_AUTHORIZED,
+                    "${user.username} is not authorized to download files."))
+            } else {
+                try {
+                    val player = playerService.getPlayer(wrapped, response, false, false)
+                    val download = downloads.prepare(user, player, Optional.ofNullable(id), playlist, playerId, indices?.filterNotNull())
+                    if (download != null && ServletWebRequest(wrapped, response).checkNotModified(download.size.toString(), download.changed)) return
+                    val disposition = download?.let { ContentDisposition.builder("attachment").filename(it.filename, StandardCharsets.UTF_8).build().toString() }
+                    val type = download?.let { StringUtil.getMimeType(FilenameUtils.getExtension(it.filename)) }
+                    request.setAttribute(DOWNLOAD_REQUEST, DownloadRequest(params, download, contentDisposition = disposition, contentType = type))
+                } catch (e: AccessDeniedException) {
+                    if (path.endsWith(".view")) {
+                        response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                        return
+                    }
+                    request.setAttribute(DOWNLOAD_REQUEST, DownloadRequest(params, null, ErrorCode.GENERIC, "Request processing failed: $e"))
+                }
+            }
         } else if (path in NowPlayingController.PATHS) {
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             request.setAttribute(REST_PARAMETERS, parameters(request))
@@ -576,6 +634,8 @@ class AirsonicKtorServlet(
         val PLAY_QUEUE_REQUEST_KEY = AttributeKey<PlayQueueRequest>(PLAY_QUEUE_REQUEST)
         const val SCROBBLE_REQUEST = "org.airsonic.player.scrobbleRequest"
         val SCROBBLE_REQUEST_KEY = AttributeKey<ScrobbleRequest>(SCROBBLE_REQUEST)
+        const val DOWNLOAD_REQUEST = "org.airsonic.player.downloadRequest"
+        val DOWNLOAD_REQUEST_KEY = AttributeKey<DownloadRequest>(DOWNLOAD_REQUEST)
         const val RANDOM_SONGS_REQUEST = "org.airsonic.player.randomSongsRequest"
         val RANDOM_SONGS_REQUEST_KEY = AttributeKey<RandomSongsRequest>(RANDOM_SONGS_REQUEST)
         const val MUSIC_DIRECTORY_REQUEST = "org.airsonic.player.musicDirectoryRequest"
