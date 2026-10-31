@@ -138,28 +138,6 @@ public class SubsonicRESTController {
         return responseMapper.album(jaxbAlbum, album, username);
     }
 
-    @RequestMapping("/getSong")
-    public void getSong(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        Player player = playerService.getPlayer(request, response);
-        String username = securityService.getCurrentUsername(request);
-
-        int id = getRequiredIntParameter(request, "id");
-        MediaFile song = mediaFileDao.getMediaFile(id);
-        if (song == null || song.isDirectory()) {
-            error(request, response, ErrorCode.NOT_FOUND, "Song not found.");
-            return;
-        }
-        if (!securityService.isFolderAccessAllowed(song, username)) {
-            error(request, response, ErrorCode.NOT_AUTHORIZED, "Access denied");
-            return;
-        }
-
-        Response res = createResponse();
-        res.setSong(createJaxbChild(player, song, username));
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
     @RequestMapping("/getVideos")
     public void getVideos(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
