@@ -72,7 +72,6 @@ public class SubsonicRESTController {
     private final LyricsWSController lyricsWSController;
     private final PlayQueueService playQueueService;
     private final JukeboxService jukeboxService;
-    private final AudioScrobblerService audioScrobblerService;
     private final RatingService ratingService;
     private final SearchService searchService;
     private final MediaFileDao mediaFileDao;
@@ -85,7 +84,7 @@ public class SubsonicRESTController {
 
     private final JAXBWriter jaxbWriter = new JAXBWriter();
 
-    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, SearchService searchService, AudioScrobblerService audioScrobblerService, StatusService statusService, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
+    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, SearchService searchService, StatusService statusService, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.avatarController = avatarController;
         this.settingsService = settingsService;
         this.securityService = securityService;
@@ -95,7 +94,6 @@ public class SubsonicRESTController {
         this.lastFmService = lastFmService;
         this.albumDao = albumDao;
         this.searchService = searchService;
-        this.audioScrobblerService = audioScrobblerService;
         this.statusService = statusService;
         this.coverArtService = coverArtService;
         this.transcodingService = transcodingService;
@@ -300,37 +298,6 @@ public class SubsonicRESTController {
         }
 
         hlsController.handleHlsRequest(authentication, id, request, response);
-    }
-
-    @RequestMapping("/scrobble")
-    public void scrobble(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-
-        Player player = playerService.getPlayer(request, response);
-
-        boolean submission = getBooleanParameter(request, "submission", true);
-        int[] ids = getRequiredIntParameters(request, "id");
-        long[] times = getLongParameters(request, "time");
-        if (times.length > 0 && times.length != ids.length) {
-            error(request, response, ErrorCode.GENERIC, "Wrong number of timestamps: " + times.length);
-            return;
-        }
-
-        for (int i = 0; i < ids.length; i++) {
-            int id = ids[i];
-            MediaFile file = mediaFileService.getMediaFile(id);
-            if (file == null) {
-                LOG.warn("File to scrobble not found: {}", id);
-                continue;
-            }
-            Instant time = times.length == 0 ? null : Instant.ofEpochMilli(times[i]);
-
-            statusService.addRemotePlay(new PlayStatus(UUID.randomUUID(), file, player, time == null ? Instant.now() : time));
-            mediaFileService.incrementPlayCount(file);
-            audioScrobblerService.register(file, player.getUsername(), submission, time);
-        }
-
-        writeEmptyResponse(request, response);
     }
 
     @RequestMapping("/getCoverArt")
