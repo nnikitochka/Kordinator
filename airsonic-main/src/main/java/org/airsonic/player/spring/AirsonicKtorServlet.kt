@@ -17,6 +17,8 @@ import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import org.airsonic.player.controller.rest.starred.StarredController
 import org.airsonic.player.controller.rest.starred.StarredRequest
+import org.airsonic.player.controller.rest.jukebox.JukeboxController
+import org.airsonic.player.controller.rest.jukebox.JukeboxRequest
 import org.airsonic.player.controller.rest.RestPlayerResolver
 import org.airsonic.player.controller.rest.bookmarks.BookmarksController
 import org.airsonic.player.controller.rest.bookmarks.BookmarksRequest
@@ -64,6 +66,7 @@ class AirsonicKtorServlet(
     private val albumsController: AlbumsController,
     private val bookmarksController: BookmarksController,
     private val starredController: StarredController,
+    private val jukeboxController: JukeboxController,
     private val shareService: ShareService,
     private val mediaFileService: MediaFileService,
     private val playerResolver: RestPlayerResolver,
@@ -106,6 +109,10 @@ class AirsonicKtorServlet(
             if (albumInfoRequest != null) {
                 call.attributes.put(ALBUM_INFO_REQUEST_KEY, albumInfoRequest)
             }
+            val jukeboxRequest = request.getAttribute(JUKEBOX_REQUEST) as? JukeboxRequest
+            if (jukeboxRequest != null) {
+                call.attributes.put(JUKEBOX_REQUEST_KEY, jukeboxRequest)
+            }
             val starredRequest = request.getAttribute(STARRED_REQUEST) as? StarredRequest
             if (starredRequest != null) {
                 call.attributes.put(STARRED_REQUEST_KEY, starredRequest)
@@ -142,6 +149,7 @@ class AirsonicKtorServlet(
             albumsController.routes(this) { call -> call.attributes[ALBUMS_REQUEST_KEY] }
             bookmarksController.routes(this) { call -> call.attributes[BOOKMARKS_REQUEST_KEY] }
             starredController.routes(this) { call -> call.attributes[STARRED_REQUEST_KEY] }
+            jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
         // Keep this compatibility code in the temporary servlet adapter.
@@ -256,6 +264,19 @@ class AirsonicKtorServlet(
                 return
             }
             request.setAttribute(ALBUM_INFO_REQUEST, AlbumInfoRequest(parameters(request), id))
+        } else if (path in JukeboxController.PATHS) {
+            val playerId = playerResolver.getOrCreatePlayerId(
+                request.remoteUser, request.getParameter("c"), request.remoteAddr, true
+            )
+            val user = requireNotNull(securityService.getCurrentUser(request))
+            val player = if (user.isJukeboxRole) {
+                val wrapped = object : HttpServletRequestWrapper(request) {
+                    override fun getParameter(name: String): String? =
+                        if (name == "player") playerId?.toString() else super.getParameter(name)
+                }
+                playerService.getPlayer(wrapped, response)
+            } else null
+            request.setAttribute(JUKEBOX_REQUEST, JukeboxRequest(user.username, user.isJukeboxRole, player, parameters(request)))
         } else if (path in StarredController.PATHS) {
             val operation = path.substringAfterLast('/').removeSuffix(".view")
             val playerId = playerResolver.getOrCreatePlayerId(
@@ -399,6 +420,8 @@ class AirsonicKtorServlet(
         )
         const val ARTISTS_REQUEST = "org.airsonic.player.artistsRequest"
         val ARTISTS_REQUEST_KEY = AttributeKey<ArtistsRequest>(ARTISTS_REQUEST)
+        const val JUKEBOX_REQUEST = "org.airsonic.player.jukeboxRequest"
+        val JUKEBOX_REQUEST_KEY = AttributeKey<JukeboxRequest>(JUKEBOX_REQUEST)
         const val STARRED_REQUEST = "org.airsonic.player.starredRequest"
         val STARRED_REQUEST_KEY = AttributeKey<StarredRequest>(STARRED_REQUEST)
         const val BOOKMARKS_REQUEST = "org.airsonic.player.bookmarksRequest"

@@ -3,6 +3,7 @@ package org.airsonic.player.spring;
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
+import org.airsonic.player.controller.rest.jukebox.JukeboxController;
 import org.airsonic.player.controller.rest.starred.StarredController;
 import org.airsonic.player.controller.rest.bookmarks.BookmarksController;
 import org.airsonic.player.controller.rest.albums.AlbumsController;
@@ -23,6 +24,8 @@ import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.LastFmService;
+import org.airsonic.player.service.JukeboxService;
+import org.airsonic.player.service.PlayQueueService;
 import org.airsonic.player.service.BookmarkService;
 import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.MediaFolderService;
@@ -63,6 +66,8 @@ public class KtorConfiguration {
             PlaylistService playlistService,
             ShareService shareService,
             BookmarkService bookmarkService,
+            JukeboxService jukeboxService,
+            PlayQueueService playQueueService,
             SecurityService securityService,
             LocaleResolver localeResolver
     ) {
@@ -81,6 +86,7 @@ public class KtorConfiguration {
                                         ratingService, albumSearchService, responseMapper, jaxbWriter),
                                 new BookmarksController(bookmarkService, mediaFileService, responseMapper, jaxbWriter),
                                 new StarredController(mediaFileDao, albumDao, artistDao, mediaFolderService, responseMapper, jaxbWriter),
+                                new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver),
                         "/internal/ktor/*");
@@ -98,6 +104,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(AlbumsController.PATHS);
         registration.addUrlMappings(BookmarksController.PATHS);
         registration.addUrlMappings(StarredController.PATHS);
+        registration.addUrlMappings(JukeboxController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);
