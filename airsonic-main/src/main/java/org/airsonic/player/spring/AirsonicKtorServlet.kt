@@ -16,6 +16,8 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import org.airsonic.player.controller.rest.RestPlayerResolver
+import org.airsonic.player.controller.rest.albums.AlbumsController
+import org.airsonic.player.controller.rest.albums.AlbumsRequest
 import org.airsonic.player.controller.rest.info.album.AlbumInfoController
 import org.airsonic.player.controller.rest.info.album.AlbumInfoRequest
 import org.airsonic.player.controller.rest.info.artist.ArtistInfoController
@@ -55,6 +57,7 @@ class AirsonicKtorServlet(
     private val albumInfoController: AlbumInfoController,
     private val playlistsController: PlaylistsController,
     private val sharesController: SharesController,
+    private val albumsController: AlbumsController,
     private val shareService: ShareService,
     private val mediaFileService: MediaFileService,
     private val playerResolver: RestPlayerResolver,
@@ -97,6 +100,10 @@ class AirsonicKtorServlet(
             if (albumInfoRequest != null) {
                 call.attributes.put(ALBUM_INFO_REQUEST_KEY, albumInfoRequest)
             }
+            val albumsRequest = request.getAttribute(ALBUMS_REQUEST) as? AlbumsRequest
+            if (albumsRequest != null) {
+                call.attributes.put(ALBUMS_REQUEST_KEY, albumsRequest)
+            }
             val sharesRequest = request.getAttribute(SHARES_REQUEST) as? SharesRequest
             if (sharesRequest != null) {
                 call.attributes.put(SHARES_REQUEST_KEY, sharesRequest)
@@ -118,6 +125,7 @@ class AirsonicKtorServlet(
             albumInfoController.routes(this) { call -> call.attributes[ALBUM_INFO_REQUEST_KEY] }
             playlistsController.routes(this) { call -> call.attributes[PLAYLISTS_REQUEST_KEY] }
             sharesController.routes(this) { call -> call.attributes[SHARES_REQUEST_KEY] }
+            albumsController.routes(this) { call -> call.attributes[ALBUMS_REQUEST_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
         // Keep this compatibility code in the temporary servlet adapter.
@@ -225,6 +233,27 @@ class AirsonicKtorServlet(
                 return
             }
             request.setAttribute(ALBUM_INFO_REQUEST, AlbumInfoRequest(parameters(request), id))
+        } else if (path in AlbumsController.PATHS) {
+            val operation = path.substringAfterLast('/').removeSuffix(".view")
+            val playerId = playerResolver.getOrCreatePlayerId(
+                request.remoteUser, request.getParameter("c"), request.remoteAddr, false
+            )
+            val player = if (operation == "getAlbum" || operation == "getAlbumList") {
+                val wrapped = object : HttpServletRequestWrapper(request) {
+                    override fun getParameter(name: String): String? =
+                        if (name == "player") playerId?.toString() else super.getParameter(name)
+                }
+                playerService.getPlayer(wrapped, response)
+            } else null
+            val username = requireNotNull(securityService.getCurrentUsername(request))
+            val rawId = if (operation == "getAlbum") mapRestId(request.getParameter("id")) else null
+            val id = if (rawId == null) null else try {
+                Integer.parseInt(rawId)
+            } catch (_: NumberFormatException) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST)
+                return
+            }
+            request.setAttribute(ALBUMS_REQUEST, AlbumsRequest(username, parameters(request), id, player))
         } else if (path in SharesController.PATHS) {
             val operation = path.substringAfterLast('/').removeSuffix(".view")
             val playerId = playerResolver.getOrCreatePlayerId(
@@ -310,6 +339,8 @@ class AirsonicKtorServlet(
         )
         const val ARTISTS_REQUEST = "org.airsonic.player.artistsRequest"
         val ARTISTS_REQUEST_KEY = AttributeKey<ArtistsRequest>(ARTISTS_REQUEST)
+        const val ALBUMS_REQUEST = "org.airsonic.player.albumsRequest"
+        val ALBUMS_REQUEST_KEY = AttributeKey<AlbumsRequest>(ALBUMS_REQUEST)
         const val ALBUM_INFO_REQUEST = "org.airsonic.player.albumInfoRequest"
         val ALBUM_INFO_REQUEST_KEY = AttributeKey<AlbumInfoRequest>(ALBUM_INFO_REQUEST)
         const val SHARES_REQUEST = "org.airsonic.player.sharesRequest"

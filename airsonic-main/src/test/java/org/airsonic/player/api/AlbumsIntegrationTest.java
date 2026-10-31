@@ -73,12 +73,19 @@ public class AlbumsIntegrationTest {
             album = albumDao.getAlbum("Album artist", "Album contract");
             assertNotNull(album);
             int id = album.getId();
+            MediaFile albumDir = mediaFileDao.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
+            MediaFile song = mediaFileDao.getChildrenOf(albumDir.getPath(), albumDir.getFolderId(), true).stream()
+                    .filter(MediaFile::isFile).findFirst().orElseThrow();
+            song.setAlbumName("Album contract");
+            song.setAlbumArtist("Album artist");
+            mediaFileDao.createOrUpdateMediaFile(song, ignored -> { });
             for (String suffix : List.of("", ".view")) {
                 String albumPath = "/rest/getAlbum" + suffix;
                 JsonNode result = body(send(albumPath + "?" + credentials() + "&f=json&id=" + id, null, null));
                 assertEquals("ok", result.path("status").asText());
                 assertEquals("Album contract", result.path("album").path("name").asText());
                 assertEquals(String.valueOf(id), result.path("album").path("id").asText());
+                assertEquals(String.valueOf(song.getId()), result.path("album").path("song").get(0).path("id").asText());
                 assertError(send(albumPath + "?" + credentials() + "&f=json", null, null), 10, "Required param (id) is missing");
                 assertEquals(400, send(albumPath + "?" + credentials() + "&id=bad", null, null).statusCode());
                 assertError(send(albumPath + "?" + credentials() + "&f=json&id=2147483647", null, null), 70, "Album not found.");
@@ -104,6 +111,17 @@ public class AlbumsIntegrationTest {
                     assertEquals("ok", filtered.path("status").asText());
                 }
             }
+            JsonNode albums = body(send("/rest/getAlbumList2?" + credentials() + "&f=json&type=newest&size=500", null, null)).path("albumList2").path("album");
+            boolean found = false;
+            for (JsonNode listed : albums) {
+                if (listed.path("id").asInt() == id) {
+                    assertEquals("Album contract", listed.path("name").asText());
+                    found = true;
+                }
+            }
+            assertTrue("Created album missing from list", found);
+            assertEquals(400, send("/rest/getAlbumList?" + credentials() + "&musicFolderId=bad", null, null).statusCode());
+            assertError(send("/rest/getAlbumList2?" + credentials() + "&f=json&musicFolderId=bad", null, null), 10, "Required param (type) is missing");
             assertError(send("/rest/getAlbumList2?" + credentials() + "&f=json&type=highest", null, null), 0, "Request processing failed: java.lang.Exception: Invalid list type: highest");
             assertEquals("ok", body(send("/rest/getAlbumList?" + credentials() + "&f=json&type=highest", null, null)).path("status").asText());
             HttpResponse<String> xml = send("/rest/getAlbum.view?id=" + id, null, "admin:admin");

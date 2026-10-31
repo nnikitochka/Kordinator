@@ -3,6 +3,7 @@ package org.airsonic.player.spring;
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
+import org.airsonic.player.controller.rest.albums.AlbumsController;
 import org.airsonic.player.controller.rest.info.album.AlbumInfoController;
 import org.airsonic.player.controller.rest.artists.ArtistsController;
 import org.airsonic.player.controller.rest.info.artist.ArtistInfoController;
@@ -16,6 +17,7 @@ import org.airsonic.player.controller.rest.search.SearchController;
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsController;
 import org.airsonic.player.controller.rest.SubsonicResponseMapper;
 import org.airsonic.player.dao.AlbumDao;
+import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.LastFmService;
@@ -25,6 +27,8 @@ import org.airsonic.player.service.PlayerService;
 import org.airsonic.player.service.PlaylistService;
 import org.airsonic.player.service.MediaScannerService;
 import org.airsonic.player.service.SecurityService;
+import org.airsonic.player.service.RatingService;
+import org.airsonic.player.service.SearchService;
 import org.airsonic.player.service.ShareService;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -45,6 +49,9 @@ public class KtorConfiguration {
             MediaFileService mediaFileService,
             ArtistDao artistDao,
             AlbumDao albumDao,
+            MediaFileDao mediaFileDao,
+            RatingService ratingService,
+            SearchService albumSearchService,
             LastFmService lastFmService,
             MediaFolderService mediaFolderService,
             SubsonicResponseMapper responseMapper,
@@ -66,6 +73,8 @@ public class KtorConfiguration {
                                 new AlbumInfoController(mediaFileService, albumDao, lastFmService, jaxbWriter),
                                 new PlaylistsController(playlistService, mediaFileService, securityService, responseMapper, jaxbWriter),
                                 new SharesController(shareService, mediaFileService, mediaFolderService, responseMapper, jaxbWriter),
+                                new AlbumsController(albumDao, mediaFileDao, mediaFileService, mediaFolderService,
+                                        ratingService, albumSearchService, responseMapper, jaxbWriter),
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver),
                         "/internal/ktor/*");
@@ -80,6 +89,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(AlbumInfoController.PATHS);
         registration.addUrlMappings(PlaylistsController.PATHS);
         registration.addUrlMappings(SharesController.PATHS);
+        registration.addUrlMappings(AlbumsController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);
