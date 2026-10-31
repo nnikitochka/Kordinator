@@ -3,9 +3,7 @@ package org.airsonic.player.api;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.airsonic.player.TestCaseUtils;
-import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.dao.MediaFileDao;
-import org.airsonic.player.domain.Artist;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.User;
@@ -15,7 +13,6 @@ import org.airsonic.player.service.MediaScannerService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.util.HomeRule;
 import org.airsonic.player.util.MusicFolderTestData;
-import org.airsonic.player.util.StringUtil;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,7 +29,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
@@ -57,8 +53,6 @@ public class TopSongsIntegrationTest {
     private MediaScannerService scanner;
     @Autowired
     private MediaFileDao mediaFileDao;
-    @Autowired
-    private ArtistDao artistDao;
     @Autowired
     private SecurityService securityService;
     @MockitoBean

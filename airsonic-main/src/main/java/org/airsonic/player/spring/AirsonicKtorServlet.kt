@@ -52,6 +52,8 @@ import org.airsonic.player.controller.rest.indexes.IndexesController
 import org.airsonic.player.controller.rest.indexes.IndexesRequest
 import org.airsonic.player.controller.rest.music.genre.SongsByGenreController
 import org.airsonic.player.controller.rest.music.genre.SongsByGenreRequest
+import org.airsonic.player.controller.rest.music.top.TopSongsController
+import org.airsonic.player.controller.rest.music.top.TopSongsRequest
 import org.airsonic.player.i18n.LocaleResolver
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.PlayerService
@@ -82,6 +84,7 @@ class AirsonicKtorServlet(
     private val playQueueController: PlayQueueController,
     private val indexesController: IndexesController,
     private val songsByGenreController: SongsByGenreController,
+    private val topSongsController: TopSongsController,
     private val shareService: ShareService,
     private val mediaFileService: MediaFileService,
     private val playerResolver: RestPlayerResolver,
@@ -129,6 +132,8 @@ class AirsonicKtorServlet(
             if (usersRequest != null) call.attributes.put(USERS_REQUEST_KEY, usersRequest)
             val playQueueRequest = request.getAttribute(PLAY_QUEUE_REQUEST) as? PlayQueueRequest
             if (playQueueRequest != null) call.attributes.put(PLAY_QUEUE_REQUEST_KEY, playQueueRequest)
+            val topSongsRequest = request.getAttribute(TOP_SONGS_REQUEST) as? TopSongsRequest
+            if (topSongsRequest != null) call.attributes.put(TOP_SONGS_REQUEST_KEY, topSongsRequest)
             val genreSongsRequest = request.getAttribute(GENRE_SONGS_REQUEST) as? SongsByGenreRequest
             if (genreSongsRequest != null) call.attributes.put(GENRE_SONGS_REQUEST_KEY, genreSongsRequest)
             val indexesRequest = request.getAttribute(INDEXES_REQUEST) as? IndexesRequest
@@ -178,6 +183,7 @@ class AirsonicKtorServlet(
             playQueueController.routes(this) { call -> call.attributes[PLAY_QUEUE_REQUEST_KEY] }
             indexesController.routes(this) { call -> call.attributes[INDEXES_REQUEST_KEY] }
             songsByGenreController.routes(this) { call -> call.attributes[GENRE_SONGS_REQUEST_KEY] }
+            topSongsController.routes(this) { call -> call.attributes[TOP_SONGS_REQUEST_KEY] }
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
@@ -325,6 +331,23 @@ class AirsonicKtorServlet(
             val username = if (listing) requireNotNull(securityService.getCurrentUsername(request))
                 else requireNotNull(securityService.getCurrentUser(request)).username
             request.setAttribute(STARRED_REQUEST, StarredRequest(username, parameters(request), player))
+        } else if (path in TopSongsController.PATHS) {
+            val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            val username = requireNotNull(securityService.getCurrentUsername(request))
+            val wrapped = object : HttpServletRequestWrapper(request) {
+                override fun getParameter(name: String): String? =
+                    if (name == "player") playerId?.toString() else super.getParameter(name)
+            }
+            val securityContext = SecurityContextHolder.getContext()
+            request.setAttribute(TOP_SONGS_REQUEST, TopSongsRequest(username, parameters(request)) {
+                val previousContext = SecurityContextHolder.getContext()
+                try {
+                    SecurityContextHolder.setContext(securityContext)
+                    playerService.getPlayer(wrapped, response)
+                } finally {
+                    SecurityContextHolder.setContext(previousContext)
+                }
+            })
         } else if (path in SongsByGenreController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val wrapped = object : HttpServletRequestWrapper(request) {
@@ -501,6 +524,8 @@ class AirsonicKtorServlet(
         val USERS_REQUEST_KEY = AttributeKey<UsersRequest>(USERS_REQUEST)
         const val PLAY_QUEUE_REQUEST = "org.airsonic.player.playQueueRequest"
         val PLAY_QUEUE_REQUEST_KEY = AttributeKey<PlayQueueRequest>(PLAY_QUEUE_REQUEST)
+        const val TOP_SONGS_REQUEST = "org.airsonic.player.topSongsRequest"
+        val TOP_SONGS_REQUEST_KEY = AttributeKey<TopSongsRequest>(TOP_SONGS_REQUEST)
         const val GENRE_SONGS_REQUEST = "org.airsonic.player.genreSongsRequest"
         val GENRE_SONGS_REQUEST_KEY = AttributeKey<SongsByGenreRequest>(GENRE_SONGS_REQUEST)
         const val INDEXES_REQUEST = "org.airsonic.player.indexesRequest"

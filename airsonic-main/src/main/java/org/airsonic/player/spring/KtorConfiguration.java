@@ -5,6 +5,7 @@ import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.LeftController;
 import org.airsonic.player.controller.rest.indexes.IndexesController;
 import org.airsonic.player.controller.rest.music.genre.SongsByGenreController;
+import org.airsonic.player.controller.rest.music.top.TopSongsController;
 import org.airsonic.player.service.MusicIndexService;
 import org.airsonic.player.controller.rest.playqueue.PlayQueueController;
 import org.airsonic.player.dao.PlayQueueDao;
@@ -107,6 +108,7 @@ public class KtorConfiguration {
                                 new PlayQueueController(playQueueDao, mediaFileService, responseMapper, jaxbWriter),
                                 new IndexesController(settingsService, mediaFolderService, musicIndexService, mediaFileDao, ratingService, responseMapper, jaxbWriter),
                                 new SongsByGenreController(mediaFileDao, mediaFolderService, responseMapper, jaxbWriter),
+                                new TopSongsController(lastFmService, mediaFolderService, responseMapper, jaxbWriter),
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver, leftController),
                         "/internal/ktor/*");
@@ -130,6 +132,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(PlayQueueController.PATHS);
         registration.addUrlMappings(IndexesController.PATHS);
         registration.addUrlMappings(SongsByGenreController.PATHS);
+        registration.addUrlMappings(TopSongsController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);
