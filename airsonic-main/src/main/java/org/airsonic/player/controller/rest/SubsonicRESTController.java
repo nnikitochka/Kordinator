@@ -73,7 +73,6 @@ public class SubsonicRESTController {
     private final PlayQueueService playQueueService;
     private final JukeboxService jukeboxService;
     private final RatingService ratingService;
-    private final SearchService searchService;
     private final MediaFileDao mediaFileDao;
     private final ArtistDao artistDao;
     private final AlbumDao albumDao;
@@ -84,7 +83,7 @@ public class SubsonicRESTController {
 
     private final JAXBWriter jaxbWriter = new JAXBWriter();
 
-    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, SearchService searchService, StatusService statusService, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
+    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, StatusService statusService, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.avatarController = avatarController;
         this.settingsService = settingsService;
         this.securityService = securityService;
@@ -93,7 +92,6 @@ public class SubsonicRESTController {
         this.mediaFileService = mediaFileService;
         this.lastFmService = lastFmService;
         this.albumDao = albumDao;
-        this.searchService = searchService;
         this.statusService = statusService;
         this.coverArtService = coverArtService;
         this.transcodingService = transcodingService;
@@ -165,30 +163,6 @@ public class SubsonicRESTController {
 
         Response res = createResponse();
         res.setSong(createJaxbChild(player, song, username));
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
-    @RequestMapping("/getRandomSongs")
-    public void getRandomSongs(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        Player player = playerService.getPlayer(request, response);
-        String username = securityService.getCurrentUsername(request);
-
-        int size = getIntParameter(request, "size", 10);
-        size = Math.max(0, Math.min(size, 500));
-        String genre = getStringParameter(request, "genre");
-        Integer fromYear = getIntParameter(request, "fromYear");
-        Integer toYear = getIntParameter(request, "toYear");
-        Integer musicFolderId = getIntParameter(request, "musicFolderId");
-        List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username, musicFolderId);
-        RandomSearchCriteria criteria = new RandomSearchCriteria(size, genre, fromYear, toYear, musicFolders);
-
-        Songs result = new Songs();
-        for (MediaFile mediaFile : searchService.getRandomSongs(criteria)) {
-            result.getSong().add(createJaxbChild(player, mediaFile, username));
-        }
-        Response res = createResponse();
-        res.setRandomSongs(result);
         jaxbWriter.writeResponse(request, response, res);
     }
 
