@@ -53,6 +53,10 @@ public class StreamIntegrationTest {
             User denied = new User("stream-denied", null);
             denied.setRoles(Set.of(User.Role.DOWNLOAD));
             security.createUser(denied, "secret", "test");
+            User restricted = new User("stream-restricted", null);
+            restricted.setRoles(Set.of(User.Role.STREAM));
+            security.createUser(restricted, "secret", "test");
+            folders.setMusicFoldersForUser(restricted.getUsername(), Set.of(library.get(1).getId()));
             for (String suffix : List.of("", ".view")) {
                 String query = "id=" + song.getId() + "&format=raw";
                 HttpResponse<byte[]> full = send(suffix, query, "admin", "admin", null, null);
@@ -79,7 +83,26 @@ public class StreamIntegrationTest {
                 assertEquals(304, send(suffix, query, "admin", "admin", "If-None-Match", full.headers().firstValue("etag").orElseThrow()).statusCode());
                 HttpResponse<byte[]> noRole = send(suffix, query + "&f=json", "stream-denied", "secret", null, null);
                 assertEquals(50, new ObjectMapper().readTree(noRole.body()).path("subsonic-response").path("error").path("code").asInt());
+                HttpResponse<byte[]> forbidden = send(suffix, query + "&f=json", "stream-restricted", "secret", null, null);
+                if (suffix.isEmpty()) {
+                    assertEquals(200, forbidden.statusCode());
+                    assertEquals(0, new ObjectMapper().readTree(forbidden.body()).path("subsonic-response").path("error").path("code").asInt());
+                } else assertEquals(403, forbidden.statusCode());
                 assertEquals(400, send(suffix, "id=bad", "admin", "admin", null, null).statusCode());
+                assertEquals(400, send(suffix, query + "&maxBitRate=bad", "admin", "admin", null, null).statusCode());
+                assertEquals(400, send(suffix, query + "&offsetSeconds=bad", "admin", "admin", null, null).statusCode());
+                String params = "v=" + TestCaseUtils.restApiVersion() + "&c=stream-test&u=admin&p=admin&" + query;
+                HttpRequest head = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic/rest/stream" + suffix + "?" + params))
+                        .method("HEAD", HttpRequest.BodyPublishers.noBody()).build();
+                HttpResponse<Void> headResponse = client.send(head, HttpResponse.BodyHandlers.discarding());
+                assertEquals(200, headResponse.statusCode());
+                assertEquals(expected.length, headResponse.headers().firstValueAsLong("content-length").orElse(-1));
+                HttpRequest post = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic/rest/stream" + suffix))
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(params)).build();
+                HttpResponse<byte[]> postResponse = client.send(post, HttpResponse.BodyHandlers.ofByteArray());
+                if (suffix.isEmpty()) assertEquals(403, postResponse.statusCode());
+                else assertArrayEquals(expected, postResponse.body());
             }
         } finally {
             ScanningTestUtils.after(cleanup, folders);

@@ -66,6 +66,11 @@ public class StatusService {
     }
 
     public void removeStreamStatus(TransferStatus status) {
+        if (status.getMediaFile() == null && status.getExternalFile() == null) {
+            streamStatuses.remove(status);
+            status.setActive(false);
+            return;
+        }
         // Move it to the map of inactive statuses.
         inactiveStreamStatuses.compute(status.getPlayer().getId(), (k, v) -> {
             streamStatuses.remove(status);

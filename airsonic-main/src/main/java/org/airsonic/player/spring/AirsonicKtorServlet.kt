@@ -17,6 +17,10 @@ import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.servlet.http.HttpServletResponseWrapper
 import org.airsonic.player.controller.HLSController
+import org.airsonic.player.controller.StreamController
+import org.airsonic.player.controller.rest.stream.StreamRestController
+import org.springframework.core.io.Resource
+import org.springframework.http.ResponseEntity
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.hls.HlsRestController
 import org.springframework.security.core.Authentication
@@ -139,6 +143,8 @@ class AirsonicKtorServlet(
     private val avatarRestController: AvatarRestController,
     private val hlsRestController: HlsRestController,
     private val hlsController: HLSController,
+    private val streamRestController: StreamRestController,
+    private val streamController: StreamController,
     private val jaxbWriter: JAXBWriter,
 ) : ServletApplicationEngine() {
     @OptIn(InternalAPI::class)
@@ -226,6 +232,9 @@ class AirsonicKtorServlet(
             }
             val hlsPlaylist = request.getAttribute(HLS_PLAYLIST) as? String
             if (hlsPlaylist != null) call.attributes.put(HLS_PLAYLIST_KEY, hlsPlaylist)
+            @Suppress("UNCHECKED_CAST")
+            val stream = request.getAttribute(STREAM_RESPONSE) as? ResponseEntity<Resource>
+            if (stream != null) call.attributes.put(STREAM_RESPONSE_KEY, stream)
         }
         application.routing {
             searchController.routes(this) { call -> call.attributes[SEARCH_REQUEST_KEY] }
@@ -259,6 +268,7 @@ class AirsonicKtorServlet(
             topSongsController.routes(this) { call -> call.attributes[TOP_SONGS_REQUEST_KEY] }
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
             hlsRestController.routes(this) { call -> call.attributes[HLS_PLAYLIST_KEY] }
+            streamRestController.routes(this) { call -> call.attributes[STREAM_RESPONSE_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
         // Keep this compatibility code in the temporary servlet adapter.
@@ -660,6 +670,45 @@ class AirsonicKtorServlet(
                 return
             }
             request.setAttribute(PLAYLISTS_REQUEST, PlaylistsRequest(username, admin, parameters(request), id, player))
+        } else if (path in StreamRestController.PATHS && request.method in setOf("GET", "POST", "HEAD")) {
+            val rawId = request.getParameter("id")?.trim()?.takeIf { it.isNotEmpty() }
+            val rawBitRate = request.getParameter("maxBitRate")?.trim()?.takeIf { it.isNotEmpty() }
+            val rawOffset = request.getParameter("offsetSeconds")?.trim()?.takeIf { it.isNotEmpty() }
+            val id = rawId?.toIntOrNull()
+            val bitRate = rawBitRate?.toIntOrNull()
+            val offset = rawOffset?.toDoubleOrNull()
+            if ((rawId != null && id == null) || (rawBitRate != null && bitRate == null) || (rawOffset != null && offset == null)) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST)
+                return
+            }
+            val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            val wrapped = object : HttpServletRequestWrapper(request) {
+                override fun getParameter(name: String): String? = when (name) {
+                    "player" -> playerId?.toString()
+                    "id" -> mapRestId(super.getParameter(name))
+                    else -> super.getParameter(name)
+                }
+            }
+            val authentication = request.userPrincipal as Authentication
+            val user = requireNotNull(securityService.getUserByName(authentication.name))
+            if (!user.isStreamRole) {
+                jaxbWriter.writeErrorResponse(wrapped, response, ErrorCode.NOT_AUTHORIZED,
+                    "${user.username} is not authorized to play files.")
+                return
+            }
+            val result = try {
+                streamController.handleRequest(authentication, request.getParameter("format"), request.getParameter("suffix"),
+                    Optional.ofNullable(bitRate), Optional.ofNullable(id), Optional.ofNullable(request.getParameter("path")),
+                    offset, ServletWebRequest(wrapped, response))
+            } catch (e: AccessDeniedException) {
+                if (path.endsWith(".view")) {
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                    return
+                }
+                throw e
+            }
+            if (result == null) return
+            request.setAttribute(STREAM_RESPONSE, result)
         } else if (path in HlsRestController.PATHS && request.method in setOf("GET", "POST", "HEAD")) {
             val rawId = request.getParameter("id")
             if (rawId == null || rawId.isEmpty()) {
@@ -761,6 +810,8 @@ class AirsonicKtorServlet(
     }
 
     private companion object {
+        const val STREAM_RESPONSE = "org.airsonic.player.streamResponse"
+        val STREAM_RESPONSE_KEY = AttributeKey<ResponseEntity<Resource>>(STREAM_RESPONSE)
         const val HLS_PLAYLIST = "org.airsonic.player.hlsPlaylist"
         val HLS_PLAYLIST_KEY = AttributeKey<String>(HLS_PLAYLIST)
         const val REST_PARAMETERS = "org.airsonic.player.restParameters"
