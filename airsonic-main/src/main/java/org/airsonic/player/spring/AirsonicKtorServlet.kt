@@ -468,7 +468,7 @@ class AirsonicKtorServlet(
             }
             val player = playerService.getPlayer(wrapped, response)
             val username = requireNotNull(securityService.getCurrentUsername(request))
-            request.setAttribute(SONG_REQUEST, SongRequest(username, player, parameters(request)))
+            request.setAttribute(SONG_REQUEST, SongRequest(username, player, parametersWithMappedId(request)))
         } else if (path in VideosController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val wrapped = object : HttpServletRequestWrapper(request) {
@@ -486,7 +486,7 @@ class AirsonicKtorServlet(
             // The legacy wrapRequest() created a REST player for this endpoint too.
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val username = requireNotNull(securityService.getCurrentUsername(request))
-            request.setAttribute(RATING_REQUEST, RatingRequest(username, parameters(request)))
+            request.setAttribute(RATING_REQUEST, RatingRequest(username, parametersWithMappedId(request)))
         } else if (path in TopSongsController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val username = requireNotNull(securityService.getCurrentUsername(request))
@@ -651,6 +651,21 @@ class AirsonicKtorServlet(
         // Security filters may already have consumed a POST body. Use the servlet's parsed parameters.
         request.parameterNames.asSequence().distinct().forEach { name ->
             request.getParameterValues(name)?.let { appendAll(name, it.toList()) }
+        }
+    }
+
+    /**
+     * Mirrors the old REST request wrapper: its single {@code id} parameter was
+     * resolved from the legacy UTF-8-hex path form before endpoint code read it.
+     */
+    private fun parametersWithMappedId(request: HttpServletRequest): Parameters = Parameters.build {
+        request.parameterNames.asSequence().distinct().forEach { name ->
+            val values = request.getParameterValues(name)?.toList().orEmpty()
+            if (name == "id" && values.isNotEmpty()) {
+                append(name, mapRestId(values.first()) ?: values.first())
+            } else {
+                appendAll(name, values)
+            }
         }
     }
 

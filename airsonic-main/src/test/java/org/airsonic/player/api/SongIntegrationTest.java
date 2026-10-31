@@ -12,6 +12,7 @@ import org.airsonic.player.service.MediaScannerService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.util.HomeRule;
 import org.airsonic.player.util.MusicFolderTestData;
+import org.airsonic.player.util.StringUtil;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,11 +50,13 @@ public class SongIntegrationTest {
             security.createUser(restricted, "secret", "test");
             folders.setMusicFoldersForUser(restricted.getUsername(), Set.of(library.get(1).getId()));
             String id = "id=" + song.getId();
+            String legacyId = StringUtil.utf8HexEncode(song.getFullPath(library.get(0).getPath()).toString());
             for (String suffix : List.of("", ".view")) {
                 JsonNode result = body(send(suffix, "f=json&" + id, false, false)).path("song");
                 assertEquals(song.getId().toString(), result.path("id").asText());
                 assertEquals(song.getTitle(), result.path("title").asText());
                 assertFalse(result.path("isDir").asBoolean());
+                assertEquals(song.getId().toString(), body(send(suffix, "f=json&id=" + legacyId, false, false)).path("song").path("id").asText());
                 assertEquals(10, body(send(suffix, "f=json", false, false)).path("error").path("code").asInt());
                 assertEquals(70, body(send(suffix, "f=json&id=2147483647", false, false)).path("error").path("code").asInt());
                 assertEquals(70, body(send(suffix, "f=json&id=" + album.getId(), false, false)).path("error").path("code").asInt());

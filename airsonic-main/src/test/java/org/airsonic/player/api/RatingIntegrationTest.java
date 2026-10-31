@@ -11,6 +11,7 @@ import org.airsonic.player.service.MediaScannerService;
 import org.airsonic.player.service.RatingService;
 import org.airsonic.player.util.HomeRule;
 import org.airsonic.player.util.MusicFolderTestData;
+import org.airsonic.player.util.StringUtil;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,9 +45,12 @@ public class RatingIntegrationTest {
             MediaFile album = mediaFiles.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
             MediaFile song = mediaFiles.getChildrenOf(album.getPath(), album.getFolderId(), true).get(0);
             String id = "id=" + song.getId();
+            String legacyId = StringUtil.utf8HexEncode(song.getFullPath(library.get(0).getPath()).toString());
             for (String suffix : List.of("", ".view")) {
                 assertEquals("ok", body(send(suffix, "f=json&" + id + "&rating=3", false)).path("status").asText());
                 assertEquals(3, ratings.getRatingForUser("admin", song).intValue());
+                assertEquals("ok", body(send(suffix, "f=json&id=" + legacyId + "&rating=4", false)).path("status").asText());
+                assertEquals(4, ratings.getRatingForUser("admin", song).intValue());
                 assertEquals("ok", body(send(suffix, "f=json&" + id + "&rating=0", false)).path("status").asText());
                 assertNull(ratings.getRatingForUser("admin", song));
                 assertEquals(10, body(send(suffix, "f=json", false)).path("error").path("code").asInt());
