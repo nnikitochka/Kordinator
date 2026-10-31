@@ -2,7 +2,6 @@ package org.airsonic.player.controller.rest;
 
 import org.airsonic.player.ajax.lyrics.LyricsInfo;
 import org.airsonic.player.ajax.lyrics.LyricsWSController;
-import org.airsonic.player.ajax.playing.NowPlayingInfo;
 import org.airsonic.player.controller.*;
 import org.airsonic.player.controller.cover.CoverArtController;
 import org.airsonic.player.controller.rest.error.APIException;
@@ -41,7 +40,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.stream.Stream;
 
 import static org.springframework.web.bind.ServletRequestUtils.*;
 
@@ -66,7 +64,6 @@ public class SubsonicRESTController {
     private final DownloadController downloadController;
     private final CoverArtController coverArtController;
     private final AvatarController avatarController;
-    private final StatusService statusService;
     private final StreamController streamController;
     private final HLSController hlsController;
     private final LyricsWSController lyricsWSController;
@@ -83,7 +80,7 @@ public class SubsonicRESTController {
 
     private final JAXBWriter jaxbWriter = new JAXBWriter();
 
-    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, StatusService statusService, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
+    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.avatarController = avatarController;
         this.settingsService = settingsService;
         this.securityService = securityService;
@@ -92,7 +89,6 @@ public class SubsonicRESTController {
         this.mediaFileService = mediaFileService;
         this.lastFmService = lastFmService;
         this.albumDao = albumDao;
-        this.statusService = statusService;
         this.coverArtService = coverArtService;
         this.transcodingService = transcodingService;
         this.jukeboxService = jukeboxService;
@@ -185,34 +181,8 @@ public class SubsonicRESTController {
         jaxbWriter.writeResponse(request, response, res);
     }
 
-    @RequestMapping("/getNowPlaying")
-    public void getNowPlaying(HttpServletRequest request, HttpServletResponse response) {
-        request = wrapRequest(request);
-        NowPlaying result = new NowPlaying();
-
-        Stream.concat(statusService.getActivePlays().parallelStream(),
-                statusService.getInactivePlays().parallelStream())
-            .map(NowPlayingInfo::fromPlayStatus)
-            .forEach(s -> {
-                NowPlayingEntry entry = new NowPlayingEntry();
-                entry.setUsername(s.getPlayer().getUsername());
-                entry.setPlayerId(s.getPlayer().getId());
-                entry.setPlayerName(s.getPlayer().getName());
-                entry.setMinutesAgo((int) s.getMinutesAgo());
-                result.getEntry().add(createJaxbChild(entry, s.getPlayer(), s.getMediaFile(), entry.getUsername()));
-            });
-
-        Response res = createResponse();
-        res.setNowPlaying(result);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
     private Child createJaxbChild(Player player, MediaFile mediaFile, String username) {
         return responseMapper.child(player, mediaFile, username);
-    }
-
-    private <T extends Child> T createJaxbChild(T child, Player player, MediaFile mediaFile, String username) {
-        return responseMapper.child(child, player, mediaFile, username);
     }
 
     @RequestMapping("/download")
