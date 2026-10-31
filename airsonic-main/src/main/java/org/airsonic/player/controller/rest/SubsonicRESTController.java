@@ -59,7 +59,6 @@ public class SubsonicRESTController {
     private final MediaFileService mediaFileService;
     private final LastFmService lastFmService;
     private final TranscodingService transcodingService;
-    private final StreamController streamController;
     private final PlayQueueService playQueueService;
     private final JukeboxService jukeboxService;
     private final MediaFileDao mediaFileDao;
@@ -72,7 +71,7 @@ public class SubsonicRESTController {
 
     private final JAXBWriter jaxbWriter = new JAXBWriter();
 
-    public SubsonicRESTController(SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
+    public SubsonicRESTController(SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.settingsService = settingsService;
         this.securityService = securityService;
         this.mediaFileDao = mediaFileDao;
@@ -83,7 +82,6 @@ public class SubsonicRESTController {
         this.coverArtService = coverArtService;
         this.transcodingService = transcodingService;
         this.jukeboxService = jukeboxService;
-        this.streamController = streamController;
         this.playQueueService = playQueueService;
         this.mediaFolderService = mediaFolderService;
         this.artistDao = artistDao;
@@ -137,25 +135,6 @@ public class SubsonicRESTController {
         return ResponseEntity.ok()
                 .contentType(org.springframework.http.MediaType.parseMediaType(exceptionResponse.getKey()))
                 .body(exceptionResponse.getValue());
-    }
-
-    @RequestMapping("/stream")
-    public ResponseEntity<Resource> stream(Authentication authentication,
-            @RequestParam(required = false) String format,
-            @RequestParam(required = false) String suffix,
-            @RequestParam Optional<Integer> maxBitRate,
-            @RequestParam Optional<Integer> id,
-            @RequestParam Optional<String> path,
-            @RequestParam(required = false) Double offsetSeconds,
-            ServletWebRequest swr) throws Exception {
-        HttpServletRequest request = wrapRequest(swr.getRequest());
-        User user = securityService.getUserByName(authentication.getName());
-        if (!user.isStreamRole()) {
-            throw new APIException(ErrorCode.NOT_AUTHORIZED, user.getUsername() + " is not authorized to play files.");
-        }
-
-        return streamController.handleRequest(authentication, format, suffix, maxBitRate, id, path,
-                offsetSeconds, new ServletWebRequest(request, swr.getResponse()));
     }
 
     private HttpServletRequest wrapRequest(HttpServletRequest request) {
