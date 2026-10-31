@@ -1,4 +1,4 @@
-package org.airsonic.player.controller.rest.similarsongs
+package org.airsonic.player.controller.rest.music.similar
 
 import io.ktor.http.ContentType
 import io.ktor.server.application.ApplicationCall

@@ -23,7 +23,7 @@ import org.airsonic.player.controller.rest.info.artist.ArtistInfoRequest
 import org.airsonic.player.controller.rest.artists.ArtistsController
 import org.airsonic.player.controller.rest.artists.ArtistsRequest
 import org.airsonic.player.controller.rest.genres.GenresController
-import org.airsonic.player.controller.rest.musicfolders.MusicFoldersController
+import org.airsonic.player.controller.rest.music.folder.MusicFoldersController
 import org.airsonic.player.controller.rest.ping.PingController
 import org.airsonic.player.controller.rest.playlists.PlaylistsController
 import org.airsonic.player.controller.rest.playlists.PlaylistsRequest
@@ -31,8 +31,8 @@ import org.airsonic.player.controller.rest.scan.ScanController
 import org.airsonic.player.controller.rest.shares.SharesController
 import org.airsonic.player.controller.rest.shares.SharesRequest
 import org.airsonic.player.controller.rest.search.SearchController
-import org.airsonic.player.controller.rest.similarsongs.SimilarSongsController
-import org.airsonic.player.controller.rest.similarsongs.SimilarSongsRequest
+import org.airsonic.player.controller.rest.music.similar.SimilarSongsController
+import org.airsonic.player.controller.rest.music.similar.SimilarSongsRequest
 import org.airsonic.player.controller.cover.CoverArtController
 import org.airsonic.player.i18n.LocaleResolver
 import org.airsonic.player.service.MediaFileService

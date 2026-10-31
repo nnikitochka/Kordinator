@@ -1,4 +1,4 @@
-package org.airsonic.player.controller.rest.similarsongs
+package org.airsonic.player.controller.rest.music.similar
 
 import io.ktor.http.Parameters
 import org.airsonic.player.domain.Player

@@ -1,4 +1,4 @@
-package org.airsonic.player.controller.rest.musicfolders
+package org.airsonic.player.controller.rest.music.folder
 
 import org.airsonic.player.domain.MusicFolder
 

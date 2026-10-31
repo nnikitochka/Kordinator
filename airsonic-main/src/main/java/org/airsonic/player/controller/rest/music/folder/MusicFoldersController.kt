@@ -1,4 +1,4 @@
-package org.airsonic.player.controller.rest.musicfolders
+package org.airsonic.player.controller.rest.music.folder
 
 import io.ktor.http.ContentType
 import io.ktor.http.Parameters
