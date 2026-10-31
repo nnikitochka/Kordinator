@@ -7,6 +7,7 @@ import org.airsonic.player.controller.rest.indexes.IndexesController;
 import org.airsonic.player.controller.rest.music.genre.SongsByGenreController;
 import org.airsonic.player.controller.rest.music.top.TopSongsController;
 import org.airsonic.player.controller.rest.music.directory.MusicDirectoryController;
+import org.airsonic.player.controller.rest.music.random.RandomSongsController;
 import org.airsonic.player.controller.rest.scrobble.ScrobbleController;
 import org.airsonic.player.service.AudioScrobblerService;
 import org.airsonic.player.service.StatusService;
@@ -116,6 +117,7 @@ public class KtorConfiguration {
                                 new SongsByGenreController(mediaFileDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new TopSongsController(lastFmService, mediaFolderService, responseMapper, jaxbWriter),
                                 new MusicDirectoryController(mediaFileService, mediaFileDao, securityService, ratingService, responseMapper, jaxbWriter),
+                                new RandomSongsController(albumSearchService, mediaFolderService, responseMapper, jaxbWriter),
                                 new ScrobbleController(mediaFileService, statusService, audioScrobblerService, jaxbWriter),
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver, leftController),
@@ -142,6 +144,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(SongsByGenreController.PATHS);
         registration.addUrlMappings(TopSongsController.PATHS);
         registration.addUrlMappings(MusicDirectoryController.PATHS);
+        registration.addUrlMappings(RandomSongsController.PATHS);
         registration.addUrlMappings(ScrobbleController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
