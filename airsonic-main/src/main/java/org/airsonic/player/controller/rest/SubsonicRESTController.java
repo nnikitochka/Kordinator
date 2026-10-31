@@ -138,25 +138,6 @@ public class SubsonicRESTController {
         return responseMapper.album(jaxbAlbum, album, username);
     }
 
-    @RequestMapping("/getVideos")
-    public void getVideos(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        Player player = playerService.getPlayer(request, response);
-        String username = securityService.getCurrentUsername(request);
-
-        int size = getIntParameter(request, "size", Integer.MAX_VALUE);
-        int offset = getIntParameter(request, "offset", 0);
-        List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username);
-
-        Videos result = new Videos();
-        for (MediaFile mediaFile : mediaFileDao.getVideos(size, offset, musicFolders)) {
-            result.getVideo().add(createJaxbChild(player, mediaFile, username));
-        }
-        Response res = createResponse();
-        res.setVideos(result);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
     private Child createJaxbChild(Player player, MediaFile mediaFile, String username) {
         return responseMapper.child(player, mediaFile, username);
     }
