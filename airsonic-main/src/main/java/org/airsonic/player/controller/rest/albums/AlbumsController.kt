@@ -59,10 +59,9 @@ class AlbumsController(
             LOG.warn("Error in albums API", e)
             writer.createErrorResponse(ErrorCode.GENERIC, "Request processing failed: $e")
         }
-        if (result == null) {
-            call.respond(HttpStatusCode.BadRequest)
-            return
-        }
+
+        result ?: return call.respond(HttpStatusCode.BadRequest)
+
         val serialized = writer.serializeForType(request.parameters["f"] ?: "xml", request.parameters["callback"], result)
         call.respondText(serialized.value, ContentType.parse(serialized.key))
     }
