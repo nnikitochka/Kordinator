@@ -61,7 +61,6 @@ public class SubsonicRESTController {
     private final MediaFileService mediaFileService;
     private final LastFmService lastFmService;
     private final TranscodingService transcodingService;
-    private final DownloadController downloadController;
     private final CoverArtController coverArtController;
     private final AvatarController avatarController;
     private final StreamController streamController;
@@ -80,7 +79,7 @@ public class SubsonicRESTController {
 
     private final JAXBWriter jaxbWriter = new JAXBWriter();
 
-    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
+    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.avatarController = avatarController;
         this.settingsService = settingsService;
         this.securityService = securityService;
@@ -92,7 +91,6 @@ public class SubsonicRESTController {
         this.coverArtService = coverArtService;
         this.transcodingService = transcodingService;
         this.jukeboxService = jukeboxService;
-        this.downloadController = downloadController;
         this.lyricsWSController = lyricsWSController;
         this.ratingService = ratingService;
         this.coverArtController = coverArtController;
@@ -183,25 +181,6 @@ public class SubsonicRESTController {
 
     private Child createJaxbChild(Player player, MediaFile mediaFile, String username) {
         return responseMapper.child(player, mediaFile, username);
-    }
-
-    @RequestMapping("/download")
-    public ResponseEntity<Resource> download(Principal p,
-            @RequestParam(required = false) String id,
-            @RequestParam(required = false) Integer playlist,
-            @RequestParam(required = false) Integer player,
-            @RequestParam(required = false, name = "i") List<Integer> indices,
-            ServletWebRequest swr) throws Exception {
-        HttpServletRequest request = wrapRequest(swr.getRequest());
-        final Integer playerId = Optional.ofNullable(request.getParameter("player")).map(Integer::valueOf).orElse(null);
-        Optional<Integer> idInt = Optional.ofNullable(id).map(this::mapId).filter(StringUtils::isNumeric).map(Integer::valueOf);
-
-        User user = securityService.getUserByName(p.getName());
-        if (!user.isDownloadRole()) {
-            throw new APIException(ErrorCode.NOT_AUTHORIZED, user.getUsername() + " is not authorized to download files.");
-        }
-        return downloadController.handleRequest(p, idInt, playlist, playerId, indices,
-                new ServletWebRequest(request, swr.getResponse()));
     }
 
     @ExceptionHandler(APIException.class)
