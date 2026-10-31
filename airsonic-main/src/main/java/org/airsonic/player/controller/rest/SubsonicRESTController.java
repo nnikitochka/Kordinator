@@ -280,29 +280,6 @@ public class SubsonicRESTController {
         return responseMapper.artist(artist, username);
     }
 
-    @RequestMapping("/getArtist")
-    public void getArtist(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-
-        String username = securityService.getCurrentUsername(request);
-        int id = getRequiredIntParameter(request, "id");
-        org.airsonic.player.domain.Artist artist = artistDao.getArtist(id);
-        if (artist == null) {
-            error(request, response, ErrorCode.NOT_FOUND, "Artist not found.");
-            return;
-        }
-
-        List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username);
-        ArtistWithAlbumsID3 result = createJaxbArtist(new ArtistWithAlbumsID3(), artist, username);
-        for (Album album : albumDao.getAlbumsForArtist(artist.getName(), musicFolders)) {
-            result.getAlbum().add(createJaxbAlbum(new AlbumID3(), album, username));
-        }
-
-        Response res = createResponse();
-        res.setArtist(result);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
     private <T extends AlbumID3> T createJaxbAlbum(T jaxbAlbum, Album album, String username) {
         return responseMapper.album(jaxbAlbum, album, username);
     }
