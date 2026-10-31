@@ -65,7 +65,6 @@ public class SubsonicRESTController {
     private final HLSController hlsController;
     private final PlayQueueService playQueueService;
     private final JukeboxService jukeboxService;
-    private final RatingService ratingService;
     private final MediaFileDao mediaFileDao;
     private final ArtistDao artistDao;
     private final AlbumDao albumDao;
@@ -76,7 +75,7 @@ public class SubsonicRESTController {
 
     private final JAXBWriter jaxbWriter = new JAXBWriter();
 
-    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
+    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.avatarController = avatarController;
         this.settingsService = settingsService;
         this.securityService = securityService;
@@ -88,7 +87,6 @@ public class SubsonicRESTController {
         this.coverArtService = coverArtService;
         this.transcodingService = transcodingService;
         this.jukeboxService = jukeboxService;
-        this.ratingService = ratingService;
         this.coverArtController = coverArtController;
         this.streamController = streamController;
         this.playQueueService = playQueueService;
@@ -190,27 +188,6 @@ public class SubsonicRESTController {
         avatarController.handleRequest(request, response);
     }
 
-    @RequestMapping("/setRating")
-    public void setRating(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        Integer rating = getRequiredIntParameter(request, "rating");
-        if (rating == 0) {
-            rating = null;
-        }
-
-        int id = getRequiredIntParameter(request, "id");
-        MediaFile mediaFile = mediaFileService.getMediaFile(id);
-        if (mediaFile == null) {
-            error(request, response, ErrorCode.NOT_FOUND, "File not found: " + id);
-            return;
-        }
-
-        String username = securityService.getCurrentUsername(request);
-        ratingService.setRatingForUser(username, mediaFile, rating);
-
-        writeEmptyResponse(request, response);
-    }
-
     private HttpServletRequest wrapRequest(HttpServletRequest request) {
         return wrapRequest(request, false);
     }
@@ -252,10 +229,6 @@ public class SubsonicRESTController {
 
     private Response createResponse() {
         return jaxbWriter.createResponse(true);
-    }
-
-    private void writeEmptyResponse(HttpServletRequest request, HttpServletResponse response) {
-        jaxbWriter.writeResponse(request, response, createResponse());
     }
 
     public void error(HttpServletRequest request, HttpServletResponse response, ErrorCode code, String message) {
