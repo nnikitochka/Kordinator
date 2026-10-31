@@ -64,6 +64,7 @@ import org.airsonic.player.controller.rest.music.song.SongController
 import org.airsonic.player.controller.rest.music.song.SongRequest
 import org.airsonic.player.controller.rest.videos.VideosController
 import org.airsonic.player.controller.rest.videos.VideosRequest
+import org.airsonic.player.controller.rest.lyrics.LyricsController
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingController
 import org.airsonic.player.controller.rest.download.DownloadRestController
 import org.airsonic.player.controller.rest.download.DownloadRequest
@@ -112,6 +113,7 @@ class AirsonicKtorServlet(
     private val nowPlayingController: NowPlayingController,
     private val songController: SongController,
     private val videosController: VideosController,
+    private val lyricsController: LyricsController,
     private val downloadRestController: DownloadRestController,
     private val downloads: DownloadService,
     private val shareService: ShareService,
@@ -231,6 +233,7 @@ class AirsonicKtorServlet(
             musicDirectoryController.routes(this) { call -> call.attributes[MUSIC_DIRECTORY_REQUEST_KEY] }
             songController.routes(this) { call -> call.attributes[SONG_REQUEST_KEY] }
             videosController.routes(this) { call -> call.attributes[VIDEOS_REQUEST_KEY] }
+            lyricsController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             topSongsController.routes(this) { call -> call.attributes[TOP_SONGS_REQUEST_KEY] }
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
         }
@@ -469,6 +472,10 @@ class AirsonicKtorServlet(
             val player = playerService.getPlayer(wrapped, response)
             val username = requireNotNull(securityService.getCurrentUsername(request))
             request.setAttribute(VIDEOS_REQUEST, VideosRequest(username, player, parameters(request)))
+        } else if (path in LyricsController.PATHS) {
+            // The legacy wrapRequest() created a REST player for this endpoint too.
+            playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            request.setAttribute(REST_PARAMETERS, parameters(request))
         } else if (path in TopSongsController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val username = requireNotNull(securityService.getCurrentUsername(request))
