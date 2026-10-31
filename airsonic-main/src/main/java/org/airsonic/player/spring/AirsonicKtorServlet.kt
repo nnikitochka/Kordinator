@@ -45,6 +45,8 @@ import org.airsonic.player.controller.cover.CoverArtController
 import org.airsonic.player.controller.rest.users.UsersController
 import org.airsonic.player.controller.rest.users.PasswordController
 import org.airsonic.player.controller.rest.users.UsersRequest
+import org.airsonic.player.controller.rest.playqueue.PlayQueueController
+import org.airsonic.player.controller.rest.playqueue.PlayQueueRequest
 import org.airsonic.player.i18n.LocaleResolver
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.PlayerService
@@ -72,6 +74,7 @@ class AirsonicKtorServlet(
     private val jukeboxController: JukeboxController,
     private val usersController: UsersController,
     private val passwordController: PasswordController,
+    private val playQueueController: PlayQueueController,
     private val shareService: ShareService,
     private val mediaFileService: MediaFileService,
     private val playerResolver: RestPlayerResolver,
@@ -116,6 +119,8 @@ class AirsonicKtorServlet(
             }
             val usersRequest = request.getAttribute(USERS_REQUEST) as? UsersRequest
             if (usersRequest != null) call.attributes.put(USERS_REQUEST_KEY, usersRequest)
+            val playQueueRequest = request.getAttribute(PLAY_QUEUE_REQUEST) as? PlayQueueRequest
+            if (playQueueRequest != null) call.attributes.put(PLAY_QUEUE_REQUEST_KEY, playQueueRequest)
             val jukeboxRequest = request.getAttribute(JUKEBOX_REQUEST) as? JukeboxRequest
             if (jukeboxRequest != null) {
                 call.attributes.put(JUKEBOX_REQUEST_KEY, jukeboxRequest)
@@ -158,6 +163,7 @@ class AirsonicKtorServlet(
             starredController.routes(this) { call -> call.attributes[STARRED_REQUEST_KEY] }
             usersController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             passwordController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
+            playQueueController.routes(this) { call -> call.attributes[PLAY_QUEUE_REQUEST_KEY] }
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
@@ -305,6 +311,17 @@ class AirsonicKtorServlet(
             val username = if (listing) requireNotNull(securityService.getCurrentUsername(request))
                 else requireNotNull(securityService.getCurrentUser(request)).username
             request.setAttribute(STARRED_REQUEST, StarredRequest(username, parameters(request), player))
+        } else if (path in PlayQueueController.PATHS) {
+            val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            val username = requireNotNull(securityService.getCurrentUsername(request))
+            val player = if (path.substringAfterLast('/').removeSuffix(".view") == "getPlayQueue") {
+                val wrapped = object : HttpServletRequestWrapper(request) {
+                    override fun getParameter(name: String): String? =
+                        if (name == "player") playerId?.toString() else super.getParameter(name)
+                }
+                playerService.getPlayer(wrapped, response)
+            } else null
+            request.setAttribute(PLAY_QUEUE_REQUEST, PlayQueueRequest(username, parameters(request), player))
         } else if (path in BookmarksController.PATHS) {
             val operation = path.substringAfterLast('/').removeSuffix(".view")
             val playerId = playerResolver.getOrCreatePlayerId(
@@ -434,6 +451,8 @@ class AirsonicKtorServlet(
         val ARTISTS_REQUEST_KEY = AttributeKey<ArtistsRequest>(ARTISTS_REQUEST)
         const val USERS_REQUEST = "org.airsonic.player.usersRequest"
         val USERS_REQUEST_KEY = AttributeKey<UsersRequest>(USERS_REQUEST)
+        const val PLAY_QUEUE_REQUEST = "org.airsonic.player.playQueueRequest"
+        val PLAY_QUEUE_REQUEST_KEY = AttributeKey<PlayQueueRequest>(PLAY_QUEUE_REQUEST)
         const val JUKEBOX_REQUEST = "org.airsonic.player.jukeboxRequest"
         val JUKEBOX_REQUEST_KEY = AttributeKey<JukeboxRequest>(JUKEBOX_REQUEST)
         const val STARRED_REQUEST = "org.airsonic.player.starredRequest"

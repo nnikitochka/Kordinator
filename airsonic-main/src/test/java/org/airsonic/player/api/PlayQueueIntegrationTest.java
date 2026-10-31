@@ -75,6 +75,12 @@ public class PlayQueueIntegrationTest {
             assertEquals(first, queue.path("entry").get(0).path("id").asInt());
             assertEquals(second, queue.path("entry").get(1).path("id").asInt());
             assertTrue(body(call("getPlayQueue", "queue-other", "")).path("playQueue").isMissingNode());
+            error(call("savePlayQueue", "queue-user", "id=" + first + "&current=" + second), 0);
+            assertEquals(second, body(call("getPlayQueue", "queue-user", "")).path("playQueue").path("current").asInt());
+            String xmlUrl = "http://localhost:" + port + "/airsonic/rest/getPlayQueue.view?v=" + TestCaseUtils.restApiVersion() + "&c=queue-test&u=queue-user&p=secret&f=xml";
+            HttpResponse<String> xml = client.send(HttpRequest.newBuilder(URI.create(xmlUrl)).GET().build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, xml.statusCode());
+            assertTrue(xml.body(), xml.body().contains("<playQueue "));
             ok(call("savePlayQueue.view", "queue-user", "id=" + first + "&current=" + first));
             assertEquals(first, body(call("getPlayQueue", "queue-user", "")).path("playQueue").path("current").asInt());
         } finally {

@@ -2,6 +2,8 @@ package org.airsonic.player.spring;
 
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
 import org.airsonic.player.controller.JAXBWriter;
+import org.airsonic.player.controller.rest.playqueue.PlayQueueController;
+import org.airsonic.player.dao.PlayQueueDao;
 import org.airsonic.player.controller.UserSettingsController;
 import org.airsonic.player.controller.rest.users.UsersController;
 import org.airsonic.player.controller.rest.users.PasswordController;
@@ -72,6 +74,7 @@ public class KtorConfiguration {
             BookmarkService bookmarkService,
             JukeboxService jukeboxService,
             PlayQueueService playQueueService,
+            PlayQueueDao playQueueDao,
             SecurityService securityService,
             SettingsService settingsService,
             UserSettingsController userSettingsController,
@@ -95,6 +98,7 @@ public class KtorConfiguration {
                                 new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),
                                 new UsersController(securityService, settingsService, mediaFolderService, userSettingsController, jaxbWriter),
                                 new PasswordController(securityService, jaxbWriter),
+                                new PlayQueueController(playQueueDao, mediaFileService, responseMapper, jaxbWriter),
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver),
                         "/internal/ktor/*");
@@ -115,6 +119,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(JukeboxController.PATHS);
         registration.addUrlMappings(UsersController.PATHS);
         registration.addUrlMappings(PasswordController.PATHS);
+        registration.addUrlMappings(PlayQueueController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);
