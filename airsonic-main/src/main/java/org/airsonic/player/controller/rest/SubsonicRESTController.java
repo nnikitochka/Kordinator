@@ -60,7 +60,6 @@ public class SubsonicRESTController {
     private final LastFmService lastFmService;
     private final TranscodingService transcodingService;
     private final StreamController streamController;
-    private final HLSController hlsController;
     private final PlayQueueService playQueueService;
     private final JukeboxService jukeboxService;
     private final MediaFileDao mediaFileDao;
@@ -73,7 +72,7 @@ public class SubsonicRESTController {
 
     private final JAXBWriter jaxbWriter = new JAXBWriter();
 
-    public SubsonicRESTController(SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
+    public SubsonicRESTController(SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.settingsService = settingsService;
         this.securityService = securityService;
         this.mediaFileDao = mediaFileDao;
@@ -88,7 +87,6 @@ public class SubsonicRESTController {
         this.playQueueService = playQueueService;
         this.mediaFolderService = mediaFolderService;
         this.artistDao = artistDao;
-        this.hlsController = hlsController;
         this.responseMapper = responseMapper;
         this.playerResolver = playerResolver;
     }
@@ -158,18 +156,6 @@ public class SubsonicRESTController {
 
         return streamController.handleRequest(authentication, format, suffix, maxBitRate, id, path,
                 offsetSeconds, new ServletWebRequest(request, swr.getResponse()));
-    }
-
-    @RequestMapping("/hls")
-    public void hls(Authentication authentication, @RequestParam Integer id, HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        org.airsonic.player.domain.User user = securityService.getCurrentUser(request);
-        if (!user.isStreamRole()) {
-            error(request, response, ErrorCode.NOT_AUTHORIZED, user.getUsername() + " is not authorized to play files.");
-            return;
-        }
-
-        hlsController.handleHlsRequest(authentication, id, request, response);
     }
 
     private HttpServletRequest wrapRequest(HttpServletRequest request) {
