@@ -21,7 +21,6 @@ import org.airsonic.player.service.*;
 import org.airsonic.player.util.StringUtil;
 import org.airsonic.player.util.Util;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
@@ -95,8 +94,6 @@ public class SubsonicRESTController {
     private final RestPlayerResolver playerResolver;
 
     private final JAXBWriter jaxbWriter = new JAXBWriter();
-
-    private static final String NOT_YET_IMPLEMENTED = "Not yet implemented";
 
     public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, LeftController leftController, SearchService searchService, AudioScrobblerService audioScrobblerService, MusicIndexService musicIndexService, StatusService statusService, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, UserSettingsController userSettingsController, PlayQueueService playQueueService, PlayQueueDao playQueueDao, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.avatarController = avatarController;
@@ -932,16 +929,6 @@ public class SubsonicRESTController {
         ratingService.setRatingForUser(username, mediaFile, rating);
 
         writeEmptyResponse(request, response);
-    }
-
-    @RequestMapping("/getVideoInfo")
-    public ResponseEntity<String> getVideoInfo() {
-        return ResponseEntity.status(HttpStatus.SC_NOT_IMPLEMENTED).body(NOT_YET_IMPLEMENTED);
-    }
-
-    @RequestMapping("/getCaptions")
-    public ResponseEntity<String> getCaptions() {
-        return ResponseEntity.status(HttpStatus.SC_NOT_IMPLEMENTED).body(NOT_YET_IMPLEMENTED);
     }
 
     private HttpServletRequest wrapRequest(HttpServletRequest request) {
