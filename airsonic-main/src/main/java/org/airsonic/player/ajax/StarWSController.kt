@@ -1,32 +1,24 @@
-package org.airsonic.player.ajax;
+package org.airsonic.player.ajax
 
-import org.airsonic.player.dao.MediaFileDao;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.stereotype.Controller;
-
-import java.security.Principal;
-import java.util.List;
+import org.airsonic.player.dao.MediaFileDao
+import org.springframework.messaging.handler.annotation.MessageMapping
+import org.springframework.stereotype.Controller
+import java.security.Principal
 
 @Controller
 @MessageMapping("/rate/mediafile")
-public class StarWSController {
-    private MediaFileDao mediaFileDao;
-
-    public StarWSController(MediaFileDao mediaFileDao) {
-        this.mediaFileDao = mediaFileDao;
-    }
-
+class StarWSController(private var mediaFileDao: MediaFileDao) {
     @MessageMapping("/star")
-    public void star(Principal user, List<Integer> ids) {
-        mediaFileDao.starMediaFiles(ids, user.getName());
+    fun star(user: Principal, ids: List<Int>) {
+        mediaFileDao.starMediaFiles(ids, user.name)
     }
 
     @MessageMapping("/unstar")
-    public void unstar(Principal user, List<Integer> ids) {
-        mediaFileDao.unstarMediaFiles(ids, user.getName());
+    fun unstar(user: Principal, ids: List<Int>) {
+        mediaFileDao.unstarMediaFiles(ids, user.name)
     }
 
-    public void setMediaFileDao(MediaFileDao mediaFileDao) {
-        this.mediaFileDao = mediaFileDao;
+    fun setMediaFileDao(mediaFileDao: MediaFileDao) {
+        this.mediaFileDao = mediaFileDao
     }
 }
