@@ -14,7 +14,6 @@ import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.dao.PlayQueueDao;
 import org.airsonic.player.domain.*;
-import org.airsonic.player.domain.Bookmark;
 import org.airsonic.player.domain.PlayQueue;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.domain.UserCredential.App;
@@ -89,7 +88,6 @@ public class SubsonicRESTController {
     private final MediaFileDao mediaFileDao;
     private final ArtistDao artistDao;
     private final AlbumDao albumDao;
-    private final BookmarkService bookmarkService;
     private final PlayQueueDao playQueueDao;
     private final MediaFolderService mediaFolderService;
     private final CoverArtService coverArtService;
@@ -100,7 +98,7 @@ public class SubsonicRESTController {
 
     private static final String NOT_YET_IMPLEMENTED = "Not yet implemented";
 
-    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, BookmarkService bookmarkService, AlbumDao albumDao, LeftController leftController, SearchService searchService, AudioScrobblerService audioScrobblerService, MusicIndexService musicIndexService, StatusService statusService, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, UserSettingsController userSettingsController, PlayQueueService playQueueService, PlayQueueDao playQueueDao, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
+    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, LeftController leftController, SearchService searchService, AudioScrobblerService audioScrobblerService, MusicIndexService musicIndexService, StatusService statusService, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, UserSettingsController userSettingsController, PlayQueueService playQueueService, PlayQueueDao playQueueDao, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.avatarController = avatarController;
         this.settingsService = settingsService;
         this.securityService = securityService;
@@ -108,7 +106,6 @@ public class SubsonicRESTController {
         this.playerService = playerService;
         this.mediaFileService = mediaFileService;
         this.lastFmService = lastFmService;
-        this.bookmarkService = bookmarkService;
         this.albumDao = albumDao;
         this.leftController = leftController;
         this.searchService = searchService;
@@ -743,55 +740,6 @@ public class SubsonicRESTController {
         Response res = createResponse();
         res.setStarred2(result);
         jaxbWriter.writeResponse(request, response, res);
-    }
-
-    @RequestMapping("/getBookmarks")
-    public void getBookmarks(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        Player player = playerService.getPlayer(request, response);
-        String username = securityService.getCurrentUsername(request);
-
-        Bookmarks result = new Bookmarks();
-        for (Bookmark bookmark : bookmarkService.getBookmarks(username)) {
-            org.subsonic.restapi.Bookmark b = new org.subsonic.restapi.Bookmark();
-            result.getBookmark().add(b);
-            b.setPosition(bookmark.getPositionMillis());
-            b.setUsername(bookmark.getUsername());
-            b.setComment(bookmark.getComment());
-            b.setCreated(jaxbWriter.convertDate(bookmark.getCreated()));
-            b.setChanged(jaxbWriter.convertDate(bookmark.getChanged()));
-
-            MediaFile mediaFile = mediaFileService.getMediaFile(bookmark.getMediaFileId());
-            b.setEntry(createJaxbChild(player, mediaFile, username));
-        }
-
-        Response res = createResponse();
-        res.setBookmarks(result);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
-    @RequestMapping("/createBookmark")
-    public void createBookmark(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        String username = securityService.getCurrentUsername(request);
-        int mediaFileId = getRequiredIntParameter(request, "id");
-        long position = getRequiredLongParameter(request, "position");
-        String comment = request.getParameter("comment");
-
-        bookmarkService.setBookmark(username, mediaFileId, position, comment);
-
-        writeEmptyResponse(request, response);
-    }
-
-    @RequestMapping("/deleteBookmark")
-    public void deleteBookmark(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-
-        String username = securityService.getCurrentUsername(request);
-        int mediaFileId = getRequiredIntParameter(request, "id");
-        bookmarkService.deleteBookmark(username, mediaFileId);
-
-        writeEmptyResponse(request, response);
     }
 
     @RequestMapping("/getPlayQueue")
