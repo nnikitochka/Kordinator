@@ -1,7 +1,5 @@
 package org.airsonic.player.controller.rest;
 
-import org.airsonic.player.ajax.lyrics.LyricsInfo;
-import org.airsonic.player.ajax.lyrics.LyricsWSController;
 import org.airsonic.player.controller.*;
 import org.airsonic.player.controller.cover.CoverArtController;
 import org.airsonic.player.controller.rest.error.APIException;
@@ -65,7 +63,6 @@ public class SubsonicRESTController {
     private final AvatarController avatarController;
     private final StreamController streamController;
     private final HLSController hlsController;
-    private final LyricsWSController lyricsWSController;
     private final PlayQueueService playQueueService;
     private final JukeboxService jukeboxService;
     private final RatingService ratingService;
@@ -79,7 +76,7 @@ public class SubsonicRESTController {
 
     private final JAXBWriter jaxbWriter = new JAXBWriter();
 
-    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
+    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.avatarController = avatarController;
         this.settingsService = settingsService;
         this.securityService = securityService;
@@ -91,7 +88,6 @@ public class SubsonicRESTController {
         this.coverArtService = coverArtService;
         this.transcodingService = transcodingService;
         this.jukeboxService = jukeboxService;
-        this.lyricsWSController = lyricsWSController;
         this.ratingService = ratingService;
         this.coverArtController = coverArtController;
         this.streamController = streamController;
@@ -192,23 +188,6 @@ public class SubsonicRESTController {
     public void getAvatar(HttpServletRequest request, HttpServletResponse response) throws Exception {
         request = wrapRequest(request);
         avatarController.handleRequest(request, response);
-    }
-
-    @RequestMapping("/getLyrics")
-    public void getLyrics(HttpServletRequest request, HttpServletResponse response) {
-        request = wrapRequest(request);
-        String artist = request.getParameter("artist");
-        String title = request.getParameter("title");
-        LyricsInfo lyrics = lyricsWSController.getLyrics(artist, title);
-
-        Lyrics result = new Lyrics();
-        result.setArtist(lyrics.getArtist());
-        result.setTitle(lyrics.getTitle());
-        result.setContent(lyrics.getLyrics());
-
-        Response res = createResponse();
-        res.setLyrics(result);
-        jaxbWriter.writeResponse(request, response, res);
     }
 
     @RequestMapping("/setRating")
