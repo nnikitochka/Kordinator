@@ -2,6 +2,9 @@ package org.airsonic.player.spring;
 
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
 import org.airsonic.player.controller.JAXBWriter;
+import org.airsonic.player.controller.LeftController;
+import org.airsonic.player.controller.rest.indexes.IndexesController;
+import org.airsonic.player.service.MusicIndexService;
 import org.airsonic.player.controller.rest.playqueue.PlayQueueController;
 import org.airsonic.player.dao.PlayQueueDao;
 import org.airsonic.player.controller.UserSettingsController;
@@ -77,6 +80,8 @@ public class KtorConfiguration {
             PlayQueueDao playQueueDao,
             SecurityService securityService,
             SettingsService settingsService,
+            MusicIndexService musicIndexService,
+            LeftController leftController,
             UserSettingsController userSettingsController,
             LocaleResolver localeResolver
     ) {
@@ -99,8 +104,9 @@ public class KtorConfiguration {
                                 new UsersController(securityService, settingsService, mediaFolderService, userSettingsController, jaxbWriter),
                                 new PasswordController(securityService, jaxbWriter),
                                 new PlayQueueController(playQueueDao, mediaFileService, responseMapper, jaxbWriter),
+                                new IndexesController(settingsService, mediaFolderService, musicIndexService, mediaFileDao, ratingService, responseMapper, jaxbWriter),
                                 shareService, mediaFileService,
-                                playerResolver, playerService, securityService, localeResolver),
+                                playerResolver, playerService, securityService, localeResolver, leftController),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);
@@ -120,6 +126,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(UsersController.PATHS);
         registration.addUrlMappings(PasswordController.PATHS);
         registration.addUrlMappings(PlayQueueController.PATHS);
+        registration.addUrlMappings(IndexesController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);

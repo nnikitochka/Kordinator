@@ -3,6 +3,7 @@ package org.airsonic.player.api;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.airsonic.player.TestCaseUtils;
+import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.service.SecurityService;
@@ -33,6 +34,7 @@ public class IndexesIntegrationTest {
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
     @Autowired private SettingsService settings;
+    @Autowired private MediaFileDao mediaFiles;
     @Autowired private SecurityService security;
     private final HttpClient client = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
@@ -74,6 +76,21 @@ public class IndexesIntegrationTest {
                 HttpResponse<String> jsonp = send(suffix, "f=jsonp&callback=client.indexes", false);
                 assertTrue(jsonp.body(), jsonp.body().startsWith("client.indexes("));
             }
+            JsonNode beforeStar = body(send("", "f=json&musicFolderId=" + first, false)).path("indexes");
+            int starredId = Integer.parseInt(artistIds(beforeStar).iterator().next());
+            mediaFiles.starMediaFile(starredId, "admin");
+            JsonNode starred = body(send("", "f=json&musicFolderId=" + first, false)).path("indexes");
+            boolean foundStarred = false;
+            for (JsonNode index : starred.path("index")) {
+                for (JsonNode artist : index.path("artist")) {
+                    if (artist.path("id").asInt() == starredId) foundStarred = !artist.path("starred").isMissingNode();
+                }
+            }
+            assertTrue(starred.toString(), foundStarred);
+            settings.setShortcuts("\"_DIR_ Sixteen Horsepower\"");
+            JsonNode withShortcut = body(send("", "f=json&musicFolderId=" + first, false)).path("indexes");
+            assertEquals(withShortcut.toString(), 1, withShortcut.path("shortcut").size());
+            assertEquals("_DIR_ Sixteen Horsepower", withShortcut.path("shortcut").get(0).path("name").asText());
             assertEquals("ok", body(send(".view", "f=json", true)).path("status").asText());
             assertEquals(403, send("", "f=json", true).statusCode());
         } finally {
