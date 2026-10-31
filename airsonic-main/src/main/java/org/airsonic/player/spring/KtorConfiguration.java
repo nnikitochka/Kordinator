@@ -3,6 +3,7 @@ package org.airsonic.player.spring;
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
+import org.airsonic.player.controller.rest.bookmarks.BookmarksController;
 import org.airsonic.player.controller.rest.albums.AlbumsController;
 import org.airsonic.player.controller.rest.info.album.AlbumInfoController;
 import org.airsonic.player.controller.rest.artists.ArtistsController;
@@ -21,6 +22,7 @@ import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.LastFmService;
+import org.airsonic.player.service.BookmarkService;
 import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.PlayerService;
@@ -59,6 +61,7 @@ public class KtorConfiguration {
             PlayerService playerService,
             PlaylistService playlistService,
             ShareService shareService,
+            BookmarkService bookmarkService,
             SecurityService securityService,
             LocaleResolver localeResolver
     ) {
@@ -75,6 +78,7 @@ public class KtorConfiguration {
                                 new SharesController(shareService, mediaFileService, mediaFolderService, responseMapper, jaxbWriter),
                                 new AlbumsController(albumDao, mediaFileDao, mediaFileService, mediaFolderService,
                                         ratingService, albumSearchService, responseMapper, jaxbWriter),
+                                new BookmarksController(bookmarkService, mediaFileService, responseMapper, jaxbWriter),
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver),
                         "/internal/ktor/*");
@@ -90,6 +94,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(PlaylistsController.PATHS);
         registration.addUrlMappings(SharesController.PATHS);
         registration.addUrlMappings(AlbumsController.PATHS);
+        registration.addUrlMappings(BookmarksController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);
