@@ -60,6 +60,7 @@ import org.airsonic.player.controller.rest.music.random.RandomSongsController
 import org.airsonic.player.controller.rest.music.random.RandomSongsRequest
 import org.airsonic.player.controller.rest.scrobble.ScrobbleController
 import org.airsonic.player.controller.rest.scrobble.ScrobbleRequest
+import org.airsonic.player.controller.rest.nowplaying.NowPlayingController
 import org.airsonic.player.i18n.LocaleResolver
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.PlayerService
@@ -94,6 +95,7 @@ class AirsonicKtorServlet(
     private val musicDirectoryController: MusicDirectoryController,
     private val randomSongsController: RandomSongsController,
     private val scrobbleController: ScrobbleController,
+    private val nowPlayingController: NowPlayingController,
     private val shareService: ShareService,
     private val mediaFileService: MediaFileService,
     private val playerResolver: RestPlayerResolver,
@@ -198,6 +200,7 @@ class AirsonicKtorServlet(
             playQueueController.routes(this) { call -> call.attributes[PLAY_QUEUE_REQUEST_KEY] }
             indexesController.routes(this) { call -> call.attributes[INDEXES_REQUEST_KEY] }
             songsByGenreController.routes(this) { call -> call.attributes[GENRE_SONGS_REQUEST_KEY] }
+            nowPlayingController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             scrobbleController.routes(this) { call -> call.attributes[SCROBBLE_REQUEST_KEY] }
             randomSongsController.routes(this) { call -> call.attributes[RANDOM_SONGS_REQUEST_KEY] }
             musicDirectoryController.routes(this) { call -> call.attributes[MUSIC_DIRECTORY_REQUEST_KEY] }
@@ -349,6 +352,9 @@ class AirsonicKtorServlet(
             val username = if (listing) requireNotNull(securityService.getCurrentUsername(request))
                 else requireNotNull(securityService.getCurrentUser(request)).username
             request.setAttribute(STARRED_REQUEST, StarredRequest(username, parameters(request), player))
+        } else if (path in NowPlayingController.PATHS) {
+            playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            request.setAttribute(REST_PARAMETERS, parameters(request))
         } else if (path in ScrobbleController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val wrapped = object : HttpServletRequestWrapper(request) {
