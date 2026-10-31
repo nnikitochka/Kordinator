@@ -56,6 +56,8 @@ import org.airsonic.player.controller.rest.music.top.TopSongsController
 import org.airsonic.player.controller.rest.music.top.TopSongsRequest
 import org.airsonic.player.controller.rest.music.directory.MusicDirectoryController
 import org.airsonic.player.controller.rest.music.directory.MusicDirectoryRequest
+import org.airsonic.player.controller.rest.scrobble.ScrobbleController
+import org.airsonic.player.controller.rest.scrobble.ScrobbleRequest
 import org.airsonic.player.i18n.LocaleResolver
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.PlayerService
@@ -88,6 +90,7 @@ class AirsonicKtorServlet(
     private val songsByGenreController: SongsByGenreController,
     private val topSongsController: TopSongsController,
     private val musicDirectoryController: MusicDirectoryController,
+    private val scrobbleController: ScrobbleController,
     private val shareService: ShareService,
     private val mediaFileService: MediaFileService,
     private val playerResolver: RestPlayerResolver,
@@ -135,6 +138,8 @@ class AirsonicKtorServlet(
             if (usersRequest != null) call.attributes.put(USERS_REQUEST_KEY, usersRequest)
             val playQueueRequest = request.getAttribute(PLAY_QUEUE_REQUEST) as? PlayQueueRequest
             if (playQueueRequest != null) call.attributes.put(PLAY_QUEUE_REQUEST_KEY, playQueueRequest)
+            val scrobbleRequest = request.getAttribute(SCROBBLE_REQUEST) as? ScrobbleRequest
+            if (scrobbleRequest != null) call.attributes.put(SCROBBLE_REQUEST_KEY, scrobbleRequest)
             val musicDirectoryRequest = request.getAttribute(MUSIC_DIRECTORY_REQUEST) as? MusicDirectoryRequest
             if (musicDirectoryRequest != null) call.attributes.put(MUSIC_DIRECTORY_REQUEST_KEY, musicDirectoryRequest)
             val topSongsRequest = request.getAttribute(TOP_SONGS_REQUEST) as? TopSongsRequest
@@ -188,6 +193,7 @@ class AirsonicKtorServlet(
             playQueueController.routes(this) { call -> call.attributes[PLAY_QUEUE_REQUEST_KEY] }
             indexesController.routes(this) { call -> call.attributes[INDEXES_REQUEST_KEY] }
             songsByGenreController.routes(this) { call -> call.attributes[GENRE_SONGS_REQUEST_KEY] }
+            scrobbleController.routes(this) { call -> call.attributes[SCROBBLE_REQUEST_KEY] }
             musicDirectoryController.routes(this) { call -> call.attributes[MUSIC_DIRECTORY_REQUEST_KEY] }
             topSongsController.routes(this) { call -> call.attributes[TOP_SONGS_REQUEST_KEY] }
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
@@ -337,6 +343,14 @@ class AirsonicKtorServlet(
             val username = if (listing) requireNotNull(securityService.getCurrentUsername(request))
                 else requireNotNull(securityService.getCurrentUser(request)).username
             request.setAttribute(STARRED_REQUEST, StarredRequest(username, parameters(request), player))
+        } else if (path in ScrobbleController.PATHS) {
+            val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            val wrapped = object : HttpServletRequestWrapper(request) {
+                override fun getParameter(name: String): String? =
+                    if (name == "player") playerId?.toString() else super.getParameter(name)
+            }
+            val player = playerService.getPlayer(wrapped, response)
+            request.setAttribute(SCROBBLE_REQUEST, ScrobbleRequest(player, parameters(request)))
         } else if (path in MusicDirectoryController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val wrapped = object : HttpServletRequestWrapper(request) {
@@ -539,6 +553,8 @@ class AirsonicKtorServlet(
         val USERS_REQUEST_KEY = AttributeKey<UsersRequest>(USERS_REQUEST)
         const val PLAY_QUEUE_REQUEST = "org.airsonic.player.playQueueRequest"
         val PLAY_QUEUE_REQUEST_KEY = AttributeKey<PlayQueueRequest>(PLAY_QUEUE_REQUEST)
+        const val SCROBBLE_REQUEST = "org.airsonic.player.scrobbleRequest"
+        val SCROBBLE_REQUEST_KEY = AttributeKey<ScrobbleRequest>(SCROBBLE_REQUEST)
         const val MUSIC_DIRECTORY_REQUEST = "org.airsonic.player.musicDirectoryRequest"
         val MUSIC_DIRECTORY_REQUEST_KEY = AttributeKey<MusicDirectoryRequest>(MUSIC_DIRECTORY_REQUEST)
         const val TOP_SONGS_REQUEST = "org.airsonic.player.topSongsRequest"
