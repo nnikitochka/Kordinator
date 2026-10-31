@@ -15,6 +15,8 @@ import io.ktor.utils.io.InternalAPI
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
+import org.airsonic.player.controller.rest.starred.StarredController
+import org.airsonic.player.controller.rest.starred.StarredRequest
 import org.airsonic.player.controller.rest.RestPlayerResolver
 import org.airsonic.player.controller.rest.bookmarks.BookmarksController
 import org.airsonic.player.controller.rest.bookmarks.BookmarksRequest
@@ -61,6 +63,7 @@ class AirsonicKtorServlet(
     private val sharesController: SharesController,
     private val albumsController: AlbumsController,
     private val bookmarksController: BookmarksController,
+    private val starredController: StarredController,
     private val shareService: ShareService,
     private val mediaFileService: MediaFileService,
     private val playerResolver: RestPlayerResolver,
@@ -103,6 +106,10 @@ class AirsonicKtorServlet(
             if (albumInfoRequest != null) {
                 call.attributes.put(ALBUM_INFO_REQUEST_KEY, albumInfoRequest)
             }
+            val starredRequest = request.getAttribute(STARRED_REQUEST) as? StarredRequest
+            if (starredRequest != null) {
+                call.attributes.put(STARRED_REQUEST_KEY, starredRequest)
+            }
             val bookmarksRequest = request.getAttribute(BOOKMARKS_REQUEST) as? BookmarksRequest
             if (bookmarksRequest != null) {
                 call.attributes.put(BOOKMARKS_REQUEST_KEY, bookmarksRequest)
@@ -134,6 +141,7 @@ class AirsonicKtorServlet(
             sharesController.routes(this) { call -> call.attributes[SHARES_REQUEST_KEY] }
             albumsController.routes(this) { call -> call.attributes[ALBUMS_REQUEST_KEY] }
             bookmarksController.routes(this) { call -> call.attributes[BOOKMARKS_REQUEST_KEY] }
+            starredController.routes(this) { call -> call.attributes[STARRED_REQUEST_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
         // Keep this compatibility code in the temporary servlet adapter.
@@ -248,6 +256,22 @@ class AirsonicKtorServlet(
                 return
             }
             request.setAttribute(ALBUM_INFO_REQUEST, AlbumInfoRequest(parameters(request), id))
+        } else if (path in StarredController.PATHS) {
+            val operation = path.substringAfterLast('/').removeSuffix(".view")
+            val playerId = playerResolver.getOrCreatePlayerId(
+                request.remoteUser, request.getParameter("c"), request.remoteAddr, false
+            )
+            val listing = operation == "getStarred" || operation == "getStarred2"
+            val player = if (listing) {
+                val wrapped = object : HttpServletRequestWrapper(request) {
+                    override fun getParameter(name: String): String? =
+                        if (name == "player") playerId?.toString() else super.getParameter(name)
+                }
+                playerService.getPlayer(wrapped, response)
+            } else null
+            val username = if (listing) requireNotNull(securityService.getCurrentUsername(request))
+                else requireNotNull(securityService.getCurrentUser(request)).username
+            request.setAttribute(STARRED_REQUEST, StarredRequest(username, parameters(request), player))
         } else if (path in BookmarksController.PATHS) {
             val operation = path.substringAfterLast('/').removeSuffix(".view")
             val playerId = playerResolver.getOrCreatePlayerId(
@@ -375,6 +399,8 @@ class AirsonicKtorServlet(
         )
         const val ARTISTS_REQUEST = "org.airsonic.player.artistsRequest"
         val ARTISTS_REQUEST_KEY = AttributeKey<ArtistsRequest>(ARTISTS_REQUEST)
+        const val STARRED_REQUEST = "org.airsonic.player.starredRequest"
+        val STARRED_REQUEST_KEY = AttributeKey<StarredRequest>(STARRED_REQUEST)
         const val BOOKMARKS_REQUEST = "org.airsonic.player.bookmarksRequest"
         val BOOKMARKS_REQUEST_KEY = AttributeKey<BookmarksRequest>(BOOKMARKS_REQUEST)
         const val ALBUMS_REQUEST = "org.airsonic.player.albumsRequest"

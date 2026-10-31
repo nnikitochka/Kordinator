@@ -3,6 +3,7 @@ package org.airsonic.player.spring;
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
+import org.airsonic.player.controller.rest.starred.StarredController;
 import org.airsonic.player.controller.rest.bookmarks.BookmarksController;
 import org.airsonic.player.controller.rest.albums.AlbumsController;
 import org.airsonic.player.controller.rest.info.album.AlbumInfoController;
@@ -79,6 +80,7 @@ public class KtorConfiguration {
                                 new AlbumsController(albumDao, mediaFileDao, mediaFileService, mediaFolderService,
                                         ratingService, albumSearchService, responseMapper, jaxbWriter),
                                 new BookmarksController(bookmarkService, mediaFileService, responseMapper, jaxbWriter),
+                                new StarredController(mediaFileDao, albumDao, artistDao, mediaFolderService, responseMapper, jaxbWriter),
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver),
                         "/internal/ktor/*");
@@ -95,6 +97,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(SharesController.PATHS);
         registration.addUrlMappings(AlbumsController.PATHS);
         registration.addUrlMappings(BookmarksController.PATHS);
+        registration.addUrlMappings(StarredController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);
