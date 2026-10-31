@@ -13,6 +13,8 @@ import org.airsonic.player.controller.rest.nowplaying.NowPlayingController;
 import org.airsonic.player.service.AudioScrobblerService;
 import org.airsonic.player.service.StatusService;
 import org.airsonic.player.service.MusicIndexService;
+import org.airsonic.player.service.DownloadService;
+import org.airsonic.player.service.CoverArtService;
 import org.airsonic.player.controller.rest.playqueue.PlayQueueController;
 import org.airsonic.player.dao.PlayQueueDao;
 import org.airsonic.player.controller.UserSettingsController;
@@ -60,6 +62,14 @@ import org.springframework.context.annotation.Configuration;
 /** Connects Ktor to the existing servlet container during the migration. */
 @Configuration
 public class KtorConfiguration {
+
+    @Bean
+    public DownloadService downloadService(StatusService statusService, SecurityService securityService,
+            PlaylistService playlistService, SettingsService settingsService, MediaFileService mediaFileService,
+            MediaFolderService mediaFolderService, CoverArtService coverArtService) {
+        return new DownloadService(statusService, securityService, playlistService, settingsService, mediaFileService,
+                mediaFolderService, coverArtService);
+    }
 
     @Bean
     public ServletRegistrationBean<ServletApplicationEngine> ktorServletRegistration(

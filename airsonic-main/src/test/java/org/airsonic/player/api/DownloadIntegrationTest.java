@@ -87,6 +87,11 @@ public class DownloadIntegrationTest {
                 }
                 assertEquals(400, send(suffix, query + "&playlist=bad", "admin", "admin", null, null, false).statusCode());
             }
+            HttpRequest siteRequest = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic/download?id=" + song.getId()))
+                    .header("Authorization", "Basic " + Base64.getEncoder().encodeToString("admin:admin".getBytes(java.nio.charset.StandardCharsets.UTF_8))).build();
+            HttpResponse<byte[]> site = client.send(siteRequest, HttpResponse.BodyHandlers.ofByteArray());
+            assertEquals(200, site.statusCode());
+            assertArrayEquals(expected, site.body());
             assertArrayEquals(expected, send(".view", "id=" + song.getId(), "admin", "admin", null, null, true).body());
             assertEquals(403, send("", "id=" + song.getId(), "admin", "admin", null, null, true).statusCode());
         } finally {
