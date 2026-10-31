@@ -62,12 +62,10 @@ public class SubsonicRESTController {
     private final PlayerService playerService;
     private final MediaFileService mediaFileService;
     private final LastFmService lastFmService;
-    private final MusicIndexService musicIndexService;
     private final TranscodingService transcodingService;
     private final DownloadController downloadController;
     private final CoverArtController coverArtController;
     private final AvatarController avatarController;
-    private final LeftController leftController;
     private final StatusService statusService;
     private final StreamController streamController;
     private final HLSController hlsController;
@@ -87,7 +85,7 @@ public class SubsonicRESTController {
 
     private final JAXBWriter jaxbWriter = new JAXBWriter();
 
-    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, LeftController leftController, SearchService searchService, AudioScrobblerService audioScrobblerService, MusicIndexService musicIndexService, StatusService statusService, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
+    public SubsonicRESTController(AvatarController avatarController, SettingsService settingsService, SecurityService securityService, MediaFileDao mediaFileDao, PlayerService playerService, MediaFileService mediaFileService, LastFmService lastFmService, AlbumDao albumDao, SearchService searchService, AudioScrobblerService audioScrobblerService, StatusService statusService, CoverArtService coverArtService, TranscodingService transcodingService, JukeboxService jukeboxService, DownloadController downloadController, LyricsWSController lyricsWSController, RatingService ratingService, CoverArtController coverArtController, StreamController streamController, PlayQueueService playQueueService, MediaFolderService mediaFolderService, ArtistDao artistDao, HLSController hlsController, SubsonicResponseMapper responseMapper, RestPlayerResolver playerResolver) {
         this.avatarController = avatarController;
         this.settingsService = settingsService;
         this.securityService = securityService;
@@ -96,10 +94,8 @@ public class SubsonicRESTController {
         this.mediaFileService = mediaFileService;
         this.lastFmService = lastFmService;
         this.albumDao = albumDao;
-        this.leftController = leftController;
         this.searchService = searchService;
         this.audioScrobblerService = audioScrobblerService;
-        this.musicIndexService = musicIndexService;
         this.statusService = statusService;
         this.coverArtService = coverArtService;
         this.transcodingService = transcodingService;
@@ -143,76 +139,6 @@ public class SubsonicRESTController {
         jaxbWriter.writeResponse(request, response, res);
     }
 
-
-    @RequestMapping("/getIndexes")
-    public void getIndexes(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        Response res = createResponse();
-        String username = securityService.getCurrentUser(request).getUsername();
-
-        long ifModifiedSince = getLongParameter(request, "ifModifiedSince", 0L);
-        long lastModified = leftController.getLastModified(request);
-
-        if (lastModified <= ifModifiedSince) {
-            jaxbWriter.writeResponse(request, response, res);
-            return;
-        }
-
-        Indexes indexes = new Indexes();
-        indexes.setLastModified(lastModified);
-        indexes.setIgnoredArticles(settingsService.getIgnoredArticles());
-
-        List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username);
-        Integer musicFolderId = getIntParameter(request, "musicFolderId");
-        if (musicFolderId != null) {
-            for (org.airsonic.player.domain.MusicFolder musicFolder : musicFolders) {
-                if (musicFolderId.equals(musicFolder.getId())) {
-                    musicFolders = Collections.singletonList(musicFolder);
-                    break;
-                }
-            }
-        }
-
-        for (MediaFile shortcut : musicIndexService.getShortcuts(musicFolders)) {
-            indexes.getShortcut().add(createJaxbArtist(shortcut, username));
-        }
-
-        MusicFolderContent musicFolderContent = musicIndexService.getMusicFolderContent(musicFolders, false);
-
-        for (Map.Entry<MusicIndex, List<MusicIndex.SortableArtistWithMediaFiles>> entry : musicFolderContent.getIndexedArtists().entrySet()) {
-            Index index = new Index();
-            indexes.getIndex().add(index);
-            index.setName(entry.getKey().getIndex());
-
-            for (MusicIndex.SortableArtistWithMediaFiles artist : entry.getValue()) {
-                for (MediaFile mediaFile : artist.getMediaFiles()) {
-                    if (mediaFile.isDirectory()) {
-                        Instant starredDate = mediaFileDao.getMediaFileStarredDate(mediaFile.getId(), username);
-                        org.subsonic.restapi.Artist a = new org.subsonic.restapi.Artist();
-                        index.getArtist().add(a);
-                        a.setId(String.valueOf(mediaFile.getId()));
-                        a.setName(artist.getName());
-                        a.setStarred(jaxbWriter.convertDate(starredDate));
-
-                        if (mediaFile.isAlbum()) {
-                            a.setAverageRating(ratingService.getAverageRating(mediaFile));
-                            a.setUserRating(ratingService.getRatingForUser(username, mediaFile));
-                        }
-                    }
-                }
-            }
-        }
-
-        // Add children
-        Player player = playerService.getPlayer(request, response);
-
-        for (MediaFile singleSong : musicFolderContent.getSingleSongs()) {
-            indexes.getChild().add(createJaxbChild(player, singleSong, username));
-        }
-
-        res.setIndexes(indexes);
-        jaxbWriter.writeResponse(request, response, res);
-    }
 
     @RequestMapping("/getSongsByGenre")
     public void getSongsByGenre(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -261,10 +187,6 @@ public class SubsonicRESTController {
 
     private <T extends ArtistID3> T createJaxbArtist(T jaxbArtist, org.airsonic.player.domain.Artist artist, String username) {
         return responseMapper.artist(jaxbArtist, artist, username);
-    }
-
-    private org.subsonic.restapi.Artist createJaxbArtist(MediaFile artist, String username) {
-        return responseMapper.artist(artist, username);
     }
 
     private <T extends AlbumID3> T createJaxbAlbum(T jaxbAlbum, Album album, String username) {
