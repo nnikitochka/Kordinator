@@ -8,6 +8,7 @@ import org.airsonic.player.controller.rest.music.genre.SongsByGenreController;
 import org.airsonic.player.controller.rest.music.top.TopSongsController;
 import org.airsonic.player.controller.rest.music.directory.MusicDirectoryController;
 import org.airsonic.player.controller.rest.music.random.RandomSongsController;
+import org.airsonic.player.controller.rest.music.song.SongController;
 import org.airsonic.player.controller.rest.scrobble.ScrobbleController;
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingController;
 import org.airsonic.player.controller.rest.download.DownloadRestController;
@@ -133,6 +134,7 @@ public class KtorConfiguration {
                                 new RandomSongsController(albumSearchService, mediaFolderService, responseMapper, jaxbWriter),
                                 new ScrobbleController(mediaFileService, statusService, audioScrobblerService, jaxbWriter),
                                 new NowPlayingController(statusService, responseMapper, jaxbWriter),
+                                new SongController(mediaFileDao, securityService, responseMapper, jaxbWriter),
                                 new DownloadRestController(jaxbWriter), downloadService,
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver, leftController),
@@ -160,6 +162,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(TopSongsController.PATHS);
         registration.addUrlMappings(MusicDirectoryController.PATHS);
         registration.addUrlMappings(RandomSongsController.PATHS);
+        registration.addUrlMappings(SongController.PATHS);
         registration.addUrlMappings(ScrobbleController.PATHS);
         registration.addUrlMappings(NowPlayingController.PATHS);
         registration.addUrlMappings(DownloadRestController.PATHS);

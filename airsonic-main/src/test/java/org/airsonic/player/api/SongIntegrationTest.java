@@ -58,6 +58,7 @@ public class SongIntegrationTest {
                 assertEquals(70, body(send(suffix, "f=json&id=2147483647", false, false)).path("error").path("code").asInt());
                 assertEquals(70, body(send(suffix, "f=json&id=" + album.getId(), false, false)).path("error").path("code").asInt());
                 assertEquals(50, body(send(suffix, "f=json&" + id, false, true)).path("error").path("code").asInt());
+                assertEquals(400, send(suffix, "f=json&id=abc", false, false).statusCode());
                 assertTrue(send(suffix, "f=xml&" + id, false, false).body().contains("<song"));
                 assertTrue(send(suffix, "f=jsonp&callback=client.test&" + id, false, false).body().startsWith("client.test("));
             }
