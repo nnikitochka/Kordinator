@@ -115,17 +115,7 @@ public class RESTRequestParameterProcessingFilter extends AbstractAuthentication
     }
 
     public static String decrypt(String s) {
-        if (s == null) {
-            return null;
-        }
-        if (!s.startsWith("enc:")) {
-            return s;
-        }
-        try {
-            return StringUtil.utf8HexDecode(s.substring(4));
-        } catch (Exception e) {
-            return s;
-        }
+        return StringUtil.decodeSubsonicPassword(s);
     }
 
     public static class RESTAuthenticationFailureHandler implements AuthenticationFailureHandler {

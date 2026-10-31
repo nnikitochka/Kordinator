@@ -49,15 +49,22 @@ public class UsersIntegrationTest {
         }
         ok(call("createUser", "users-admin", "username=users-created&password=enc:70617373&email=test%40example.com&downloadRole=true"));
         assertTrue(security.getUserByName("users-created").isDownloadRole());
+        ok(call("getUser", "users-created", "pass", "username=users-created"));
         ok(call("updateUser.view", "users-admin", "username=users-created&email=new%40example.com&shareRole=true"));
         assertEquals("new@example.com", security.getUserByName("users-created").getEmail());
         assertTrue(security.getUserByName("users-created").isShareRole());
         ok(call("changePassword", "users-admin", "username=users-created&password=enc:6e6577"));
+        ok(call("getUser", "users-created", "new", "username=users-created"));
+        ok(call("changePassword.view", "users-member", "username=users-member&password=enc:6f776e"));
+        ok(call("getUser", "users-member", "own", "username=users-member"));
         ok(call("deleteUser.view", "users-admin", "username=users-created"));
         assertNull(security.getUserByName("users-created"));
     }
     private JsonNode call(String path, String user, String query) throws Exception {
-        String url = "http://localhost:" + port + "/airsonic/rest/" + path + "?v=" + TestCaseUtils.restApiVersion() + "&c=users-test&u=" + user + "&p=secret&f=json&" + query;
+        return call(path, user, "secret", query);
+    }
+    private JsonNode call(String path, String user, String password, String query) throws Exception {
+        String url = "http://localhost:" + port + "/airsonic/rest/" + path + "?v=" + TestCaseUtils.restApiVersion() + "&c=users-test&u=" + user + "&p=" + password + "&f=json&" + query;
         HttpResponse<String> response = client.send(HttpRequest.newBuilder(URI.create(url)).GET().build(), HttpResponse.BodyHandlers.ofString());
         assertEquals(response.body(), 200, response.statusCode());
         return mapper.readTree(response.body()).path("subsonic-response");

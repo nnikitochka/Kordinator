@@ -2,6 +2,10 @@ package org.airsonic.player.spring;
 
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
 import org.airsonic.player.controller.JAXBWriter;
+import org.airsonic.player.controller.UserSettingsController;
+import org.airsonic.player.controller.rest.users.UsersController;
+import org.airsonic.player.controller.rest.users.PasswordController;
+import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.controller.rest.jukebox.JukeboxController;
 import org.airsonic.player.controller.rest.starred.StarredController;
@@ -69,6 +73,8 @@ public class KtorConfiguration {
             JukeboxService jukeboxService,
             PlayQueueService playQueueService,
             SecurityService securityService,
+            SettingsService settingsService,
+            UserSettingsController userSettingsController,
             LocaleResolver localeResolver
     ) {
         ServletRegistrationBean<ServletApplicationEngine> registration =
@@ -87,6 +93,8 @@ public class KtorConfiguration {
                                 new BookmarksController(bookmarkService, mediaFileService, responseMapper, jaxbWriter),
                                 new StarredController(mediaFileDao, albumDao, artistDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),
+                                new UsersController(securityService, settingsService, mediaFolderService, userSettingsController, jaxbWriter),
+                                new PasswordController(securityService, jaxbWriter),
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver),
                         "/internal/ktor/*");
@@ -105,6 +113,8 @@ public class KtorConfiguration {
         registration.addUrlMappings(BookmarksController.PATHS);
         registration.addUrlMappings(StarredController.PATHS);
         registration.addUrlMappings(JukeboxController.PATHS);
+        registration.addUrlMappings(UsersController.PATHS);
+        registration.addUrlMappings(PasswordController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);

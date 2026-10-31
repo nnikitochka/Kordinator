@@ -42,6 +42,9 @@ import org.airsonic.player.controller.rest.search.SearchController
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsController
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsRequest
 import org.airsonic.player.controller.cover.CoverArtController
+import org.airsonic.player.controller.rest.users.UsersController
+import org.airsonic.player.controller.rest.users.PasswordController
+import org.airsonic.player.controller.rest.users.UsersRequest
 import org.airsonic.player.i18n.LocaleResolver
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.PlayerService
@@ -67,6 +70,8 @@ class AirsonicKtorServlet(
     private val bookmarksController: BookmarksController,
     private val starredController: StarredController,
     private val jukeboxController: JukeboxController,
+    private val usersController: UsersController,
+    private val passwordController: PasswordController,
     private val shareService: ShareService,
     private val mediaFileService: MediaFileService,
     private val playerResolver: RestPlayerResolver,
@@ -109,6 +114,8 @@ class AirsonicKtorServlet(
             if (albumInfoRequest != null) {
                 call.attributes.put(ALBUM_INFO_REQUEST_KEY, albumInfoRequest)
             }
+            val usersRequest = request.getAttribute(USERS_REQUEST) as? UsersRequest
+            if (usersRequest != null) call.attributes.put(USERS_REQUEST_KEY, usersRequest)
             val jukeboxRequest = request.getAttribute(JUKEBOX_REQUEST) as? JukeboxRequest
             if (jukeboxRequest != null) {
                 call.attributes.put(JUKEBOX_REQUEST_KEY, jukeboxRequest)
@@ -149,6 +156,8 @@ class AirsonicKtorServlet(
             albumsController.routes(this) { call -> call.attributes[ALBUMS_REQUEST_KEY] }
             bookmarksController.routes(this) { call -> call.attributes[BOOKMARKS_REQUEST_KEY] }
             starredController.routes(this) { call -> call.attributes[STARRED_REQUEST_KEY] }
+            usersController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
+            passwordController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
@@ -264,6 +273,9 @@ class AirsonicKtorServlet(
                 return
             }
             request.setAttribute(ALBUM_INFO_REQUEST, AlbumInfoRequest(parameters(request), id))
+        } else if (path in UsersController.PATHS || path in PasswordController.PATHS) {
+            playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)), parameters(request)))
         } else if (path in JukeboxController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(
                 request.remoteUser, request.getParameter("c"), request.remoteAddr, true
@@ -420,6 +432,8 @@ class AirsonicKtorServlet(
         )
         const val ARTISTS_REQUEST = "org.airsonic.player.artistsRequest"
         val ARTISTS_REQUEST_KEY = AttributeKey<ArtistsRequest>(ARTISTS_REQUEST)
+        const val USERS_REQUEST = "org.airsonic.player.usersRequest"
+        val USERS_REQUEST_KEY = AttributeKey<UsersRequest>(USERS_REQUEST)
         const val JUKEBOX_REQUEST = "org.airsonic.player.jukeboxRequest"
         val JUKEBOX_REQUEST_KEY = AttributeKey<JukeboxRequest>(JUKEBOX_REQUEST)
         const val STARRED_REQUEST = "org.airsonic.player.starredRequest"

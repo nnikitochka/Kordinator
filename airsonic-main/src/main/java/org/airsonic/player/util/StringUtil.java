@@ -264,6 +264,17 @@ public final class StringUtil {
         return String.valueOf(Hex.encodeHex(utf8));
     }
 
+    public static String decodeSubsonicPassword(String value) {
+        if (value == null || !value.startsWith("enc:")) {
+            return value;
+        }
+        try {
+            return utf8HexDecode(value.substring(4));
+        } catch (Exception e) {
+            return value;
+        }
+    }
+
     /**
      * Decodes the given string by using the hexadecimal representation of its UTF-8 bytes.
      *
