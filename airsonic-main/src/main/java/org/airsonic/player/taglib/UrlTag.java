@@ -30,8 +30,6 @@ import java.util.List;
  * <p/>
  * (The problem with c:url is that is uses the same encoding as the http response,
  * but most(?) servlet container assumes that ISO-8859-1 is used.)
- *
- * @author Sindre Mehus
  */
 public class UrlTag extends BodyTagSupport {
 
@@ -56,13 +54,12 @@ public class UrlTag extends BodyTagSupport {
         // Store or print the output
         if (var != null)
             pageContext.setAttribute(var, result, PageContext.PAGE_SCOPE);
-        else {
-            try {
-                pageContext.getOut().print(result);
-            } catch (IOException x) {
-                throw new JspTagException(x);
-            }
+        else try {
+            pageContext.getOut().print(result);
+        } catch (IOException x) {
+            throw new JspTagException(x);
         }
+
         return EVAL_PAGE;
     }
 
@@ -98,34 +95,34 @@ public class UrlTag extends BodyTagSupport {
         return result.toString();
     }
 
-    private String encode(String s) throws UnsupportedEncodingException {
+    private String encode(String str) throws UnsupportedEncodingException {
         if (isUtf8Hex()) {
-            if (isAsciiAlphaNumeric(s)) {
-                return s;
+            if (isAsciiAlphaNumeric(str)) {
+                return str;
             }
 
             try {
-                return StringUtil.utf8HexEncode(s);
+                return StringUtil.utf8HexEncode(str);
             } catch (Exception x) {
-                LOG.error("Failed to utf8hex-encode the string '{}'.", s, x);
-                return s;
+                LOG.error("Failed to utf8hex-encode the string '{}'.", str, x);
+                return str;
             }
         }
 
-        return URLEncoder.encode(s, encoding);
+        return URLEncoder.encode(str, encoding);
     }
 
     private boolean isUtf8Hex() {
         return DEFAULT_ENCODING.equals(encoding);
     }
 
-    private boolean isAsciiAlphaNumeric(String s) {
-        if (s == null) {
+    private boolean isAsciiAlphaNumeric(String str) {
+        if (str == null) {
             return true;
         }
 
-        for (int i = 0; i < s.length(); i++) {
-            if (!CharUtils.isAsciiAlphanumeric(s.charAt(i))) {
+        for (int i = 0; i < str.length(); i++) {
+            if (!CharUtils.isAsciiAlphanumeric(str.charAt(i))) {
                 return false;
             }
         }

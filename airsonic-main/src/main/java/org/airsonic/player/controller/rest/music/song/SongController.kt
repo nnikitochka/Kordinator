@@ -45,7 +45,7 @@ class SongController(
             } else {
                 val song = mediaFileDao.getMediaFile(id)
                 when {
-                    song == null || song.isDirectory() -> writer.createErrorResponse(ErrorCode.NOT_FOUND, "Song not found.")
+                    song == null || song.isDirectory -> writer.createErrorResponse(ErrorCode.NOT_FOUND, "Song not found.")
                     !security.isFolderAccessAllowed(song, request.username) -> writer.createErrorResponse(ErrorCode.NOT_AUTHORIZED, "Access denied")
                     else -> writer.createResponse(true).apply { this.song = mapper.child(request.player, song, request.username) }
                 }
