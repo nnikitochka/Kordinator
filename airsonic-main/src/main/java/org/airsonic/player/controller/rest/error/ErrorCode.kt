@@ -1,7 +1,9 @@
-package org.airsonic.player.controller.rest.error;
+package org.airsonic.player.controller.rest.error
 
-public enum ErrorCode {
-
+enum class ErrorCode(
+    val code: Int,
+    val message: String
+) {
     GENERIC(0, "A generic error."),
     MISSING_PARAMETER(10, "Required parameter is missing."),
     PROTOCOL_MISMATCH_CLIENT_TOO_OLD(20, "Incompatible Airsonic REST protocol version. Client must upgrade."),
@@ -10,20 +12,4 @@ public enum ErrorCode {
     NOT_AUTHENTICATED_UPGRADE_TO_NON_HASHED(41, "Wrong username or password, but try authenticating via non-hashed password."),
     NOT_AUTHORIZED(50, "User is not authorized for the given operation."),
     NOT_FOUND(70, "Requested data was not found.");
-
-    private final int code;
-    private final String message;
-
-    ErrorCode(int code, String message) {
-        this.code = code;
-        this.message = message;
-    }
-
-    public int getCode() {
-        return code;
-    }
-
-    public String getMessage() {
-        return message;
-    }
 }
