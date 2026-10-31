@@ -50,6 +50,8 @@ import org.airsonic.player.controller.rest.playqueue.PlayQueueRequest
 import org.airsonic.player.controller.LeftController
 import org.airsonic.player.controller.rest.indexes.IndexesController
 import org.airsonic.player.controller.rest.indexes.IndexesRequest
+import org.airsonic.player.controller.rest.music.genre.SongsByGenreController
+import org.airsonic.player.controller.rest.music.genre.SongsByGenreRequest
 import org.airsonic.player.i18n.LocaleResolver
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.PlayerService
@@ -79,6 +81,7 @@ class AirsonicKtorServlet(
     private val passwordController: PasswordController,
     private val playQueueController: PlayQueueController,
     private val indexesController: IndexesController,
+    private val songsByGenreController: SongsByGenreController,
     private val shareService: ShareService,
     private val mediaFileService: MediaFileService,
     private val playerResolver: RestPlayerResolver,
@@ -126,6 +129,8 @@ class AirsonicKtorServlet(
             if (usersRequest != null) call.attributes.put(USERS_REQUEST_KEY, usersRequest)
             val playQueueRequest = request.getAttribute(PLAY_QUEUE_REQUEST) as? PlayQueueRequest
             if (playQueueRequest != null) call.attributes.put(PLAY_QUEUE_REQUEST_KEY, playQueueRequest)
+            val genreSongsRequest = request.getAttribute(GENRE_SONGS_REQUEST) as? SongsByGenreRequest
+            if (genreSongsRequest != null) call.attributes.put(GENRE_SONGS_REQUEST_KEY, genreSongsRequest)
             val indexesRequest = request.getAttribute(INDEXES_REQUEST) as? IndexesRequest
             if (indexesRequest != null) call.attributes.put(INDEXES_REQUEST_KEY, indexesRequest)
             val jukeboxRequest = request.getAttribute(JUKEBOX_REQUEST) as? JukeboxRequest
@@ -172,6 +177,7 @@ class AirsonicKtorServlet(
             passwordController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             playQueueController.routes(this) { call -> call.attributes[PLAY_QUEUE_REQUEST_KEY] }
             indexesController.routes(this) { call -> call.attributes[INDEXES_REQUEST_KEY] }
+            songsByGenreController.routes(this) { call -> call.attributes[GENRE_SONGS_REQUEST_KEY] }
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
@@ -319,6 +325,15 @@ class AirsonicKtorServlet(
             val username = if (listing) requireNotNull(securityService.getCurrentUsername(request))
                 else requireNotNull(securityService.getCurrentUser(request)).username
             request.setAttribute(STARRED_REQUEST, StarredRequest(username, parameters(request), player))
+        } else if (path in SongsByGenreController.PATHS) {
+            val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            val wrapped = object : HttpServletRequestWrapper(request) {
+                override fun getParameter(name: String): String? =
+                    if (name == "player") playerId?.toString() else super.getParameter(name)
+            }
+            val player = playerService.getPlayer(wrapped, response)
+            val username = requireNotNull(securityService.getCurrentUsername(request))
+            request.setAttribute(GENRE_SONGS_REQUEST, SongsByGenreRequest(username, player, parameters(request)))
         } else if (path in IndexesController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val username = requireNotNull(securityService.getCurrentUser(request)).username
@@ -486,6 +501,8 @@ class AirsonicKtorServlet(
         val USERS_REQUEST_KEY = AttributeKey<UsersRequest>(USERS_REQUEST)
         const val PLAY_QUEUE_REQUEST = "org.airsonic.player.playQueueRequest"
         val PLAY_QUEUE_REQUEST_KEY = AttributeKey<PlayQueueRequest>(PLAY_QUEUE_REQUEST)
+        const val GENRE_SONGS_REQUEST = "org.airsonic.player.genreSongsRequest"
+        val GENRE_SONGS_REQUEST_KEY = AttributeKey<SongsByGenreRequest>(GENRE_SONGS_REQUEST)
         const val INDEXES_REQUEST = "org.airsonic.player.indexesRequest"
         val INDEXES_REQUEST_KEY = AttributeKey<IndexesRequest>(INDEXES_REQUEST)
         const val JUKEBOX_REQUEST = "org.airsonic.player.jukeboxRequest"

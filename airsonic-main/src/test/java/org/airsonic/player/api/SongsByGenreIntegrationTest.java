@@ -61,6 +61,9 @@ public class SongsByGenreIntegrationTest {
                         body(send(suffix, q, false, "genre-restricted", "secret")).path("songsByGenre"));
                 assertEquals(10, body(send(suffix, "f=json", false)).path("error").path("code").asInt());
                 assertEquals(400, send(suffix, q + "&musicFolderId=bad", false).statusCode());
+                assertEquals(400, send(suffix, q + "&musicFolderId=", false).statusCode());
+                assertEquals(all, body(send(suffix, q + "&count=bad&offset=bad", false)).path("songsByGenre").path("song"));
+                assertEquals(10, body(send(suffix, "f=json&musicFolderId=bad", false)).path("error").path("code").asInt());
                 assertTrue(send(suffix, "f=xml&genre=Baroque%20Instrumental", false).body().contains("<songsByGenre"));
                 assertTrue(send(suffix, "f=jsonp&callback=client.test&genre=Baroque%20Instrumental", false).body().startsWith("client.test("));
             }
