@@ -140,28 +140,6 @@ public class SubsonicRESTController {
     }
 
 
-    @RequestMapping("/getTopSongs")
-    public void getTopSongs(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request = wrapRequest(request);
-        String username = securityService.getCurrentUsername(request);
-
-        String artist = getRequiredStringParameter(request, "artist");
-        int count = getIntParameter(request, "count", 50);
-
-        TopSongs result = new TopSongs();
-
-        List<org.airsonic.player.domain.MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(username);
-        List<MediaFile> topSongs = lastFmService.getTopSongs(artist, count, musicFolders);
-        Player player = playerService.getPlayer(request, response);
-        for (MediaFile topSong : topSongs) {
-            result.getSong().add(createJaxbChild(player, topSong, username));
-        }
-
-        Response res = createResponse();
-        res.setTopSongs(result);
-        jaxbWriter.writeResponse(request, response, res);
-    }
-
     private <T extends ArtistID3> T createJaxbArtist(T jaxbArtist, org.airsonic.player.domain.Artist artist, String username) {
         return responseMapper.artist(jaxbArtist, artist, username);
     }
