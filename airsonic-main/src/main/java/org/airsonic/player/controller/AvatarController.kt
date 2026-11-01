@@ -1,87 +1,69 @@
-package org.airsonic.player.controller;
+package org.airsonic.player.controller
 
-import org.airsonic.player.domain.Avatar;
-import org.airsonic.player.domain.AvatarScheme;
-import org.airsonic.player.domain.UserSettings;
-import org.airsonic.player.service.SettingsService;
-import org.apache.commons.io.IOUtils;
-import org.jetbrains.annotations.NotNull;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.ServletRequestUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.mvc.LastModified;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import org.airsonic.player.domain.Avatar
+import org.airsonic.player.domain.AvatarScheme
+import org.airsonic.player.service.SettingsService
+import org.apache.commons.io.IOUtils
+import org.springframework.core.io.ResourceLoader
+import org.springframework.stereotype.Controller
+import org.springframework.web.bind.ServletRequestUtils
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.servlet.mvc.LastModified
+import kotlin.math.max
 
 /**
  * Controller which produces avatar images.
  */
 @Controller
 @RequestMapping("/avatar")
-public class AvatarController implements LastModified {
-    private final SettingsService settingsService;
-    private final ResourceLoader loader;
+class AvatarController(private val settingsService: SettingsService, private val loader: ResourceLoader) :
+    LastModified {
+    override fun getLastModified(request: HttpServletRequest): Long {
+        val avatar = getAvatar(request)
+        var result = if (avatar == null) -1L else avatar.createdDate.toEpochMilli()
 
-    public AvatarController(SettingsService settingsService, ResourceLoader loader) {
-        this.settingsService = settingsService;
-        this.loader = loader;
-    }
-
-    @Override
-    public long getLastModified(@NotNull HttpServletRequest request) {
-        Avatar avatar = getAvatar(request);
-        long result = avatar == null ? -1L : avatar.getCreatedDate().toEpochMilli();
-
-        String username = request.getParameter("username");
+        val username = request.getParameter("username")
         if (username != null) {
-            UserSettings userSettings = settingsService.getUserSettings(username);
-            result = Math.max(result, userSettings.getChanged().toEpochMilli());
+            val userSettings = settingsService.getUserSettings(username)
+            result = max(result, userSettings.changed.toEpochMilli())
         }
 
-        return result;
+        return result
     }
 
     @GetMapping
-    public void handleRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        Avatar avatar = getAvatar(request);
+    @Throws(Exception::class)
+    fun handleRequest(request: HttpServletRequest, response: HttpServletResponse) {
+        val avatar = getAvatar(request) ?: return response.sendError(HttpServletResponse.SC_NOT_FOUND)
 
-        if (avatar == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-        }
-
-        response.setContentType(avatar.getMimeType());
-        Resource res = loader.getResource(avatar.getPath().toString());
+        response.contentType = avatar.mimeType
+        var res = loader.getResource(avatar.path.toString())
         if (!res.exists()) {
-            res = loader.getResource("file:" + avatar.getPath().toString());
+            res = loader.getResource("file:" + avatar.path.toString())
         }
-        IOUtils.copy(res.getInputStream(), response.getOutputStream());
+        IOUtils.copy(res.inputStream, response.outputStream)
     }
 
-    private Avatar getAvatar(HttpServletRequest request) {
-        String id = request.getParameter("id");
-        boolean forceCustom = ServletRequestUtils.getBooleanParameter(request, "forceCustom", false);
+    private fun getAvatar(request: HttpServletRequest): Avatar? {
+        val id = request.getParameter("id")
+        val forceCustom = ServletRequestUtils.getBooleanParameter(request, "forceCustom", false)
 
         if (id != null) {
-            return settingsService.getSystemAvatar(Integer.parseInt(id));
+            return settingsService.getSystemAvatar(id.toInt())
         }
 
-        String username = request.getParameter("username");
-        if (username == null) {
-            return null;
-        }
+        val username = request.getParameter("username") ?: return null
 
-        UserSettings userSettings = settingsService.getUserSettings(username);
-        if (userSettings.getAvatarScheme() == AvatarScheme.CUSTOM || forceCustom) {
-            return settingsService.getCustomAvatar(username);
+        val userSettings = settingsService.getUserSettings(username)
+        if (userSettings.avatarScheme == AvatarScheme.CUSTOM || forceCustom) {
+            return settingsService.getCustomAvatar(username)
         }
-        if (userSettings.getAvatarScheme() == AvatarScheme.NONE) {
-            return null;
+        if (userSettings.avatarScheme == AvatarScheme.NONE) {
+            return null
         }
-        return settingsService.getSystemAvatar(userSettings.getSystemAvatarId());
+        return settingsService.getSystemAvatar(userSettings.systemAvatarId)
     }
 }
