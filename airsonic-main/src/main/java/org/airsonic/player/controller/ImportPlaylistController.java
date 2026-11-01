@@ -22,7 +22,6 @@ import java.util.Map;
 @Controller
 @RequestMapping("/importPlaylist")
 public class ImportPlaylistController {
-
     private static final long MAX_PLAYLIST_SIZE_MB = 5L;
 
     private final SecurityService securityService;
@@ -71,5 +70,4 @@ public class ImportPlaylistController {
     public String handleGet() {
         return "importPlaylist";
     }
-
 }
