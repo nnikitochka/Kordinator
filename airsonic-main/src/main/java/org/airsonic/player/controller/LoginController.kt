@@ -1,59 +1,49 @@
-package org.airsonic.player.controller;
+package org.airsonic.player.controller
 
-import org.airsonic.player.service.SecurityService;
-import org.airsonic.player.service.SettingsService;
-import org.airsonic.player.util.StringUtil;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.ModelAndView;
-import org.springframework.web.servlet.view.RedirectView;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
-import java.util.HashMap;
-import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import org.airsonic.player.service.SecurityService
+import org.airsonic.player.service.SettingsService
+import org.airsonic.player.util.StringUtil
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
+import org.springframework.stereotype.Controller
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.servlet.ModelAndView
+import org.springframework.web.servlet.view.RedirectView
 
 /**
  * Spring MVC Controller that serves the login page.
  */
 @Controller
 @RequestMapping("/login")
-public class LoginController {
-    private final SecurityService securityService;
-    private final SettingsService settingsService;
-
-    public LoginController(SecurityService securityService, SettingsService settingsService) {
-        this.securityService = securityService;
-        this.settingsService = settingsService;
-    }
-
+class LoginController(private val securityService: SecurityService, private val settingsService: SettingsService) {
     @GetMapping
-    public ModelAndView login(HttpServletRequest request, HttpServletResponse response) {
+    fun login(request: HttpServletRequest, response: HttpServletResponse): ModelAndView {
         // Auto-login if "user" and "password" parameters are given.
-        String username = request.getParameter("user");
-        String password = request.getParameter("password");
+        var username = request.getParameter("user")
+        var password = request.getParameter("password")
         if (username != null && password != null) {
-            username = StringUtil.urlEncode(username);
-            password = StringUtil.urlEncode(password);
-            return new ModelAndView(new RedirectView("/login?" +
-                    UsernamePasswordAuthenticationFilter.SPRING_SECURITY_FORM_USERNAME_KEY + "=" + username +
-                    "&" + UsernamePasswordAuthenticationFilter.SPRING_SECURITY_FORM_PASSWORD_KEY + "=" + password
-            ));
+            username = StringUtil.urlEncode(username)
+            password = StringUtil.urlEncode(password)
+            return ModelAndView(RedirectView(
+                "/login?" +
+                        UsernamePasswordAuthenticationFilter.SPRING_SECURITY_FORM_USERNAME_KEY + "=" + username +
+                        "&" + UsernamePasswordAuthenticationFilter.SPRING_SECURITY_FORM_PASSWORD_KEY + "=" + password
+            ))
         }
 
-        Map<String, Object> map = new HashMap<String, Object>();
-        map.put("logout", request.getParameter("logout") != null);
-        map.put("error", request.getParameter("error") != null);
-        map.put("brand", settingsService.getBrand());
-        map.put("loginMessage", settingsService.getLoginMessage());
+        val map = buildMap {
+            put("logout", request.getParameter("logout") != null)
+            put("error", request.getParameter("error") != null)
+            put("brand", settingsService.brand)
+            put("loginMessage", settingsService.loginMessage)
 
-        if (securityService.checkDefaultAdminCredsPresent()) {
-            map.put("insecure", true);
+            if (securityService.checkDefaultAdminCredsPresent()) {
+                put("insecure", true)
+            }
         }
 
-        return new ModelAndView("login", "model", map);
+        return ModelAndView("login", "model", map)
     }
 }
