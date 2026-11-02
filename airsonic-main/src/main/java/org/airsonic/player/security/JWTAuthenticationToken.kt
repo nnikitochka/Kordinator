@@ -1,31 +1,31 @@
-package org.airsonic.player.security;
+package org.airsonic.player.security
 
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.GrantedAuthority
 
-import java.util.Collection;
+class JWTAuthenticationToken : UsernamePasswordAuthenticationToken {
+    val requestedPath: String
 
-public class JWTAuthenticationToken extends UsernamePasswordAuthenticationToken {
-
-    private final String requestedPath;
-
-    public JWTAuthenticationToken(Object principal, Object credentials, String requestedPath) {
-        super(principal, credentials);
-        this.requestedPath = requestedPath;
+    constructor(principal: Any, credentials: Any, requestedPath: String) : super(principal, credentials) {
+        this.requestedPath = requestedPath
     }
 
-    public JWTAuthenticationToken(Object principal, Object credentials, String requestedPath, Collection<? extends GrantedAuthority> authorities) {
-        super(principal, credentials, authorities);
-        this.requestedPath = requestedPath;
+    constructor(
+        principal: Any,
+        credentials: Any,
+        requestedPath: String,
+        authorities: MutableCollection<out GrantedAuthority>
+    ) : super(principal, credentials, authorities) {
+        this.requestedPath = requestedPath
     }
 
-    public JWTAuthenticationToken(Object principal, Object credentials, String requestedPath,
-            Collection<? extends GrantedAuthority> authorities, Object details) {
-        this(principal, credentials, requestedPath, authorities);
-        this.setDetails(details);
-    }
-
-    public String getRequestedPath() {
-        return requestedPath;
+    constructor(
+        principal: Any,
+        credentials: Any,
+        requestedPath: String,
+        authorities: MutableCollection<out GrantedAuthority>,
+        details: Any
+    ) : this(principal, credentials, requestedPath, authorities) {
+        this.details = details
     }
 }

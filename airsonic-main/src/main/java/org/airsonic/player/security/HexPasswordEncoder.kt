@@ -1,35 +1,27 @@
-package org.airsonic.player.security;
+package org.airsonic.player.security
 
-import com.google.common.io.BaseEncoding;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import com.google.common.io.BaseEncoding
+import org.apache.commons.lang3.StringUtils
+import org.springframework.security.crypto.password.PasswordEncoder
+import java.nio.charset.StandardCharsets
 
-import java.nio.charset.StandardCharsets;
-
-public final class HexPasswordEncoder implements PasswordEncoder, PasswordDecoder {
-    private final static BaseEncoding hex = BaseEncoding.base16().lowerCase();
-
-    @Override
-    public String encode(CharSequence rawPassword) {
-        return hex.encode(rawPassword.toString().getBytes(StandardCharsets.UTF_8));
+class HexPasswordEncoder private constructor() : PasswordEncoder, PasswordDecoder {
+    override fun encode(rawPassword: CharSequence): String? {
+        return hex.encode(rawPassword.toString().toByteArray(StandardCharsets.UTF_8))
     }
 
-    @Override
-    public String decode(String encoded) {
-        return new String(hex.decode(encoded), StandardCharsets.UTF_8);
+    override fun decode(encoded: String): String {
+        return String(hex.decode(encoded), StandardCharsets.UTF_8)
     }
 
-    @Override
-    public boolean matches(CharSequence rawPassword, String encodedPassword) {
-        return StringUtils.equals(encode(rawPassword), encodedPassword);
+    override fun matches(rawPassword: CharSequence, encodedPassword: String?): Boolean {
+        return StringUtils.equals(encode(rawPassword), encodedPassword)
     }
 
-    public static HexPasswordEncoder getInstance() {
-        return INSTANCE;
-    }
+    companion object {
+        private val hex: BaseEncoding = BaseEncoding.base16().lowerCase()
 
-    private static final HexPasswordEncoder INSTANCE = new HexPasswordEncoder();
-
-    private HexPasswordEncoder() {
+        @JvmStatic
+        val instance: HexPasswordEncoder = HexPasswordEncoder()
     }
 }

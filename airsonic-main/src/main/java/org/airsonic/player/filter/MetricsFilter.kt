@@ -1,34 +1,29 @@
-package org.airsonic.player.filter;
+package org.airsonic.player.filter
 
-import org.airsonic.player.monitor.MetricsManager;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.servlet.*
+import jakarta.servlet.http.HttpServletRequest
+import org.airsonic.player.monitor.MetricsManager
+import org.springframework.beans.factory.annotation.Autowired
+import java.io.IOException
 
-import jakarta.servlet.*;
-import jakarta.servlet.http.HttpServletRequest;
-
-import java.io.IOException;
-
-public class MetricsFilter implements Filter {
-
+class MetricsFilter : Filter {
     @Autowired
-    private MetricsManager metricsManager;
+    private lateinit var metricsManager: MetricsManager
 
-    @Override
-    public void init(FilterConfig filterConfig) {
+    override fun init(filterConfig: FilterConfig) {
     }
 
-    @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        HttpServletRequest httpServletRequest = (HttpServletRequest)request;
+    @Throws(IOException::class, ServletException::class)
+    override fun doFilter(request: ServletRequest, response: ServletResponse, chain: FilterChain) {
+        val httpServletRequest = request as HttpServletRequest
 
-        String timerName = httpServletRequest.getRequestURI();
-        // Add a metric that measures the time spent for each http request for the /main.view url.
-        try (MetricsManager.Timer t = metricsManager.condition(timerName.contains("main.view")).timer(this,timerName)) {
-            chain.doFilter(request, response);
+        val timerName = httpServletRequest.requestURI
+
+        metricsManager.condition(timerName.contains("main.view")).timer(this, timerName).use {
+            chain.doFilter(request, response)
         }
     }
 
-    @Override
-    public void destroy() {
+    override fun destroy() {
     }
 }

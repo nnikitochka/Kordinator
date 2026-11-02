@@ -1,46 +1,41 @@
-package org.airsonic.player.security;
+package org.airsonic.player.security
 
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.crypto.encrypt.Encryptors;
-import org.springframework.security.crypto.encrypt.TextEncryptor;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.apache.commons.lang3.StringUtils
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.springframework.security.crypto.encrypt.Encryptors
+import org.springframework.security.crypto.password.PasswordEncoder
 
-public class AesGcmPasswordEncoder implements PasswordEncoder, PasswordDecoder {
-    private static final Logger LOG = LoggerFactory.getLogger(AesGcmPasswordEncoder.class);
-    private final TextEncryptor encryptor;
+class AesGcmPasswordEncoder @JvmOverloads constructor(
+    password: String = CONSTANT_PASSWORD,
+    salt: String = CONSTANT_SALT
+) : PasswordEncoder, PasswordDecoder {
+    private val encryptor = Encryptors.delux(password, salt)
 
-    public AesGcmPasswordEncoder(String password, String salt) {
-        this.encryptor = Encryptors.delux(password, salt);
+    @Throws(Exception::class)
+    override fun decode(encoded: String): String {
+        return encryptor.decrypt(encoded)
     }
 
-    @Override
-    public String decode(String encoded) throws Exception {
-        return encryptor.decrypt(encoded);
+    override fun encode(rawPassword: CharSequence): String? {
+        return encryptor.encrypt(rawPassword.toString())
     }
 
-    @Override
-    public String encode(CharSequence rawPassword) {
-        return encryptor.encrypt(rawPassword.toString());
-    }
-
-    @Override
-    public boolean matches(CharSequence rawPassword, String encodedPassword) {
+    override fun matches(rawPassword: CharSequence, encodedPassword: String): Boolean {
         try {
-            return StringUtils.equals(rawPassword, decode(encodedPassword));
-        } catch (Exception e) {
-            LOG.warn("Exception while trying to match passwords", e);
-            return false;
+            return StringUtils.equals(rawPassword, decode(encodedPassword))
+        } catch (e: Exception) {
+            LOG.warn("Exception while trying to match passwords", e)
+            return false
         }
     }
 
-    // The following used as placeholder before the real instance with actual
-    // password is instantiated
-    private static final String CONSTANT_PASSWORD = "airsonicencryptorpassword";
-    private static final String CONSTANT_SALT = "44C82DD88E1FA9672628C3637B7F6976";
+    companion object {
+        private val LOG: Logger = LoggerFactory.getLogger(AesGcmPasswordEncoder::class.java)
 
-    public AesGcmPasswordEncoder() {
-        this(CONSTANT_PASSWORD, CONSTANT_SALT);
+        // The following used as placeholder before the real instance with actual
+        // password is instantiated
+        private const val CONSTANT_PASSWORD = "airsonicencryptorpassword"
+        private const val CONSTANT_SALT = "44C82DD88E1FA9672628C3637B7F6976"
     }
 }

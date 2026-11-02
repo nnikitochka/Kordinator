@@ -1,28 +1,21 @@
-package org.airsonic.player.security;
+package org.airsonic.player.security
 
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder
 
-public class PasswordEncoderDecoderWrapper implements PasswordEncoder, PasswordDecoder {
-    public final PasswordEncoder encoder;
-    public final PasswordDecoder decoder;
-
-    public PasswordEncoderDecoderWrapper(PasswordEncoder encoder, PasswordDecoder decoder) {
-        this.encoder = encoder;
-        this.decoder = decoder;
+class PasswordEncoderDecoderWrapper(
+    val encoder: PasswordEncoder,
+    val decoder: PasswordDecoder
+) : PasswordEncoder, PasswordDecoder {
+    override fun encode(rawPassword: CharSequence?): String? {
+        return encoder.encode(rawPassword)
     }
 
-    @Override
-    public String encode(CharSequence rawPassword) {
-        return encoder.encode(rawPassword);
+    @Throws(Exception::class)
+    override fun decode(encoded: String): String {
+        return decoder.decode(encoded)
     }
 
-    @Override
-    public String decode(String encoded) throws Exception {
-        return decoder.decode(encoded);
-    }
-
-    @Override
-    public boolean matches(CharSequence rawPassword, String encodedPassword) {
-        return encoder.matches(rawPassword, encodedPassword);
+    override fun matches(rawPassword: CharSequence, encodedPassword: String): Boolean {
+        return encoder.matches(rawPassword, encodedPassword)
     }
 }

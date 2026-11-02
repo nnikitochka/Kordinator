@@ -1,14 +1,13 @@
-package org.airsonic.player.service.playlist;
+package org.airsonic.player.service.playlist
 
-import chameleon.playlist.SpecificPlaylist;
-import chameleon.playlist.SpecificPlaylistProvider;
+import chameleon.playlist.SpecificPlaylist
+import chameleon.playlist.SpecificPlaylistProvider
 
-public interface PlaylistExportHandler {
-    boolean canHandle(Class<? extends SpecificPlaylistProvider> providerClass);
+interface PlaylistExportHandler {
+    fun canHandle(providerClass: Class<out SpecificPlaylistProvider>): Boolean
 
-    SpecificPlaylist handle(int id, SpecificPlaylistProvider provider) throws Exception;
+    @Throws(Exception::class)
+    fun handle(id: Int, provider: SpecificPlaylistProvider): SpecificPlaylist
 
-    default int getOrder() {
-        return Integer.MAX_VALUE;
-    }
+    val order: Int get() = Int.MAX_VALUE
 }

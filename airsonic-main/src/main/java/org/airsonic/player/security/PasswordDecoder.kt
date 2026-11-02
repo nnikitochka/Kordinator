@@ -1,5 +1,6 @@
-package org.airsonic.player.security;
+package org.airsonic.player.security
 
-public interface PasswordDecoder {
-    public String decode(String encoded) throws Exception;
+interface PasswordDecoder {
+    @Throws(Exception::class)
+    fun decode(encoded: String): String
 }
