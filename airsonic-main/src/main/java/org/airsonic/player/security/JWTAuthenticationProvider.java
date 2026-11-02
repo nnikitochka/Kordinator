@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Objects;
 
 public class JWTAuthenticationProvider implements AuthenticationProvider {
-
     private static final Logger LOG = LoggerFactory.getLogger(JWTAuthenticationProvider.class);
 
     private final String jwtKey;
@@ -62,8 +61,7 @@ public class JWTAuthenticationProvider implements AuthenticationProvider {
         if (StringUtils.contains(authentication.getRequestedPath(), "/WEB-INF/jsp/")) {
             LOG.warn("BYPASSING AUTH FOR WEB-INF page");
         } else if (!roughlyEqual(path.asString(), authentication.getRequestedPath())) {
-            throw new InsufficientAuthenticationException("Credentials not valid for path " + authentication
-                    .getRequestedPath() + ". They are valid for " + path.asString());
+            throw new InsufficientAuthenticationException("Credentials not valid for path " + authentication.getRequestedPath() + ". They are valid for " + path.asString());
         }
 
         List<VerificationCheck> moreChecks = additionalChecks.get(UriComponentsBuilder.fromUriString(authentication.getRequestedPath()).build().getPath());
@@ -135,6 +133,6 @@ public class JWTAuthenticationProvider implements AuthenticationProvider {
 
     @FunctionalInterface
     public interface VerificationCheck {
-        public void check(DecodedJWT jwt) throws AuthenticationException;
+        void check(DecodedJWT jwt) throws AuthenticationException;
     }
 }

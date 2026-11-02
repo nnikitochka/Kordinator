@@ -85,13 +85,11 @@ public class CustomUserDetailsContextMapper implements UserDetailsContextMapper 
      * @return a String representation of the password.
      */
     protected static String mapPassword(Object passwordValue) {
-
         if (!(passwordValue instanceof String)) {
             // Assume it's binary
             passwordValue = new String((byte[]) passwordValue);
         }
 
         return (String) passwordValue;
-
     }
 }

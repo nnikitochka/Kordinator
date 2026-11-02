@@ -100,6 +100,5 @@ public class CustomLDAPAuthenticatorPostProcessor implements ObjectPostProcessor
             }
             return SecurityService.getGrantedAuthorities(user);
         }
-
     }
 }

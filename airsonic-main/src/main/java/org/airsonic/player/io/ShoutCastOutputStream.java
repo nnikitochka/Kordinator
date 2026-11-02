@@ -23,7 +23,7 @@ public class ShoutCastOutputStream extends OutputStream {
     /**
      * The underlying output stream to decorate.
      */
-    private OutputStream out;
+    private final OutputStream out;
 
     /**
      * Keeps track of the number of bytes written (excluding meta-data).  Between 0 and {@link #META_DATA_INTERVAL}.
@@ -163,13 +163,19 @@ public class ShoutCastOutputStream extends OutputStream {
      * Maps from miscellaneous accented characters to similar-looking ASCII characters.
      */
     public static final char[][] CHAR_MAP = {
-            {'\u00C0', 'A'}, {'\u00C1', 'A'}, {'\u00C2', 'A'}, {'\u00C3', 'A'}, {'\u00C4', 'A'}, {'\u00C5', 'A'}, {'\u00C6', 'A'},
-            {'\u00C8', 'E'}, {'\u00C9', 'E'}, {'\u00CA', 'E'}, {'\u00CB', 'E'}, {'\u00CC', 'I'}, {'\u00CD', 'I'}, {'\u00CE', 'I'},
-            {'\u00CF', 'I'}, {'\u00D2', 'O'}, {'\u00D3', 'O'}, {'\u00D4', 'O'}, {'\u00D5', 'O'}, {'\u00D6', 'O'}, {'\u00D9', 'U'},
-            {'\u00DA', 'U'}, {'\u00DB', 'U'}, {'\u00DC', 'U'}, {'\u00DF', 'B'}, {'\u00E0', 'a'}, {'\u00E1', 'a'}, {'\u00E2', 'a'},
-            {'\u00E3', 'a'}, {'\u00E4', 'a'}, {'\u00E5', 'a'}, {'\u00E6', 'a'}, {'\u00E7', 'c'}, {'\u00E8', 'e'}, {'\u00E9', 'e'},
-            {'\u00EA', 'e'}, {'\u00EB', 'e'}, {'\u00EC', 'i'}, {'\u00ED', 'i'}, {'\u00EE', 'i'}, {'\u00EF', 'i'}, {'\u00F1', 'n'},
-            {'\u00F2', 'o'}, {'\u00F3', 'o'}, {'\u00F4', 'o'}, {'\u00F5', 'o'}, {'\u00F6', 'o'}, {'\u00F8', 'o'}, {'\u00F9', 'u'},
-            {'\u00FA', 'u'}, {'\u00FB', 'u'}, {'\u00FC', 'u'}, {'\u2013', '-'}
+            {'À', 'A'}, {'Á', 'A'}, {'Â', 'A'}, {'Ã', 'A'}, {'Ä', 'A'}, {'Å', 'A'}, {'Æ', 'A'},
+            {'È', 'E'}, {'É', 'E'}, {'Ê', 'E'}, {'Ë', 'E'},
+            {'Ì', 'I'}, {'Í', 'I'}, {'Î', 'I'}, {'Ï', 'I'},
+            {'Ò', 'O'}, {'Ó', 'O'}, {'Ô', 'O'}, {'Õ', 'O'}, {'Ö', 'O'},
+            {'Ù', 'U'}, {'Ú', 'U'}, {'Û', 'U'}, {'Ü', 'U'},
+            {'ß', 'B'},
+            {'à', 'a'}, {'á', 'a'}, {'â', 'a'}, {'ã', 'a'}, {'ä', 'a'}, {'å', 'a'}, {'æ', 'a'},
+            {'ç', 'c'},
+            {'è', 'e'}, {'é', 'e'}, {'ê', 'e'}, {'ë', 'e'},
+            {'ì', 'i'}, {'í', 'i'}, {'î', 'i'}, {'ï', 'i'},
+            {'ñ', 'n'},
+            {'ò', 'o'}, {'ó', 'o'}, {'ô', 'o'}, {'õ', 'o'}, {'ö', 'o'}, {'ø', 'o'},
+            {'ù', 'u'}, {'ú', 'u'}, {'û', 'u'}, {'ü', 'u'},
+            {'–', '-'}
     };
 }

@@ -16,7 +16,6 @@ import jakarta.servlet.http.HttpServletResponse;
  * Intercepts exceptions thrown by RESTController.
  */
 public class RESTFilter implements Filter {
-
     private static final Logger LOG = LoggerFactory.getLogger(RESTFilter.class);
 
     private final JAXBWriter jaxbWriter = new JAXBWriter();
@@ -30,23 +29,23 @@ public class RESTFilter implements Filter {
         }
     }
 
-    private void handleException(Throwable x, HttpServletRequest request, HttpServletResponse response) {
-        if (x instanceof NestedServletException && x.getCause() != null) {
-            x = x.getCause();
+    private void handleException(Throwable err, HttpServletRequest request, HttpServletResponse response) {
+        if (err instanceof NestedServletException && err.getCause() != null) {
+            err = err.getCause();
         }
 
-        ErrorCode code = (x instanceof ServletRequestBindingException) ? ErrorCode.MISSING_PARAMETER : ErrorCode.GENERIC;
-        String msg = getErrorMessage(x);
+        ErrorCode code = (err instanceof ServletRequestBindingException) ? ErrorCode.MISSING_PARAMETER : ErrorCode.GENERIC;
+        String msg = getErrorMessage(err);
 
         // This happens often and outside of the control of the server, so
         // we catch Tomcat/Jetty "connection aborted by client" exceptions
         // and display a short error message.
-        boolean shouldCatch = Util.isInstanceOfClassName(x, "org.apache.catalina.connector.ClientAbortException");
+        boolean shouldCatch = Util.isInstanceOfClassName(err, "org.apache.catalina.connector.ClientAbortException");
         if (shouldCatch) {
             LOG.info("{}: Client unexpectedly closed connection while loading {} ({})", request.getRemoteAddr(),
-                    Util.getAnonymizedURLForRequest(request), x.getMessage());
+                    Util.getAnonymizedURLForRequest(request), err.getMessage());
         } else {
-            LOG.warn("Error in REST API", x);
+            LOG.warn("Error in REST API", err);
 
             try {
                 jaxbWriter.writeErrorResponse(request, response, code, msg);

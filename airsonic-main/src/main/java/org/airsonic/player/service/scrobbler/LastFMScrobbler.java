@@ -195,7 +195,7 @@ public class LastFMScrobbler {
     }
 
     private String[] registerNowPlaying(RegistrationData registrationData, String sessionId, String url) throws UnsupportedEncodingException, ClientProtocolException, IOException {
-        Map<String, String> params = new HashMap<String, String>();
+        Map<String, String> params = new HashMap<>();
         params.put("s", sessionId);
         params.put("a", registrationData.artist);
         params.put("t", registrationData.title);
