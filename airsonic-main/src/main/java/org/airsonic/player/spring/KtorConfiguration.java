@@ -141,7 +141,7 @@ public class KtorConfiguration {
                                 new SimilarSongsController(mediaFileService, artistDao, lastFmService,
                                         mediaFolderService, responseMapper, jaxbWriter),
                                 new ArtistInfoController(mediaFileService, artistDao, lastFmService,
-                                        mediaFolderService, responseMapper, jaxbWriter),
+                                        mediaFolderService, responseMapper, jaxbWriter, securityService),
                                 new AlbumInfoController(mediaFileService, albumDao, lastFmService, jaxbWriter),
                                 new PlaylistsController(playlistService, mediaFileService, securityService, responseMapper, jaxbWriter,
                                         mediaFileDao, mediaFolderService, playerService, localeResolver),

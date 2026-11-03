@@ -9,6 +9,7 @@
     <%@ include file="subsonicStars.jsp" %>
     <script src="<c:url value='/script/subsonic-rating.js'/>"></script>
     <script src="<c:url value='/script/subsonic-media-directory.js'/>"></script>
+    <script src="<c:url value='/script/subsonic-artist-info.js'/>"></script>
     <%@ include file="table.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/jquery.fancyzoom.js'/>"></script>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
@@ -736,11 +737,6 @@
             "/user/queue/settings/viewAsList": function(msg) {
                 viewChangedCallback(JSON.parse(msg.body));
             }
-          <c:if test="${model.showArtistInfo}">
-            ,"/user/queue/artist/info": function(msg) {
-                loadArtistInfoCallback(JSON.parse(msg.body));
-            }
-          </c:if>
         });
         if (initialIds.length != 0 || Object.keys(initialPaths).length != 0) {
             getMediaDirectories(initialIds, initialPaths);
@@ -748,8 +744,13 @@
     }
 
   <c:if test="${model.showArtistInfo}">
+    var artistInfoApi = createArtistInfo({
+        url: "<c:url value='/rest/getArtistInfo'/>", csrfHeader: "${_csrf.headerName}", csrfToken: "${_csrf.token}"
+    });
     function loadArtistInfo() {
-        top.StompClient.send("/app/artist/info", JSON.stringify({mediaFileId: mediaDir.id, maxSimilarArtists: 8, maxTopSongs: 100}));
+        artistInfoApi.get(mediaDir.id).then(function (result) {
+            if (result) loadArtistInfoCallback(result);
+        }).catch(function (error) { console.error(error); });
     }
 
     function loadArtistInfoCallback(artistInfo) {
