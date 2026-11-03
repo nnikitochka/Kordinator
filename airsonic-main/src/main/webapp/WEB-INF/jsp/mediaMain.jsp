@@ -4,6 +4,7 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+    <%@ include file="subsonicStars.jsp" %>
     <%@ include file="table.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/jquery.fancyzoom.js'/>"></script>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
@@ -798,14 +799,10 @@
 
     function toggleMediaDirStar(status) {
         if (mediaDir.starred != status) {
-            mediaDir.starred = status;
-            if (mediaDir.starred) {
-                top.StompClient.send("/app/rate/mediafile/star", JSON.stringify([mediaDir.id]));
-            } else {
-                top.StompClient.send("/app/rate/mediafile/unstar", JSON.stringify([mediaDir.id]));
-            }
-
-            updateStarImage();
+            setMediaFilesStarred([mediaDir.id], status, function () {
+                mediaDir.starred = status;
+                updateStarImage();
+            });
         }
     }
 
@@ -818,17 +815,14 @@
     }
 
     function onStar(table, indices, status) {
-        var ids = table.rows(indices).data().map(data => {
-            data.starred = status;
-            table.cell(data.seq, "starred:name").invalidate();
-            return data.id;
-        }).toArray();
-
-        if (status) {
-            top.StompClient.send("/app/rate/mediafile/star", JSON.stringify(ids));
-        } else {
-            top.StompClient.send("/app/rate/mediafile/unstar", JSON.stringify(ids));
-        }
+        var rows = table.rows(indices).data().toArray();
+        var ids = rows.map(data => data.id);
+        setMediaFilesStarred(ids, status, function () {
+            rows.forEach(data => {
+                data.starred = status;
+                table.cell(data.seq, "starred:name").invalidate();
+            });
+        });
     }
     function onToggleStar(row) {
         onStar(row.table(), [row.data().seq], !row.data().starred);

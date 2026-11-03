@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%@ include file="include.jsp" %>
 <%@ include file="jquery.jsp" %>
+<%@ include file="subsonicStars.jsp" %>
 <%@ include file="table.jsp" %>
 <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
 <script type="text/javascript" src="<c:url value='/script/mediaelement/mediaelement-and-player.min.js'/>"></script>
@@ -900,18 +901,11 @@
         },
         onStar(indices, status) {
             var par = this;
-            var ids = indices.map(index => {
-                par.songs[index].starred = status;
-                par.musicTable.cell(index, "starred:name").invalidate();
-                return par.songs[index].id;
+            var songs = indices.map(index => par.songs[index]);
+            setMediaFilesStarred(songs.map(song => song.id), status, function () {
+                songs.forEach(song => { song.starred = status; });
+                par.musicTable.rows().invalidate();
             });
-            
-            if (status) {
-                top.StompClient.send("/app/rate/mediafile/star", JSON.stringify(ids));
-            } else {
-                top.StompClient.send("/app/rate/mediafile/unstar", JSON.stringify(ids));
-            }
-            
         },
         onToggleStar(index) {
             this.onStar([index], !this.songs[index].starred);

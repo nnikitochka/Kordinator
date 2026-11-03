@@ -4,6 +4,7 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+    <%@ include file="subsonicStars.jsp" %>
     <%@ include file="table.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
     <script type="text/javascript" language="javascript">
@@ -415,14 +416,12 @@
             $().toastmessage('showSuccessToast', '<fmt:message key="main.addnext.toast"/>')
         }
         function onStar(index) {
-            songs[index].starred = !songs[index].starred;
-
-            if (songs[index].starred) {
-                top.StompClient.send("/app/rate/mediafile/star", JSON.stringify([songs[index].id]));
-            } else {
-                top.StompClient.send("/app/rate/mediafile/unstar", JSON.stringify([songs[index].id]));
-            }
-            playlistMusicTable.cell(index, "starred:name").invalidate();
+            var song = songs[index];
+            var starred = !song.starred;
+            setMediaFilesStarred([song.id], starred, function () {
+                song.starred = starred;
+                playlistMusicTable.rows().invalidate();
+            });
         }
       <c:if test="${model.editAllowed}">
         function onRemove(indexes) {

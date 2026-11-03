@@ -4,17 +4,20 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+    <%@ include file="subsonicStars.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
     <script type="text/javascript" language="javascript">
 
         function toggleStar(mediaFileId, imageId) {
             if ($(imageId).attr("src").indexOf("<spring:theme code="ratingOnImage"/>") != -1) {
-                $(imageId).attr("src", "<spring:theme code="ratingOffImage"/>");
-                top.StompClient.send("/app/rate/mediafile/unstar", JSON.stringify([mediaFileId]));
+                setMediaFilesStarred([mediaFileId], false, function () {
+                    $(imageId).attr("src", "<spring:theme code="ratingOffImage"/>");
+                });
             }
             else if ($(imageId).attr("src").indexOf("<spring:theme code="ratingOffImage"/>") != -1) {
-                $(imageId).attr("src", "<spring:theme code="ratingOnImage"/>");
-                top.StompClient.send("/app/rate/mediafile/star", JSON.stringify([mediaFileId]));
+                setMediaFilesStarred([mediaFileId], true, function () {
+                    $(imageId).attr("src", "<spring:theme code="ratingOnImage"/>");
+                });
             }
         }
 

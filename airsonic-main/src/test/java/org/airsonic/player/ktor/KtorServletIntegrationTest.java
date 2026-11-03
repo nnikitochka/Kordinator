@@ -66,6 +66,9 @@ public class KtorServletIntegrationTest {
     @Autowired
     private SettingsService settingsService;
 
+    @Autowired
+    private org.springframework.context.ApplicationContext applicationContext;
+
     private final HttpClient client = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.NEVER)
             .connectTimeout(Duration.ofSeconds(10))
@@ -335,6 +338,86 @@ public class KtorServletIntegrationTest {
                 assertEquals(30, incompatible.path("error").path("code").asInt());
             }
         }
+    }
+
+    @Test
+    public void websiteStarsUseTheSameRestContractAsExternalClients() throws Exception {
+        List<MusicFolder> folders = MusicFolderTestData.getTestMusicFolders();
+        UUID cleanupId = ScanningTestUtils.before(folders, mediaFolderService, mediaScannerService);
+        try {
+            assertTrue("The internal star controller must be removed",
+                    !applicationContext.containsBean("starWSController"));
+            TestCaseUtils.execScan(mediaScannerService);
+            JsonNode songs = subsonic(get("/rest/search3?" + credentials()
+                    + "&f=json&query=Reed%20Neck%20Reel", false)).path("searchResult3").path("song");
+            int songId = songs.path(0).path("id").asInt();
+            assertTrue(songs.toString(), songId > 0);
+            MediaFile song = mediaFileDao.getMediaFile(songId);
+            int folderId = mediaFileDao.getMediaFile(song.getParentPath(), song.getFolderId()).getId();
+            String ids = "&id=" + songId + "&id=" + folderId;
+
+            HttpClient browser = HttpClient.newBuilder()
+                    .cookieHandler(new java.net.CookieManager(null, java.net.CookiePolicy.ACCEPT_ALL))
+                    .followRedirects(HttpClient.Redirect.NEVER).build();
+            HttpResponse<String> loginPage = browserRequest(browser, "/login", null, null);
+            java.util.regex.Matcher token = java.util.regex.Pattern
+                    .compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"").matcher(loginPage.body());
+            assertTrue(loginPage.body(), token.find());
+            HttpResponse<String> login = browserRequest(browser, "/login", "j_username=admin&j_password=admin&_csrf="
+                    + URLEncoder.encode(token.group(1), StandardCharsets.UTF_8), null);
+            assertEquals(login.body(), 302, login.statusCode());
+            HttpResponse<String> page = browserRequest(browser, "/starred.view", null, null);
+            assertEquals(page.body(), 200, page.statusCode());
+            token = java.util.regex.Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
+            assertTrue(page.body(), token.find());
+            String csrf = token.group(1);
+            assertTrue(page.body().contains("/airsonic/rest/star"));
+            assertTrue(page.body().contains("/airsonic/script/subsonic-stars.js"));
+
+            // The browser sends only its session cookie and CSRF header, no Subsonic password.
+            String form = "f=json&c=airsonic-web" + ids;
+            subsonic(browserRequest(browser, "/rest/star", form, csrf));
+            JsonNode starred = subsonic(get("/rest/getStarred?" + credentials() + "&f=json", false)).path("starred");
+            assertEquals(starred.toString(), songId, starred.path("song").path(0).path("id").asInt());
+            assertEquals(starred.toString(), folderId, starred.path("album").path(0).path("id").asInt());
+            subsonic(browserRequest(browser, "/rest/star", form, csrf)); // Repeated writes remain valid.
+            assertEquals(403, browserRequest(browser, "/rest/unstar", form, null).statusCode());
+            assertNotNull(mediaFileDao.getMediaFileStarredDate(songId, "admin"));
+            subsonic(browserRequest(browser, "/rest/unstar", form, csrf));
+            starred = subsonic(get("/rest/getStarred?" + credentials() + "&f=json", false)).path("starred");
+            assertEquals(0, starred.path("song").size());
+            assertEquals(0, starred.path("album").size());
+
+            // Existing external XML/GET and JSON/form POST contracts remain available.
+            HttpResponse<String> xml = get("/rest/star?" + credentials() + "&id=" + songId, false);
+            assertEquals(xml.body(), 200, xml.statusCode());
+            assertTrue(xml.body(), xml.body().contains("status=\"ok\""));
+            subsonic(post("/rest/unstar.view", credentials() + "&f=json&id=" + songId));
+            assertEquals(10, responseBody(get("/rest/star?f=json&id=" + songId, false))
+                    .path("error").path("code").asInt());
+            JsonNode missing = responseBody(browserRequest(browser, "/rest/star",
+                    "f=json&id=2147483647", csrf));
+            assertEquals("failed", missing.path("status").asText());
+            assertEquals(70, missing.path("error").path("code").asInt());
+        } finally {
+            ScanningTestUtils.after(cleanupId, mediaFolderService);
+            mediaFolderService.expunge();
+        }
+    }
+
+    private HttpResponse<String> browserRequest(HttpClient browser, String path, String form, String csrf)
+            throws Exception {
+        HttpRequest.Builder request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + port + "/airsonic" + path))
+                .timeout(Duration.ofSeconds(10));
+        if (csrf != null) {
+            request.header("X-CSRF-TOKEN", csrf);
+        }
+        if (form != null) {
+            request.header("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString(form));
+        }
+        return browser.send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
 
     private String credentials() {

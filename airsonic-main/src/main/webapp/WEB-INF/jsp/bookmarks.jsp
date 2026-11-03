@@ -5,6 +5,7 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+    <%@ include file="subsonicStars.jsp" %>
     <%@ include file="table.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
 
@@ -253,14 +254,11 @@
         }
         function onStar(index) {
             var bookmark = bookmarksTable.row(index).data();
-            bookmark.mediaFileEntry.starred = !bookmark.mediaFileEntry.starred;
-
-            if (bookmark.mediaFileEntry.starred) {
-                top.StompClient.send("/app/rate/mediafile/star", JSON.stringify([bookmark.mediaFileEntry.id]));
-            } else {
-                top.StompClient.send("/app/rate/mediafile/unstar", JSON.stringify([bookmark.mediaFileEntry.id]));
-            }
-            bookmarksTable.cell(index, "starred:name").invalidate();
+            var starred = !bookmark.mediaFileEntry.starred;
+            setMediaFilesStarred([bookmark.mediaFileEntry.id], starred, function () {
+                bookmark.mediaFileEntry.starred = starred;
+                bookmarksTable.rows().invalidate();
+            });
         }
         function onRemoveSelectedBookmarks() {
             var indices = bookmarksTable.rows({ selected: true }).indexes().toArray();
