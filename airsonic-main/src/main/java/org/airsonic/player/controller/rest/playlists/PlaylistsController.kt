@@ -7,21 +7,31 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.ResourceBundle
+import kotlin.coroutines.cancellation.CancellationException
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.cover.CoverArtController
 import org.airsonic.player.controller.rest.SubsonicResponseMapper
 import org.airsonic.player.controller.rest.error.ErrorCode
+import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.domain.Playlist as DomainPlaylist
+import org.airsonic.player.i18n.LocaleResolver
 import org.airsonic.player.service.MediaFileService
+import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.PlayerService
 import org.airsonic.player.service.PlaylistService
 import org.airsonic.player.service.SecurityService
+import org.airsonic.player.util.StringUtil
 import org.slf4j.LoggerFactory
+import org.subsonic.restapi.Child
 import org.subsonic.restapi.Playlist
-import org.subsonic.restapi.Playlists
 import org.subsonic.restapi.PlaylistWithSongs
+import org.subsonic.restapi.Playlists
 import org.subsonic.restapi.Response
-import java.time.Instant
-import kotlin.coroutines.cancellation.CancellationException
 
 class PlaylistsController(
     private val playlists: PlaylistService,
@@ -29,6 +39,10 @@ class PlaylistsController(
     private val security: SecurityService,
     private val mapper: SubsonicResponseMapper,
     private val writer: JAXBWriter,
+    private val mediaFileDao: MediaFileDao,
+    private val folders: MediaFolderService,
+    private val players: PlayerService,
+    private val locales: LocaleResolver,
 ) {
     fun routes(root: Route, request: (ApplicationCall) -> PlaylistsRequest) {
         with(root) {
@@ -69,7 +83,9 @@ class PlaylistsController(
         }
         val result = Playlists()
         playlists.getReadablePlaylistsForUser(requested ?: request.username).forEach {
-            result.playlist.add(toRest(Playlist(), it))
+            if (request.parameters["writableOnly"] != "true" || playlists.isWriteAllowed(it, request.username)) {
+                result.playlist.add(toRest(Playlist(), it))
+            }
         }
         return writer.createResponse(true).apply { this.playlists = result }
     }
@@ -79,9 +95,30 @@ class PlaylistsController(
         val playlist = playlists.getPlaylist(id) ?: return notFound(id)
         if (!playlists.isReadAllowed(playlist, request.username)) return denied(id)
         val result = toRest(PlaylistWithSongs(), playlist)
-        playlists.getFilesInPlaylist(id).forEach {
-            if (security.isFolderAccessAllowed(it, request.username)) {
-                result.entry.add(mapper.child(requireNotNull(request.player), it, request.username))
+        val details = request.parameters["includeEntryDetails"] == "true"
+        playlists.getFilesInPlaylist(id, details).forEachIndexed { index, file ->
+            val allowed = security.isFolderAccessAllowed(file, request.username)
+            if (allowed || details) {
+                // Keep every occurrence addressable without exposing restricted file metadata.
+                val child = if (allowed) mapper.child(requireNotNull(request.player), file, request.username) else Child().apply {
+                    this.id = file.id.toString()
+                    title = ""
+                }
+                if (details) {
+                    child.present = file.isPresent && allowed
+                    child.playlistIndex = index
+                    if (allowed) {
+                        child.albumArtist = file.albumArtist
+                        child.lastPlayed = writer.convertDate(file.lastPlayed)
+                        child.lastScanned = writer.convertDate(file.lastScanned)
+                        child.changed = writer.convertDate(file.changed)
+                        child.formattedFileSize = StringUtil.formatBytes(file.fileSize, locales.resolveLocale(request.username))
+                        child.formattedBitRate = file.bitRate?.let {
+                            (if (file.isVariableBitRate) "vbr " else "") + "$it Kbps"
+                        }
+                    }
+                }
+                result.entry.add(child)
             }
         }
         return writer.createResponse(true).apply { this.playlist = result }
@@ -89,7 +126,26 @@ class PlaylistsController(
 
     private fun createPlaylist(request: PlaylistsRequest): Response {
         val id = request.id
-        val name = request.parameters["name"]
+        val source = request.parameters["source"]
+        if (source != null && (id != null || source !in setOf("empty", "starred", "playQueue"))) {
+            return errorResponse(ErrorCode.GENERIC, "Invalid playlist source")
+        }
+        val sourceSongs = when (source) {
+            "starred" -> mediaFileDao.getStarredFiles(0, Int.MAX_VALUE, request.username, folders.getMusicFoldersForUser(request.username))
+            "playQueue" -> {
+                val playerId = request.parameters["playerId"]?.toIntOrNull() ?: return missing("playerId")
+                val player = players.getPlayerById(playerId) ?: return errorResponse(ErrorCode.NOT_FOUND, "Player not found")
+                if (player.username != request.username) return errorResponse(ErrorCode.NOT_AUTHORIZED, "Permission denied for player")
+                player.playQueue.files.toList()
+            }
+            else -> null
+        }
+        val name = request.parameters["name"] ?: source?.let {
+            val locale = locales.resolveLocale(request.username)
+            val date = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+                .withLocale(locale).format(Instant.now().atZone(ZoneId.systemDefault()))
+            if (it == "starred") ResourceBundle.getBundle("org.airsonic.player.i18n.ResourceBundle", locale).getString("top.starred") + " " + date else date
+        }
         if (id == null && name == null) return errorResponse(ErrorCode.MISSING_PARAMETER, "Playlist ID or name must be specified.")
         val playlist = if (id != null) {
             val existing = playlists.getPlaylist(id) ?: return notFound(id)
@@ -107,15 +163,39 @@ class PlaylistsController(
             }
         }
         val ids = integers(request.parameters, "songId")
-        val songs = ids.mapNotNull { mediaFiles.getMediaFile(it) }
+        val songs = sourceSongs ?: ids.mapNotNull { mediaFiles.getMediaFile(it) }
         playlists.setFilesInPlaylist(playlist.id, songs)
-        return writer.createResponse(true)
+        return writer.createResponse(true).apply {
+            if (request.parameters["includePlaylist"] == "true") {
+                this.playlist = toRest(PlaylistWithSongs(), requireNotNull(this@PlaylistsController.playlists.getPlaylist(playlist.id)))
+            }
+        }
     }
 
     private fun updatePlaylist(request: PlaylistsRequest): Response {
         val id = request.id ?: return missing("playlistId")
         val original = playlists.getPlaylist(id) ?: return notFound(id)
         if (!playlists.isWriteAllowed(original, request.username)) return denied(id)
+        // Validate ordering before changing metadata or files. Indices identify occurrences,
+        // so repeated songs remain distinct and unavailable entries are preserved.
+        val reordered = request.parameters.getAll("songIndexOrder")?.let { raw ->
+            val files = playlists.getFilesInPlaylist(id, true)
+            val order = raw.map { it.toIntOrNull() ?: return errorResponse(ErrorCode.GENERIC, "Invalid playlist order") }
+            if (order.size != files.size || order.toSet() != files.indices.toSet()) {
+                return errorResponse(ErrorCode.GENERIC, "Playlist order must be a complete permutation")
+            }
+            order.map { files[it] }
+        }
+        if (request.parameters["includeUnavailable"] == "true") {
+            val size = playlists.getFilesInPlaylist(id, true).size
+            val invalidIndex = request.parameters.getAll("songIndexToRemove")?.any { raw ->
+                val index = raw.toIntOrNull()
+                index == null || index !in 0 until size
+            } == true
+            if (invalidIndex) {
+                return errorResponse(ErrorCode.GENERIC, "Invalid playlist index")
+            }
+        }
         val playlist = DomainPlaylist(original)
         request.parameters["name"]?.let { playlist.name = it }
         request.parameters["comment"]?.let { playlist.comment = it }
@@ -123,8 +203,8 @@ class PlaylistsController(
             playlist.shared = it.equals("true", true) || it.equals("on", true) || it.equals("yes", true) || it == "1"
         }
         playlists.updatePlaylist(playlist)
-        val songs = playlists.getFilesInPlaylist(id)
-        var changed = false
+        val songs = (reordered ?: playlists.getFilesInPlaylist(id, request.parameters["includeUnavailable"] == "true")).toMutableList()
+        var changed = reordered != null
         val indices = integers(request.parameters, "songIndexToRemove")
         indices.toSortedSet().toList().asReversed().forEach {
             songs.removeAt(it)

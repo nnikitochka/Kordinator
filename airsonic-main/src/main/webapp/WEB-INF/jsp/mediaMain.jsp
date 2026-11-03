@@ -4,6 +4,7 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+    <%@ include file="subsonicPlaylists.jsp" %>
     <%@ include file="subsonicStars.jsp" %>
     <script src="<c:url value='/script/subsonic-rating.js'/>"></script>
     <%@ include file="table.jsp" %>
@@ -728,12 +729,6 @@
             '/user/queue/mediafile/directory/get': function(msg) {
                 getMediaDirectoryCallback(JSON.parse(msg.body));
             },
-            '/user/queue/playlists/writable': function(msg) {
-                playlistSelectionCallback(JSON.parse(msg.body));
-            },
-            '/user/queue/playlists/files/append': function(msg) {
-                $().toastmessage("showSuccessToast", "<fmt:message key='playlist.toast.appendtoplaylist'/>");
-            },
             "/user/queue/settings/viewAsList": function(msg) {
                 viewChangedCallback(JSON.parse(msg.body));
             }
@@ -925,7 +920,7 @@
     function onAppendPlaylist() {
         awaitingAppendPlaylistRequest = true;
         // retrieve writable lists so we can open dialog to ask user which playlist to append to
-        top.StompClient.send("/app/playlists/writable", "");
+        playlistApi.list(true, playlistSelectionCallback);
     }
     function playlistSelectionCallback(playlists) {
         if (!awaitingAppendPlaylistRequest) {
@@ -953,7 +948,9 @@
         $("#dialog-select-playlist-list input:checked").each((i, e) => pl.appendPlaylist(e.value, mediaFileIds));
     }
     function appendPlaylist(playlistId, mediaFileIds) {
-        top.StompClient.send("/app/playlists/files/append", JSON.stringify({id: playlistId, modifierIds: mediaFileIds}));
+        playlistApi.append(playlistId, mediaFileIds, function () {
+            $().toastmessage("showSuccessToast", "<fmt:message key='playlist.toast.appendtoplaylist'/>");
+        });
     }
 
     /** Artists Only **/

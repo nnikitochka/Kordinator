@@ -5,6 +5,7 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+    <%@ include file="subsonicPlaylists.jsp" %>
     <%@ include file="table.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
 
@@ -197,25 +198,10 @@
             selectAll(e.target.checked);
         } );
 
+        playlistApi.watchList(top.StompClient, "playlists-rest", populatePlaylistCallback);
         top.StompClient.subscribe("playlists.jsp", {
-            '/user/queue/playlists/deleted': function(msg) {
-                deletedPlaylistCallback(JSON.parse(msg.body));
-            },
-            '/topic/playlists/deleted': function(msg) {
-                deletedPlaylistCallback(JSON.parse(msg.body));
-            },
-            '/user/queue/playlists/updated': function(msg) {
-                updatedPlaylistCallback(JSON.parse(msg.body));
-            },
-            '/topic/playlists/updated': function(msg) {
-                updatedPlaylistCallback(JSON.parse(msg.body));
-            },
             "/user/queue/settings/viewAsList": function(msg) {
                 viewChangedCallback(JSON.parse(msg.body));
-            },
-            // Add existing (initial population, one time)
-            '/app/playlists/readable': function(msg) {
-                populatePlaylistCallback(JSON.parse(msg.body));
             }
         });
         
@@ -234,7 +220,7 @@
       }
       function onDelete(index) {
         if (playlists[index].username == user) {
-          top.StompClient.send("/app/playlists/delete", playlists[index].id);
+          playlistApi.delete(playlists[index].id, function () { playlistApi.list(false, populatePlaylistCallback); });
         }
       }
       function onDeleteSelected() {
@@ -244,27 +230,13 @@
         }
       }
 
-      function deletedPlaylistCallback(id) {
-        playlists = playlists.filter(p => p.id != id);
-        playlistsTable.ajax.reload().columns.adjust();
-        removeThumb(id);
-        if (playlists.length == 0) {
-          $('#noplaylists').show();
-        }
-      }
       function populatePlaylistCallback(incoming) {
         playlists = incoming;
         playlistsTable.ajax.reload().columns.adjust();
         generateThumbs();
       }
-      function updatedPlaylistCallback(playlist) {
-        deletedPlaylistCallback(playlist.id);
-        playlists.push(playlist);
-        playlistsTable.ajax.reload().columns.adjust();
-        generateThumb(playlist, 30);
-      }
       function createEmptyPlaylist() {
-        top.StompClient.send("/app/playlists/create/empty", "");
+        playlistApi.create("empty", null, function () { playlistApi.list(false, populatePlaylistCallback); });
       }
 
       function viewSelectorRefresh() {

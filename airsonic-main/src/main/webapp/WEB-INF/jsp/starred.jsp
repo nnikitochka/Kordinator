@@ -4,6 +4,7 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+    <%@ include file="subsonicPlaylists.jsp" %>
     <%@ include file="subsonicStars.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
     <script type="text/javascript" language="javascript">
@@ -22,18 +23,13 @@
         }
 
         function onSavePlaylist() {
-            top.StompClient.send("/app/playlists/create/starred", "");
-        }
-
-        function init() {
-            top.StompClient.subscribe("starred.jsp", {
-                '/user/queue/playlists/create/starred': function(msg) {
-                    var playlistId = JSON.parse(msg.body);
-                    top.main.location.href = "playlist.view?id=" + playlistId;
-                    $().toastmessage("showSuccessToast", "<fmt:message key="playlist.toast.saveasplaylist"/>");
-                }
+            playlistApi.create("starred", null, function (playlistId) {
+                top.main.location.href = "playlist.view?id=" + playlistId;
+                $().toastmessage("showSuccessToast", "<fmt:message key='playlist.toast.saveasplaylist'/>");
             });
         }
+
+        function init() {}
 
         function onPlayAll() {
             top.playQueue.onPlayStarred();

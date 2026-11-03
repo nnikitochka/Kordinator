@@ -117,4 +117,29 @@ open class Child {
     @field:XmlAttribute(name = "accentColor")
     var accentColor: String? = null
 
+    // Optional playlist details; populated only by getPlaylist(includeEntryDetails=true).
+    @field:XmlAttribute(name = "present")
+    var present: Boolean? = null
+
+    @field:XmlAttribute(name = "playlistIndex")
+    var playlistIndex: Int? = null
+
+    @field:XmlAttribute(name = "albumArtist")
+    var albumArtist: String? = null
+
+    @field:XmlAttribute(name = "lastPlayed")
+    var lastPlayed: XMLGregorianCalendar? = null
+
+    @field:XmlAttribute(name = "lastScanned")
+    var lastScanned: XMLGregorianCalendar? = null
+
+    @field:XmlAttribute(name = "changed")
+    var changed: XMLGregorianCalendar? = null
+
+    @field:XmlAttribute(name = "formattedFileSize")
+    var formattedFileSize: String? = null
+
+    @field:XmlAttribute(name = "formattedBitRate")
+    var formattedBitRate: String? = null
+
 }

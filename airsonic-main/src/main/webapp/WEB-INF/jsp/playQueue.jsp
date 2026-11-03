@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%@ include file="include.jsp" %>
 <%@ include file="jquery.jsp" %>
+<%@ include file="subsonicPlaylists.jsp" %>
 <%@ include file="subsonicStars.jsp" %>
 <%@ include file="subsonicBookmarks.jsp" %>
 <%@ include file="table.jsp" %>
@@ -381,17 +382,6 @@
                             break;
                         }
                     }
-                },
-
-                // Playlists
-                '/user/queue/playlists/writable'(msg) {
-                    pq.playlistSelectionCallback(JSON.parse(msg.body));
-                },
-                '/user/queue/playlists/files/append'(msg) {
-                    pq.playlistUpdatedCallback(JSON.parse(msg.body), "<fmt:message key='playlist.toast.appendtoplaylist'/>");
-                },
-                '/user/queue/playlists/create/playqueue'(msg) {
-                    pq.playlistUpdatedCallback(JSON.parse(msg.body), "<fmt:message key='playlist.toast.saveasplaylist'/>");
                 },
 
                 // Players
@@ -926,14 +916,16 @@
             top.StompClient.send("/app/playqueues/" + this.player.id + "/play/saved", "");
         },
         onSavePlaylist() {
-            top.StompClient.send("/app/playlists/create/playqueue", this.player.id);
+            playlistApi.create("playQueue", this.player.id, (id) => {
+                this.playlistUpdatedCallback(id, "<fmt:message key='playlist.toast.saveasplaylist'/>");
+            });
         },
-        // need to keep track if a request was sent because mediaMain may also send a request
+        // Track the pending playlist selection dialog.
         awaitingAppendPlaylistRequest: false,
         onAppendPlaylist() {
             this.awaitingAppendPlaylistRequest = true;
             // retrieve writable lists so we can open dialog to ask user which playlist to append to
-            top.StompClient.send("/app/playlists/writable", "");
+            playlistApi.list(true, values => this.playlistSelectionCallback(values));
         },
         playlistSelectionCallback(playlists) {
             if (!this.awaitingAppendPlaylistRequest) {
@@ -962,7 +954,9 @@
             $("#dialog-select-playlist-list input:checked").each((i, e) => pq.appendPlaylist(e.value, mediaFileIds));
         },
         appendPlaylist(playlistId, mediaFileIds) {
-            top.StompClient.send("/app/playlists/files/append", JSON.stringify({id: playlistId, modifierIds: mediaFileIds}));
+            playlistApi.append(playlistId, mediaFileIds, (id) => {
+                this.playlistUpdatedCallback(id, "<fmt:message key='playlist.toast.appendtoplaylist'/>");
+            });
         },
 
         playlistUpdatedCallback(playlistId, toastMsg) {

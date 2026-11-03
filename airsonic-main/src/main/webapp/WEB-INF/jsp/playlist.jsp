@@ -4,6 +4,7 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+    <%@ include file="subsonicPlaylists.jsp" %>
     <%@ include file="subsonicStars.jsp" %>
     <%@ include file="table.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
@@ -297,27 +298,10 @@
                 selectAll(e.target.checked);
             } );
 
-            top.StompClient.subscribe("playlist.jsp", {
-                '/user/queue/playlists/deleted': function(msg) {
-                    deletedPlaylistCallback(JSON.parse(msg.body));
-                },
-                '/topic/playlists/deleted': function(msg) {
-                    deletedPlaylistCallback(JSON.parse(msg.body));
-                },
-                '/user/queue/playlists/updated': function(msg) {
-                    updatedPlaylistCallback(JSON.parse(msg.body));
-                },
-                '/topic/playlists/updated': function(msg) {
-                    updatedPlaylistCallback(JSON.parse(msg.body));
-                },
-                '/user/queue/playlists/files/${model.playlist.id}': function(msg) {
-                    updatedPlaylistEntriesCallback(JSON.parse(msg.body));
-                },
-                //one-time population only
-                '/app/playlists/${model.playlist.id}': function(msg) {
-                    updatedPlaylistCallback(JSON.parse(msg.body));
-                }
-            });
+            playlistApi.watchPlaylist(top.StompClient, "playlist-rest", playlistId, function (playlist, entries) {
+                updatedPlaylistCallback(playlist);
+                updatedPlaylistEntriesCallback(entries);
+            }, deletedPlaylistCallback);
 
           <c:if test="${model.editAllowed}">
             $("#playlistMusic tbody").on( "click", ".removeSong", function () {
@@ -338,7 +322,7 @@
                         var name = $("#newName").val();
                         var comment = $("#newComment").val();
                         var shared = $("#newShared").is(":checked");
-                        top.StompClient.send("/app/playlists/update", JSON.stringify({id: playlistId, name: name, comment: comment, shared: shared}));
+                        playlistApi.update(playlistId, name, comment, shared, updatePlaylistEntries);
                     },
                     "<fmt:message key="common.cancel"/>": function() {
                         $(this).dialog("close");
@@ -349,7 +333,7 @@
                 buttons: {
                     "<fmt:message key="common.delete"/>": function() {
                         $(this).dialog("close");
-                        top.StompClient.send("/app/playlists/delete", playlistId);
+                        playlistApi.delete(playlistId, function () { deletedPlaylistCallback(playlistId); });
                     },
                     "<fmt:message key="common.cancel"/>": function() {
                         $(this).dialog("close");
@@ -359,7 +343,10 @@
         }
 
         function updatePlaylistEntries() {
-            top.StompClient.send("/app/playlists/files/" + playlistId, "");
+            playlistApi.get(playlistId, function (playlist, entries) {
+                updatedPlaylistCallback(playlist);
+                updatedPlaylistEntriesCallback(entries);
+            });
         }
 
         function deletedPlaylistCallback(id) {
@@ -371,10 +358,6 @@
 
         function updatedPlaylistCallback(playlist) {
             if (playlistId == playlist.id) {
-                if (playlist.filesChanged) {
-                    updatePlaylistEntries();
-                }
-
                 $("#name").text(playlist.name);
                 $("#songCount").text(playlist.fileCount);
                 $("#duration").text(formatDuration(Math.round(playlist.duration)));
@@ -425,10 +408,10 @@
         }
       <c:if test="${model.editAllowed}">
         function onRemove(indexes) {
-            top.StompClient.send("/app/playlists/files/remove", JSON.stringify({id: playlistId, modifierIds: indexes}));
+            playlistApi.remove(playlistId, indexes.map(i => songs[i].playlistIndex), updatePlaylistEntries);
         }
         function onRearrange(indexes) {
-            top.StompClient.send("/app/playlists/files/rearrange", JSON.stringify({id: playlistId, modifierIds: indexes}));
+            playlistApi.reorder(playlistId, indexes.map(i => songs[i].playlistIndex), updatePlaylistEntries);
         }
         function onEditPlaylist() {
             $("#dialog-edit").dialog("open");

@@ -3,27 +3,11 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+    <%@ include file="subsonicPlaylists.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
     <script type="text/javascript" language="javascript">
         function init() {
-            top.StompClient.subscribe("left.jsp", {
-                '/user/queue/playlists/deleted': function(msg) {
-                    deletedPlaylistCallback(JSON.parse(msg.body));
-                },
-                '/topic/playlists/deleted': function(msg) {
-                    deletedPlaylistCallback(JSON.parse(msg.body));
-                },
-                '/user/queue/playlists/updated': function(msg) {
-                    updatedPlaylistCallback(JSON.parse(msg.body));
-                },
-                '/topic/playlists/updated': function(msg) {
-                    updatedPlaylistCallback(JSON.parse(msg.body));
-                },
-                // Add existing (initial population, one time)
-                '/app/playlists/readable': function(msg) {
-                    populatePlaylistCallback(JSON.parse(msg.body));
-                }
-            });
+            playlistApi.watchList(top.StompClient, "left-playlists", populatePlaylistCallback);
 
             var mainLocation = top.main.location.href;
             if (${model.musicFolderChanged}) {
@@ -35,7 +19,7 @@
 
         function createEmptyPlaylist() {
             showAllPlaylists();
-            top.StompClient.send("/app/playlists/create/empty", "");
+            playlistApi.create("empty");
         }
 
         function showAllPlaylists() {
@@ -67,33 +51,6 @@
             }
         }
 
-        function updatedPlaylistCallback(playlist) {
-            var oldNode = $("#playlistid-" + playlist.id);
-            var playlistName = escapeHtml(playlist.name) + "&nbsp;(" + playlist.fileCount + ")";
-            var node = $("<p class='dense truncate playlist' id='playlistid-" + playlist.id + "' title='" + playlistName + "'><a target='main' href='playlist.view?id=" +
-                        playlist.id + "'>" + playlistName + "</a></p>");
-            if (oldNode.length == 0) {
-                var overflow = $(".playlist").length > 10;
-                if (!overflow) {
-                    node.toggleClass("nonoverflown");
-                }
-                node.appendTo(overflow ? "#playlistOverflow" : "#playlists");
-            } else {
-                if (oldNode.hasClass("nonoverflown")) {
-                    node.addClass("nonoverflown");
-                }
-                oldNode.replaceWith(node);
-            }
-        }
-
-        function deletedPlaylistCallback(id) {
-            var node = $("#playlistid-" + id);
-            if (node.hasClass("nonoverflown")) {
-                // move one element over to take the place
-                $("#playlistOverflow").children().first().addClass("nonoverflown").appendTo("#playlists");
-            }
-            node.remove();
-        }
     </script>
 </head>
 
