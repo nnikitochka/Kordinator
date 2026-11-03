@@ -86,6 +86,18 @@ public class StreamIntegrationTest {
                 assertEquals(206, suffixRange.statusCode());
                 assertArrayEquals(Arrays.copyOfRange(expected, expected.length - 10, expected.length), suffixRange.body());
                 assertEquals(416, send(suffix, query, "admin", "admin", "Range", "bytes=999999999-").statusCode());
+                for (String invalid : List.of("bytes=-0", "bytes=8-2", "bytes=bad", "items=0-2", "bytes=0-999999999,0-2")) {
+                    HttpResponse<byte[]> rejected = send(suffix, query, "admin", "admin", "Range", invalid);
+                    assertEquals(invalid, 416, rejected.statusCode());
+                    assertEquals("bytes */" + expected.length, rejected.headers().firstValue("content-range").orElse(""));
+                }
+                HttpResponse<byte[]> openEnded = send(suffix, query, "admin", "admin", "Range", "bytes=10-");
+                assertEquals(206, openEnded.statusCode());
+                assertArrayEquals(Arrays.copyOfRange(expected, 10, expected.length), openEnded.body());
+                HttpResponse<byte[]> capped = send(suffix, query, "admin", "admin", "Range", "bytes=0-999999999");
+                assertEquals(206, capped.statusCode());
+                assertArrayEquals(expected, capped.body());
+                assertEquals(200, send(suffix, query, "admin", "admin", "Range", "bytes=").statusCode());
                 HttpResponse<byte[]> multiRange = send(suffix, query, "admin", "admin", "Range", "bytes=0-2,10-12");
                 assertEquals(206, multiRange.statusCode());
                 assertTrue(multiRange.headers().firstValue("content-type").orElse("").startsWith("multipart/byteranges"));

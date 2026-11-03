@@ -13,8 +13,6 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.head
 import io.ktor.server.routing.post
-import org.airsonic.player.spring.KnownLengthInputStreamResource
-import org.springframework.http.HttpRange
 import org.airsonic.player.service.MediaStreamService
 import org.airsonic.player.domain.Player
 import org.airsonic.player.domain.User
@@ -54,7 +52,6 @@ class StreamRestController(private val streams: MediaStreamService) {
             call.respond(HttpStatusCode.fromValue(request.conditionalStatus()))
             return
         }
-        val resource = result.length?.let { KnownLengthInputStreamResource(result.stream, it) }
         val contentType = ContentType.parse(result.contentType)
         result.headers.forEach { name, values ->
             if (!name.equals(HttpHeaders.ContentType, true) && !name.equals(HttpHeaders.ContentLength, true))
@@ -63,7 +60,7 @@ class StreamRestController(private val streams: MediaStreamService) {
         val size = result.length
         val rangeHeader = call.request.header(HttpHeaders.Range)
         val ranges = if (size != null && rangeHeader != null) try {
-            HttpRange.toResourceRegions(HttpRange.parseRanges(rangeHeader), requireNotNull(resource))
+            parseRanges(rangeHeader, size)
         } catch (_: IllegalArgumentException) {
             result.stream.close()
             call.response.header(HttpHeaders.ContentRange, "bytes */$size")
@@ -102,6 +99,38 @@ class StreamRestController(private val streams: MediaStreamService) {
                 }
             }
         }
+    }
+
+    private data class ByteRegion(val position: Long, val count: Long)
+
+    private fun parseRanges(header: String, size: Long): List<ByteRegion> {
+        if (header.isEmpty()) return emptyList()
+        require(header.startsWith("bytes="))
+        val parts = header.substring(6).split(',').map { it.trim() }.filter { it.isNotEmpty() }
+        require(parts.size <= 100)
+        val regions = parts.map { part ->
+            require(size > 0)
+            val dash = part.indexOf('-')
+            require(dash >= 0)
+            val start: Long
+            val end: Long
+            if (dash == 0) {
+                val suffix = part.substring(1).toLong()
+                require(suffix >= 0)
+                start = if (suffix < size) size - suffix else 0
+                end = size - 1
+            } else {
+                start = part.substring(0, dash).toLong()
+                require(start >= 0)
+                val requestedEnd = part.substring(dash + 1).takeIf { it.isNotEmpty() }?.toLong()
+                require(requestedEnd == null || requestedEnd >= start)
+                end = if (requestedEnd != null && requestedEnd < size) requestedEnd else size - 1
+            }
+            require(start < size)
+            ByteRegion(start, end - start + 1)
+        }
+        if (regions.size > 1) require(regions.sumOf { it.count } < size)
+        return regions
     }
 
     private fun copyRange(input: InputStream, output: OutputStream, skip: Long, count: Long) {
