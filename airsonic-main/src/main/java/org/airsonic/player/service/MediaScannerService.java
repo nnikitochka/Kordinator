@@ -11,9 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
-import org.subsonic.restapi.ScanStatus;
 
 import jakarta.annotation.PostConstruct;
 
@@ -51,7 +49,6 @@ public class MediaScannerService {
     private ArtistDao artistDao;
     private AlbumDao albumDao;
     private final TaskSchedulingService taskService;
-    private SimpMessagingTemplate messagingTemplate;
 
     private final int scannerParallelism;
 
@@ -68,7 +65,6 @@ public class MediaScannerService {
             ArtistDao artistDao,
             AlbumDao albumDao,
             TaskSchedulingService taskService,
-            SimpMessagingTemplate messagingTemplate,
             @Value("${MediaScannerParallelism:#{T(java.lang.Runtime).getRuntime().availableProcessors() + 1}}") int scannerParallelism
     ) {
         this.playlistService = playlistService;
@@ -81,7 +77,6 @@ public class MediaScannerService {
         this.artistDao = artistDao;
         this.albumDao = albumDao;
         this.taskService = taskService;
-        this.messagingTemplate = messagingTemplate;
         this.scannerParallelism = scannerParallelism;
     }
 
@@ -140,16 +135,6 @@ public class MediaScannerService {
 
     private void setScanning(boolean scanning) {
         this.scanning = scanning;
-        broadcastScanStatus();
-    }
-
-    private void broadcastScanStatus() {
-        CompletableFuture.runAsync(() -> {
-            ScanStatus status = new ScanStatus();
-            status.setCount(scanCount.longValue());
-            status.setScanning(scanning);
-            messagingTemplate.convertAndSend("/topic/scanStatus", status);
-        });
     }
 
     /**
@@ -284,7 +269,6 @@ public class MediaScannerService {
             Map<String, AtomicInteger> albumCount, Map<String, Artist> artists, Map<String, Album> albums,
             Map<Integer, Album> albumsInDb, Genres genres, Map<Integer, Set<String>> encountered) {
         if (scanCount.incrementAndGet() % 250 == 0) {
-            broadcastScanStatus();
             LOG.info("Scanned media library with {} entries.", scanCount.get());
         }
 
@@ -480,7 +464,4 @@ public class MediaScannerService {
         this.playlistService = playlistService;
     }
 
-    public void setMessagingTemplate(SimpMessagingTemplate messagingTemplate) {
-        this.messagingTemplate = messagingTemplate;
-    }
 }

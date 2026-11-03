@@ -20,6 +20,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.net.URI;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
+import java.net.URLEncoder;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -95,6 +100,42 @@ public class SubsonicScanIntegrationTest {
             assertEquals(403, denied.statusCode());
         }
         verify(scanner, never()).scanLibrary();
+    }
+
+    @Test
+    public void websiteSessionPollsLiveStatusWithoutScanWebsocket() throws Exception {
+        HttpClient browser = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
+                .followRedirects(HttpClient.Redirect.NEVER).build();
+        String base = "http://localhost:" + port + "/airsonic";
+        HttpResponse<String> login = browser.send(HttpRequest.newBuilder(URI.create(base + "/login")).GET().build(), HttpResponse.BodyHandlers.ofString());
+        Matcher token = Pattern.compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"").matcher(login.body());
+        assertTrue(token.find());
+        String credentials = "j_username=admin&j_password=admin&_csrf=" + URLEncoder.encode(token.group(1), StandardCharsets.UTF_8);
+        assertEquals(302, browser.send(HttpRequest.newBuilder(URI.create(base + "/login"))
+                .header("Content-Type", "application/x-www-form-urlencoded").POST(HttpRequest.BodyPublishers.ofString(credentials)).build(), HttpResponse.BodyHandlers.ofString()).statusCode());
+        HttpResponse<String> page = browser.send(HttpRequest.newBuilder(URI.create(base + "/right.view")).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(page.body(), 200, page.statusCode());
+        assertTrue(page.body().contains("/airsonic/script/subsonic-scan-status.js"));
+        assertFalse(page.body().contains("/topic/scanStatus"));
+        token = Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
+        assertTrue(page.body(), token.find());
+        String csrf = token.group(1);
+        assertStatus(body(poll(browser, base, csrf)));
+        when(scanner.isScanning()).thenReturn(false);
+        when(scanner.getScanCount()).thenReturn(77);
+        JsonNode completed = body(poll(browser, base, csrf)).path("scanStatus");
+        assertFalse(completed.path("scanning").asBoolean());
+        assertEquals(77, completed.path("count").asInt());
+        assertEquals(403, poll(browser, base, null).statusCode());
+        verify(scanner, never()).scanLibrary();
+    }
+
+    private HttpResponse<String> poll(HttpClient browser, String base, String csrf) throws Exception {
+        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(base + "/rest/getScanStatus"))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString("f=json&c=airsonic-web"));
+        if (csrf != null) request.header("X-CSRF-TOKEN", csrf);
+        return browser.send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
 
     private void assertStatus(JsonNode response) {

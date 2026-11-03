@@ -7,10 +7,10 @@
     <%@ include file="jquery.jsp" %>
     <%@ include file="subsonicNowPlaying.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
+    <script type="text/javascript" src="<c:url value='/script/subsonic-scan-status.js'/>"></script>
 
     <script type="text/javascript">
-        function scanningStatus(msg) {
-            var scanInfo = JSON.parse(msg.body);
+        function scanningStatus(scanInfo) {
             $("#scanCount").text(scanInfo.count);
             if (scanInfo.scanning) {
                 $("#scanningStatus").show();
@@ -20,10 +20,10 @@
         }
 
         function init() {
-            top.StompClient.subscribe("right.jsp", {
-                // no need to populate initial because the updates will occur frequently enough and are self-sufficient
-                '/topic/scanStatus': scanningStatus
-            });
+            watchSubsonicScanStatus({
+                url: "<c:url value='/rest/getScanStatus'/>", csrfHeader: "${_csrf.headerName}",
+                csrfToken: "${_csrf.token}"
+            }, scanningStatus);
             <c:if test="${model.showNowPlaying}">
             watchNowPlaying("right-now-playing", function (current, recent) {
                 [['nowPlaying', current], ['recentlyPlayed', recent]].forEach(function (group) {
