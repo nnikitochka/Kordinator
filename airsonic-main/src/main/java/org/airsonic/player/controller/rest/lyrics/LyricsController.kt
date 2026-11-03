@@ -7,7 +7,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
-import org.airsonic.player.ajax.lyrics.LyricsWSController
+import org.airsonic.player.service.LyricsService
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.error.ErrorCode
 import org.slf4j.LoggerFactory
@@ -15,7 +15,7 @@ import org.subsonic.restapi.Lyrics
 import kotlin.coroutines.cancellation.CancellationException
 
 class LyricsController(
-    private val lyrics: LyricsWSController,
+    private val lyrics: LyricsService,
     private val writer: JAXBWriter,
 ) {
     fun routes(root: Route, parameters: (ApplicationCall) -> Parameters) {
@@ -31,9 +31,12 @@ class LyricsController(
         val result = try {
             val info = lyrics.getLyrics(params["artist"], params["title"])
             val node = Lyrics().apply {
-                artist = info.artist
-                title = info.title
-                content = info.lyrics
+                artist = info.artist()
+                title = info.title()
+                content = info.lyrics()
+                if (params["includeLookupStatus"] == "true") {
+                    tryLater = info.tryLater()
+                }
             }
             writer.createResponse(true).apply { this.lyrics = node }
         } catch (e: CancellationException) {

@@ -1,7 +1,7 @@
 package org.airsonic.player.spring;
 
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
-import org.airsonic.player.ajax.lyrics.LyricsWSController;
+import org.airsonic.player.service.LyricsService;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.LeftController;
 import org.airsonic.player.controller.AvatarController;
@@ -106,7 +106,7 @@ public class KtorConfiguration {
             PlayerService playerService,
             PlaylistService playlistService,
             ShareService shareService,
-            LyricsWSController lyricsWSController,
+            LyricsService lyricsService,
             BookmarkService bookmarkService,
             JukeboxService jukeboxService,
             PlayQueueService playQueueService,
@@ -153,7 +153,7 @@ public class KtorConfiguration {
                                 new NowPlayingController(statusService, responseMapper, jaxbWriter),
                                 new SongController(mediaFileDao, securityService, responseMapper, jaxbWriter),
                                 new VideosController(mediaFileDao, mediaFolderService, responseMapper, jaxbWriter),
-                                new LyricsController(lyricsWSController, jaxbWriter),
+                                new LyricsController(lyricsService, jaxbWriter),
                                 new RatingController(mediaFileService, ratingService, jaxbWriter),
                                 new DownloadRestController(jaxbWriter), downloadService,
                                 shareService, mediaFileService,

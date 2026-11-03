@@ -1,47 +1,21 @@
 <!DOCTYPE html>
-<%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="iso-8859-1"%>
+<%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
-    <%@ include file="websocket.jsp" %>
+    <script src="<c:url value='/script/subsonic-lyrics.js'/>"></script>
     <title><fmt:message key="lyrics.title"/></title>
 
     <script type="text/javascript" language="javascript">
-        // independent page, so StompClient does not belong to window.top
+        var getLyrics = createSubsonicLyrics({
+            url: "<c:url value='/rest/getLyrics'/>",
+            csrfHeader: "${_csrf.headerName}",
+            csrfToken: "${_csrf.token}"
+        });
+
         function init() {
-            StompClient.subscribe("lyrics.jsp", {
-                "/user/queue/lyrics/get": function(msg) {
-                    getLyricsCallback(JSON.parse(msg.body));
-                }
-            }, function() {
-                getLyrics('${model.artist}', '${model.song}');
-            });
-        }
-
-        function getLyrics(artist, song) {
-            $("#wait").css("display", "inline");
-            $("#lyrics").css("display", "none");
-            $("#noLyricsFound").css("display", "none");
-            $("#tryLater").css("display", "none");
-            StompClient.send("/app/lyrics/get", JSON.stringify({artist: artist, song: song}));
-        }
-
-        function getLyricsCallback(lyricsInfo) {
-            $("#lyricsHeader").text(lyricsInfo.artist + " - " + lyricsInfo.title);
-            var lyrics;
-            if (lyricsInfo.lyrics != null) {
-                lyrics = lyricsInfo.lyrics.replace(/\n/g, "<br>");
-            }
-            $("#lyricsText").html(lyrics);
-            $("#wait").css("display", "none");
-            if (lyricsInfo.tryLater) {
-                $("#tryLater").css("display", "inline");
-            } else if (lyrics != null) {
-                $("#lyrics").css("display", "inline");
-            } else {
-                $("#noLyricsFound").css("display", "inline");
-            }
+            search();
         }
 
         function search() {
@@ -56,13 +30,13 @@
     <table>
         <tr>
             <td><fmt:message key="lyrics.artist"/></td>
-            <td style="padding-left:0.50em"><input id="artist" type="text" size="40" value="${model.artist}" tabindex="1"/></td>
+            <td style="padding-left:0.50em"><input id="artist" type="text" size="40" value="<c:out value='${model.artist}'/>" tabindex="1"/></td>
             <td style="padding-left:0.75em"><input type="submit" value="<fmt:message key='lyrics.search'/>" style="width:6em"
                                                    tabindex="3"/></td>
         </tr>
         <tr>
             <td><fmt:message key="lyrics.song"/></td>
-            <td style="padding-left:0.50em"><input id="song" type="text" size="40" value="${model.song}" tabindex="2"/></td>
+            <td style="padding-left:0.50em"><input id="song" type="text" size="40" value="<c:out value='${model.song}'/>" tabindex="2"/></td>
             <td style="padding-left:0.75em"><input type="button" value="<fmt:message key='common.close'/>" style="width:6em"
                                                    onclick="self.close()" tabindex="4"/></td>
         </tr>
@@ -76,7 +50,7 @@
 <div id="lyrics" style="display:none;">
     <h2 id="lyricsHeader" style="text-align:center;margin-bottom:1em"></h2>
 
-    <div id="lyricsText"></div>
+    <div id="lyricsText" style="white-space: pre-wrap;"></div>
 
     <p class="detail" style="text-align:right">
         <fmt:message key="lyrics.courtesy"/>

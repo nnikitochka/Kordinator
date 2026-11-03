@@ -14,6 +14,10 @@ class Lyrics {
     @field:XmlValue
     var content: String? = null
 
+    // Optional lookup status, emitted only when explicitly requested by a client.
+    @field:XmlAttribute(name = "tryLater")
+    var tryLater: Boolean? = null
+
     @field:XmlAttribute(name = "artist")
     var artist: String? = null
 
