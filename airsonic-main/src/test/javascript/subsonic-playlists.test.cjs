@@ -248,3 +248,20 @@ test('playlist edits translate selected table rows to occurrence indices', () =>
     context.onRearrange([2, 0, 1]);
     assert.deepEqual(calls, [[17, [1], refresh], [17, [2, 0, 1], refresh]]);
 });
+
+
+test('playlist tables receive all columns when REST omits optional fields', async () => {
+    const fixture = setup(async url => url.endsWith('getPlaylists')
+        ? ok({playlists: {playlist: [{id: '1'}]}})
+        : ok({playlist: {id: '1', entry: [{id: '2'}]}}));
+    let lists, songs;
+    await fixture.api.list(false, value => { lists = value; });
+    await fixture.api.get(1, (playlist, entries) => { songs = entries; });
+    for (const field of ['id', 'name', 'comment', 'shared', 'fileCount', 'duration', 'username', 'created', 'changed', 'importedFrom'])
+        assert.ok(Object.hasOwn(lists[0], field), field);
+    for (const field of ['trackNumber', 'discNumber', 'title', 'album', 'artist', 'albumArtist', 'genre', 'year', 'format', 'fileSize', 'duration', 'bitRate', 'playCount', 'lastPlayed', 'lastScanned', 'created', 'changed', 'starred', 'present'])
+        assert.ok(Object.hasOwn(songs[0], field), field);
+    assert.equal(lists[0].importedFrom, null);
+    assert.equal(songs[0].discNumber, null);
+    assert.match(readFileSync('airsonic-main/src/main/webapp/WEB-INF/jsp/subsonicPlaylists.jsp', 'utf8'), /subsonic-playlists\.js\?v=2/);
+});

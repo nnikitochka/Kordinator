@@ -29,14 +29,14 @@ function createSubsonicPlaylists(options) {
         return pending;
     }
     function playlist(value) {
-        return Object.assign({}, value, {
-            username: value.owner, shared: value.public, fileCount: value.songCount,
+        return Object.assign({name: null, duration: null, created: null, changed: null, importedFrom: null}, value, {
+            username: value.owner == null ? null : value.owner, shared: value.public == null ? null : value.public, fileCount: value.songCount == null ? null : value.songCount,
             comment: value.comment || "", filesChanged: false
         });
     }
     function entry(value) {
         // Keep the table's display model while using the public REST song identity.
-        return Object.assign({album: null, artist: null, genre: null, year: null, discNumber: null,
+        return Object.assign({title: null, album: null, artist: null, genre: null, year: null, discNumber: null,
             duration: null, created: null, playCount: 0}, value, {
             trackNumber: value.track == null ? null : value.track,
             albumArtist: value.albumArtist || null,
