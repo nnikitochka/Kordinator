@@ -56,6 +56,7 @@ import org.airsonic.player.controller.cover.CoverArtController
 import org.airsonic.player.controller.rest.avatar.AvatarRestController
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController
 import org.airsonic.player.controller.rest.settings.WebsiteSettingsController
+import org.airsonic.player.controller.rest.livequeue.LiveQueueController
 import org.airsonic.player.controller.rest.cover.CoverArtRestController
 import org.airsonic.player.controller.rest.users.UsersController
 import org.airsonic.player.controller.rest.users.PasswordController
@@ -133,6 +134,7 @@ class AirsonicKtorServlet(
     private val lyricsController: LyricsController,
     private val coverArtActionsController: CoverArtActionsController,
     private val websiteSettingsController: WebsiteSettingsController,
+    private val liveQueueController: LiveQueueController,
     private val ratingController: RatingController,
     private val downloadRestController: DownloadRestController,
     private val downloads: DownloadService,
@@ -230,6 +232,8 @@ class AirsonicKtorServlet(
             if (sharesRequest != null) {
                 call.attributes.put(SHARES_REQUEST_KEY, sharesRequest)
             }
+            val liveQueue = request.getAttribute(LIVE_QUEUE_REQUEST) as? LiveQueueController.Request
+            if (liveQueue != null) call.attributes.put(LIVE_QUEUE_REQUEST_KEY, liveQueue)
             val websiteSettings = request.getAttribute(WEBSITE_SETTINGS_REQUEST) as? WebsiteSettingsController.Request
             if (websiteSettings != null) call.attributes.put(WEBSITE_SETTINGS_REQUEST_KEY, websiteSettings)
             val coverActions = request.getAttribute(COVER_ACTIONS_REQUEST) as? CoverArtActionsController.Request
@@ -271,6 +275,7 @@ class AirsonicKtorServlet(
             musicDirectoryController.routes(this) { call -> call.attributes[MUSIC_DIRECTORY_REQUEST_KEY] }
             songController.routes(this) { call -> call.attributes[SONG_REQUEST_KEY] }
             videosController.routes(this) { call -> call.attributes[VIDEOS_REQUEST_KEY] }
+            liveQueueController.routes(this) { call -> call.attributes[LIVE_QUEUE_REQUEST_KEY] }
             websiteSettingsController.routes(this) { call -> call.attributes[WEBSITE_SETTINGS_REQUEST_KEY] }
             coverArtActionsController.routes(this) { call -> call.attributes[COVER_ACTIONS_REQUEST_KEY] }
             lyricsController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
@@ -762,6 +767,11 @@ class AirsonicKtorServlet(
             if (response.isCommitted) return
             writer.flush()
             request.setAttribute(HLS_PLAYLIST, body.toString())
+        } else if (path in LiveQueueController.PATHS) {
+            val username = requireNotNull(securityService.getCurrentUsername(request))
+            val player = request.getParameter("playerId")?.toIntOrNull()?.let { playerService.getPlayerById(it) }
+            request.setAttribute(LIVE_QUEUE_REQUEST, LiveQueueController.Request(
+                player?.takeIf { it.username == username }, parameters(request)))
         } else if (path in WebsiteSettingsController.PATHS) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(WEBSITE_SETTINGS_REQUEST, WebsiteSettingsController.Request(user.username, parameters(request)))
@@ -831,6 +841,8 @@ class AirsonicKtorServlet(
         val STREAM_RESPONSE_KEY = AttributeKey<ResponseEntity<Resource>>(STREAM_RESPONSE)
         const val HLS_PLAYLIST = "org.airsonic.player.hlsPlaylist"
         val HLS_PLAYLIST_KEY = AttributeKey<String>(HLS_PLAYLIST)
+        const val LIVE_QUEUE_REQUEST = "org.airsonic.player.liveQueueRequest"
+        val LIVE_QUEUE_REQUEST_KEY = AttributeKey<LiveQueueController.Request>(LIVE_QUEUE_REQUEST)
         const val WEBSITE_SETTINGS_REQUEST = "org.airsonic.player.websiteSettingsRequest"
         val WEBSITE_SETTINGS_REQUEST_KEY = AttributeKey<WebsiteSettingsController.Request>(WEBSITE_SETTINGS_REQUEST)
         const val COVER_ACTIONS_REQUEST = "org.airsonic.player.coverActionsRequest"

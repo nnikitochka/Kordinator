@@ -7,6 +7,7 @@
 <%@ include file="subsonicBookmarks.jsp" %>
 <%@ include file="table.jsp" %>
 <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
+<script src="<c:url value='/script/subsonic-live-queue.js'/>"></script>
 <script type="text/javascript" src="<c:url value='/script/mediaelement/mediaelement-and-player.min.js'/>"></script>
 <script src="<c:url value='/script/mediaelement/plugins/speed/speed.min.js'/>"></script>
 <script src="<c:url value='/script/mediaelement/plugins/speed/speed-i18n.js'/>"></script>
@@ -40,6 +41,9 @@
 
 <script type="text/javascript" language="javascript">
     "use strict";
+    var liveQueueApi = createLiveQueue({
+        url: "<c:url value='/rest/livePlayQueue'/>", csrfHeader: "${_csrf.headerName}", csrfToken: "${_csrf.token}"
+    });
 
     /** Toggle between <a> and <span> in order to disable play queue action buttons */
     $.fn.toggleLink = function(newState) {
@@ -376,6 +380,9 @@
                 }
             });
 
+            top.StompClient.onConnect.push(function () {
+                if (pq.player && pq.player.id) pq.requestQueue("get", {}, true);
+            });
             top.StompClient.subscribe("playQueue.jsp", {
                 // Players
                 '/user/queue/players/updated'(msg) {
@@ -432,6 +439,7 @@
                   //reset everything
                   $(".player-tech").hide();
                   pq.unsubscribePlayerSpecificCallbacks();
+                  pq.queueRevision = 0;
                   pq.currentStreamUrl = null;
                   pq.currentSongIndex = -1;
                   if (pq.player.tech == 'WEB') {
@@ -478,9 +486,6 @@
                 pq.playerSpecificCallbacks['/user/queue/playqueues/' + this.player.id + '/skip'] = function(msg) {
                     pq.playQueueSkipCallback(JSON.parse(msg.body));
                 };
-                pq.playerSpecificCallbacks['/user/queue/playqueues/' + this.player.id + '/save'] = function(msg) {
-                    $().toastmessage("showSuccessToast", "<fmt:message key='playlist.toast.saveplayqueue'/> (" + JSON.parse(msg.body) + ")");
-                };
                 pq.playerSpecificCallbacks['/user/queue/playqueues/' + this.player.id + '/repeat'] = function(msg) {
                     pq.playQueueRepeatStatusCallback(JSON.parse(msg.body));
                 };
@@ -490,13 +495,26 @@
                 pq.playerSpecificCallbacks['/user/queue/playqueues/' + this.player.id + '/jukebox/position'] = function(msg) {
                     pq.jukeBoxPositionCallback(JSON.parse(msg.body));
                 };
-                //one-time
-                pq.playerSpecificCallbacks['/app/playqueues/' + this.player.id + '/get'] = function(msg) {
-                    pq.playQueueCallback(JSON.parse(msg.body), true);
-                };
-
                 top.StompClient.subscribe("playQueue.jsp", pq.playerSpecificCallbacks);
+                pq.requestQueue("get", {}, true);
             }
+        },
+
+        requestQueue(action, data, initial) {
+            var pq = this;
+            var playerId = this.player.id;
+            return liveQueueApi.send(playerId, action, data).then(function (queue) {
+                if (pq.player.id != playerId || !queue) return;
+                if (queue.savedQueueId != null) {
+                    $().toastmessage("showSuccessToast", "<fmt:message key='playlist.toast.saveplayqueue'/> (" + queue.savedQueueId + ")");
+                    return;
+                }
+                queue.entries = queue.entry || [];
+                if (!pq.playQueueCallback(queue, initial)) return;
+                if (pq.player.tech == 'WEB' && queue.startPlayerAt >= 0) {
+                    pq.playQueueSkipCallback({index: queue.startPlayerAt, offset: queue.startPlayerAtPosition});
+                }
+            });
         },
 
         // Player updates
@@ -570,7 +588,7 @@
         },
         onJukeboxVolumeChanged() {
             var value = parseInt($("#jukeboxVolume").slider("option", "value"));
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/jukebox/gain", value / 100);
+            this.requestQueue("jukebox/gain", {gain: value / 100});
         },
 
         /**
@@ -588,7 +606,7 @@
                 var volume = parseInt($("#jukeboxVolume").slider("option", "value")) + gain;
                 if (volume > 100) volume = 100;
                 if (volume < 0) volume = 0;
-                top.StompClient.send("/app/playqueues/" + this.player.id + "/jukebox/gain", volume / 100);
+                this.requestQueue("jukebox/gain", {gain: volume / 100});
                 // UI updated at callback
             }
         },
@@ -675,7 +693,7 @@
             ok = confirm("<fmt:message key="playlist.confirmclear"/>");
         </c:if>
             if (ok) {
-                top.StompClient.send("/app/playqueues/" + this.player.id + "/clear", "");
+                this.requestQueue("clear", {});
             }
         },
 
@@ -708,7 +726,7 @@
             if (this.player.tech == 'WEB') {
                 this.playQueuePlayStatusCallback("PLAYING");
             } else {
-                top.StompClient.send("/app/playqueues/" + this.player.id + "/start", "");
+                this.requestQueue("start", {});
             }
         },
 
@@ -721,7 +739,7 @@
                 this.playQueuePlayStatusCallback("STOPPED");
             } else {
                 if (this.player.id) {
-                    top.StompClient.send("/app/playqueues/" + this.player.id + "/stop", "");
+                    this.requestQueue("stop", {});
                 }
             }
         },
@@ -738,7 +756,7 @@
                     this.onStop();
                 }
             } else {
-                top.StompClient.send("/app/playqueues/" + this.player.id + "/toggleStartStop", "");
+                this.requestQueue("toggleStartStop", {});
             }
         },
 
@@ -774,7 +792,7 @@
             if (this.player.tech == 'WEB') {
                 this.playQueueSkipCallback({index: index, offset: offset});
             } else if (this.player.tech != 'EXTERNAL_WITH_PLAYLIST') {
-                top.StompClient.send("/app/playqueues/" + this.player.id + "/skip", JSON.stringify({index: index, offset: offset}));
+                this.requestQueue("skip", {index: index, offset: offset});
             }
         },
 
@@ -815,7 +833,7 @@
         onNext(repeatStatus) {
             var index = this.currentSongIndex;
             if (this.shuffleRadioEnabled && (index + 1) >= this.songs.length) {
-                top.StompClient.send("/app/playqueues/" + this.player.id + "/reloadsearch", "");
+                this.requestQueue("reloadsearch", {});
             } else if (repeatStatus == 'TRACK') {
                 this.onSkip(index);
             } else {
@@ -830,37 +848,37 @@
             this.onSkip(this.currentSongIndex - 1);
         },
         onPlay(id) {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/play/mediafile", JSON.stringify({id: Array.isArray(id) ? id[0] : id}));
+            this.requestQueue("play/mediafile", {id: Array.isArray(id) ? id[0] : id});
         },
         onPlayShuffle(albumListType, offset, count, genre, decade) {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/play/shuffle", JSON.stringify({albumListType: albumListType, offset: offset, count: count, genre: genre, decade: decade}));
+            this.requestQueue("play/shuffle", {albumListType: albumListType, offset: offset, count: count, genre: genre, decade: decade});
         },
         onPlayPlaylist(id, index) {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/play/playlist", JSON.stringify({id: id, index: index}));
+            this.requestQueue("play/playlist", {id: id, index: index});
         },
         onPlayTopSong(id, index) {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/play/topsongs", JSON.stringify({id: id, index: index}));
+            this.requestQueue("play/topsongs", {id: id, index: index});
         },
         onPlayStarred() {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/play/starred", "");
+            this.requestQueue("play/starred", {});
         },
         onPlayRandom(id, count) {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/play/random", JSON.stringify({id: id, count: count}));
+            this.requestQueue("play/random", {id: id, count: count});
         },
         onPlaySimilar(id, count) {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/play/similar", JSON.stringify({id: id, count: count}));
+            this.requestQueue("play/similar", {id: id, count: count});
         },
         onAdd(id) {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/add", JSON.stringify({ids: Array.isArray(id) ? id : [id]}));
+            this.requestQueue("add", {id: Array.isArray(id) ? id : [id]});
         },
         onAddNext(id) {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/add", JSON.stringify({ids: Array.isArray(id) ? id : [id], index: this.currentSongIndex + 1}));
+            this.requestQueue("add", {id: Array.isArray(id) ? id : [id], index: this.currentSongIndex + 1});
         },
         onAddPlaylist(id) {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/add/playlist", JSON.stringify({id: id}));
+            this.requestQueue("add/playlist", {id: id});
         },
         onShuffle() {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/shuffle", "");
+            this.requestQueue("shuffle", {});
         },
         onStar(indices, status) {
             var par = this;
@@ -874,39 +892,39 @@
             this.onStar([index], !this.songs[index].starred);
         },
         onRemove(index) {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/remove", JSON.stringify([index]));
+            this.requestQueue("remove", {id: [index]});
         },
         onRemoveSelected() {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/remove", JSON.stringify(this.musicTable.rows({ selected: true }).indexes().toArray()));
+            this.requestQueue("remove", {id: this.musicTable.rows({ selected: true }).indexes().toArray()});
         },
 
         onRearrange(indexes) {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/rearrange", JSON.stringify(indexes));
+            this.requestQueue("rearrange", {id: indexes});
         },
         onToggleRepeat() {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/toggleRepeat", "");
+            this.requestQueue("toggleRepeat", {});
         },
         onUndo() {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/undo", "");
+            this.requestQueue("undo", {});
         },
         onSortByTrack() {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/sort", "TRACK");
+            this.requestQueue("sort", {order: "TRACK"});
         },
         onSortByArtist() {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/sort", "ARTIST");
+            this.requestQueue("sort", {order: "ARTIST"});
         },
         onSortByAlbum() {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/sort", "ALBUM");
+            this.requestQueue("sort", {order: "ALBUM"});
         },
         onSavePlayQueue() {
             var positionMillis = 0;
             if (this.player.tech == 'WEB') {
                 positionMillis = Math.round(this.audioPlayer.currentTime * 1000.0);
             }
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/save", JSON.stringify({index: this.currentSongIndex, offset: positionMillis}));
+            this.requestQueue("save", {index: this.currentSongIndex, offset: positionMillis});
         },
         onLoadPlayQueue() {
-            top.StompClient.send("/app/playqueues/" + this.player.id + "/play/saved", "");
+            this.requestQueue("play/saved", {});
         },
         onSavePlaylist() {
             playlistApi.create("playQueue", this.player.id, (id) => {
@@ -979,6 +997,8 @@
         },
 
         playQueueCallback(playQueue, initial) {
+            if (playQueue.revision < (this.queueRevision || 0)) return false;
+            this.queueRevision = playQueue.revision;
             this.songs = playQueue.entries;
             this.shuffleRadioEnabled = playQueue.shuffleRadioEnabled;
 
@@ -1009,6 +1029,7 @@
             this.updateCurrentImage();
 
             this.jukeBoxGainCallback(playQueue.gain);
+            return true;
         },
 
         updateWindowTitle(song) {

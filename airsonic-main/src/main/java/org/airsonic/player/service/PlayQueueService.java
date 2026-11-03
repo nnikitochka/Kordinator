@@ -29,6 +29,18 @@ import static java.util.concurrent.CompletableFuture.runAsync;
 
 @Service
 public class PlayQueueService {
+    /** Selects where the web-player start instruction is delivered. */
+    public record PlaybackTarget(String sessionId, boolean returnToCaller) {
+        public static PlaybackTarget websocket(String sessionId) {
+            return new PlaybackTarget(sessionId, false);
+        }
+
+        public static PlaybackTarget response() {
+            return new PlaybackTarget(null, true);
+        }
+    }
+
+    private final java.util.concurrent.atomic.AtomicLong queueRevision = new java.util.concurrent.atomic.AtomicLong();
     private final JukeboxService jukeboxService;
     private final SettingsService settingsService;
     private final MediaFileService mediaFileService;
@@ -97,14 +109,14 @@ public class PlayQueueService {
         });
     }
 
-    public void reloadSearchCriteria(Player player, String sessionId) {
+    public PlayQueueInfo reloadSearchCriteria(Player player, PlaybackTarget target) {
         PlayQueue playQueue = player.getPlayQueue();
         int size = playQueue.size();
         if (playQueue.getRandomSearchCriteria() != null) {
             playQueue.addFiles(true, mediaFileService.getRandomSongs(playQueue.getRandomSearchCriteria(), player.getUsername()));
         }
 
-        broadcastPlayQueue(player, pq -> pq.setStartPlayerAt(size), sessionId);
+        return broadcastPlayQueue(player, pq -> pq.setStartPlayerAt(size), target);
     }
 
     public int savePlayQueue(Player player, int index, long offset) {
@@ -119,11 +131,11 @@ public class PlayQueueService {
         return savedPlayQueue.getId();
     }
 
-    public void loadSavedPlayQueue(Player player, String sessionId) {
+    public PlayQueueInfo loadSavedPlayQueue(Player player, PlaybackTarget target) {
         SavedPlayQueue savedPlayQueue = playQueueDao.getPlayQueue(player.getUsername());
 
         if (savedPlayQueue == null) {
-            return;
+            return null;
         }
 
         PlayQueue playQueue = player.getPlayQueue();
@@ -140,12 +152,12 @@ public class PlayQueueService {
         int currentIndex = Optional.ofNullable(currentId).map(mediaFileService::getMediaFile)
                 .map(c -> playQueue.getFiles().indexOf(c)).orElse(-1);
 
-        broadcastPlayQueue(player,
+        return broadcastPlayQueue(player,
                 currentIndex == -1 ? identity : pq -> pq.setStartPlayerAt(currentIndex).setStartPlayerAtPosition(positionMillis),
-                sessionId);
+                target);
     }
 
-    public void playMediaFile(Player player, int id, String sessionId) {
+    public PlayQueueInfo playMediaFile(Player player, int id, PlaybackTarget target) {
         MediaFile file = mediaFileService.getMediaFile(id);
 
         List<MediaFile> songs;
@@ -166,13 +178,13 @@ public class PlayQueueService {
             songs = mediaFileService.getDescendantsOf(file, true);
         }
 
-        doPlay(player, songs, sessionId);
+        return doPlay(player, songs, target);
     }
 
     /**
      * @param index Start playing at this index, or play whole playlist if {@code null}.
      */
-    public void playPlaylist(Player player, int id, Integer index, String sessionId) {
+    public PlayQueueInfo playPlaylist(Player player, int id, Integer index, PlaybackTarget target) {
         boolean queueFollowingSongs = settingsService.getUserSettings(player.getUsername()).getQueueFollowingSongs();
 
         List<MediaFile> files = playlistService.getFilesInPlaylist(id, true);
@@ -185,14 +197,15 @@ public class PlayQueueService {
         }
 
         // Remove non-present files
+        files = new ArrayList<>(files);
         files.removeIf(file -> !file.isPresent());
-        doPlay(player, files, sessionId);
+        return doPlay(player, files, target);
     }
 
     /**
      * @param index Start playing at this index, or play all top songs if {@code null}.
      */
-    public void playTopSong(Player player, int id, Integer index, String sessionId) {
+    public PlayQueueInfo playTopSong(Player player, int id, Integer index, PlaybackTarget target) {
         boolean queueFollowingSongs = settingsService.getUserSettings(player.getUsername()).getQueueFollowingSongs();
 
         List<MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(player.getUsername());
@@ -205,16 +218,16 @@ public class PlayQueueService {
             }
         }
 
-        doPlay(player, files, sessionId);
+        return doPlay(player, files, target);
     }
 
-    public void playStarred(Player player, String sessionId) {
+    public PlayQueueInfo playStarred(Player player, PlaybackTarget target) {
         List<MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(player.getUsername());
         List<MediaFile> files = mediaFileDao.getStarredFiles(0, Integer.MAX_VALUE, player.getUsername(), musicFolders);
-        doPlay(player, files, sessionId);
+        return doPlay(player, files, target);
     }
 
-    public void playShuffle(Player player, String albumListType, int offset, int count, String genre, String decade, String sessionId) {
+    public PlayQueueInfo playShuffle(Player player, String albumListType, int offset, int count, String genre, String decade, PlaybackTarget target) {
         List<MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(player.getUsername(),
                 settingsService.getUserSettings(player.getUsername()).getSelectedMusicFolderId());
         List<MediaFile> albums = switch (albumListType) {
@@ -241,31 +254,32 @@ public class PlayQueueService {
         Collections.shuffle(songs);
         songs = songs.subList(0, Math.min(40, songs.size()));
 
-        doPlay(player, songs, sessionId);
+        return doPlay(player, songs, target);
     }
 
-    public void playRandom(Player player, int id, int count, String sessionId) {
+    public PlayQueueInfo playRandom(Player player, int id, int count, PlaybackTarget target) {
         MediaFile file = mediaFileService.getMediaFile(id);
         List<MediaFile> randomFiles = mediaFileService.getRandomSongsForParent(file, count);
 
-        doPlay(player, randomFiles, sessionId);
+        return doPlay(player, randomFiles, target);
     }
 
-    public void playSimilar(Player player, int id, int count, String sessionId) {
+    public PlayQueueInfo playSimilar(Player player, int id, int count, PlaybackTarget target) {
         MediaFile artist = mediaFileService.getMediaFile(id);
         List<MusicFolder> musicFolders = mediaFolderService.getMusicFoldersForUser(player.getUsername());
         List<MediaFile> similarSongs = lastFmService.getSimilarSongs(artist, count, musicFolders);
 
-        doPlay(player, similarSongs, sessionId);
+        return doPlay(player, similarSongs, target);
     }
 
-    private void doPlay(Player player, List<MediaFile> files, String sessionId) {
+    private PlayQueueInfo doPlay(Player player, List<MediaFile> files, PlaybackTarget target) {
         if (player.isWeb()) {
+            files = new ArrayList<>(files);
             mediaFileService.removeVideoFiles(files);
         }
         player.getPlayQueue().addFiles(false, files);
         player.getPlayQueue().setRandomSearchCriteria(null);
-        broadcastPlayQueue(player, startAt0, sessionId);
+        return broadcastPlayQueue(player, startAt0, target);
     }
 
     public void add(Player player, List<Integer> ids, Integer index, boolean removeVideoFiles, boolean broadcast) {
@@ -405,21 +419,24 @@ public class PlayQueueService {
         broadcastPlayQueue(player, identity, null);
     }
 
-    private void broadcastPlayQueue(Player player, Function<PlayQueueInfo, PlayQueueInfo> playQueueModifier, String triggeringSessionId) {
+    private PlayQueueInfo broadcastPlayQueue(Player player, Function<PlayQueueInfo, PlayQueueInfo> playQueueModifier, PlaybackTarget target) {
+        PlayQueueInfo info = playQueueModifier.apply(getPlayQueueInfo(player));
         runAsync(() -> {
-            PlayQueueInfo info = playQueueModifier.apply(getPlayQueueInfo(player));
             brokerTemplate.convertAndSendToUser(player.getUsername(),
                     "/queue/playqueues/" + player.getId() + "/updated", info);
-            postBroadcast(info, player, triggeringSessionId);
+            postBroadcast(info, player, target);
         });
+        return info;
     }
 
-    private void postBroadcast(PlayQueueInfo info, Player player, String sessionId) {
+    private void postBroadcast(PlayQueueInfo info, Player player, PlaybackTarget target) {
         if (info.getStartPlayerAt() != -1) {
-            if (player.isWeb() && sessionId != null) {
-                // trigger the web player to start playing at this location
+            if (player.isWeb() && target != null && target.returnToCaller()) {
+                return;
+            }
+            if (player.isWeb() && target != null && target.sessionId() != null) {
                 SimpMessageHeaderAccessor headerAccessor = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
-                headerAccessor.setSessionId(sessionId);
+                headerAccessor.setSessionId(target.sessionId());
                 brokerTemplate.convertAndSendToUser(player.getUsername(),
                         "/queue/playqueues/" + player.getId() + "/skip",
                         ImmutableMap.of("index", info.getStartPlayerAt(), "offset", info.getStartPlayerAtPosition()),
@@ -441,7 +458,9 @@ public class PlayQueueService {
 
         float gain = jukeboxService.getGain(player);
 
-        return new PlayQueueInfo(entries, playQueue.getStatus(), playQueue.getRepeatStatus(), playQueue.isShuffleRadioEnabled(), gain);
+        PlayQueueInfo info = new PlayQueueInfo(entries, playQueue.getStatus(), playQueue.getRepeatStatus(), playQueue.isShuffleRadioEnabled(), gain);
+        info.setRevision(queueRevision.incrementAndGet());
+        return info;
     }
 
     private List<MediaFileEntry> convertMediaFileList(Player player, String basePath) {

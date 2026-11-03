@@ -5,6 +5,7 @@ import org.airsonic.player.service.LyricsService;
 import org.airsonic.player.service.CoverArtSearchService;
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController;
 import org.airsonic.player.controller.rest.settings.WebsiteSettingsController;
+import org.airsonic.player.controller.rest.livequeue.LiveQueueController;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.LeftController;
@@ -163,6 +164,7 @@ public class KtorConfiguration {
                                 new LyricsController(lyricsService, jaxbWriter),
                                 new CoverArtActionsController(coverArtSearchService, jaxbWriter),
                                 new WebsiteSettingsController(settingsService, messagingTemplate, jaxbWriter),
+                                new LiveQueueController(playQueueService, jaxbWriter, mediaFileService, playlistService, securityService, playQueueDao),
                                 new RatingController(mediaFileService, ratingService, jaxbWriter),
                                 new DownloadRestController(jaxbWriter), downloadService,
                                 shareService, mediaFileService,
@@ -203,6 +205,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(CoverArtRestController.PATHS);
         registration.addUrlMappings(CoverArtActionsController.PATHS);
         registration.addUrlMappings(WebsiteSettingsController.PATHS);
+        registration.addUrlMappings(LiveQueueController.PATHS);
         registration.addUrlMappings(AvatarRestController.PATHS);
         registration.addUrlMappings(HlsRestController.PATHS);
         registration.addUrlMappings(StreamRestController.PATHS);

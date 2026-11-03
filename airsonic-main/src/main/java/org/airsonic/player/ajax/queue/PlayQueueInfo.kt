@@ -14,6 +14,7 @@ data class PlayQueueInfo(
     val isShuffleRadioEnabled: Boolean,
     val gain: Float
 ) {
+    var revision: Long = 0
     var startPlayerAt: Int = -1
         private set
     var startPlayerAtPosition: Long = 0 // millis
