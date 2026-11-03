@@ -6,6 +6,7 @@
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
     <%@ include file="subsonicStars.jsp" %>
+<%@ include file="subsonicBookmarks.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/mediaelement/mediaelement-and-player.min.js'/>"></script>
     <script src="<c:url value='/script/mediaelement/plugins/speed/speed.min.js'/>"></script>
     <script src="<c:url value='/script/mediaelement/plugins/speed/speed-i18n.js'/>"></script>
@@ -75,7 +76,7 @@
                 var position = Math.round(this.videoPlayer.currentTime);
                 if ((videoModel.position != (position * 1000)) && (position % videoModel.videoBookmarkFrequency == 0)) {
                     videoModel.position = position * 1000;
-                    top.StompClient.send("/app/bookmarks/set", JSON.stringify({positionMillis: videoModel.position, comment: "Played on Web Video Player", mediaFileId: videoModel.videoId}));
+                    bookmarkApi.create(videoModel.videoId, videoModel.position, "Played on Web Video Player");
                 }
             }
         }

@@ -487,6 +487,92 @@ public class KtorServletIntegrationTest {
         }
     }
 
+    @Test
+    public void websiteBookmarksUseTheSameRestContractAsExternalClients() throws Exception {
+        List<MusicFolder> folders = MusicFolderTestData.getTestMusicFolders();
+        UUID cleanupId = ScanningTestUtils.before(folders, mediaFolderService, mediaScannerService);
+        try {
+            assertTrue(!applicationContext.containsBean("bookmarksWSController"));
+            MediaFile album = mediaFileDao.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes",
+                    folders.get(0).getId());
+            MediaFile song = mediaFileDao.getChildrenOf(album.getPath(), album.getFolderId(), true).stream()
+                    .filter(MediaFile::isFile).findFirst().orElseThrow();
+            int id = song.getId();
+            song.setDuration(1000.0);
+            org.airsonic.player.service.MediaFileService mediaFiles =
+                    applicationContext.getBean(org.airsonic.player.service.MediaFileService.class);
+            mediaFiles.updateMediaFile(song); // Evict scanner-cached metadata as well as updating the DAO.
+
+            HttpClient browser = HttpClient.newBuilder()
+                    .cookieHandler(new java.net.CookieManager(null, java.net.CookiePolicy.ACCEPT_ALL))
+                    .followRedirects(HttpClient.Redirect.NEVER).build();
+            HttpResponse<String> loginPage = browserRequest(browser, "/login", null, null);
+            java.util.regex.Matcher token = java.util.regex.Pattern
+                    .compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"").matcher(loginPage.body());
+            assertTrue(loginPage.body(), token.find());
+            assertEquals(302, browserRequest(browser, "/login", "j_username=admin&j_password=admin&_csrf="
+                    + URLEncoder.encode(token.group(1), StandardCharsets.UTF_8), null).statusCode());
+            HttpResponse<String> page = browserRequest(browser, "/bookmarks.view", null, null);
+            assertEquals(page.body(), 200, page.statusCode());
+            assertTrue(page.body(), page.body().contains("/airsonic/script/subsonic-bookmarks.js"));
+            for (String endpoint : List.of("getBookmarks", "createBookmark", "deleteBookmark")) {
+                assertTrue(page.body(), page.body().contains("/airsonic/rest/" + endpoint));
+            }
+            assertTrue(!page.body().contains("/app/bookmarks/"));
+            token = java.util.regex.Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
+            assertTrue(page.body(), token.find());
+            String csrf = token.group(1);
+            String form = "f=json&c=airsonic-web&id=" + id;
+            String comment = URLEncoder.encode("Позиция & <bookmark>", StandardCharsets.UTF_8);
+            subsonic(browserRequest(browser, "/rest/createBookmark", form + "&position=123456&comment=" + comment, csrf));
+            JsonNode entry = subsonic(browserRequest(browser, "/rest/getBookmarks",
+                    "f=json&includeEntryAvailability=true", csrf)).path("bookmarks").path("bookmark").get(0);
+            assertEquals(123456L, entry.path("position").asLong());
+            assertEquals("Позиция & <bookmark>", entry.path("comment").asText());
+            assertEquals(id, entry.path("entry").path("id").asInt());
+            assertTrue(entry.path("entryPresent").asBoolean());
+            assertTrue(entry.hasNonNull("created"));
+            assertTrue(entry.hasNonNull("changed"));
+            assertEquals("admin", entry.path("username").asText());
+            // Existing external clients receive the unchanged representation by default.
+            JsonNode external = subsonic(get("/rest/getBookmarks?" + credentials() + "&f=json", false))
+                    .path("bookmarks").path("bookmark").get(0);
+            assertEquals(entry.path("position"), external.path("position"));
+            assertTrue(!external.has("entryPresent"));
+            HttpResponse<String> xml = get("/rest/getBookmarks.view?" + credentials(), false);
+            assertTrue(xml.body(), xml.body().contains("position=\"123456\""));
+            assertTrue(xml.body(), !xml.body().contains("entryPresent="));
+            song.setPresent(false);
+            mediaFiles.updateMediaFile(song);
+            JsonNode offline = subsonic(browserRequest(browser, "/rest/getBookmarks",
+                    "f=json&includeEntryAvailability=true", csrf)).path("bookmarks").path("bookmark").get(0);
+            assertTrue(offline.has("entryPresent"));
+            assertEquals(false, offline.path("entryPresent").asBoolean());
+            song.setPresent(true);
+            mediaFiles.updateMediaFile(song);
+            HttpResponse<String> playerPage = browserRequest(browser, "/playQueue.view", null, null);
+            assertEquals(playerPage.body(), 200, playerPage.statusCode());
+            assertTrue(playerPage.body(), playerPage.body().contains("/airsonic/script/subsonic-bookmarks.js"));
+            assertTrue(!playerPage.body().contains("/app/bookmarks/"));
+            assertEquals(403, browserRequest(browser, "/rest/deleteBookmark", form, null).statusCode());
+            assertEquals(123456L, applicationContext.getBean(org.airsonic.player.service.BookmarkService.class)
+                    .getBookmark("admin", id).getPositionMillis());
+            subsonic(browserRequest(browser, "/rest/createBookmark", form + "&position=1000", csrf));
+            assertEquals(1000L, subsonic(get("/rest/getBookmarks?" + credentials() + "&f=json", false))
+                    .path("bookmarks").path("bookmark").get(0).path("position").asLong());
+            subsonic(browserRequest(browser, "/rest/deleteBookmark", form, csrf));
+            assertEquals(0, subsonic(browserRequest(browser, "/rest/getBookmarks", "f=json", csrf))
+                    .path("bookmarks").path("bookmark").size());
+            assertEquals(10, responseBody(browserRequest(browser, "/rest/createBookmark", form, csrf))
+                    .path("error").path("code").asInt());
+            assertEquals(400, browserRequest(browser, "/rest/createBookmark", form + "&position=bad", csrf).statusCode());
+            assertEquals(10, responseBody(get("/rest/getBookmarks?f=json", false)).path("error").path("code").asInt());
+        } finally {
+            ScanningTestUtils.after(cleanupId, mediaFolderService);
+            mediaFolderService.expunge();
+        }
+    }
+
     private HttpResponse<String> browserRequest(HttpClient browser, String path, String form, String csrf)
             throws Exception {
         HttpRequest.Builder request = HttpRequest.newBuilder()

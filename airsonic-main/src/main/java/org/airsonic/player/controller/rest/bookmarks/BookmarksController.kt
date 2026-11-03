@@ -60,13 +60,16 @@ class BookmarksController(
     private fun getBookmarks(request: BookmarksRequest): Response {
         val result = Bookmarks()
         bookmarks.getBookmarks(request.username).forEach { bookmark ->
+            val mediaFile = mediaFiles.getMediaFile(bookmark.mediaFileId) ?: return@forEach
             val entry = Bookmark().apply {
                 position = bookmark.positionMillis
                 username = bookmark.username
                 comment = bookmark.comment
                 created = writer.convertDate(bookmark.created)
                 changed = writer.convertDate(bookmark.changed)
-                val mediaFile = mediaFiles.getMediaFile(bookmark.mediaFileId)
+                if (request.parameters["includeEntryAvailability"] == "true") {
+                    entryPresent = mediaFile.isPresent
+                }
                 this.entry = mapper.child(requireNotNull(request.player), mediaFile, request.username)
             }
             result.bookmark.add(entry)

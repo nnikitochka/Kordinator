@@ -6,6 +6,7 @@
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
     <%@ include file="subsonicStars.jsp" %>
+    <%@ include file="subsonicBookmarks.jsp" %>
     <%@ include file="table.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
 
@@ -130,7 +131,7 @@
                       title: "<fmt:message key='personalsettings.album'/>",
                       render: function(album, type, row) {
                           if (type == "display" && album != null) {
-                              return $("<a>", {title: album, alt: album, text: album, target: "main"}).attr("href", "main.view?id=" + row.id)[0].outerHTML;
+                              return $("<a>", {title: album, alt: album, text: album, target: "main"}).attr("href", "main.view?id=" + row.mediaFileEntry.parent)[0].outerHTML;
                           }
                           return album;
                       }
@@ -227,21 +228,7 @@
                 selectAll(e.target.checked);
             } );
 
-            top.StompClient.subscribe("bookmarks.jsp", {
-	            '/user/queue/bookmarks/added': function(msg) {
-	                addedBookmarksCallback(JSON.parse(msg.body));
-	            },
-	            '/user/queue/bookmarks/deleted': function(msg) {
-	                deleteBookmarksCallback(JSON.parse(msg.body));
-	            },
-	            '/user/queue/bookmarks/get': function(msg) {
-	                getBookmarkCallback(JSON.parse(msg.body));
-	            },
-	            //one-time population only
-	            '/app/bookmarks/list': function(msg) {
-	                getBookmarksCallback(JSON.parse(msg.body));
-	            }
-	        });
+            bookmarkApi.watch(top.StompClient, "bookmarks.jsp", getBookmarksCallback);
         }
 
         function onAdd(index) {
@@ -267,19 +254,9 @@
             }
         }
         function onRemoveBookmark(index) {
-            top.StompClient.send("/app/bookmarks/delete", bookmarksTable.row(index).data().mediaFileEntry.id);
-        }
-        function deleteBookmarksCallback(mediaFileId) {
-            delete this.bookmarks[mediaFileId];
-            bookmarksTable.ajax.reload().columns.adjust();
-        }
-        function addedBookmarksCallback(mediaFileId) {
-            // get new (added in callback)
-            top.StompClient.send("/app/bookmarks/get", mediaFileId);
-        }
-        function getBookmarkCallback(bookmark) {
-            this.bookmarks[bookmark.mediaFileEntry.id] = bookmark;
-            bookmarksTable.ajax.reload().columns.adjust();
+            bookmarkApi.remove(bookmarksTable.row(index).data().mediaFileEntry.id, function () {
+                bookmarkApi.list(getBookmarksCallback);
+            });
         }
         function getBookmarksCallback(bookmarks) {
             this.bookmarks = bookmarks;

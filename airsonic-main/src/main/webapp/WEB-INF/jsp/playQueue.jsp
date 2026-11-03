@@ -2,6 +2,7 @@
 <%@ include file="include.jsp" %>
 <%@ include file="jquery.jsp" %>
 <%@ include file="subsonicStars.jsp" %>
+<%@ include file="subsonicBookmarks.jsp" %>
 <%@ include file="table.jsp" %>
 <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
 <script type="text/javascript" src="<c:url value='/script/mediaelement/mediaelement-and-player.min.js'/>"></script>
@@ -404,20 +405,9 @@
                     pq.onPlayerDeleted(JSON.parse(msg.body));
                 },
 
-                // Bookmarks
-                '/user/queue/bookmarks/added': function(msg) {
-	                pq.addedBookmarksCallback(JSON.parse(msg.body));
-	            },
-	            '/user/queue/bookmarks/deleted': function(msg) {
-	                pq.deleteBookmarksCallback(JSON.parse(msg.body));
-	            },
-	            '/user/queue/bookmarks/get': function(msg) {
-	                pq.getBookmarkCallback(JSON.parse(msg.body));
-	            },
-	            //one-time population only
-	            '/app/bookmarks/list': function(msg) {
-	                pq.getBookmarksCallback(JSON.parse(msg.body));
-	            }
+            });
+            bookmarkApi.watch(top.StompClient, "playQueue.jsp", function (bookmarks) {
+                pq.getBookmarksCallback(bookmarks);
             });
 
             var dialogSize = getJQueryUiDialogPlaylistSize("playQueue");
@@ -644,7 +634,7 @@
             if (this.autoBookmark) {
                 var song = this.songs[this.currentSongIndex];
                 var positionMillis = Math.round(this.audioPlayer.currentTime * 1000);
-                top.StompClient.send("/app/bookmarks/set", JSON.stringify({positionMillis: positionMillis, comment: "Played on Web Player " + this.player.id, mediaFileId: song.id}));
+                bookmarkApi.create(song.id, positionMillis, "Played on Web Player " + this.player.id);
             }
         },
         lastProgressionBookmarkTime: 0,
@@ -659,16 +649,6 @@
             }
         },
 
-        deleteBookmarksCallback(mediaFileId) {
-            delete this.bookmarks[mediaFileId];
-        },
-        addedBookmarksCallback(mediaFileId) {
-            // get new (added in callback)
-            top.StompClient.send("/app/bookmarks/get", mediaFileId);
-        },
-        getBookmarkCallback(bookmark) {
-            this.bookmarks[bookmark.mediaFileEntry.id] = bookmark;
-        },
         getBookmarksCallback(bookmarks) {
             this.bookmarks = bookmarks;
         },

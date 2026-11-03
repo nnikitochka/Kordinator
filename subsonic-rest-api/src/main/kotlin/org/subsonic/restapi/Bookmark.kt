@@ -16,6 +16,10 @@ class Bookmark {
     @field:XmlElement(name = "entry")
     var entry: Child? = null
 
+    // Opt-in availability information for clients displaying offline media.
+    @field:XmlAttribute(name = "entryPresent")
+    var entryPresent: Boolean? = null
+
     @field:XmlAttribute(name = "position", required = true)
     var position: Long = 0L
 
