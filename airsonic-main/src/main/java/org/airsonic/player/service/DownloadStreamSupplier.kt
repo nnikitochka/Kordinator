@@ -1,9 +1,9 @@
-package org.airsonic.player.service;
+package org.airsonic.player.service
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.IOException
+import java.io.InputStream
 
-@FunctionalInterface
-public interface DownloadStreamSupplier {
-    InputStream open() throws IOException;
+fun interface DownloadStreamSupplier {
+    @Throws(IOException::class)
+    fun open(): InputStream
 }
