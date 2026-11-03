@@ -1,4 +1,4 @@
-package org.airsonic.player.ajax.cover;
+package org.airsonic.player.service;
 
 import org.airsonic.player.domain.CoverArt.EntityType;
 import org.airsonic.player.domain.LastFmCoverArt;
@@ -17,9 +17,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.simp.annotation.SendToUser;
-import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,10 +26,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 
-@Controller
-@MessageMapping("/coverart")
-public class CoverArtWSController {
-    private static final Logger LOG = LoggerFactory.getLogger(CoverArtWSController.class);
+@Service
+public class CoverArtSearchService {
+    private static final Logger LOG = LoggerFactory.getLogger(CoverArtSearchService.class);
 
     private SecurityService securityService;
     private MediaFileService mediaFileService;
@@ -39,7 +36,7 @@ public class CoverArtWSController {
     private final MediaFolderService mediaFolderService;
     private final CoverArtService coverArtService;
 
-    public CoverArtWSController(SecurityService securityService, MediaFileService mediaFileService, LastFmService lastFmService, MediaFolderService mediaFolderService, CoverArtService coverArtService) {
+    public CoverArtSearchService(SecurityService securityService, MediaFileService mediaFileService, LastFmService lastFmService, MediaFolderService mediaFolderService, CoverArtService coverArtService) {
         this.securityService = securityService;
         this.mediaFileService = mediaFileService;
         this.lastFmService = lastFmService;
@@ -47,28 +44,17 @@ public class CoverArtWSController {
         this.coverArtService = coverArtService;
     }
 
-    @MessageMapping("/search")
-    @SendToUser(broadcast = false)
-    public List<LastFmCoverArt> searchCoverArt(CoverArtSearchRequest req) {
-        return lastFmService.searchCoverArt(req.getArtist(), req.getAlbum());
+    public List<LastFmCoverArt> searchCoverArt(String artist, String album) {
+        return lastFmService.searchCoverArt(artist, album);
     }
 
-    /**
-     * Downloads and saves the cover art at the given URL.
-     *
-     * @return The error string if something goes wrong, <code>"OK"</code> otherwise.
-     */
-    @MessageMapping("/set")
-    @SendToUser(broadcast = false)
-    public String setCoverArtImage(CoverArtSetRequest req) {
-        try {
-            MediaFile mediaFile = mediaFileService.getMediaFile(req.getId());
-            saveCoverArt(mediaFile, req.getUrl());
-            return "OK";
-        } catch (Exception e) {
-            LOG.warn("Failed to save cover art for media file {}", req.getId(), e);
-            return e.toString();
+    public void setCoverArtImage(int id, String url, String username) throws Exception {
+        MediaFile mediaFile = mediaFileService.getMediaFile(id);
+        if (mediaFile == null || !mediaFile.isDirectory() || mediaFolderService.getMusicFoldersForUser(username).stream()
+                .noneMatch(folder -> folder.getId().equals(mediaFile.getFolderId()))) {
+            throw new SecurityException("Music folder is not accessible");
         }
+        saveCoverArt(mediaFile, url);
     }
 
     private void saveCoverArt(MediaFile dir, String url) throws Exception {
@@ -99,6 +85,10 @@ public class CoverArtWSController {
                 CloseableHttpResponse response = client.execute(method);
                 InputStream input = response.getEntity().getContent()) {
 
+            if (response.getStatusLine().getStatusCode() < 200 || response.getStatusLine().getStatusCode() >= 300) {
+                throw new IOException("Cover image download failed: HTTP " + response.getStatusLine().getStatusCode());
+            }
+
             // If file exists, create a backup.
             backup(newCoverFile, fullPath.resolve("cover." + suffix + ".backup"));
 
@@ -120,15 +110,4 @@ public class CoverArtWSController {
         }
     }
 
-    public void setSecurityService(SecurityService securityService) {
-        this.securityService = securityService;
-    }
-
-    public void setMediaFileService(MediaFileService mediaFileService) {
-        this.mediaFileService = mediaFileService;
-    }
-
-    public void setLastFmService(LastFmService lastFmService) {
-        this.lastFmService = lastFmService;
-    }
 }

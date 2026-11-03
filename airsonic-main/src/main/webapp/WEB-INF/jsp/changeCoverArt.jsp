@@ -5,7 +5,11 @@
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
 
+    <script src="<c:url value='/script/subsonic-cover-art.js'/>"></script>
     <script type="text/javascript" language="javascript">
+        var coverArtApi = createSubsonicCoverArt({baseUrl: "<c:url value='/rest/'/>",
+            csrfHeader: "${_csrf.headerName}", csrfToken: "${_csrf.token}"});
+        var requestNumber = 0;
         function cloneNodeBySelector(selector, idToAppend) {
             var cloned = $(selector).clone();
             cloned.each(function() {
@@ -29,7 +33,12 @@
             $("#error").hide();
             $("#errorDetails").hide();
             $("#noImagesFound").hide();
-            top.StompClient.send("/app/coverart/set", JSON.stringify({id: ${model.id}, url: imageUrl}));
+            var request = ++requestNumber;
+            coverArtApi.set(${model.id}, imageUrl).then(function () {
+                if (request === requestNumber) setImageComplete("OK");
+            }).catch(function (error) {
+                if (request === requestNumber) setImageComplete(error.message);
+            });
         }
 
         function setImageComplete(errorDetails) {
@@ -54,7 +63,9 @@
                     var node = cloneNodeBySelector("#template", i);
                     node.appendTo(images);
 
-                    node.find(".search-result-link").attr("href", "javascript:setImage('" + result.imageUrl + "');");
+                    node.find(".search-result-link").attr("href", "#").on("click", (function (url) {
+                        return function (event) { event.preventDefault(); setImage(url); };
+                    })(result.imageUrl));
                     node.find(".search-result-image").attr("src", result.imageUrl);
                     node.find(".search-result-artist").text(result.artist);
                     node.find(".search-result-album").text(result.album);
@@ -78,18 +89,16 @@
 
             var artist = $("#artist").val();
             var album = $("#album").val();
-            top.StompClient.send("/app/coverart/search", JSON.stringify({artist: artist, album: album}));
+            var request = ++requestNumber;
+            coverArtApi.search(artist, album).then(function (results) {
+                if (request === requestNumber) searchComplete(results);
+            }).catch(function (error) {
+                if (request === requestNumber) setImageComplete(error.message);
+            });
         }
 
         function init() {
-            top.StompClient.subscribe("changeCoverArt.jsp", {
-                "/user/queue/coverart/search": function(msg) {
-                    searchComplete(JSON.parse(msg.body));
-                },
-                "/user/queue/coverart/set": function(msg) {
-                    setImageComplete(msg.body);
-                }
-            }, search);
+            search();
         }
     </script>
 </head>

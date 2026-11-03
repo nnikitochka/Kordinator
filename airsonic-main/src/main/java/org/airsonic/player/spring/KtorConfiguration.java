@@ -2,6 +2,8 @@ package org.airsonic.player.spring;
 
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
 import org.airsonic.player.service.LyricsService;
+import org.airsonic.player.service.CoverArtSearchService;
+import org.airsonic.player.controller.rest.cover.CoverArtActionsController;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.LeftController;
 import org.airsonic.player.controller.AvatarController;
@@ -107,6 +109,7 @@ public class KtorConfiguration {
             PlaylistService playlistService,
             ShareService shareService,
             LyricsService lyricsService,
+            CoverArtSearchService coverArtSearchService,
             BookmarkService bookmarkService,
             JukeboxService jukeboxService,
             PlayQueueService playQueueService,
@@ -155,6 +158,7 @@ public class KtorConfiguration {
                                 new SongController(mediaFileDao, securityService, responseMapper, jaxbWriter),
                                 new VideosController(mediaFileDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new LyricsController(lyricsService, jaxbWriter),
+                                new CoverArtActionsController(coverArtSearchService, jaxbWriter),
                                 new RatingController(mediaFileService, ratingService, jaxbWriter),
                                 new DownloadRestController(jaxbWriter), downloadService,
                                 shareService, mediaFileService,
@@ -193,6 +197,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(NowPlayingController.PATHS);
         registration.addUrlMappings(DownloadRestController.PATHS);
         registration.addUrlMappings(CoverArtRestController.PATHS);
+        registration.addUrlMappings(CoverArtActionsController.PATHS);
         registration.addUrlMappings(AvatarRestController.PATHS);
         registration.addUrlMappings(HlsRestController.PATHS);
         registration.addUrlMappings(StreamRestController.PATHS);

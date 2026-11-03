@@ -11,7 +11,7 @@ import jakarta.xml.bind.annotation.XmlType
 
 @XmlRootElement(name = "subsonic-response", namespace = "http://subsonic.org/restapi")
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "Response", propOrder = ["musicFolders", "indexes", "directory", "genres", "artists", "artist", "album", "song", "videos", "videoInfo", "nowPlaying", "searchResult", "searchResult2", "searchResult3", "playlists", "playlist", "jukeboxStatus", "jukeboxPlaylist", "license", "users", "user", "chatMessages", "albumList", "albumList2", "randomSongs", "songsByGenre", "lyrics", "podcasts", "newestPodcasts", "bookmarks", "playQueue", "shares", "starred", "starred2", "albumInfo", "artistInfo", "artistInfo2", "similarSongs", "similarSongs2", "topSongs", "scanStatus", "error"])
+@XmlType(name = "Response", propOrder = ["musicFolders", "indexes", "directory", "genres", "artists", "artist", "album", "song", "videos", "videoInfo", "nowPlaying", "searchResult", "searchResult2", "searchResult3", "playlists", "playlist", "jukeboxStatus", "jukeboxPlaylist", "license", "users", "user", "chatMessages", "albumList", "albumList2", "randomSongs", "songsByGenre", "lyrics", "podcasts", "newestPodcasts", "bookmarks", "playQueue", "shares", "starred", "starred2", "albumInfo", "artistInfo", "artistInfo2", "similarSongs", "similarSongs2", "topSongs", "scanStatus", "coverArtSearchResults", "error"])
 class Response {
     @field:XmlElement(name = "musicFolders")
     var musicFolders: MusicFolders? = null
@@ -135,6 +135,9 @@ class Response {
 
     @field:XmlElement(name = "scanStatus")
     var scanStatus: ScanStatus? = null
+
+    @field:XmlElement(name = "coverArtSearchResults")
+    var coverArtSearchResults: CoverArtSearchResults? = null
 
     @field:XmlElement(name = "error")
     var error: Error? = null
