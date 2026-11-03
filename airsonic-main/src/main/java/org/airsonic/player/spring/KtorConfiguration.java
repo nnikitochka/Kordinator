@@ -11,7 +11,7 @@ import org.airsonic.player.controller.rest.livequeue.LiveQueueController;
 import org.airsonic.player.service.MediaDirectoryService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.airsonic.player.controller.JAXBWriter;
-import org.airsonic.player.controller.LeftController;
+import org.airsonic.player.service.MusicIndexStateService;
 import org.airsonic.player.service.hls.HlsPlaylistService;
 import org.airsonic.player.controller.rest.hls.HlsRestController;
 import org.airsonic.player.controller.rest.hls.HlsSegmentRestController;
@@ -102,6 +102,11 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public MusicIndexStateService musicIndexStateService(MediaScannerService scanner, SettingsService settings, MediaFolderService folders) {
+        return new MusicIndexStateService(scanner, settings, folders);
+    }
+
+    @Bean
     public MediaStreamService mediaStreamService(StatusService statusService, SecurityService securityService,
             SettingsService settingsService, TranscodingService transcodingService, AudioScrobblerService audioScrobblerService,
             MediaFileService mediaFileService, SearchService searchService, PlayerDaoPlayQueueFactory playQueueFactory) {
@@ -145,7 +150,7 @@ public class KtorConfiguration {
             AudioScrobblerService audioScrobblerService,
             StatusService statusService,
             DownloadService downloadService,
-            LeftController leftController,
+            MusicIndexStateService musicIndexStateService,
             UserAdministrationService userAdministrationService,
             LocaleResolver localeResolver,
             CoverArtImageService coverArtImageService,
@@ -173,7 +178,7 @@ public class KtorConfiguration {
                                 new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, jaxbWriter),
                                 new PasswordController(securityService, jaxbWriter),
                                 new PlayQueueController(playQueueDao, mediaFileService, responseMapper, jaxbWriter),
-                                new IndexesController(settingsService, mediaFolderService, musicIndexService, mediaFileDao, ratingService, responseMapper, jaxbWriter),
+                                new IndexesController(settingsService, mediaFolderService, musicIndexService, musicIndexStateService, mediaFileDao, ratingService, responseMapper, jaxbWriter),
                                 new SongsByGenreController(mediaFileDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new TopSongsController(lastFmService, mediaFolderService, responseMapper, jaxbWriter),
                                 new MusicDirectoryController(mediaFileService, mediaFileDao, securityService, ratingService, responseMapper, jaxbWriter, mediaDirectoryService),
@@ -190,7 +195,7 @@ public class KtorConfiguration {
                                 new RatingController(mediaFileService, ratingService, jaxbWriter),
                                 new DownloadRestController(jaxbWriter), downloadService,
                                 shareService, mediaFileService,
-                                playerResolver, playerService, securityService, localeResolver, leftController,
+                                playerResolver, playerService, securityService, localeResolver,
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService),
                                 new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(mediaStreamService), jaxbWriter),
                         "/internal/ktor/*");

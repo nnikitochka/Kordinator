@@ -62,7 +62,6 @@ import org.airsonic.player.controller.rest.users.PasswordController
 import org.airsonic.player.controller.rest.users.UsersRequest
 import org.airsonic.player.controller.rest.playqueue.PlayQueueController
 import org.airsonic.player.controller.rest.playqueue.PlayQueueRequest
-import org.airsonic.player.controller.LeftController
 import org.airsonic.player.controller.rest.indexes.IndexesController
 import org.airsonic.player.controller.rest.indexes.IndexesRequest
 import org.airsonic.player.controller.rest.music.genre.SongsByGenreController
@@ -146,7 +145,6 @@ class AirsonicKtorServlet(
     private val playerService: PlayerService,
     private val securityService: SecurityService,
     private val localeResolver: LocaleResolver,
-    private val leftController: LeftController,
     private val coverArtRestController: CoverArtRestController,
     private val avatarRestController: AvatarRestController,
     private val hlsRestController: HlsRestController,
@@ -603,7 +601,6 @@ class AirsonicKtorServlet(
                 }
             }
             request.setAttribute(INDEXES_REQUEST, IndexesRequest(username, parameters(request), folderId,
-                { withSecurityContext { leftController.getLastModified(wrapped) } },
                 { withSecurityContext { playerService.getPlayer(wrapped, response) } }))
         } else if (path in PlayQueueController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)

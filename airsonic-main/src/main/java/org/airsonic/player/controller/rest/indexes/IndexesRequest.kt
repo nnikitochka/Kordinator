@@ -7,6 +7,5 @@ class IndexesRequest(
     val username: String,
     val parameters: Parameters,
     val folderId: Int?,
-    val lastModified: () -> Long,
     val player: () -> Player,
 )

@@ -12,6 +12,7 @@ import org.airsonic.player.controller.rest.error.ErrorCode
 import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.MusicIndexService
+import org.airsonic.player.service.MusicIndexStateService
 import org.airsonic.player.service.RatingService
 import org.airsonic.player.service.SettingsService
 import org.slf4j.LoggerFactory
@@ -25,6 +26,7 @@ class IndexesController(
     private val settings: SettingsService,
     private val folders: MediaFolderService,
     private val musicIndex: MusicIndexService,
+    private val indexState: MusicIndexStateService,
     private val mediaFiles: MediaFileDao,
     private val ratings: RatingService,
     private val mapper: SubsonicResponseMapper,
@@ -55,7 +57,7 @@ class IndexesController(
     private fun getIndexes(request: IndexesRequest): Response {
         val result = writer.createResponse(true)
         val ifModifiedSince = request.parameters["ifModifiedSince"]?.toLongOrNull() ?: 0L
-        val lastModified = request.lastModified()
+        val lastModified = indexState.lastModified(request.username, request.folderId)
         if (lastModified <= ifModifiedSince) return result
 
         val indexes = Indexes().apply {

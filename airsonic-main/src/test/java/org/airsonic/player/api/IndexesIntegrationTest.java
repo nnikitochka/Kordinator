@@ -6,6 +6,7 @@ import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.User;
+import org.airsonic.player.controller.LeftController;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.MediaScannerService;
@@ -19,11 +20,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import java.net.URI;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.net.http.*;
 import java.util.*;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
@@ -36,6 +45,7 @@ public class IndexesIntegrationTest {
     @Autowired private SettingsService settings;
     @Autowired private MediaFileDao mediaFiles;
     @Autowired private SecurityService security;
+    @MockitoSpyBean private LeftController leftController;
     private final HttpClient client = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -93,10 +103,31 @@ public class IndexesIntegrationTest {
             assertEquals("_DIR_ Sixteen Horsepower", withShortcut.path("shortcut").get(0).path("name").asText());
             assertEquals("ok", body(send(".view", "f=json", true)).path("status").asText());
             assertEquals(403, send("", "f=json", true).statusCode());
+            assertTrue(body(send("", "f=json&musicFolderId=" + second + "&ifModifiedSince=9223372036854775807", false)).path("indexes").isMissingNode());
+            assertEquals(second, settings.getUserSettings("admin").getSelectedMusicFolderId());
+            verifyNoInteractions(leftController);
+            websiteSelectsFolder(first);
+
         } finally {
             ScanningTestUtils.after(cleanup, folders);
             folders.expunge();
         }
+    }
+    private void websiteSelectsFolder(int folderId) throws Exception {
+        HttpClient browser = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
+                .followRedirects(HttpClient.Redirect.NEVER).build();
+        String base = "http://localhost:" + port + "/airsonic";
+        HttpResponse<String> login = browser.send(HttpRequest.newBuilder(URI.create(base + "/login")).GET().build(), HttpResponse.BodyHandlers.ofString());
+        Matcher token = Pattern.compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"").matcher(login.body());
+        assertTrue(token.find());
+        String form = "j_username=admin&j_password=admin&_csrf=" + URLEncoder.encode(token.group(1), StandardCharsets.UTF_8);
+        assertEquals(302, browser.send(HttpRequest.newBuilder(URI.create(base + "/login"))
+                .header("Content-Type", "application/x-www-form-urlencoded").POST(HttpRequest.BodyPublishers.ofString(form)).build(), HttpResponse.BodyHandlers.ofString()).statusCode());
+        var changed = settings.getUserSettings("admin").getChanged();
+        HttpResponse<String> page = browser.send(HttpRequest.newBuilder(URI.create(base + "/left.view?musicFolderId=" + folderId)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(page.body(), 200, page.statusCode());
+        assertEquals(folderId, settings.getUserSettings("admin").getSelectedMusicFolderId());
+        assertEquals(changed, settings.getUserSettings("admin").getChanged());
     }
     private Set<String> artistIds(JsonNode indexes) {
         Set<String> ids = new HashSet<>();
