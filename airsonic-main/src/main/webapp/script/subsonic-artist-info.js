@@ -19,7 +19,9 @@ function createArtistInfo(options) {
                     return {mediaFileId: artist.id, artistName: artist.name};
                 }),
                 artistBio: body.artistInfo,
-                topSongs: body.websiteArtistInfo.topSong || []
+                topSongs: (body.websiteArtistInfo.topSong || []).map(function (song) {
+                    return Object.assign({starred: false, title: null, album: null, artist: null, duration: null}, song);
+                })
             };
         }
     };

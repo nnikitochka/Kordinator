@@ -34,3 +34,15 @@ test('rejects redirects and API errors', async () => {
     await assert.rejects(setup(async () => ({ok: true, redirected: true})).get(1));
     await assert.rejects(setup(async () => ({ok: true, redirected: false, json: async () => ({'subsonic-response': {status: 'failed'}})})).get(1));
 });
+
+
+test('top song rows include optional table fields and retain supplied data', async () => {
+    const result = await setup(async () => ({ok: true, json: async () => ({'subsonic-response': {
+        status: 'ok', artistInfo: {}, websiteArtistInfo: {topSong: [{id: 1, title: 'Song', duration: 0}]}
+    }})})).get(1);
+    const song = result.topSongs[0];
+    for (const field of ['id', 'starred', 'title', 'album', 'artist', 'duration']) assert.ok(Object.hasOwn(song, field), field);
+    assert.equal(song.album, null); assert.equal(song.duration, 0); assert.equal(song.title, 'Song');
+    const page = fs.readFileSync(path.join(__dirname, '../../main/webapp/WEB-INF/jsp/mediaMain.jsp'), 'utf8');
+    assert.match(page, /subsonic-artist-info\.js\?v=2/);
+});

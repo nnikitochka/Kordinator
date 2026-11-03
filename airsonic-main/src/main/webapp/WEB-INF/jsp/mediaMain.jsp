@@ -9,7 +9,7 @@
     <%@ include file="subsonicStars.jsp" %>
     <script src="<c:url value='/script/subsonic-rating.js'/>"></script>
     <script src="<c:url value='/script/subsonic-media-directory.js?v=2'/>"></script>
-    <script src="<c:url value='/script/subsonic-artist-info.js'/>"></script>
+    <script src="<c:url value='/script/subsonic-artist-info.js?v=2'/>"></script>
     <%@ include file="table.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/jquery.fancyzoom.js'/>"></script>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
