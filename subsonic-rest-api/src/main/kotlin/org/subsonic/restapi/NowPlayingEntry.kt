@@ -22,4 +22,16 @@ class NowPlayingEntry : Child() {
     @field:XmlAttribute(name = "playerName")
     var playerName: String? = null
 
+    @field:XmlAttribute var active: Boolean? = null
+    @field:XmlAttribute var transferId: String? = null
+    @field:XmlAttribute var displayUsername: String? = null
+    @field:XmlAttribute var displayArtist: String? = null
+    @field:XmlAttribute var displayTitle: String? = null
+    @field:XmlAttribute var tooltip: String? = null
+    @field:XmlAttribute var streamUrl: String? = null
+    @field:XmlAttribute var albumUrl: String? = null
+    @field:XmlAttribute var lyricsUrl: String? = null
+    @field:XmlAttribute var coverArtUrl: String? = null
+    @field:XmlAttribute var avatarUrl: String? = null
+
 }

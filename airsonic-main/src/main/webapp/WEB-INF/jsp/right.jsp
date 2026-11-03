@@ -5,6 +5,7 @@
 <head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+    <%@ include file="subsonicNowPlaying.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
 
     <script type="text/javascript">
@@ -22,39 +23,16 @@
             top.StompClient.subscribe("right.jsp", {
                 // no need to populate initial because the updates will occur frequently enough and are self-sufficient
                 '/topic/scanStatus': scanningStatus
-                <c:if test="${model.showNowPlaying}">
-                ,
-                '/topic/nowPlaying/current/add': function(msg) {
-	                addStatus(JSON.parse(msg.body), 'nowPlaying');
-	            },
-	            '/topic/nowPlaying/current/remove': function(msg) {
-	                removeStatus(JSON.parse(msg.body), 'nowPlaying');
-	            },
-	            '/topic/nowPlaying/recent/add': function(msg) {
-	                addStatus(JSON.parse(msg.body), 'recentlyPlayed');
-	            },
-	            '/topic/nowPlaying/recent/remove': function(msg) {
-	                removeStatus(JSON.parse(msg.body), 'recentlyPlayed');
-	            },
-	            // Add existing (initial population, one time)
-	            '/app/nowPlaying/current': function(msg) {
-	                $('#nowPlayingTable').empty();
-	                removeStatus({}, 'nowPlaying');
-	                var statuses = JSON.parse(msg.body);
-	                for (var i = 0; i < statuses.length; i++) {
-	                    addStatus(statuses[i], 'nowPlaying');
-	                }
-	            },
-	            '/app/nowPlaying/recent': function(msg) {
-	                $('#recentlyPlayedTable').empty();
-	                removeStatus({}, 'recentlyPlayed');
-	                var statuses = JSON.parse(msg.body);
-	                for (var i = 0; i < statuses.length; i++) {
-	                    addStatus(statuses[i], 'recentlyPlayed');
-	                }
-	            }
-                </c:if>
             });
+            <c:if test="${model.showNowPlaying}">
+            watchNowPlaying("right-now-playing", function (current, recent) {
+                [['nowPlaying', current], ['recentlyPlayed', recent]].forEach(function (group) {
+                    $('#' + group[0] + 'Table').empty();
+                    $('#' + group[0]).hide();
+                    group[1].forEach(function (status) { addStatus(status, group[0]); });
+                });
+            });
+            </c:if>
         }
 
         function addStatus(status, table) {
@@ -93,12 +71,6 @@
             $('#' + table).show();
         }
 
-        function removeStatus(status, table) {
-            $('.playstatus-'+status.transferId+'.mediafile-'+status.mediaFileId).remove();
-            if ($('#' + table + 'Table').children().length == 0) {
-                $('#' + table).hide();
-            }
-        }
     </script>
 </head>
 <body class="bgcolor1 rightframe" style="padding-top:2em" onload="init()">

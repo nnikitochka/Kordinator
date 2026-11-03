@@ -2,6 +2,7 @@
 <%@ include file="include.jsp" %>
 <%@ include file="jquery.jsp" %>
 <%@ include file="subsonicPlaylists.jsp" %>
+<%@ include file="subsonicNowPlaying.jsp" %>
 <%@ include file="subsonicStars.jsp" %>
 <%@ include file="subsonicBookmarks.jsp" %>
 <%@ include file="table.jsp" %>
@@ -369,21 +370,13 @@
 
             $("#playQueueHeading").html("<h2><fmt:message key='playlist.more.playlist'/></h2>");
 
-            top.StompClient.subscribe("playQueue.jsp", {
-                // Now playing
-                '/topic/nowPlaying/current/add'(msg) {
-                    var nowPlayingInfo = JSON.parse(msg.body);
-                    pq.onNowPlayingChanged(nowPlayingInfo);
-                },
-                '/app/nowPlaying/current'(msg) {
-                    var nowPlayingInfos = JSON.parse(msg.body);
-                    for (var i = 0, len = nowPlayingInfos.length; i < len; i++) {
-                        if (pq.onNowPlayingChanged(nowPlayingInfos[i])) {
-                            break;
-                        }
-                    }
-                },
+            pq.refreshNowPlaying = watchNowPlaying("playQueue-now-playing", function (current) {
+                for (var i = 0; i < current.length; i++) {
+                    if (pq.onNowPlayingChanged(current[i])) break;
+                }
+            });
 
+            top.StompClient.subscribe("playQueue.jsp", {
                 // Players
                 '/user/queue/players/updated'(msg) {
                     pq.onPlayerUpdated(JSON.parse(msg.body));
@@ -988,6 +981,8 @@
         playQueueCallback(playQueue, initial) {
             this.songs = playQueue.entries;
             this.shuffleRadioEnabled = playQueue.shuffleRadioEnabled;
+
+            if (initial && this.refreshNowPlaying) this.refreshNowPlaying();
 
             this.playQueueRepeatStatusCallback(playQueue.repeatStatus);
             this.playQueuePlayStatusCallback(playQueue.playStatus, true);
