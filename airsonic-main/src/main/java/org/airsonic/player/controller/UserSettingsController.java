@@ -4,14 +4,12 @@ import org.airsonic.player.command.UserSettingsCommand;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.TranscodeScheme;
 import org.airsonic.player.domain.User;
-import org.airsonic.player.domain.User.Role;
-import org.airsonic.player.domain.UserCredential;
-import org.airsonic.player.domain.UserCredential.App;
 import org.airsonic.player.domain.UserSettings;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.service.TranscodingService;
+import org.airsonic.player.service.UserAdministrationService;
 import org.airsonic.player.util.Util;
 import org.airsonic.player.validator.UserSettingsValidator;
 import org.apache.commons.lang.StringUtils;
@@ -31,12 +29,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Controller for the page used to administrate users.
@@ -48,12 +42,14 @@ public class UserSettingsController {
     private final SettingsService settingsService;
     private final MediaFolderService mediaFolderService;
     private final TranscodingService transcodingService;
+    private final UserAdministrationService userAdministrationService;
 
-    public UserSettingsController(SecurityService securityService, SettingsService settingsService, MediaFolderService mediaFolderService, TranscodingService transcodingService) {
+    public UserSettingsController(SecurityService securityService, SettingsService settingsService, MediaFolderService mediaFolderService, TranscodingService transcodingService, UserAdministrationService userAdministrationService) {
         this.securityService = securityService;
         this.settingsService = settingsService;
         this.mediaFolderService = mediaFolderService;
         this.transcodingService = transcodingService;
+        this.userAdministrationService = userAdministrationService;
     }
 
     @InitBinder
@@ -124,9 +120,9 @@ public class UserSettingsController {
             if (command.isDeleteUser()) {
                 deleteUser(command);
             } else if (command.isNewUser()) {
-                createUser(command);
+                userAdministrationService.createUser(command);
             } else {
-                updateUser(command);
+                userAdministrationService.updateUser(command);
             }
             redirectAttributes.addFlashAttribute("settings_reload", true);
             redirectAttributes.addFlashAttribute("settings_toast", true);
@@ -151,64 +147,6 @@ public class UserSettingsController {
 
     private void deleteUser(UserSettingsCommand command) {
         securityService.deleteUser(command.getUsername());
-    }
-
-    public void createUser(UserSettingsCommand command) {
-        User user = new User(command.getUsername(), StringUtils.trimToNull(command.getEmail()));
-        user.setLdapAuthenticated(command.isLdapAuthenticated());
-        securityService.createUser(user, command.getPassword(), "Created for new user");
-        updateUser(command);
-    }
-
-    public void updateUser(UserSettingsCommand command) {
-        User user = securityService.getUserByName(command.getUsername());
-        user.setEmail(StringUtils.trimToNull(command.getEmail()));
-        user.setLdapAuthenticated(command.isLdapAuthenticated());
-        Set<Integer> allowedMusicFolderIds = new HashSet<>();
-        Set<Role> roles = new HashSet<>();
-        if (command.isAdminRole()) {
-            roles.add(Role.ADMIN);
-        }
-        if (command.isDownloadRole()) {
-            roles.add(Role.DOWNLOAD);
-        }
-        if (command.isUploadRole()) {
-            roles.add(Role.UPLOAD);
-        }
-        if (command.isCoverArtRole()) {
-            roles.add(Role.COVERART);
-        }
-        if (command.isCommentRole()) {
-            roles.add(Role.COMMENT);
-        }
-        if (command.isStreamRole()) {
-            roles.add(Role.STREAM);
-        }
-        if (command.isJukeboxRole()) {
-            roles.add(Role.JUKEBOX);
-        }
-        if (command.isSettingsRole()) {
-            roles.add(Role.SETTINGS);
-        }
-        if (command.isShareRole()) {
-            roles.add(Role.SHARE);
-        }
-        user.setRoles(roles);
-
-        securityService.updateUser(user);
-
-        if (command.isPasswordChange()) {
-            UserCredential uc = new UserCredential(user.getUsername(), user.getUsername(), command.getPassword(), securityService.getPreferredPasswordEncoder(true), App.AIRSONIC, "Created by admin");
-            securityService.createCredential(uc);
-        }
-
-        UserSettings userSettings = settingsService.getUserSettings(command.getUsername());
-        userSettings.setTranscodeScheme(TranscodeScheme.valueOf(command.getTranscodeSchemeName()));
-        userSettings.setChanged(Instant.now());
-        settingsService.updateUserSettings(userSettings);
-
-        Arrays.stream(command.getAllowedMusicFolderIds()).forEach(allowedMusicFolderIds::add);
-        mediaFolderService.setMusicFoldersForUser(command.getUsername(), allowedMusicFolderIds);
     }
 
 }

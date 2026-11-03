@@ -42,7 +42,7 @@ import org.airsonic.player.service.CoverArtService;
 import org.airsonic.player.service.CoverArtImageService;
 import org.airsonic.player.controller.rest.playqueue.PlayQueueController;
 import org.airsonic.player.dao.PlayQueueDao;
-import org.airsonic.player.controller.UserSettingsController;
+import org.airsonic.player.service.UserAdministrationService;
 import org.airsonic.player.controller.rest.users.UsersController;
 import org.airsonic.player.controller.rest.users.PasswordController;
 import org.airsonic.player.service.SettingsService;
@@ -97,6 +97,11 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public UserAdministrationService userAdministrationService(SecurityService securityService, SettingsService settingsService, MediaFolderService mediaFolderService) {
+        return new UserAdministrationService(securityService, settingsService, mediaFolderService);
+    }
+
+    @Bean
     public MediaStreamService mediaStreamService(StatusService statusService, SecurityService securityService,
             SettingsService settingsService, TranscodingService transcodingService, AudioScrobblerService audioScrobblerService,
             MediaFileService mediaFileService, SearchService searchService, PlayerDaoPlayQueueFactory playQueueFactory) {
@@ -141,7 +146,7 @@ public class KtorConfiguration {
             StatusService statusService,
             DownloadService downloadService,
             LeftController leftController,
-            UserSettingsController userSettingsController,
+            UserAdministrationService userAdministrationService,
             LocaleResolver localeResolver,
             CoverArtImageService coverArtImageService,
             HlsPlaylistService hlsPlaylistService,
@@ -165,7 +170,7 @@ public class KtorConfiguration {
                                 new BookmarksController(bookmarkService, mediaFileService, responseMapper, jaxbWriter),
                                 new StarredController(mediaFileDao, albumDao, artistDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),
-                                new UsersController(securityService, settingsService, mediaFolderService, userSettingsController, jaxbWriter),
+                                new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, jaxbWriter),
                                 new PasswordController(securityService, jaxbWriter),
                                 new PlayQueueController(playQueueDao, mediaFileService, responseMapper, jaxbWriter),
                                 new IndexesController(settingsService, mediaFolderService, musicIndexService, mediaFileDao, ratingService, responseMapper, jaxbWriter),

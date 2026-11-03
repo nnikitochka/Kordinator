@@ -9,7 +9,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import org.airsonic.player.command.UserSettingsCommand
 import org.airsonic.player.controller.JAXBWriter
-import org.airsonic.player.controller.UserSettingsController
+import org.airsonic.player.service.UserAdministrationService
 import org.airsonic.player.controller.rest.error.ErrorCode
 import org.airsonic.player.domain.TranscodeScheme
 import org.airsonic.player.domain.User
@@ -26,7 +26,7 @@ class UsersController(
     private val security: SecurityService,
     private val settings: SettingsService,
     private val folders: MediaFolderService,
-    private val userSettings: UserSettingsController,
+    private val userSettings: UserAdministrationService,
     private val writer: JAXBWriter,
 ) {
     fun routes(root: Route, request: (ApplicationCall) -> UsersRequest) {
