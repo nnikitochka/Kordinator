@@ -235,3 +235,14 @@ test('all bookmark pages include the REST helper and have no internal bookmark A
         assert.ok(!source.includes('/user/queue/bookmarks/get'));
     }
 });
+
+
+test('bookmark rows include every optional table field and preserve values', async () => {
+    const {api} = setup(async () => ok({bookmarks: {bookmark: [{position: 0, entry: {id: '12', title: 'Song'}}]}}));
+    let result; await api.list(value => { result = value['12']; });
+    for (const name of ['id', 'positionMillis', 'comment', 'created', 'changed']) assert.ok(Object.hasOwn(result, name), name);
+    for (const name of ['title', 'album', 'artist', 'duration', 'starred', 'present']) assert.ok(Object.hasOwn(result.mediaFileEntry, name), name);
+    assert.equal(result.positionMillis, 0); assert.equal(result.mediaFileEntry.title, 'Song');
+    assert.equal(result.mediaFileEntry.album, null); assert.equal(result.comment, null);
+    assert.match(readFileSync(root + 'WEB-INF/jsp/subsonicBookmarks.jsp', 'utf8'), /subsonic-bookmarks\.js\?v=2/);
+});

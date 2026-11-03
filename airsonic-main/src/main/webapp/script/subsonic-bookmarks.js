@@ -38,13 +38,13 @@ function createSubsonicBookmarks(options) {
                     }
                     bookmarks[entry.id] = {
                         id: entry.id,
-                        mediaFileEntry: Object.assign({}, entry, {
+                        mediaFileEntry: Object.assign({title: null, album: null, artist: null, duration: null}, entry, {
                             starred: Boolean(entry.starred), present: bookmark.entryPresent === true
                         }),
-                        positionMillis: bookmark.position,
-                        comment: bookmark.comment,
-                        created: bookmark.created,
-                        changed: bookmark.changed
+                        positionMillis: bookmark.position == null ? null : bookmark.position,
+                        comment: bookmark.comment == null ? null : bookmark.comment,
+                        created: bookmark.created == null ? null : bookmark.created,
+                        changed: bookmark.changed == null ? null : bookmark.changed
                     };
                 });
                 onSuccess(bookmarks);
