@@ -56,3 +56,8 @@ test('fills omitted optional fields for file, directory and sibling table rows',
     assert.equal(result.subDirs[0].discNumber, null);
     assert.equal(result.siblingAlbums[0].year, 2020);
 });
+
+test('album page requests the fixed script with a new cache key', () => {
+    const page = fs.readFileSync(path.join(__dirname, '../../main/webapp/WEB-INF/jsp/mediaMain.jsp'), 'utf8');
+    assert.match(page, /subsonic-media-directory\.js\?v=2/);
+});

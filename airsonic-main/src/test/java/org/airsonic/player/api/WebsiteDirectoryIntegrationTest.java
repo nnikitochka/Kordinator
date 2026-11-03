@@ -60,7 +60,12 @@ public class WebsiteDirectoryIntegrationTest {
             assertEquals(302, send(browser, "/login", "j_username=web-directory-reader&j_password=secret&_csrf=" + URLEncoder.encode(token.group(1), StandardCharsets.UTF_8), null).statusCode());
             HttpResponse<String> page = send(browser, "/main.view?id=" + album.getId(), null, null);
             assertEquals(page.body(), 200, page.statusCode());
-            assertTrue(page.body().contains("/airsonic/script/subsonic-media-directory.js"));
+            assertTrue(page.body().contains("/airsonic/script/subsonic-media-directory.js?v=2"));
+            HttpResponse<String> script = send(browser, "/script/subsonic-media-directory.js?v=2", null, null);
+            assertEquals(script.body(), 200, script.statusCode());
+            assertTrue(script.headers().firstValue("cache-control").orElse("").contains("max-age=36000"));
+            assertTrue(script.body().contains("discNumber: null"));
+            assertTrue(script.body().contains("(directory.file || []).map(tableEntry)"));
             assertFalse(page.body().contains("/app/mediafile/directory/get"));
             token = Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
             assertTrue(token.find());
