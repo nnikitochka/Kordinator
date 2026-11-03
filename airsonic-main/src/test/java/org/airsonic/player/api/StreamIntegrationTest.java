@@ -3,6 +3,7 @@ package org.airsonic.player.api;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.dao.MediaFileDao;
+import org.airsonic.player.controller.StreamController;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.User;
@@ -19,6 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -30,6 +32,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
@@ -41,6 +45,7 @@ public class StreamIntegrationTest {
     @Autowired private MediaScannerService scanner;
     @Autowired private MediaFileDao mediaFiles;
     @Autowired private SecurityService security;
+    @MockitoSpyBean private StreamController mvc;
     private final HttpClient client = HttpClient.newHttpClient();
 
     @Test public void preservesStreamContract() throws Exception {
@@ -62,9 +67,21 @@ public class StreamIntegrationTest {
                 HttpResponse<byte[]> full = send(suffix, query, "admin", "admin", null, null);
                 assertEquals(200, full.statusCode());
                 assertArrayEquals(expected, full.body());
+                assertEquals(expected.length, full.headers().firstValueAsLong("content-length").orElse(-1));
+                assertTrue(full.headers().firstValue("last-modified").isPresent());
                 HttpResponse<byte[]> range = send(suffix, query, "admin", "admin", "Range", "bytes=0-9");
                 assertEquals(206, range.statusCode());
                 assertArrayEquals(Arrays.copyOf(expected, 10), range.body());
+                assertEquals("bytes 0-9/" + expected.length, range.headers().firstValue("content-range").orElse(""));
+                if (song.getDuration() != null && song.getDuration() > 2) {
+                    int offset = (int) Math.round(expected.length / song.getDuration());
+                    HttpResponse<byte[]> shifted = send(suffix, query + "&offsetSeconds=1", "admin", "admin", null, null);
+                    assertEquals(200, shifted.statusCode());
+                    assertArrayEquals(Arrays.copyOfRange(expected, offset, expected.length), shifted.body());
+                    HttpResponse<byte[]> shiftedRange = send(suffix, query + "&offsetSeconds=1", "admin", "admin", "Range", "bytes=0-9");
+                    assertEquals(206, shiftedRange.statusCode());
+                    assertArrayEquals(Arrays.copyOfRange(expected, offset, offset + 10), shiftedRange.body());
+                }
                 HttpResponse<byte[]> suffixRange = send(suffix, query, "admin", "admin", "Range", "bytes=-10");
                 assertEquals(206, suffixRange.statusCode());
                 assertArrayEquals(Arrays.copyOfRange(expected, expected.length - 10, expected.length), suffixRange.body());
@@ -81,6 +98,8 @@ public class StreamIntegrationTest {
                 assertEquals(200, icy.statusCode());
                 assertTrue(icy.headers().firstValue("icy-metaint").isPresent());
                 assertEquals(304, send(suffix, query, "admin", "admin", "If-None-Match", full.headers().firstValue("etag").orElseThrow()).statusCode());
+                assertEquals(304, send(suffix, query, "admin", "admin", "If-Modified-Since", full.headers().firstValue("last-modified").orElseThrow()).statusCode());
+                assertEquals(200, send(suffix, query, "admin", "admin", "If-Match", "\"wrong\"").statusCode());
                 HttpResponse<byte[]> noRole = send(suffix, query + "&f=json", "stream-denied", "secret", null, null);
                 assertEquals(50, new ObjectMapper().readTree(noRole.body()).path("subsonic-response").path("error").path("code").asInt());
                 HttpResponse<byte[]> forbidden = send(suffix, query + "&f=json", "stream-restricted", "secret", null, null);
@@ -102,11 +121,53 @@ public class StreamIntegrationTest {
                         .POST(HttpRequest.BodyPublishers.ofString(params)).build();
                 HttpResponse<byte[]> postResponse = client.send(post, HttpResponse.BodyHandlers.ofByteArray());
                 if (suffix.isEmpty()) assertEquals(403, postResponse.statusCode());
-                else assertArrayEquals(expected, postResponse.body());
+                else {
+                    assertArrayEquals(expected, postResponse.body());
+                    HttpRequest precondition = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic/rest/stream" + suffix))
+                            .header("Content-Type", "application/x-www-form-urlencoded")
+                            .header("If-Match", "\"wrong\"")
+                            .POST(HttpRequest.BodyPublishers.ofString(params)).build();
+                    assertEquals(412, client.send(precondition, HttpResponse.BodyHandlers.ofByteArray()).statusCode());
+                }
             }
+            if (commandAvailable("ffmpeg") && commandAvailable("ffprobe") && song.getBitRate() != null && song.getBitRate() > 32) {
+                HttpResponse<byte[]> transcoded = send(".view", "id=" + song.getId() + "&format=mp3&maxBitRate=32", "admin", "admin", null, null);
+                assertEquals(200, transcoded.statusCode());
+                assertTrue(transcoded.body().length > 0);
+                assertFalse("Expected downsampled audio", Arrays.equals(expected, transcoded.body()));
+                java.nio.file.Path audio = Files.createTempFile("stream-transcoded-", ".mp3");
+                try {
+                    Files.write(audio, transcoded.body());
+                    Process probe = new ProcessBuilder("ffprobe", "-v", "error", "-show_entries", "stream=codec_name",
+                            "-of", "default=noprint_wrappers=1:nokey=1", audio.toString()).redirectErrorStream(true).start();
+                    String codec = new String(probe.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                    assertEquals(codec, 0, probe.waitFor());
+                    assertTrue(codec, codec.contains("mp3"));
+                } finally {
+                    Files.deleteIfExists(audio);
+                }
+            }
+            verify(mvc, never()).handleRequest(any(), any(), any(), any(), any(), any(), any(), any());
+            String basic = java.util.Base64.getEncoder().encodeToString("admin:admin".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            HttpRequest website = HttpRequest.newBuilder(URI.create("http://localhost:" + port
+                    + "/airsonic/stream?format=raw&id=" + song.getId())).header("Authorization", "Basic " + basic).GET().build();
+            HttpResponse<byte[]> websiteResponse = client.send(website, HttpResponse.BodyHandlers.ofByteArray());
+            assertEquals(200, websiteResponse.statusCode());
+            assertArrayEquals(expected, websiteResponse.body());
+            verify(mvc).handleRequest(any(), any(), any(), any(), any(), any(), any(), any());
         } finally {
             ScanningTestUtils.after(cleanup, folders);
             folders.expunge();
+        }
+    }
+
+    private boolean commandAvailable(String command) {
+        try {
+            Process process = new ProcessBuilder(command, "-version").redirectErrorStream(true).start();
+            process.getInputStream().transferTo(java.io.OutputStream.nullOutputStream());
+            return process.waitFor() == 0;
+        } catch (Exception e) {
+            return false;
         }
     }
 

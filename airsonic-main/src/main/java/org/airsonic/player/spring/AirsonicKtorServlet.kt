@@ -15,10 +15,7 @@ import io.ktor.utils.io.InternalAPI
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
-import org.airsonic.player.controller.StreamController
 import org.airsonic.player.controller.rest.stream.StreamRestController
-import org.springframework.core.io.Resource
-import org.springframework.http.ResponseEntity
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.hls.HlsRestController
 import org.airsonic.player.controller.rest.hls.HlsSegmentRestController
@@ -52,6 +49,7 @@ import org.airsonic.player.controller.rest.shares.SharesRequest
 import org.airsonic.player.controller.rest.search.SearchController
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsController
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsRequest
+import org.airsonic.player.service.MediaStreamService
 import org.airsonic.player.service.CoverArtImageService
 import org.airsonic.player.controller.rest.avatar.AvatarRestController
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController
@@ -154,7 +152,6 @@ class AirsonicKtorServlet(
     private val hlsRestController: HlsRestController,
     private val hlsSegmentRestController: HlsSegmentRestController,
     private val streamRestController: StreamRestController,
-    private val streamController: StreamController,
     private val jaxbWriter: JAXBWriter,
 ) : ServletApplicationEngine() {
     @OptIn(InternalAPI::class)
@@ -254,9 +251,8 @@ class AirsonicKtorServlet(
             if (hlsSegment != null) call.attributes.put(HLS_SEGMENT_REQUEST_KEY, hlsSegment)
             val hlsRequest = request.getAttribute(HLS_REQUEST) as? HlsRestController.Request
             if (hlsRequest != null) call.attributes.put(HLS_REQUEST_KEY, hlsRequest)
-            @Suppress("UNCHECKED_CAST")
-            val stream = request.getAttribute(STREAM_RESPONSE) as? ResponseEntity<Resource>
-            if (stream != null) call.attributes.put(STREAM_RESPONSE_KEY, stream)
+            val stream = request.getAttribute(STREAM_REQUEST) as? StreamRestController.Request
+            if (stream != null) call.attributes.put(STREAM_REQUEST_KEY, stream)
         }
         application.routing {
             searchController.routes(this) { call -> call.attributes[SEARCH_REQUEST_KEY] }
@@ -297,7 +293,7 @@ class AirsonicKtorServlet(
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
             hlsRestController.routes(this) { call -> call.attributes[HLS_REQUEST_KEY] }
             hlsSegmentRestController.routes(this) { call -> call.attributes[HLS_SEGMENT_REQUEST_KEY] }
-            streamRestController.routes(this) { call -> call.attributes[STREAM_RESPONSE_KEY] }
+            streamRestController.routes(this) { call -> call.attributes[STREAM_REQUEST_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
         // Keep this compatibility code in the temporary servlet adapter.
@@ -740,19 +736,23 @@ class AirsonicKtorServlet(
                     "${user.username} is not authorized to play files.")
                 return
             }
-            val result = try {
-                streamController.handleRequest(authentication, request.getParameter("format"), request.getParameter("suffix"),
-                    Optional.ofNullable(bitRate), Optional.ofNullable(id), Optional.ofNullable(request.getParameter("path")),
-                    offset, ServletWebRequest(wrapped, response))
-            } catch (e: AccessDeniedException) {
+            val player = playerService.getPlayer(wrapped, response, false, true)
+            val file = request.getParameter("path")?.let { mediaFileService.getMediaFile(it) }
+                ?: id?.let { mediaFileService.getMediaFile(it) }
+            if (file != null && !securityService.isFolderAccessAllowed(file, user.username)) {
                 if (path.endsWith(".view")) {
                     response.sendError(HttpServletResponse.SC_FORBIDDEN)
                     return
                 }
-                throw e
+                throw AccessDeniedException("Access to file ${file.id} is forbidden for user ${user.username}")
             }
-            if (result == null) return
-            request.setAttribute(STREAM_RESPONSE, result)
+            val webRequest = ServletWebRequest(wrapped, response)
+            request.setAttribute(STREAM_REQUEST, StreamRestController.Request(authentication, player, user,
+                request.getParameter("format"), request.getParameter("suffix"), bitRate, id, request.getParameter("path"), offset,
+                MediaStreamService.VideoOptions(request.getParameter("maxBitRate"), request.getParameter("timeOffset"),
+                    request.getParameter("duration"), request.getParameter("size")), request.getHeader("icy-metadata"),
+                java.util.function.BiPredicate { tag, modified -> webRequest.checkNotModified(tag, modified) },
+                { response.status }))
         } else if (path in HlsRestController.PATHS && request.method in setOf("GET", "POST", "HEAD")) {
             val rawId = request.getParameter("id")
             if (rawId == null || rawId.isEmpty()) {
@@ -901,8 +901,8 @@ class AirsonicKtorServlet(
     }
 
     private companion object {
-        const val STREAM_RESPONSE = "org.airsonic.player.streamResponse"
-        val STREAM_RESPONSE_KEY = AttributeKey<ResponseEntity<Resource>>(STREAM_RESPONSE)
+        const val STREAM_REQUEST = "org.airsonic.player.streamRequest"
+        val STREAM_REQUEST_KEY = AttributeKey<StreamRestController.Request>(STREAM_REQUEST)
         const val HLS_SEGMENT_REQUEST = "org.airsonic.player.hlsSegmentRequest"
         val HLS_SEGMENT_REQUEST_KEY = AttributeKey<HlsSegmentRestController.Request>(HLS_SEGMENT_REQUEST)
         const val HLS_REQUEST = "org.airsonic.player.hlsRequest"

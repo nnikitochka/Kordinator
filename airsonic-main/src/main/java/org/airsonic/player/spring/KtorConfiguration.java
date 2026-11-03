@@ -17,7 +17,9 @@ import org.airsonic.player.controller.rest.hls.HlsRestController;
 import org.airsonic.player.controller.rest.hls.HlsSegmentRestController;
 import org.airsonic.player.service.hls.HlsSegmentService;
 import org.airsonic.player.controller.rest.stream.StreamRestController;
-import org.airsonic.player.controller.StreamController;
+import org.airsonic.player.service.MediaStreamService;
+import org.airsonic.player.service.TranscodingService;
+import org.airsonic.player.dao.PlayerDaoPlayQueueFactory;
 import org.airsonic.player.controller.rest.cover.CoverArtRestController;
 import org.airsonic.player.controller.rest.avatar.AvatarRestController;
 import org.airsonic.player.controller.rest.indexes.IndexesController;
@@ -95,6 +97,14 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public MediaStreamService mediaStreamService(StatusService statusService, SecurityService securityService,
+            SettingsService settingsService, TranscodingService transcodingService, AudioScrobblerService audioScrobblerService,
+            MediaFileService mediaFileService, SearchService searchService, PlayerDaoPlayQueueFactory playQueueFactory) {
+        return new MediaStreamService(statusService, securityService, settingsService, transcodingService,
+                audioScrobblerService, mediaFileService, searchService, playQueueFactory);
+    }
+
+    @Bean
     public ServletRegistrationBean<ServletApplicationEngine> ktorServletRegistration(
             SearchController searchController,
             MusicFoldersController musicFoldersController,
@@ -136,7 +146,7 @@ public class KtorConfiguration {
             CoverArtImageService coverArtImageService,
             HlsPlaylistService hlsPlaylistService,
             HlsSegmentService hlsSegmentService,
-            StreamController streamController
+            MediaStreamService mediaStreamService
     ) {
         ServletRegistrationBean<ServletApplicationEngine> registration =
                 new ServletRegistrationBean<>(
@@ -177,7 +187,7 @@ public class KtorConfiguration {
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver, leftController,
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService),
-                                new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(), streamController, jaxbWriter),
+                                new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(mediaStreamService), jaxbWriter),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);

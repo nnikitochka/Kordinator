@@ -14,37 +14,58 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.head
 import io.ktor.server.routing.post
 import org.airsonic.player.spring.KnownLengthInputStreamResource
-import org.springframework.core.io.Resource
 import org.springframework.http.HttpRange
-import org.springframework.http.ResponseEntity
+import org.airsonic.player.service.MediaStreamService
+import org.airsonic.player.domain.Player
+import org.airsonic.player.domain.User
+import org.springframework.security.core.Authentication
+import java.util.Optional
+import java.util.function.BiPredicate
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.UUID
 
-class StreamRestController {
-    fun routes(root: Route, result: (ApplicationCall) -> ResponseEntity<Resource>) {
+class StreamRestController(private val streams: MediaStreamService) {
+    data class Request(val authentication: Authentication, val player: Player, val user: User,
+                       val format: String?, val suffix: String?, val bitRate: Int?, val id: Int?,
+                       val path: String?, val offset: Double?, val video: MediaStreamService.VideoOptions,
+                       val icyMetadata: String?, val notModified: BiPredicate<String?, Long>, val conditionalStatus: () -> Int)
+
+    fun routes(root: Route, request: (ApplicationCall) -> Request) {
         with(root) {
             PATHS.forEach { path ->
-                get(path) { respond(call, result(call), false) }
-                post(path) { respond(call, result(call), false) }
-                head(path) { respond(call, result(call), true) }
+                get(path) { respond(call, request(call), false) }
+                post(path) { respond(call, request(call), false) }
+                head(path) { respond(call, request(call), true) }
             }
         }
     }
 
-    private suspend fun respond(call: ApplicationCall, result: ResponseEntity<Resource>, head: Boolean) {
-        val resource = requireNotNull(result.body)
-        val contentType = ContentType.parse(requireNotNull(result.headers.contentType).toString())
+    private suspend fun respond(call: ApplicationCall, request: Request, head: Boolean) {
+        val result = try {
+            streams.open(request.authentication, request.player, request.user, request.format, request.suffix,
+                Optional.ofNullable(request.bitRate), Optional.ofNullable(request.id), Optional.ofNullable(request.path),
+                request.offset, request.video, request.icyMetadata, request.notModified)
+        } catch (_: NumberFormatException) {
+            call.respond(HttpStatusCode.BadRequest)
+            return
+        }
+        if (result == null) {
+            call.respond(HttpStatusCode.fromValue(request.conditionalStatus()))
+            return
+        }
+        val resource = result.length?.let { KnownLengthInputStreamResource(result.stream, it) }
+        val contentType = ContentType.parse(result.contentType)
         result.headers.forEach { name, values ->
             if (!name.equals(HttpHeaders.ContentType, true) && !name.equals(HttpHeaders.ContentLength, true))
                 values.forEach { call.response.header(name, it) }
         }
-        val size = (resource as? KnownLengthInputStreamResource)?.contentLength()
+        val size = result.length
         val rangeHeader = call.request.header(HttpHeaders.Range)
         val ranges = if (size != null && rangeHeader != null) try {
-            HttpRange.toResourceRegions(HttpRange.parseRanges(rangeHeader), resource)
+            HttpRange.toResourceRegions(HttpRange.parseRanges(rangeHeader), requireNotNull(resource))
         } catch (_: IllegalArgumentException) {
-            resource.inputStream.close()
+            result.stream.close()
             call.response.header(HttpHeaders.ContentRange, "bytes */$size")
             call.respond(HttpStatusCode.RequestedRangeNotSatisfiable)
             return
@@ -52,9 +73,9 @@ class StreamRestController {
         if (size != null) call.response.header(HttpHeaders.AcceptRanges, "bytes")
         val single = ranges?.singleOrNull()
         if (single != null) call.response.header(HttpHeaders.ContentRange, "bytes ${single.position}-${single.position + single.count - 1}/$size")
-        val status = if (!ranges.isNullOrEmpty()) HttpStatusCode.PartialContent else HttpStatusCode.fromValue(result.statusCode.value())
+        val status = if (!ranges.isNullOrEmpty()) HttpStatusCode.PartialContent else HttpStatusCode.OK
         if (head) {
-            resource.inputStream.close()
+            result.stream.close()
             call.respond(object : OutgoingContent.NoContent() {
                 override val status = status
                 override val contentType = contentType
@@ -65,7 +86,7 @@ class StreamRestController {
         val boundary = if (ranges != null && ranges.size > 1) UUID.randomUUID().toString() else null
         val responseType = if (boundary == null) contentType else ContentType.parse("multipart/byteranges; boundary=$boundary")
         call.respondOutputStream(responseType, status, single?.count ?: if (ranges.isNullOrEmpty()) size else null) {
-            resource.inputStream.use { input ->
+            result.stream.use { input ->
                 if (ranges.isNullOrEmpty()) input.copyTo(this)
                 else if (single != null) copyRange(input, this, single.position, single.count)
                 else {
