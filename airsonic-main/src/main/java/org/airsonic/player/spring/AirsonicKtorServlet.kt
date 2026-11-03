@@ -55,6 +55,7 @@ import org.airsonic.player.controller.rest.music.similar.SimilarSongsRequest
 import org.airsonic.player.controller.cover.CoverArtController
 import org.airsonic.player.controller.rest.avatar.AvatarRestController
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController
+import org.airsonic.player.controller.rest.tags.TagEditController
 import org.airsonic.player.controller.rest.settings.WebsiteSettingsController
 import org.airsonic.player.controller.rest.livequeue.LiveQueueController
 import org.airsonic.player.controller.rest.cover.CoverArtRestController
@@ -133,6 +134,7 @@ class AirsonicKtorServlet(
     private val videosController: VideosController,
     private val lyricsController: LyricsController,
     private val coverArtActionsController: CoverArtActionsController,
+    private val tagEditController: TagEditController,
     private val websiteSettingsController: WebsiteSettingsController,
     private val liveQueueController: LiveQueueController,
     private val ratingController: RatingController,
@@ -236,6 +238,8 @@ class AirsonicKtorServlet(
             if (liveQueue != null) call.attributes.put(LIVE_QUEUE_REQUEST_KEY, liveQueue)
             val websiteSettings = request.getAttribute(WEBSITE_SETTINGS_REQUEST) as? WebsiteSettingsController.Request
             if (websiteSettings != null) call.attributes.put(WEBSITE_SETTINGS_REQUEST_KEY, websiteSettings)
+            val tagEdit = request.getAttribute(TAG_EDIT_REQUEST) as? TagEditController.Request
+            if (tagEdit != null) call.attributes.put(TAG_EDIT_REQUEST_KEY, tagEdit)
             val coverActions = request.getAttribute(COVER_ACTIONS_REQUEST) as? CoverArtActionsController.Request
             if (coverActions != null) call.attributes.put(COVER_ACTIONS_REQUEST_KEY, coverActions)
             val parameters = request.getAttribute(REST_PARAMETERS) as? Parameters
@@ -277,6 +281,7 @@ class AirsonicKtorServlet(
             videosController.routes(this) { call -> call.attributes[VIDEOS_REQUEST_KEY] }
             liveQueueController.routes(this) { call -> call.attributes[LIVE_QUEUE_REQUEST_KEY] }
             websiteSettingsController.routes(this) { call -> call.attributes[WEBSITE_SETTINGS_REQUEST_KEY] }
+            tagEditController.routes(this) { call -> call.attributes[TAG_EDIT_REQUEST_KEY] }
             coverArtActionsController.routes(this) { call -> call.attributes[COVER_ACTIONS_REQUEST_KEY] }
             lyricsController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             ratingController.routes(this) { call -> call.attributes[RATING_REQUEST_KEY] }
@@ -775,6 +780,10 @@ class AirsonicKtorServlet(
         } else if (path in WebsiteSettingsController.PATHS) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(WEBSITE_SETTINGS_REQUEST, WebsiteSettingsController.Request(user.username, parameters(request)))
+        } else if (path in TagEditController.PATHS) {
+            val user = requireNotNull(securityService.getCurrentUser(request))
+            request.setAttribute(TAG_EDIT_REQUEST, TagEditController.Request(
+                user.username, user.isAdminRole || user.isCoverArtRole, parameters(request)))
         } else if (path in CoverArtActionsController.PATHS) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(COVER_ACTIONS_REQUEST, CoverArtActionsController.Request(
@@ -845,6 +854,8 @@ class AirsonicKtorServlet(
         val LIVE_QUEUE_REQUEST_KEY = AttributeKey<LiveQueueController.Request>(LIVE_QUEUE_REQUEST)
         const val WEBSITE_SETTINGS_REQUEST = "org.airsonic.player.websiteSettingsRequest"
         val WEBSITE_SETTINGS_REQUEST_KEY = AttributeKey<WebsiteSettingsController.Request>(WEBSITE_SETTINGS_REQUEST)
+        const val TAG_EDIT_REQUEST = "org.airsonic.player.tagEditRequest"
+        val TAG_EDIT_REQUEST_KEY = AttributeKey<TagEditController.Request>(TAG_EDIT_REQUEST)
         const val COVER_ACTIONS_REQUEST = "org.airsonic.player.coverActionsRequest"
         val COVER_ACTIONS_REQUEST_KEY = AttributeKey<CoverArtActionsController.Request>(COVER_ACTIONS_REQUEST)
         const val REST_PARAMETERS = "org.airsonic.player.restParameters"

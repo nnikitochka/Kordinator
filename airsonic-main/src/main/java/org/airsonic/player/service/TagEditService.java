@@ -1,4 +1,6 @@
-package org.airsonic.player.ajax.tag;
+package org.airsonic.player.service;
+
+import org.airsonic.player.ajax.tag.TagData;
 
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
@@ -12,24 +14,22 @@ import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.simp.annotation.SendToUser;
-import org.springframework.stereotype.Controller;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.stereotype.Service;
 
-@Controller
-@MessageMapping("/tags")
-public class TagWSController {
-    private static final Logger LOG = LoggerFactory.getLogger(TagWSController.class);
+@Service
+public class TagEditService {
+    private static final Logger LOG = LoggerFactory.getLogger(TagEditService.class);
 
     private MetaDataParserFactory metaDataParserFactory;
     private MediaFileService mediaFileService;
     private final MediaFolderService mediaFolderService;
+    private final SecurityService securityService;
 
-    public TagWSController(MetaDataParserFactory metaDataParserFactory, MediaFileService mediaFileService, MediaFolderService mediaFolderService) {
+    public TagEditService(MetaDataParserFactory metaDataParserFactory, MediaFileService mediaFileService, MediaFolderService mediaFolderService, SecurityService securityService) {
         this.metaDataParserFactory = metaDataParserFactory;
         this.mediaFileService = mediaFileService;
         this.mediaFolderService = mediaFolderService;
+        this.securityService = securityService;
     }
 
     /**
@@ -38,16 +38,23 @@ public class TagWSController {
      * @return "UPDATED" if the new tags were updated, "SKIPPED" if no update was necessary.
      *         Otherwise, the error message is returned.
      */
-    @MessageMapping("/edit")
-    @SendToUser(broadcast = false)
-    public String setTags(@Validated TagData data) {
+    public String setTags(TagData data, String username) {
         try {
             MediaFile file = mediaFileService.getMediaFile(data.getMediaFileId());
+            if (file == null) {
+                throw new IllegalArgumentException("Media file not found");
+            }
+            if (!securityService.isFolderAccessAllowed(file, username)) {
+                throw new SecurityException("Access denied");
+            }
+            if (!file.isFile()) {
+                throw new IllegalArgumentException("Media file is not a file");
+            }
             MusicFolder folder = mediaFolderService.getMusicFolderById(file.getFolderId());
 
             MetaDataParser parser = metaDataParserFactory.getParser(file.getFullPath(folder.getPath()));
 
-            if (!parser.isEditingSupported()) {
+            if (parser == null || !parser.isEditingSupported()) {
                 return "Tag editing of " + FilenameUtils.getExtension(file.getPath()) + " files is not supported.";
             }
 
@@ -75,9 +82,11 @@ public class TagWSController {
             mediaFileService.refreshMediaFile(mediaFileService.getParentOf(file), folder);
             return "UPDATED";
 
+        } catch (SecurityException x) {
+            throw x;
         } catch (Exception x) {
             LOG.warn("Failed to update tags for {}", data.getMediaFileId(), x);
-            return x.getMessage();
+            return x.getMessage() == null ? "Tag editing failed" : x.getMessage();
         }
     }
 

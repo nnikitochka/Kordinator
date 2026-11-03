@@ -4,7 +4,11 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+    <script src="<c:url value='/script/subsonic-tag-edit.js'/>"></script>
 <script type="text/javascript" language="javascript">
+    var tagEditApi = createTagEdit({
+        url: "<c:url value='/rest/editTags'/>", csrfHeader: "${_csrf.headerName}", csrfToken: "${_csrf.token}"
+    });
     var index = 0;
     var fileCount = ${fn:length(model.songs)};
     function setArtist() {
@@ -56,6 +60,7 @@
         }
     }
     function updateTags() {
+        if (!fileCount) return;
         document.getElementById("save").disabled = true;
         index = 0;
         $("#errors").empty();
@@ -73,7 +78,8 @@
         var year = $("input[name='year" + index + "']").val();
         var genre = $("input[name='genre" + index + "']").val();
         $("#status" + index).append("<fmt:message key="edittags.working"/>");
-        top.StompClient.send("/app/tags/edit", JSON.stringify({mediaFileId: id, artist: artist, track: track, album: album, title: title, year: year, genre: genre}));
+        tagEditApi.edit({id: id, artist: artist, track: track, album: album, title: title, year: year, genre: genre})
+            .then(setTagsCallback).catch(function(error) { setTagsCallback(error.message || "Tag editing failed"); });
     }
     function setTagsCallback(result) {
         var message;
@@ -83,7 +89,7 @@
             message = "<b><fmt:message key="edittags.updated"/></b>";
         } else {
             message = "<div class='warning'><fmt:message key="edittags.error"/></div>";
-            $("#errors").append("<br>" + result + "<br>");
+            $("#errors").append($("<div>").text(result));
         }
         $("#status" + index).empty().append(message);
         index++;
@@ -95,11 +101,6 @@
     }
 
     function init() {
-        top.StompClient.subscribe("editTags.jsp", {
-            "/user/queue/tags/edit": function(msg) {
-                setTagsCallback(msg.body);
-            }
-        });
         $("input[name='artistAll']").keypress(function(event) {
             if (e.which == 13) {
                 setArtist();
