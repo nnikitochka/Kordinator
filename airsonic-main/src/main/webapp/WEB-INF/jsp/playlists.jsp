@@ -5,6 +5,7 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+    <%@ include file="subsonicWebsiteSettings.jsp" %>
     <%@ include file="subsonicPlaylists.jsp" %>
     <%@ include file="table.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
@@ -251,7 +252,7 @@
 
       function setViewAsList(view) {
         if (view != viewAsList) {
-            top.StompClient.send("/app/settings/viewAsList", view);
+            websiteSettingsApi.set("viewAsList", view);
             viewChangedCallback(view);
         }
       }

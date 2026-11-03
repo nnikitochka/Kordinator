@@ -55,6 +55,7 @@ import org.airsonic.player.controller.rest.music.similar.SimilarSongsRequest
 import org.airsonic.player.controller.cover.CoverArtController
 import org.airsonic.player.controller.rest.avatar.AvatarRestController
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController
+import org.airsonic.player.controller.rest.settings.WebsiteSettingsController
 import org.airsonic.player.controller.rest.cover.CoverArtRestController
 import org.airsonic.player.controller.rest.users.UsersController
 import org.airsonic.player.controller.rest.users.PasswordController
@@ -131,6 +132,7 @@ class AirsonicKtorServlet(
     private val videosController: VideosController,
     private val lyricsController: LyricsController,
     private val coverArtActionsController: CoverArtActionsController,
+    private val websiteSettingsController: WebsiteSettingsController,
     private val ratingController: RatingController,
     private val downloadRestController: DownloadRestController,
     private val downloads: DownloadService,
@@ -228,6 +230,8 @@ class AirsonicKtorServlet(
             if (sharesRequest != null) {
                 call.attributes.put(SHARES_REQUEST_KEY, sharesRequest)
             }
+            val websiteSettings = request.getAttribute(WEBSITE_SETTINGS_REQUEST) as? WebsiteSettingsController.Request
+            if (websiteSettings != null) call.attributes.put(WEBSITE_SETTINGS_REQUEST_KEY, websiteSettings)
             val coverActions = request.getAttribute(COVER_ACTIONS_REQUEST) as? CoverArtActionsController.Request
             if (coverActions != null) call.attributes.put(COVER_ACTIONS_REQUEST_KEY, coverActions)
             val parameters = request.getAttribute(REST_PARAMETERS) as? Parameters
@@ -267,6 +271,7 @@ class AirsonicKtorServlet(
             musicDirectoryController.routes(this) { call -> call.attributes[MUSIC_DIRECTORY_REQUEST_KEY] }
             songController.routes(this) { call -> call.attributes[SONG_REQUEST_KEY] }
             videosController.routes(this) { call -> call.attributes[VIDEOS_REQUEST_KEY] }
+            websiteSettingsController.routes(this) { call -> call.attributes[WEBSITE_SETTINGS_REQUEST_KEY] }
             coverArtActionsController.routes(this) { call -> call.attributes[COVER_ACTIONS_REQUEST_KEY] }
             lyricsController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             ratingController.routes(this) { call -> call.attributes[RATING_REQUEST_KEY] }
@@ -757,6 +762,9 @@ class AirsonicKtorServlet(
             if (response.isCommitted) return
             writer.flush()
             request.setAttribute(HLS_PLAYLIST, body.toString())
+        } else if (path in WebsiteSettingsController.PATHS) {
+            val user = requireNotNull(securityService.getCurrentUser(request))
+            request.setAttribute(WEBSITE_SETTINGS_REQUEST, WebsiteSettingsController.Request(user.username, parameters(request)))
         } else if (path in CoverArtActionsController.PATHS) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(COVER_ACTIONS_REQUEST, CoverArtActionsController.Request(
@@ -823,6 +831,8 @@ class AirsonicKtorServlet(
         val STREAM_RESPONSE_KEY = AttributeKey<ResponseEntity<Resource>>(STREAM_RESPONSE)
         const val HLS_PLAYLIST = "org.airsonic.player.hlsPlaylist"
         val HLS_PLAYLIST_KEY = AttributeKey<String>(HLS_PLAYLIST)
+        const val WEBSITE_SETTINGS_REQUEST = "org.airsonic.player.websiteSettingsRequest"
+        val WEBSITE_SETTINGS_REQUEST_KEY = AttributeKey<WebsiteSettingsController.Request>(WEBSITE_SETTINGS_REQUEST)
         const val COVER_ACTIONS_REQUEST = "org.airsonic.player.coverActionsRequest"
         val COVER_ACTIONS_REQUEST_KEY = AttributeKey<CoverArtActionsController.Request>(COVER_ACTIONS_REQUEST)
         const val REST_PARAMETERS = "org.airsonic.player.restParameters"

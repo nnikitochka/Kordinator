@@ -4,6 +4,7 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+    <%@ include file="subsonicWebsiteSettings.jsp" %>
 
     <script type="text/javascript">
         var previousQuery = "";
@@ -77,7 +78,7 @@
 
         function showLeftFrame() {
             doShowLeftFrame();
-            top.StompClient.send("/app/settings/sidebar", true);
+            websiteSettingsApi.set("showSideBar", true);
         }
 
         function doShowLeftFrame() {
@@ -90,7 +91,7 @@
 
         function hideLeftFrame() {
             doHideLeftFrame();
-            top.StompClient.send("/app/settings/sidebar", false);
+            websiteSettingsApi.set("showSideBar", false);
         }
 
         function doHideLeftFrame() {
