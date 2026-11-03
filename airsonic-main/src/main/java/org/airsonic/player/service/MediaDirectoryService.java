@@ -1,19 +1,13 @@
-package org.airsonic.player.ajax.media;
+package org.airsonic.player.service;
+
+import org.airsonic.player.ajax.media.MediaFileDirectoryEntry;
 
 import com.google.common.collect.ImmutableMap;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MediaFileComparator;
-import org.airsonic.player.service.MediaFileService;
-import org.airsonic.player.service.RatingService;
-import org.airsonic.player.service.SecurityService;
-import org.airsonic.player.service.SettingsService;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
-import org.springframework.messaging.simp.annotation.SendToUser;
-import org.springframework.stereotype.Controller;
+import org.springframework.stereotype.Service;
 
-import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,25 +19,22 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@Controller
-@MessageMapping("/mediafile")
-public class MediaFileWSController {
+@Service
+public class MediaDirectoryService {
     private final MediaFileService mediaFileService;
     private final RatingService ratingService;
     private final SecurityService securityService;
     private final SettingsService settingsService;
 
-    public MediaFileWSController(MediaFileService mediaFileService, RatingService ratingService, SecurityService securityService, SettingsService settingsService) {
+    public MediaDirectoryService(MediaFileService mediaFileService, RatingService ratingService, SecurityService securityService, SettingsService settingsService) {
         this.mediaFileService = mediaFileService;
         this.ratingService = ratingService;
         this.securityService = securityService;
         this.settingsService = settingsService;
     }
 
-    @MessageMapping("/directory/get")
-    @SendToUser(broadcast = false)
-    public Object get(Principal user, MediaDirectoryRequest req, SimpMessageHeaderAccessor headers) throws Exception {
-        List<MediaFile> mediaFiles = getMediaFiles(req.getIds(), req.getPaths());
+    public Object get(String username, List<Integer> ids, Map<Integer, List<String>> paths) {
+        List<MediaFile> mediaFiles = getMediaFiles(ids, paths);
 
         if (mediaFiles.isEmpty()) {
             return ImmutableMap.of("contentType", "notFound");
@@ -59,8 +50,15 @@ public class MediaFileWSController {
             return ImmutableMap.of("contentType", "home");
         }
 
-        if (!securityService.isFolderAccessAllowed(dir, user.getName())) {
+        if (!securityService.isFolderAccessAllowed(dir, username)) {
             return ImmutableMap.of("contentType", "accessDenied");
+        }
+
+        for (MediaFile selected : mediaFiles) {
+            MediaFile selectedDir = selected.isFile() ? mediaFileService.getParentOf(selected) : selected;
+            if (selectedDir == null || !securityService.isFolderAccessAllowed(selectedDir, username)) {
+                return ImmutableMap.of("contentType", "accessDenied");
+            }
         }
 
         List<MediaFile> children = getChildren(mediaFiles);
@@ -74,20 +72,20 @@ public class MediaFileWSController {
                 subDirs.add(child);
             }
         }
-        MediaFileDirectoryEntry entry = new MediaFileDirectoryEntry(mediaFileService.toMediaFileEntryList(Collections.singletonList(dir), user.getName(), true, true, null, null, null).getFirst());
-        entry.setFiles(mediaFileService.toMediaFileEntryList(files, user.getName(), true, false, null, null, null));
-        entry.setSubDirs(mediaFileService.toMediaFileEntryList(subDirs, user.getName(), false, false, null, null, null));
-        entry.setAncestors(mediaFileService.toMediaFileEntryList(getAncestors(dir), user.getName(), false, false, null, null, null));
+        MediaFileDirectoryEntry entry = new MediaFileDirectoryEntry(mediaFileService.toMediaFileEntryList(Collections.singletonList(dir), username, true, true, null, null, null).getFirst());
+        entry.setFiles(mediaFileService.toMediaFileEntryList(files, username, true, false, null, null, null));
+        entry.setSubDirs(mediaFileService.toMediaFileEntryList(subDirs, username, false, false, null, null, null));
+        entry.setAncestors(mediaFileService.toMediaFileEntryList(getAncestors(dir), username, false, false, null, null, null));
         entry.setComment(dir.getComment());
         if (dir.isAlbum()) {
             List<MediaFile> siblingAlbums = getSiblingAlbums(dir);
-            entry.setSiblingAlbums(mediaFileService.toMediaFileEntryList(siblingAlbums, user.getName(), false, false, null, null, null));
+            entry.setSiblingAlbums(mediaFileService.toMediaFileEntryList(siblingAlbums, username, false, false, null, null, null));
             entry.setAlbum(guessAlbum(children));
             entry.setArtist(guessArtist(children));
             entry.setMusicBrainzReleaseId(guessMusicBrainzReleaseId(children));
         }
 
-        Integer userRating = Optional.ofNullable(ratingService.getRatingForUser(user.getName(), dir)).orElse(0);
+        Integer userRating = Optional.ofNullable(ratingService.getRatingForUser(username, dir)).orElse(0);
         Double averageRating = Optional.ofNullable(ratingService.getAverageRating(dir)).orElse(0.0D);
 
         entry.setUserRating(10 * userRating);

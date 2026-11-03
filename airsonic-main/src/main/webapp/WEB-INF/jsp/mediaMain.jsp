@@ -8,6 +8,7 @@
     <%@ include file="subsonicPlaylists.jsp" %>
     <%@ include file="subsonicStars.jsp" %>
     <script src="<c:url value='/script/subsonic-rating.js'/>"></script>
+    <script src="<c:url value='/script/subsonic-media-directory.js'/>"></script>
     <%@ include file="table.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/jquery.fancyzoom.js'/>"></script>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
@@ -38,6 +39,9 @@
     </style>
 <script type="text/javascript" language="javascript">
     var mediaDir = {files: [], subDirs: []};
+    var mediaDirectoryApi = createMediaDirectory({
+        url: "<c:url value='/rest/getMusicDirectory'/>", csrfHeader: "${_csrf.headerName}", csrfToken: "${_csrf.token}"
+    });
     installSubsonicRating({
         url: "<c:url value='/rest/setRating'/>",
         csrfHeader: "${_csrf.headerName}",
@@ -66,7 +70,9 @@
     }
 
     function getMediaDirectories(ids, paths) {
-        top.StompClient.send("/app/mediafile/directory/get", JSON.stringify({ids: ids, paths: paths}));
+        mediaDirectoryApi.get(ids, paths).then(function (result) {
+            if (result) getMediaDirectoryCallback(result);
+        }).catch(function (error) { console.error(error); });
     }
 
     function getMediaDirectoryCallback(mediaDirObj) {
@@ -727,9 +733,6 @@
         viewSelectorRefresh();
 
         top.StompClient.subscribe("mediaMain.jsp", {
-            '/user/queue/mediafile/directory/get': function(msg) {
-                getMediaDirectoryCallback(JSON.parse(msg.body));
-            },
             "/user/queue/settings/viewAsList": function(msg) {
                 viewChangedCallback(JSON.parse(msg.body));
             }
@@ -738,11 +741,10 @@
                 loadArtistInfoCallback(JSON.parse(msg.body));
             }
           </c:if>
-        }, function() {
-            if (initialIds.length != 0 || initialPaths.length != 0) {
-                getMediaDirectories(initialIds, initialPaths);
-            }
         });
+        if (initialIds.length != 0 || Object.keys(initialPaths).length != 0) {
+            getMediaDirectories(initialIds, initialPaths);
+        }
     }
 
   <c:if test="${model.showArtistInfo}">

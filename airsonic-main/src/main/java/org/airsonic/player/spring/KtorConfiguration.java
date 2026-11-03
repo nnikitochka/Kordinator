@@ -6,6 +6,7 @@ import org.airsonic.player.service.CoverArtSearchService;
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController;
 import org.airsonic.player.controller.rest.settings.WebsiteSettingsController;
 import org.airsonic.player.controller.rest.livequeue.LiveQueueController;
+import org.airsonic.player.service.MediaDirectoryService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.LeftController;
@@ -113,6 +114,7 @@ public class KtorConfiguration {
             ShareService shareService,
             LyricsService lyricsService,
             CoverArtSearchService coverArtSearchService,
+            MediaDirectoryService mediaDirectoryService,
             BookmarkService bookmarkService,
             JukeboxService jukeboxService,
             PlayQueueService playQueueService,
@@ -155,7 +157,7 @@ public class KtorConfiguration {
                                 new IndexesController(settingsService, mediaFolderService, musicIndexService, mediaFileDao, ratingService, responseMapper, jaxbWriter),
                                 new SongsByGenreController(mediaFileDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new TopSongsController(lastFmService, mediaFolderService, responseMapper, jaxbWriter),
-                                new MusicDirectoryController(mediaFileService, mediaFileDao, securityService, ratingService, responseMapper, jaxbWriter),
+                                new MusicDirectoryController(mediaFileService, mediaFileDao, securityService, ratingService, responseMapper, jaxbWriter, mediaDirectoryService),
                                 new RandomSongsController(albumSearchService, mediaFolderService, responseMapper, jaxbWriter),
                                 new ScrobbleController(mediaFileService, statusService, audioScrobblerService, jaxbWriter),
                                 new NowPlayingController(statusService, responseMapper, jaxbWriter),

@@ -18,7 +18,7 @@ import org.airsonic.player.service.SecurityService
 import org.airsonic.player.dao.PlayQueueDao
 import org.slf4j.LoggerFactory
 import org.subsonic.restapi.LivePlayQueue
-import org.subsonic.restapi.LiveQueueEntry
+import org.airsonic.player.controller.rest.toWebsiteEntry
 import kotlin.coroutines.cancellation.CancellationException
 
 class LiveQueueController(private val service: PlayQueueService, private val writer: JAXBWriter, private val media: MediaFileService, private val playlists: PlaylistService, private val security: SecurityService, private val queues: PlayQueueDao) {
@@ -125,37 +125,7 @@ class LiveQueueController(private val service: PlayQueueService, private val wri
             gain = info.gain
             startPlayerAt = info.startPlayerAt
             startPlayerAtPosition = info.startPlayerAtPosition
-            info.entries?.forEach { source -> entry.add(LiveQueueEntry().apply {
-                id = source.id
-                trackNumber = source.trackNumber
-                discNumber = source.discNumber
-                title = source.title
-                artist = source.artist
-                albumArtist = source.albumArtist
-                album = source.album
-                genre = source.genre
-                year = source.year
-                bitRate = source.bitRate
-                dimensions = source.dimensions
-                duration = source.duration
-                format = source.format
-                contentType = source.contentType
-                entryType = source.entryType
-                fileSize = source.fileSize
-                playCount = source.playCount
-                lastPlayed = source.lastPlayed?.toString()
-                created = source.created?.toString()
-                changed = source.changed?.toString()
-                lastScanned = source.lastScanned?.toString()
-                starred = source.starred
-                present = source.present
-                albumUrl = source.albumUrl
-                streamUrl = source.streamUrl
-                remoteStreamUrl = source.remoteStreamUrl
-                coverArtUrl = source.coverArtUrl
-                remoteCoverArtUrl = source.remoteCoverArtUrl
-                accentColor = source.accentColor
-            }) }
+            info.entries?.forEach { source -> entry.add(source.toWebsiteEntry()) }
         }
     }
 
