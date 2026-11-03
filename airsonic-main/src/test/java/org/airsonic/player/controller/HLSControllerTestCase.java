@@ -2,6 +2,7 @@ package org.airsonic.player.controller;
 
 import junit.framework.TestCase;
 import org.apache.commons.lang3.tuple.Pair;
+import org.airsonic.player.service.hls.HlsPlaylistService;
 
 import java.awt.*;
 
@@ -12,8 +13,8 @@ import java.awt.*;
 public class HLSControllerTestCase extends TestCase {
 
     public void testParseBitRate() {
-        // The test only exercises pure bit-rate parsing; controller services are not needed.
-        HLSController controller = new HLSController(null, null, null, null, null, null, null);
+        // The test only exercises pure bit-rate parsing.
+        HlsPlaylistService controller = new HlsPlaylistService(null);
 
         Pair<Integer, Dimension> pair = controller.parseBitRate("1000", null);
         assertEquals(1000, pair.getLeft().intValue());

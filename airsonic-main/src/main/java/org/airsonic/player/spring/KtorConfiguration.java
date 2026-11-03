@@ -12,7 +12,7 @@ import org.airsonic.player.service.MediaDirectoryService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.LeftController;
-import org.airsonic.player.controller.HLSController;
+import org.airsonic.player.service.hls.HlsPlaylistService;
 import org.airsonic.player.controller.rest.hls.HlsRestController;
 import org.airsonic.player.controller.rest.stream.StreamRestController;
 import org.airsonic.player.controller.StreamController;
@@ -132,7 +132,7 @@ public class KtorConfiguration {
             UserSettingsController userSettingsController,
             LocaleResolver localeResolver,
             CoverArtImageService coverArtImageService,
-            HLSController hlsController,
+            HlsPlaylistService hlsPlaylistService,
             StreamController streamController
     ) {
         ServletRegistrationBean<ServletApplicationEngine> registration =
@@ -174,7 +174,7 @@ public class KtorConfiguration {
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver, leftController,
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService),
-                                new HlsRestController(), hlsController, new StreamRestController(), streamController, jaxbWriter),
+                                new HlsRestController(hlsPlaylistService), new StreamRestController(), streamController, jaxbWriter),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);

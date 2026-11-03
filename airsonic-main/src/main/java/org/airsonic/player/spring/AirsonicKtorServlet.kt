@@ -15,8 +15,6 @@ import io.ktor.utils.io.InternalAPI
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
-import jakarta.servlet.http.HttpServletResponseWrapper
-import org.airsonic.player.controller.HLSController
 import org.airsonic.player.controller.StreamController
 import org.airsonic.player.controller.rest.stream.StreamRestController
 import org.springframework.core.io.Resource
@@ -24,8 +22,6 @@ import org.springframework.http.ResponseEntity
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.hls.HlsRestController
 import org.springframework.security.core.Authentication
-import java.io.PrintWriter
-import java.io.StringWriter
 import org.airsonic.player.controller.rest.starred.StarredController
 import org.airsonic.player.controller.rest.starred.StarredRequest
 import org.airsonic.player.controller.rest.jukebox.JukeboxController
@@ -97,6 +93,8 @@ import java.nio.charset.StandardCharsets
 import java.util.Optional
 import org.airsonic.player.i18n.LocaleResolver
 import org.airsonic.player.service.MediaFileService
+import org.airsonic.player.service.NetworkService
+import org.airsonic.player.security.JWTAuthenticationToken
 import org.airsonic.player.service.PlayerService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.ShareService
@@ -150,7 +148,6 @@ class AirsonicKtorServlet(
     private val coverArtRestController: CoverArtRestController,
     private val avatarRestController: AvatarRestController,
     private val hlsRestController: HlsRestController,
-    private val hlsController: HLSController,
     private val streamRestController: StreamRestController,
     private val streamController: StreamController,
     private val jaxbWriter: JAXBWriter,
@@ -248,8 +245,8 @@ class AirsonicKtorServlet(
             if (parameters != null) {
                 call.attributes.put(REST_PARAMETERS_KEY, parameters)
             }
-            val hlsPlaylist = request.getAttribute(HLS_PLAYLIST) as? String
-            if (hlsPlaylist != null) call.attributes.put(HLS_PLAYLIST_KEY, hlsPlaylist)
+            val hlsRequest = request.getAttribute(HLS_REQUEST) as? HlsRestController.Request
+            if (hlsRequest != null) call.attributes.put(HLS_REQUEST_KEY, hlsRequest)
             @Suppress("UNCHECKED_CAST")
             val stream = request.getAttribute(STREAM_RESPONSE) as? ResponseEntity<Resource>
             if (stream != null) call.attributes.put(STREAM_RESPONSE_KEY, stream)
@@ -291,7 +288,7 @@ class AirsonicKtorServlet(
             ratingController.routes(this) { call -> call.attributes[RATING_REQUEST_KEY] }
             topSongsController.routes(this) { call -> call.attributes[TOP_SONGS_REQUEST_KEY] }
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
-            hlsRestController.routes(this) { call -> call.attributes[HLS_PLAYLIST_KEY] }
+            hlsRestController.routes(this) { call -> call.attributes[HLS_REQUEST_KEY] }
             streamRestController.routes(this) { call -> call.attributes[STREAM_RESPONSE_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
@@ -759,23 +756,31 @@ class AirsonicKtorServlet(
                     "${user.username} is not authorized to play files.")
                 return
             }
-            val body = StringWriter()
-            val writer = PrintWriter(body)
-            val capturingResponse = object : HttpServletResponseWrapper(response) {
-                override fun getWriter(): PrintWriter = writer
+            val authentication = request.userPrincipal as Authentication
+            val mediaFile = mediaFileService.getMediaFile(id)
+            val player = playerService.getPlayer(wrapped, response)
+            if (mediaFile == null || mediaFile.isDirectory) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, "Media file not found or incorrect type: $id")
+                return
             }
-            try {
-                hlsController.handleHlsRequest(request.userPrincipal as Authentication, id, wrapped, capturingResponse)
-            } catch (e: AccessDeniedException) {
+            if (authentication !is JWTAuthenticationToken &&
+                !securityService.isFolderAccessAllowed(mediaFile, player.username)) {
                 if (path.endsWith(".view")) {
                     response.sendError(HttpServletResponse.SC_FORBIDDEN)
                     return
                 }
-                throw e
+                throw AccessDeniedException("Access to file ${mediaFile.id} is forbidden for user ${player.username}")
             }
-            if (response.isCommitted) return
-            writer.flush()
-            request.setAttribute(HLS_PLAYLIST, body.toString())
+            val duration = mediaFile.duration
+            if (duration == null || duration < 0.0001) {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unknown duration for media file: $id")
+                return
+            }
+            val requestPath = request.requestURI.substring(request.contextPath.length + 1)
+            val prefix = StringUtils.removeEndIgnoreCase(requestPath, "/hls.m3u8")
+            request.setAttribute(HLS_REQUEST, HlsRestController.Request(authentication, mediaFile, player,
+                NetworkService.getBaseUrl(request), prefix, request.getParameterValues("maxBitRate"),
+                request.getParameter("size")))
         } else if (path in LiveQueueController.PATHS) {
             val username = requireNotNull(securityService.getCurrentUsername(request))
             val player = request.getParameter("playerId")?.toIntOrNull()?.let { playerService.getPlayerById(it) }
@@ -839,8 +844,8 @@ class AirsonicKtorServlet(
     private companion object {
         const val STREAM_RESPONSE = "org.airsonic.player.streamResponse"
         val STREAM_RESPONSE_KEY = AttributeKey<ResponseEntity<Resource>>(STREAM_RESPONSE)
-        const val HLS_PLAYLIST = "org.airsonic.player.hlsPlaylist"
-        val HLS_PLAYLIST_KEY = AttributeKey<String>(HLS_PLAYLIST)
+        const val HLS_REQUEST = "org.airsonic.player.hlsRequest"
+        val HLS_REQUEST_KEY = AttributeKey<HlsRestController.Request>(HLS_REQUEST)
         const val LIVE_QUEUE_REQUEST = "org.airsonic.player.liveQueueRequest"
         val LIVE_QUEUE_REQUEST_KEY = AttributeKey<LiveQueueController.Request>(LIVE_QUEUE_REQUEST)
         const val WEBSITE_SETTINGS_REQUEST = "org.airsonic.player.websiteSettingsRequest"
