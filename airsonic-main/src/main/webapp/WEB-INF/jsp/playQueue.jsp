@@ -381,7 +381,7 @@
             });
 
             top.StompClient.onConnect.push(function () {
-                if (pq.player && pq.player.id) pq.requestQueue("get", {}, true);
+                if (pq.player && pq.player.id) pq.requestQueue("get", {}, true, true);
             });
             top.StompClient.subscribe("playQueue.jsp", {
                 // Players
@@ -500,7 +500,7 @@
             }
         },
 
-        requestQueue(action, data, initial) {
+        requestQueue(action, data, initial, suppressPlaylistDownload) {
             var pq = this;
             var playerId = this.player.id;
             return liveQueueApi.send(playerId, action, data).then(function (queue) {
@@ -510,7 +510,7 @@
                     return;
                 }
                 queue.entries = queue.entry || [];
-                if (!pq.playQueueCallback(queue, initial)) return;
+                if (!pq.playQueueCallback(queue, initial, suppressPlaylistDownload)) return;
                 if (pq.player.tech == 'WEB' && queue.startPlayerAt >= 0) {
                     pq.playQueueSkipCallback({index: queue.startPlayerAt, offset: queue.startPlayerAtPosition});
                 }
@@ -996,8 +996,14 @@
             }
         },
 
-        playQueueCallback(playQueue, initial) {
+        playQueueCallback(playQueue, initial, suppressPlaylistDownload) {
             if (playQueue.revision < (this.queueRevision || 0)) return false;
+            // A reconnect refresh may reveal changes made while disconnected.
+            if (suppressPlaylistDownload && this.player.tech == 'EXTERNAL_WITH_PLAYLIST' && this.queueRevision) {
+                var previousIds = this.songs.map(song => song.id);
+                var currentIds = playQueue.entries.map(song => song.id);
+                if (JSON.stringify(previousIds) != JSON.stringify(currentIds)) suppressPlaylistDownload = false;
+            }
             this.queueRevision = playQueue.revision;
             this.songs = playQueue.entries;
             this.shuffleRadioEnabled = playQueue.shuffleRadioEnabled;
@@ -1009,7 +1015,7 @@
 
             // download m3u for external player only once at the beginning, every subsequent change is just reflected on the server
             // download m3u for external with playlist player every time the playlist changes
-            if ((this.player.tech == 'EXTERNAL' && initial) || this.player.tech == 'EXTERNAL_WITH_PLAYLIST') {
+            if (!suppressPlaylistDownload && ((this.player.tech == 'EXTERNAL' && initial) || this.player.tech == 'EXTERNAL_WITH_PLAYLIST')) {
                 parent.frames.main.location.href="play.m3u?";
             }
 
