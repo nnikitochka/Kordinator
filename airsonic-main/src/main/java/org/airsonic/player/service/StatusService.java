@@ -5,7 +5,6 @@ import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.PlayStatus;
 import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.TransferStatus;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -19,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -36,14 +34,12 @@ public class StatusService {
     private MediaFileService mediaFileService;
     private final MediaFolderService mediaFolderService;
     private SettingsService settingsService;
-    private SimpMessagingTemplate messagingTemplate;
     private final TaskSchedulingService taskService;
 
-    public StatusService(MediaFileService mediaFileService, MediaFolderService mediaFolderService, SettingsService settingsService, SimpMessagingTemplate messagingTemplate, TaskSchedulingService taskService) {
+    public StatusService(MediaFileService mediaFileService, MediaFolderService mediaFolderService, SettingsService settingsService, TaskSchedulingService taskService) {
         this.mediaFileService = mediaFileService;
         this.mediaFolderService = mediaFolderService;
         this.settingsService = settingsService;
-        this.messagingTemplate = messagingTemplate;
         this.taskService = taskService;
     }
 
@@ -75,12 +71,8 @@ public class StatusService {
         inactiveStreamStatuses.compute(status.getPlayer().getId(), (k, v) -> {
             streamStatuses.remove(status);
             status.setActive(false);
-            if (v != null) {
-                broadcast(getPlayStatus(v), "recent/remove");
-            }
             return status;
         });
-        broadcast(getPlayStatus(status), "recent/add");
     }
 
     public List<TransferStatus> getAllStreamStatuses() {
@@ -132,25 +124,19 @@ public class StatusService {
 
     public void cleanupRemotePlays() {
         Set<PlayStatus> expired = remotePlays.parallelStream().filter(PlayStatus::isExpired).collect(Collectors.toSet());
-        expired.forEach(e -> {
-            remotePlays.remove(e);
-            broadcast(e, "recent/remove");
-        });
+        remotePlays.removeAll(expired);
     }
 
     public void addRemotePlay(PlayStatus playStatus) {
         remotePlays.add(playStatus);
-        broadcast(playStatus, "recent/add");
     }
 
     public void addActiveLocalPlay(PlayStatus status) {
         activeLocalPlays.add(status);
-        broadcast(status, "current/add");
     }
 
     public void removeActiveLocalPlay(PlayStatus status) {
         activeLocalPlays.remove(status);
-        broadcast(status, "current/remove");
     }
 
     public PlayStatus getPlayStatus(TransferStatus status) {
@@ -168,16 +154,6 @@ public class StatusService {
         TransferStatus status = new TransferStatus(player);
         statusList.add(status);
         return status;
-    }
-
-    private void broadcast(PlayStatus status, String location) {
-        CompletableFuture.runAsync(() -> {
-            NowPlayingInfo info = NowPlayingInfo.createForBroadcast(status, settingsService);
-
-            if (info != null) {
-                messagingTemplate.convertAndSend("/topic/nowPlaying/" + location, info);
-            }
-        });
     }
 
     public List<NowPlayingInfo> getActivePlays() {
@@ -204,7 +180,4 @@ public class StatusService {
         this.settingsService = settingsService;
     }
 
-    public void setMessagingTemplate(SimpMessagingTemplate messagingTemplate) {
-        this.messagingTemplate = messagingTemplate;
-    }
 }

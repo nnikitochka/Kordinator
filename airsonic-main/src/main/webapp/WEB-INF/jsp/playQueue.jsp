@@ -375,6 +375,7 @@
             $("#playQueueHeading").html("<h2><fmt:message key='playlist.more.playlist'/></h2>");
 
             pq.refreshNowPlaying = watchNowPlaying("playQueue-now-playing", function (current) {
+                if (!pq.player) return;
                 for (var i = 0; i < current.length; i++) {
                     if (pq.onNowPlayingChanged(current[i])) break;
                 }

@@ -2,9 +2,6 @@
 function watchSubsonicNowPlaying(options, callback) {
     var disposed = false;
     var generation = 0;
-    var topics = {};
-    var paths = ['/topic/nowPlaying/current/add', '/topic/nowPlaying/current/remove',
-        '/topic/nowPlaying/recent/add', '/topic/nowPlaying/recent/remove'];
     function refresh() {
         if (disposed) return;
         var request = ++generation;
@@ -32,20 +29,11 @@ function watchSubsonicNowPlaying(options, callback) {
             if (!disposed && request === generation) console.error(error);
         });
     }
-    paths.forEach(function (path) { topics[path] = refresh; });
-    function unsubscribe() {
-        paths.forEach(function (path) { options.stomp.unsubscribe(path, options.owner); });
-    }
-    options.stomp.subscribe(options.owner, topics, function () {
-        if (disposed) return unsubscribe();
-        refresh();
-        options.stomp.onConnect.push(refresh);
-    });
+    refresh();
+    var timer = window.setInterval(refresh, 5000);
     window.addEventListener('pagehide', function () {
         disposed = true;
-        var index = options.stomp.onConnect.indexOf(refresh);
-        if (index !== -1) options.stomp.onConnect.splice(index, 1);
-        unsubscribe();
+        window.clearInterval(timer);
     }, {once: true});
     return refresh;
 }

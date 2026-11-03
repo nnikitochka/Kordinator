@@ -1,6 +1,5 @@
 package org.airsonic.player.service;
 
-import org.airsonic.player.ajax.playing.NowPlayingInfo;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.PlayStatus;
 import org.airsonic.player.domain.Player;
@@ -11,7 +10,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,11 +19,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * Unit test of {@link StatusService}.
@@ -39,8 +33,6 @@ public class StatusServiceTestCase {
     private Player player1;
     private Player player2;
 
-    @Mock
-    private SimpMessagingTemplate messagingTemplate;
     @Mock
     private MediaFileService mediaFileService;
     @Mock
@@ -57,8 +49,7 @@ public class StatusServiceTestCase {
         doReturn(new MediaFile()).when(mediaFileService).getMediaFile(any(Path.class));
         doReturn(settings).when(settingsService).getUserSettings(any(String.class));
         doReturn(true).when(settings).getNowPlayingAllowed();
-        service = new StatusService(mediaFileService, mediaFolderService, settingsService, messagingTemplate,
-                taskSchedulingService);
+        service = new StatusService(mediaFileService, mediaFolderService, settingsService, taskSchedulingService);
         player1 = new Player();
         player1.setId(1);
         player1.setUsername("p1");
@@ -78,7 +69,6 @@ public class StatusServiceTestCase {
         assertThat(service.getInactivePlays()).isEmpty();
         // won't start until file starts playing
         assertThat(service.getActivePlays()).isEmpty();
-        verifyNoInteractions(messagingTemplate);
 
         service.removeStreamStatus(status);
         assertThat(status.isActive()).isFalse();
@@ -87,7 +77,6 @@ public class StatusServiceTestCase {
         assertThat(service.getStreamStatusesForPlayer(player2)).isEmpty();
         assertThat(service.getInactivePlays()).isNotEmpty();
         assertThat(service.getActivePlays()).isEmpty();
-        verify(messagingTemplate, timeout(300)).convertAndSend(eq("/topic/nowPlaying/recent/add"), any(NowPlayingInfo.class));
     }
 
     @Test
@@ -96,21 +85,18 @@ public class StatusServiceTestCase {
         service.addActiveLocalPlay(status);
         assertThat(service.getInactivePlays()).isEmpty();
         assertThat(service.getActivePlays()).isNotEmpty();
-        verify(messagingTemplate, timeout(300)).convertAndSend(eq("/topic/nowPlaying/current/add"), any(NowPlayingInfo.class));
 
         service.removeActiveLocalPlay(status);
         assertThat(service.getInactivePlays()).isEmpty();
         assertThat(service.getActivePlays()).isEmpty();
-        verify(messagingTemplate, timeout(300)).convertAndSend(eq("/topic/nowPlaying/current/remove"), any(NowPlayingInfo.class));
 
         service.addRemotePlay(status);
         assertThat(service.getInactivePlays()).isNotEmpty();
         assertThat(service.getActivePlays()).isEmpty();
-        verify(messagingTemplate, timeout(300)).convertAndSend(eq("/topic/nowPlaying/recent/add"), any(NowPlayingInfo.class));
     }
 
     @Test
-    public void testNoBroadcast() {
+    public void testFilteredStatusesAreNotVisible() {
         // No media file
         TransferStatus tStatus = service.createStreamStatus(player1);
         service.removeStreamStatus(tStatus);
@@ -138,14 +124,16 @@ public class StatusServiceTestCase {
         tStatus.setExternalFile(Paths.get("bla"));
         service.removeStreamStatus(tStatus);
 
-        // Verify
-        verifyNoInteractions(messagingTemplate);
+        assertThat(service.getActivePlays()).isEmpty();
+        assertThat(service.getInactivePlays()).isEmpty();
     }
 
     @Test
     public void testMultipleStreamsSamePlayer() {
         TransferStatus statusA = service.createStreamStatus(player1);
         TransferStatus statusB = service.createStreamStatus(player1);
+        statusA.setExternalFile(Paths.get("a"));
+        statusB.setExternalFile(Paths.get("b"));
 
         assertThat(service.getAllStreamStatuses()).containsExactly(statusA, statusB);
         assertThat(service.getStreamStatusesForPlayer(player1)).containsExactly(statusA, statusB);
