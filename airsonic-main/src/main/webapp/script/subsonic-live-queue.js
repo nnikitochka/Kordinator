@@ -1,6 +1,6 @@
 function createLiveQueue(options) {
     var pending = Promise.resolve();
-    return {
+    var api = {
         send: function (playerId, action, data) {
             pending = pending.catch(function () {}).then(async function () {
                 var form = new URLSearchParams({f: 'json', c: 'airsonic-web', playerId: playerId, action: action});
@@ -19,6 +19,24 @@ function createLiveQueue(options) {
             });
             pending.catch(function (error) { console.error(error); });
             return pending;
+        },
+        watch: function (playerId, onQueue) {
+            var stopped = false;
+            var timer;
+            function poll() {
+                if (stopped) return;
+                api.send(playerId, 'get', {}).then(function (queue) {
+                    if (!stopped) onQueue(queue);
+                }).catch(function () {}).finally(function () {
+                    if (!stopped) timer = window.setTimeout(poll, 5000);
+                });
+            }
+            timer = window.setTimeout(poll, 5000);
+            return function () {
+                stopped = true;
+                window.clearTimeout(timer);
+            };
         }
     };
+    return api;
 }

@@ -100,7 +100,7 @@ class LiveQueueController(private val service: PlayQueueService, private val wri
                     else -> throw IllegalArgumentException("Unknown action")
                 }
                 writer.createResponse(true).apply {
-                    if (info != null || saved != null) livePlayQueue = map(info, saved)
+                    livePlayQueue = if (saved != null) map(null, saved) else map(info ?: service.getPlayQueueInfo(player), null)
                 }
             }
         } catch (e: CancellationException) { throw e }

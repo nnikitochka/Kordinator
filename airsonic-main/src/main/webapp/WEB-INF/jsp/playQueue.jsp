@@ -7,7 +7,7 @@
 <%@ include file="subsonicBookmarks.jsp" %>
 <%@ include file="table.jsp" %>
 <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
-<script src="<c:url value='/script/subsonic-live-queue.js'/>"></script>
+<script src="<c:url value='/script/subsonic-live-queue.js'/>?v=2"></script>
 <script type="text/javascript" src="<c:url value='/script/mediaelement/mediaelement-and-player.min.js'/>"></script>
 <script src="<c:url value='/script/mediaelement/plugins/speed/speed.min.js'/>"></script>
 <script src="<c:url value='/script/mediaelement/plugins/speed/speed-i18n.js'/>"></script>
@@ -83,7 +83,7 @@
         // Changed when player is changed
         player: {},
 
-        // These variables store the media player state, received via websockets in the
+        // These variables store the media player state, received via REST in the
         // playQueueCallback function below.
 
         // List of songs (of type PlayQueueInfo.Entry)
@@ -381,9 +381,6 @@
                 }
             });
 
-            top.StompClient.onConnect.push(function () {
-                if (pq.player && pq.player.id) pq.requestQueue("get", {}, true, true);
-            });
             top.StompClient.subscribe("playQueue.jsp", {
                 // Players
                 '/user/queue/players/updated'(msg) {
@@ -415,6 +412,9 @@
             });
 
             pq.createMediaElementPlayer();
+            window.addEventListener('pagehide', function () {
+                if (pq.stopQueuePolling) pq.stopQueuePolling();
+            }, {once: true});
             <c:if test="${model.autoHide}">pq.initAutoHide();</c:if>
             pq.onTogglePlayQueue(${!model.autoHide});
 
@@ -439,7 +439,8 @@
 
                   //reset everything
                   $(".player-tech").hide();
-                  pq.unsubscribePlayerSpecificCallbacks();
+                  if (pq.stopQueuePolling) pq.stopQueuePolling();
+                  pq.queueSnapshot = null;
                   pq.queueRevision = 0;
                   pq.currentStreamUrl = null;
                   pq.currentSongIndex = -1;
@@ -459,46 +460,12 @@
                   if (player.tech != 'WEB') {
                       $(".player-tech-non-web").show();
                   }
-                  pq.subscribePlayerSpecificCallbacks();
+                  pq.requestQueue("get", {}, true);
+                  pq.stopQueuePolling = liveQueueApi.watch(player.id, function (queue) {
+                      if (pq.player.id == player.id) pq.acceptQueue(queue, false, true, true);
+                  });
               }
             });
-        },
-
-        playerSpecificCallbacks: {},
-
-        unsubscribePlayerSpecificCallbacks() {
-            for (var topic in this.playerSpecificCallbacks) {
-                top.StompClient.unsubscribe(topic, "playQueue.jsp");
-                delete this.playerSpecificCallbacks[topic];
-            }
-        },
-
-        subscribePlayerSpecificCallbacks() {
-            if (this.player.id) {
-                var pq = this;
-
-                // Playqueues
-                pq.playerSpecificCallbacks['/user/queue/playqueues/' + this.player.id + '/playstatus'] = function(msg) {
-                    pq.playQueuePlayStatusCallback(JSON.parse(msg.body));
-                };
-                pq.playerSpecificCallbacks['/user/queue/playqueues/' + this.player.id + '/updated'] = function(msg) {
-                    pq.playQueueCallback(JSON.parse(msg.body));
-                };
-                pq.playerSpecificCallbacks['/user/queue/playqueues/' + this.player.id + '/skip'] = function(msg) {
-                    pq.playQueueSkipCallback(JSON.parse(msg.body));
-                };
-                pq.playerSpecificCallbacks['/user/queue/playqueues/' + this.player.id + '/repeat'] = function(msg) {
-                    pq.playQueueRepeatStatusCallback(JSON.parse(msg.body));
-                };
-                pq.playerSpecificCallbacks['/user/queue/playqueues/' + this.player.id + '/jukebox/gain'] = function(msg) {
-                    pq.jukeBoxGainCallback(JSON.parse(msg.body));
-                };
-                pq.playerSpecificCallbacks['/user/queue/playqueues/' + this.player.id + '/jukebox/position'] = function(msg) {
-                    pq.jukeBoxPositionCallback(JSON.parse(msg.body));
-                };
-                top.StompClient.subscribe("playQueue.jsp", pq.playerSpecificCallbacks);
-                pq.requestQueue("get", {}, true);
-            }
         },
 
         requestQueue(action, data, initial, suppressPlaylistDownload) {
@@ -510,12 +477,20 @@
                     $().toastmessage("showSuccessToast", "<fmt:message key='playlist.toast.saveplayqueue'/> (" + queue.savedQueueId + ")");
                     return;
                 }
-                queue.entries = queue.entry || [];
-                if (!pq.playQueueCallback(queue, initial, suppressPlaylistDownload)) return;
-                if (pq.player.tech == 'WEB' && queue.startPlayerAt >= 0) {
-                    pq.playQueueSkipCallback({index: queue.startPlayerAt, offset: queue.startPlayerAtPosition});
-                }
+                pq.acceptQueue(queue, initial, suppressPlaylistDownload || !initial, false);
             });
+        },
+
+        acceptQueue(queue, initial, suppressPlaylistDownload, polling) {
+            if (!queue) return;
+            queue.entries = queue.entry || [];
+            var snapshot = JSON.stringify([queue.entries, queue.playStatus, queue.repeatStatus, queue.shuffleRadioEnabled, queue.gain]);
+            if (polling && snapshot == this.queueSnapshot) return;
+            if (!this.playQueueCallback(queue, initial, suppressPlaylistDownload)) return;
+            this.queueSnapshot = snapshot;
+            if (!polling && this.player.tech == 'WEB' && queue.startPlayerAt >= 0) {
+                this.playQueueSkipCallback({index: queue.startPlayerAt, offset: queue.startPlayerAtPosition});
+            }
         },
 
         // Player updates

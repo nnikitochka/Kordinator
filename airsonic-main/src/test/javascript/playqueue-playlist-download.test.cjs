@@ -6,6 +6,7 @@ const vm = require('node:vm');
 
 const jsp = fs.readFileSync(path.resolve(__dirname, '../../main/webapp/WEB-INF/jsp/playQueue.jsp'), 'utf8');
 const method = jsp.slice(jsp.indexOf('        playQueueCallback(playQueue, initial, suppressPlaylistDownload) {'), jsp.indexOf('        updateWindowTitle(song) {'));
+const accept = jsp.slice(jsp.indexOf('        acceptQueue(queue, initial, suppressPlaylistDownload, polling) {'), jsp.indexOf('        // Player updates'));
 function queuePage(tech) {
     const navigations = [];
     const ui = {text() { return this; }, html() { return this; }, column() { return this; }, visible() { return this; },
@@ -13,7 +14,7 @@ function queuePage(tech) {
     const location = {};
     Object.defineProperty(location, 'href', {set: value => navigations.push(value)});
     const context = {parent: {frames: {main: {location}}}, $: () => ui, formatDuration: () => "0:00"};
-    const page = vm.runInNewContext('({' + method + '})', context);
+    const page = vm.runInNewContext('({' + method + accept + '})', context);
     Object.assign(page, {player: {tech}, musicTable: ui, playQueueRepeatStatusCallback() {},
         playQueuePlayStatusCallback() {}, jukeBoxGainCallback() {}, getCurrentSongIndex() { return -1; }, updateCurrentImage() {}});
     return {page, navigations};
@@ -45,9 +46,14 @@ test('web player never downloads a playlist and stale updates remain ignored', (
     assert.equal(navigations.length, 0);
 });
 
-test('connection refresh passes the suppression flag through the REST response', () => {
-    assert.match(jsp, /pq\.requestQueue\("get", \{\}, true, true\)/);
-    assert.match(jsp, /pq\.playQueueCallback\(queue, initial, suppressPlaylistDownload\)/);
+test('polling and commands download an external playlist only when tracks change', () => {
+    const {page, navigations} = queuePage('EXTERNAL_WITH_PLAYLIST');
+    page.acceptQueue({...queue(1), entry: [{id: 1}]}, true, false, false);
+    page.acceptQueue({...queue(2), entry: [{id: 1}], repeatStatus: 'QUEUE'}, false, true, true);
+    page.acceptQueue({...queue(3), entry: [{id: 1}]}, false, true, false);
+    assert.equal(navigations.length, 1);
+    page.acceptQueue({...queue(4), entry: [{id: 2}]}, false, true, true);
+    assert.equal(navigations.length, 2);
 });
 
 test('REST and WebSocket queue entries retain values and supply missing table columns', () => {
