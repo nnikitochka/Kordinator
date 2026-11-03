@@ -12,7 +12,6 @@ import org.airsonic.player.service.MediaDirectoryService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.LeftController;
-import org.airsonic.player.controller.AvatarController;
 import org.airsonic.player.controller.HLSController;
 import org.airsonic.player.controller.rest.hls.HlsRestController;
 import org.airsonic.player.controller.rest.stream.StreamRestController;
@@ -133,7 +132,6 @@ public class KtorConfiguration {
             UserSettingsController userSettingsController,
             LocaleResolver localeResolver,
             CoverArtController coverArtController,
-            AvatarController avatarController,
             HLSController hlsController,
             StreamController streamController
     ) {
@@ -175,7 +173,7 @@ public class KtorConfiguration {
                                 new DownloadRestController(jaxbWriter), downloadService,
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver, leftController,
-                                new CoverArtRestController(coverArtController), new AvatarRestController(avatarController),
+                                new CoverArtRestController(coverArtController), new AvatarRestController(settingsService),
                                 new HlsRestController(), hlsController, new StreamRestController(), streamController, jaxbWriter),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);

@@ -238,6 +238,8 @@ class AirsonicKtorServlet(
             if (liveQueue != null) call.attributes.put(LIVE_QUEUE_REQUEST_KEY, liveQueue)
             val websiteSettings = request.getAttribute(WEBSITE_SETTINGS_REQUEST) as? WebsiteSettingsController.Request
             if (websiteSettings != null) call.attributes.put(WEBSITE_SETTINGS_REQUEST_KEY, websiteSettings)
+            val avatar = request.getAttribute(AVATAR_REQUEST) as? AvatarRestController.Request
+            if (avatar != null) call.attributes.put(AVATAR_REQUEST_KEY, avatar)
             val tagEdit = request.getAttribute(TAG_EDIT_REQUEST) as? TagEditController.Request
             if (tagEdit != null) call.attributes.put(TAG_EDIT_REQUEST_KEY, tagEdit)
             val coverActions = request.getAttribute(COVER_ACTIONS_REQUEST) as? CoverArtActionsController.Request
@@ -282,6 +284,7 @@ class AirsonicKtorServlet(
             liveQueueController.routes(this) { call -> call.attributes[LIVE_QUEUE_REQUEST_KEY] }
             websiteSettingsController.routes(this) { call -> call.attributes[WEBSITE_SETTINGS_REQUEST_KEY] }
             tagEditController.routes(this) { call -> call.attributes[TAG_EDIT_REQUEST_KEY] }
+            avatarRestController.routes(this) { call -> call.attributes[AVATAR_REQUEST_KEY] }
             coverArtActionsController.routes(this) { call -> call.attributes[COVER_ACTIONS_REQUEST_KEY] }
             lyricsController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             ratingController.routes(this) { call -> call.attributes[RATING_REQUEST_KEY] }
@@ -788,10 +791,11 @@ class AirsonicKtorServlet(
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(COVER_ACTIONS_REQUEST, CoverArtActionsController.Request(
                 user.username, user.isAdminRole || user.isCoverArtRole, parameters(request)))
-        } else if (path in CoverArtRestController.PATHS || path in AvatarRestController.PATHS) {
-            // These endpoints are binary servlet responses.  Keep their existing image
-            // controllers as the sole implementation while moving REST dispatch out of
-            // SubsonicRESTController.
+        } else if (path in AvatarRestController.PATHS) {
+            playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            val context = request.servletContext
+            request.setAttribute(AVATAR_REQUEST, AvatarRestController.Request(parametersWithMappedId(request)) { context.getResourceAsStream(it) })
+        } else if (path in CoverArtRestController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(
                 request.remoteUser, request.getParameter("c"), request.remoteAddr, false
             )
@@ -802,11 +806,7 @@ class AirsonicKtorServlet(
                     else -> super.getParameter(name)
                 }
             }
-            if (path in CoverArtRestController.PATHS) {
-                coverArtRestController.handleRequest(wrappedRequest, response)
-            } else {
-                avatarRestController.handleRequest(wrappedRequest, response)
-            }
+            coverArtRestController.handleRequest(wrappedRequest, response)
             return
         }
         super.service(request, response)
@@ -854,6 +854,8 @@ class AirsonicKtorServlet(
         val LIVE_QUEUE_REQUEST_KEY = AttributeKey<LiveQueueController.Request>(LIVE_QUEUE_REQUEST)
         const val WEBSITE_SETTINGS_REQUEST = "org.airsonic.player.websiteSettingsRequest"
         val WEBSITE_SETTINGS_REQUEST_KEY = AttributeKey<WebsiteSettingsController.Request>(WEBSITE_SETTINGS_REQUEST)
+        const val AVATAR_REQUEST = "org.airsonic.player.avatarRequest"
+        val AVATAR_REQUEST_KEY = AttributeKey<AvatarRestController.Request>(AVATAR_REQUEST)
         const val TAG_EDIT_REQUEST = "org.airsonic.player.tagEditRequest"
         val TAG_EDIT_REQUEST_KEY = AttributeKey<TagEditController.Request>(TAG_EDIT_REQUEST)
         const val COVER_ACTIONS_REQUEST = "org.airsonic.player.coverActionsRequest"
