@@ -67,6 +67,9 @@ public class KtorServletIntegrationTest {
     private SettingsService settingsService;
 
     @Autowired
+    private org.airsonic.player.service.RatingService ratingService;
+
+    @Autowired
     private org.springframework.context.ApplicationContext applicationContext;
 
     private final HttpClient client = HttpClient.newBuilder()
@@ -399,6 +402,85 @@ public class KtorServletIntegrationTest {
                     "f=json&id=2147483647", csrf));
             assertEquals("failed", missing.path("status").asText());
             assertEquals(70, missing.path("error").path("code").asInt());
+        } finally {
+            ScanningTestUtils.after(cleanupId, mediaFolderService);
+            mediaFolderService.expunge();
+        }
+    }
+
+    @Test
+    public void websiteRatingsUseTheSameRestContractAsExternalClients() throws Exception {
+        List<MusicFolder> folders = MusicFolderTestData.getTestMusicFolders();
+        UUID cleanupId = ScanningTestUtils.before(folders, mediaFolderService, mediaScannerService);
+        try {
+            assertTrue("The internal rating controller must be removed",
+                    !applicationContext.containsBean("setRatingController"));
+            // Find a real album through the existing search contract.
+            TestCaseUtils.execScan(mediaScannerService);
+            int songId = subsonic(get("/rest/search3?" + credentials()
+                    + "&f=json&query=Reed%20Neck%20Reel", false))
+                    .path("searchResult3").path("song").path(0).path("id").asInt();
+            assertTrue(songId > 0);
+            MediaFile song = mediaFileDao.getMediaFile(songId);
+            MediaFile album = mediaFileDao.getMediaFile(song.getParentPath(), song.getFolderId());
+            int id = album.getId();
+
+            HttpClient browser = HttpClient.newBuilder()
+                    .cookieHandler(new java.net.CookieManager(null, java.net.CookiePolicy.ACCEPT_ALL))
+                    .followRedirects(HttpClient.Redirect.NEVER).build();
+            HttpResponse<String> loginPage = browserRequest(browser, "/login", null, null);
+            java.util.regex.Matcher token = java.util.regex.Pattern
+                    .compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"").matcher(loginPage.body());
+            assertTrue(loginPage.body(), token.find());
+            assertEquals(302, browserRequest(browser, "/login", "j_username=admin&j_password=admin&_csrf="
+                    + URLEncoder.encode(token.group(1), StandardCharsets.UTF_8), null).statusCode());
+            HttpResponse<String> page = browserRequest(browser, "/main.view?id=" + id, null, null);
+            assertEquals(page.body(), 200, page.statusCode());
+            assertTrue(page.body(), page.body().contains("/airsonic/rest/setRating"));
+            assertTrue(page.body(), page.body().contains("/airsonic/script/subsonic-rating.js"));
+            token = java.util.regex.Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
+            assertTrue(page.body(), token.find());
+            String csrf = token.group(1);
+            String form = "f=json&c=airsonic-web&id=" + id;
+            for (int rating = 1; rating <= 5; rating++) {
+                subsonic(browserRequest(browser, "/rest/setRating", form + "&rating=" + rating, csrf));
+                assertEquals(Integer.valueOf(rating), ratingService.getRatingForUser("admin", album));
+            }
+            assertEquals(403, browserRequest(browser, "/rest/setRating", form + "&rating=0", null).statusCode());
+            assertEquals(Integer.valueOf(5), ratingService.getRatingForUser("admin", album));
+            subsonic(browserRequest(browser, "/rest/setRating", form + "&rating=0", csrf));
+            assertEquals(null, ratingService.getRatingForUser("admin", album));
+
+            HttpResponse<String> editable = browserRequest(browser,
+                    "/ratingJsp.view?readonly=false&id=" + id + "&rating=30", null, null);
+            assertEquals(editable.body(), 200, editable.statusCode());
+            assertEquals(6, editable.body().split("data-media-rating=", -1).length - 1);
+            assertTrue(editable.body(), editable.body().contains("data-media-rating=\"0\""));
+            assertTrue(editable.body(), !editable.body().contains("setRating.view"));
+            HttpResponse<String> readonly = browserRequest(browser,
+                    "/ratingJsp.view?readonly=true&rating=35", null, null);
+            assertEquals(readonly.body(), 200, readonly.statusCode());
+            assertTrue(readonly.body(), !readonly.body().contains("data-media-rating"));
+            assertEquals(404, browserRequest(browser, "/setRating.view?id=" + id + "&rating=5", null, null).statusCode());
+            assertEquals(null, ratingService.getRatingForUser("admin", album));
+
+            for (String suffix : List.of("", ".view")) {
+                HttpResponse<String> xml = get("/rest/setRating" + suffix + "?" + credentials()
+                        + "&id=" + id + "&rating=4", false);
+                assertEquals(xml.body(), 200, xml.statusCode());
+                assertTrue(xml.body(), xml.body().contains("status=\"ok\""));
+                assertEquals(Integer.valueOf(4), ratingService.getRatingForUser("admin", album));
+            }
+            subsonic(post("/rest/setRating.view", credentials() + "&f=json&id=" + id + "&rating=0"));
+            assertEquals(null, ratingService.getRatingForUser("admin", album));
+            assertEquals(10, responseBody(browserRequest(browser, "/rest/setRating", form, csrf))
+                    .path("error").path("code").asInt());
+            assertEquals(400, browserRequest(browser, "/rest/setRating", form + "&rating=bad", csrf).statusCode());
+            assertEquals(70, responseBody(browserRequest(browser, "/rest/setRating",
+                    "f=json&id=2147483647&rating=3", csrf)).path("error").path("code").asInt());
+            assertEquals(10, responseBody(get("/rest/setRating?f=json&id=" + id + "&rating=3", false))
+                    .path("error").path("code").asInt());
+            assertEquals(null, ratingService.getRatingForUser("admin", album));
         } finally {
             ScanningTestUtils.after(cleanupId, mediaFolderService);
             mediaFolderService.expunge();
