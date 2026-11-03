@@ -38,3 +38,21 @@ test('rejects failed responses and preserves redirect markers', async () => {
     const failing = setup(async () => ({ok: true, redirected: true}));
     await assert.rejects(failing.get([3], {}));
 });
+
+test('fills omitted optional fields for file, directory and sibling table rows', async () => {
+    const api = setup(async () => response({contentType: 'album', detail: {id: 1},
+        file: [{id: 2, trackNumber: 0, discNumber: 2, starred: false}],
+        subDir: [{id: 3}], siblingAlbum: [{id: 4, year: 2020}]}));
+    const result = await api.get([1], {});
+    const fields = ['trackNumber', 'discNumber', 'title', 'album', 'artist', 'albumArtist', 'genre',
+        'year', 'format', 'fileSize', 'duration', 'bitRate', 'playCount', 'lastPlayed',
+        'lastScanned', 'created', 'changed', 'entryType', 'dimensions', 'starred'];
+    for (const row of [result.files[0], result.subDirs[0], result.siblingAlbums[0]]) {
+        for (const field of fields) assert.ok(Object.hasOwn(row, field), field);
+    }
+    assert.equal(result.files[0].discNumber, 2);
+    assert.equal(result.files[0].trackNumber, 0);
+    assert.equal(result.files[0].album, null);
+    assert.equal(result.subDirs[0].discNumber, null);
+    assert.equal(result.siblingAlbums[0].year, 2020);
+});

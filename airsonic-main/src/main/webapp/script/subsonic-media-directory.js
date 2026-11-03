@@ -1,5 +1,15 @@
 function createMediaDirectory(options) {
     var generation = 0;
+    function tableEntry(entry) {
+        // REST omits null JAXB fields; DataTables expects every column to exist.
+        return Object.assign({
+            trackNumber: null, discNumber: null, title: null, album: null, artist: null,
+            albumArtist: null, genre: null, year: null, format: null, fileSize: null,
+            duration: null, bitRate: null, playCount: null, lastPlayed: null,
+            lastScanned: null, created: null, changed: null, entryType: null,
+            dimensions: null, starred: false
+        }, entry);
+    }
     return {
         get: async function (ids, paths) {
             var current = ++generation;
@@ -21,8 +31,8 @@ function createMediaDirectory(options) {
                 contentType: directory.contentType, comment: directory.comment,
                 userRating: directory.userRating, averageRating: directory.averageRating,
                 musicBrainzReleaseId: directory.musicBrainzReleaseId,
-                files: directory.file || [], subDirs: directory.subDir || [],
-                ancestors: directory.ancestor || [], siblingAlbums: directory.siblingAlbum || []
+                files: (directory.file || []).map(tableEntry), subDirs: (directory.subDir || []).map(tableEntry),
+                ancestors: directory.ancestor || [], siblingAlbums: (directory.siblingAlbum || []).map(tableEntry)
             });
         }
     };
