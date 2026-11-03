@@ -37,6 +37,11 @@ public class HlsPlaylistService {
 
     public String generate(Authentication authentication, MediaFile mediaFile, Player player,
             String basePath, String prefixPath, String[] requestedBitRates, String size) {
+        return generate(authentication, mediaFile, player, basePath, prefixPath, requestedBitRates, size, false);
+    }
+
+    public String generate(Authentication authentication, MediaFile mediaFile, Player player,
+            String basePath, String prefixPath, String[] requestedBitRates, String size, boolean signedRestUrls) {
         List<Pair<Integer, Dimension>> bitRates = parseBitRates(requestedBitRates, size).stream()
                 .map(b -> b.getRight() != null ? b
                         : Pair.of(b.getLeft(), TranscodingService.getSuitableVideoSize(mediaFile.getWidth(),
@@ -47,13 +52,14 @@ public class HlsPlaylistService {
                     Pair.of(VideoPlayerController.DEFAULT_BIT_RATE, TranscodingService.getSuitableVideoSize(
                             mediaFile.getWidth(), mediaFile.getHeight(), VideoPlayerController.DEFAULT_BIT_RATE)));
         UriComponentsBuilder prefix = UriComponentsBuilder.fromUriString(prefixPath);
+        Instant linkExpiration = expiration(authentication, signedRestUrls, mediaFile.getDuration());
         StringWriter body = new StringWriter();
         PrintWriter writer = new PrintWriter(body);
         if (bitRates.size() > 1) {
-            generateVariantPlaylist(authentication, basePath, prefix, mediaFile.getId(), player, bitRates, writer);
+            generateVariantPlaylist(authentication, basePath, prefix, mediaFile.getId(), player, bitRates, writer, signedRestUrls, linkExpiration);
         } else {
             generateNormalPlaylist(authentication, basePath, prefix, mediaFile.getId(), player, bitRates.getFirst(),
-                    Math.round(mediaFile.getDuration()), writer);
+                    Math.round(mediaFile.getDuration()), writer, signedRestUrls, linkExpiration);
         }
         writer.flush();
         return body.toString();
@@ -95,7 +101,7 @@ public class HlsPlaylistService {
     }
 
     private void generateVariantPlaylist(Authentication authentication, String basePath, UriComponentsBuilder prefix,
-            int id, Player player, List<Pair<Integer, Dimension>> bitRates, PrintWriter writer) {
+            int id, Player player, List<Pair<Integer, Dimension>> bitRates, PrintWriter writer, boolean signedRestUrls, Instant linkExpiration) {
         writer.println("#EXTM3U");
         writer.println("#EXT-X-VERSION:1");
 //        writer.println("#EXT-X-TARGETDURATION:" + SEGMENT_DURATION);
@@ -109,10 +115,8 @@ public class HlsPlaylistService {
                     .queryParam("id", id)
                     .queryParam("player", player.getId())
                     .queryParam("maxBitRate", kbps + Optional.ofNullable(bitRate.getRight()).map(d -> "@" + d.width + "x" + d.height).orElse(""));
-            if (authentication instanceof JWTAuthenticationToken) {
-                DecodedJWT token = (DecodedJWT) authentication.getDetails();
-                Instant expires = Optional.ofNullable(token).map(Payload::getExpiresAt).map(Date::toInstant).orElse(null);
-                url = jwtSecurityService.addJWTToken(authentication.getName(), url, expires);
+            if (signedRestUrls || authentication instanceof JWTAuthenticationToken) {
+                url = jwtSecurityService.addJWTToken(authentication.getName(), url, linkExpiration);
             }
 
             writer.print(basePath + url.toUriString());
@@ -122,14 +126,14 @@ public class HlsPlaylistService {
     }
 
     private void generateNormalPlaylist(Authentication authentication, String basePath, UriComponentsBuilder prefix,
-            int id, Player player, Pair<Integer, Dimension> bitRate, long totalDuration, PrintWriter writer) {
+            int id, Player player, Pair<Integer, Dimension> bitRate, long totalDuration, PrintWriter writer, boolean signedRestUrls, Instant linkExpiration) {
         writer.println("#EXTM3U");
         writer.println("#EXT-X-VERSION:1");
         writer.println("#EXT-X-TARGETDURATION:" + SEGMENT_DURATION);
 
         for (int i = 0; i < totalDuration / SEGMENT_DURATION; i++) {
             writer.println("#EXTINF:" + SEGMENT_DURATION + ",");
-            writer.println(createStreamUrl(authentication, basePath, prefix, player, id, i, SEGMENT_DURATION, bitRate));
+            writer.println(createStreamUrl(authentication, basePath, prefix, player, id, i, SEGMENT_DURATION, bitRate, signedRestUrls, linkExpiration));
         }
 
         long remainder = totalDuration % SEGMENT_DURATION;
@@ -138,9 +142,17 @@ public class HlsPlaylistService {
             writer.println(
                     createStreamUrl(authentication, basePath, prefix, player, id,
                             (int) (totalDuration / SEGMENT_DURATION),
-                            remainder, bitRate));
+                            SEGMENT_DURATION, bitRate, signedRestUrls, linkExpiration));
         }
         writer.println("#EXT-X-ENDLIST");
+    }
+
+    private Instant expiration(Authentication authentication, boolean signedRestUrls, double duration) {
+        if (authentication instanceof JWTAuthenticationToken) {
+            DecodedJWT token = (DecodedJWT) authentication.getDetails();
+            return Optional.ofNullable(token).map(Payload::getExpiresAt).map(Date::toInstant).orElse(null);
+        }
+        return signedRestUrls ? Instant.now().plusSeconds((long) Math.ceil(duration) + 3600) : null;
     }
 
     private String createStreamUrl(Authentication authentication,
@@ -149,7 +161,7 @@ public class HlsPlaylistService {
             int id,
             int segmentIndex,
             long duration,
-            Pair<Integer, Dimension> bitRate) {
+            Pair<Integer, Dimension> bitRate, boolean signedRestUrls, Instant linkExpiration) {
         UriComponentsBuilder builder = prefix.cloneBuilder()
                 .pathSegment("segment", "segment.ts")
                 .queryParam("id", id)
@@ -160,10 +172,8 @@ public class HlsPlaylistService {
                 .queryParam("maxBitRate", bitRate.getLeft())
                 .queryParam("size", bitRate.getRight().width + "x" + bitRate.getRight().height);
 
-        if (authentication instanceof JWTAuthenticationToken) {
-            DecodedJWT token = (DecodedJWT) authentication.getDetails();
-            Instant expires = Optional.ofNullable(token).map(Payload::getExpiresAt).map(Date::toInstant).orElse(null);
-            builder = jwtSecurityService.addJWTToken(authentication.getName(), builder, expires);
+        if (signedRestUrls || authentication instanceof JWTAuthenticationToken) {
+            builder = jwtSecurityService.addJWTToken(authentication.getName(), builder, linkExpiration);
         }
         return basePath + builder.toUriString();
     }

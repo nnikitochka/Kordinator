@@ -21,6 +21,10 @@ import org.springframework.core.io.Resource
 import org.springframework.http.ResponseEntity
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.hls.HlsRestController
+import org.airsonic.player.controller.rest.hls.HlsSegmentRestController
+import org.airsonic.player.service.JWTSecurityService
+import com.auth0.jwt.interfaces.DecodedJWT
+import org.springframework.web.util.UriComponentsBuilder
 import org.springframework.security.core.Authentication
 import org.airsonic.player.controller.rest.starred.StarredController
 import org.airsonic.player.controller.rest.starred.StarredRequest
@@ -148,6 +152,7 @@ class AirsonicKtorServlet(
     private val coverArtRestController: CoverArtRestController,
     private val avatarRestController: AvatarRestController,
     private val hlsRestController: HlsRestController,
+    private val hlsSegmentRestController: HlsSegmentRestController,
     private val streamRestController: StreamRestController,
     private val streamController: StreamController,
     private val jaxbWriter: JAXBWriter,
@@ -245,6 +250,8 @@ class AirsonicKtorServlet(
             if (parameters != null) {
                 call.attributes.put(REST_PARAMETERS_KEY, parameters)
             }
+            val hlsSegment = request.getAttribute(HLS_SEGMENT_REQUEST) as? HlsSegmentRestController.Request
+            if (hlsSegment != null) call.attributes.put(HLS_SEGMENT_REQUEST_KEY, hlsSegment)
             val hlsRequest = request.getAttribute(HLS_REQUEST) as? HlsRestController.Request
             if (hlsRequest != null) call.attributes.put(HLS_REQUEST_KEY, hlsRequest)
             @Suppress("UNCHECKED_CAST")
@@ -289,6 +296,7 @@ class AirsonicKtorServlet(
             topSongsController.routes(this) { call -> call.attributes[TOP_SONGS_REQUEST_KEY] }
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
             hlsRestController.routes(this) { call -> call.attributes[HLS_REQUEST_KEY] }
+            hlsSegmentRestController.routes(this) { call -> call.attributes[HLS_SEGMENT_REQUEST_KEY] }
             streamRestController.routes(this) { call -> call.attributes[STREAM_RESPONSE_KEY] }
         }
         // The servlet engine omits BaseApplicationEngine's default fallback in Ktor 3.6.0.
@@ -306,6 +314,21 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path.startsWith("/ext/rest-hls/")) {
+            val auth = request.userPrincipal as? JWTAuthenticationToken
+            val token = auth?.details as? DecodedJWT
+            val expected = token?.getClaim(JWTSecurityService.CLAIM_PATH)?.asString()
+            val actual = request.requestURI.substring(request.contextPath.length + 1) + "?" + request.queryString
+            val valid = try {
+                val signed = UriComponentsBuilder.fromUriString(expected ?: "").build()
+                val received = UriComponentsBuilder.fromUriString(actual).replaceQueryParam("jwt").build()
+                signed.path == received.path && signed.queryParams == received.queryParams
+            } catch (_: IllegalArgumentException) { false }
+            if (auth == null || !valid) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                return
+            }
+        }
         if (path in SearchController.PATHS) {
             // Capture Spring's thread-bound authentication before Ktor dispatches to a coroutine.
             val username = requireNotNull(securityService.getCurrentUsername(request))
@@ -742,7 +765,8 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST)
                 return
             }
-            val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            val playerId = if (path.startsWith("/ext/")) request.getParameter("player")?.toIntOrNull() else
+                playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val wrapped = object : HttpServletRequestWrapper(request) {
                 override fun getParameter(name: String): String? = when (name) {
                     "player" -> playerId?.toString()
@@ -763,8 +787,7 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_NOT_FOUND, "Media file not found or incorrect type: $id")
                 return
             }
-            if (authentication !is JWTAuthenticationToken &&
-                !securityService.isFolderAccessAllowed(mediaFile, player.username)) {
+            if (!securityService.isFolderAccessAllowed(mediaFile, player.username)) {
                 if (path.endsWith(".view")) {
                     response.sendError(HttpServletResponse.SC_FORBIDDEN)
                     return
@@ -776,11 +799,47 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unknown duration for media file: $id")
                 return
             }
-            val requestPath = request.requestURI.substring(request.contextPath.length + 1)
-            val prefix = StringUtils.removeEndIgnoreCase(requestPath, "/hls.m3u8")
+            val prefix = "ext/rest-hls"
             request.setAttribute(HLS_REQUEST, HlsRestController.Request(authentication, mediaFile, player,
                 NetworkService.getBaseUrl(request), prefix, request.getParameterValues("maxBitRate"),
                 request.getParameter("size")))
+        } else if (path in HlsSegmentRestController.PATHS && request.method in setOf("GET", "HEAD")) {
+            val auth = request.userPrincipal as Authentication
+            val user = securityService.getUserByName(auth.name)
+            if (user == null || !user.isStreamRole) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                return
+            }
+            val id = request.getParameter("id")?.toIntOrNull()
+            val playerId = request.getParameter("player")
+            val index = request.getParameter("segmentIndex")?.toIntOrNull()
+            val bitRate = request.getParameter("maxBitRate")?.toIntOrNull()
+            val size = request.getParameter("size")
+            val duration = request.getParameter("duration")?.toIntOrNull() ?: 10
+            val audioTrack = request.getParameter("audioTrack")?.toIntOrNull()
+            if (id == null || playerId?.toIntOrNull() == null || index == null || index < 0 ||
+                bitRate == null || bitRate <= 0 || size == null || !size.matches(Regex("[1-9][0-9]*x[1-9][0-9]*")) ||
+                duration <= 0 || (request.getParameter("audioTrack") != null && audioTrack == null) ||
+                (request.getParameter("duration") != null && request.getParameter("duration").toIntOrNull() == null)) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST)
+                return
+            }
+            val media = mediaFileService.getMediaFile(id)
+            if (media == null || media.isDirectory) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND)
+                return
+            }
+            if (!securityService.isFolderAccessAllowed(media, user.username)) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                return
+            }
+            val player = playerService.getPlayer(request, response)
+            if (player.id.toString() != playerId) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                return
+            }
+            request.setAttribute(HLS_SEGMENT_REQUEST, HlsSegmentRestController.Request(auth, user, player,
+                id, playerId, index, bitRate, size, duration, audioTrack))
         } else if (path in LiveQueueController.PATHS) {
             val username = requireNotNull(securityService.getCurrentUsername(request))
             val player = request.getParameter("playerId")?.toIntOrNull()?.let { playerService.getPlayerById(it) }
@@ -844,6 +903,8 @@ class AirsonicKtorServlet(
     private companion object {
         const val STREAM_RESPONSE = "org.airsonic.player.streamResponse"
         val STREAM_RESPONSE_KEY = AttributeKey<ResponseEntity<Resource>>(STREAM_RESPONSE)
+        const val HLS_SEGMENT_REQUEST = "org.airsonic.player.hlsSegmentRequest"
+        val HLS_SEGMENT_REQUEST_KEY = AttributeKey<HlsSegmentRestController.Request>(HLS_SEGMENT_REQUEST)
         const val HLS_REQUEST = "org.airsonic.player.hlsRequest"
         val HLS_REQUEST_KEY = AttributeKey<HlsRestController.Request>(HLS_REQUEST)
         const val LIVE_QUEUE_REQUEST = "org.airsonic.player.liveQueueRequest"

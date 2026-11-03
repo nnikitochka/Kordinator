@@ -29,12 +29,12 @@ class HlsRestController(private val playlists: HlsPlaylistService) {
 
     private suspend fun respond(call: ApplicationCall, request: Request) {
         val body = playlists.generate(request.authentication, request.mediaFile, request.player,
-            request.basePath, request.prefix, request.bitRates, request.size)
+            request.basePath, request.prefix, request.bitRates, request.size, true)
         call.response.header("Access-Control-Allow-Origin", "*")
         call.respondText(body, ContentType.parse("application/x-mpegurl; charset=UTF-8"))
     }
 
     companion object {
-        @JvmField val PATHS = arrayOf("/rest/hls", "/rest/hls.view")
+        @JvmField val PATHS = arrayOf("/rest/hls", "/rest/hls.view", "/rest/hls/hls.m3u8", "/rest/hls.view/hls.m3u8", "/ext/rest-hls/hls.m3u8")
     }
 }

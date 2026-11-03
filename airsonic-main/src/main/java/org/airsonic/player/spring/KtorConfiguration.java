@@ -14,6 +14,8 @@ import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.LeftController;
 import org.airsonic.player.service.hls.HlsPlaylistService;
 import org.airsonic.player.controller.rest.hls.HlsRestController;
+import org.airsonic.player.controller.rest.hls.HlsSegmentRestController;
+import org.airsonic.player.service.hls.HlsSegmentService;
 import org.airsonic.player.controller.rest.stream.StreamRestController;
 import org.airsonic.player.controller.StreamController;
 import org.airsonic.player.controller.rest.cover.CoverArtRestController;
@@ -133,6 +135,7 @@ public class KtorConfiguration {
             LocaleResolver localeResolver,
             CoverArtImageService coverArtImageService,
             HlsPlaylistService hlsPlaylistService,
+            HlsSegmentService hlsSegmentService,
             StreamController streamController
     ) {
         ServletRegistrationBean<ServletApplicationEngine> registration =
@@ -174,7 +177,7 @@ public class KtorConfiguration {
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver, leftController,
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService),
-                                new HlsRestController(hlsPlaylistService), new StreamRestController(), streamController, jaxbWriter),
+                                new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(), streamController, jaxbWriter),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);
@@ -213,6 +216,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(LiveQueueController.PATHS);
         registration.addUrlMappings(AvatarRestController.PATHS);
         registration.addUrlMappings(HlsRestController.PATHS);
+        registration.addUrlMappings(HlsSegmentRestController.PATHS);
         registration.addUrlMappings(StreamRestController.PATHS);
         registration.setName("ktor");
         registration.setAsyncSupported(true);

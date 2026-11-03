@@ -69,14 +69,14 @@ public class HlsIntegrationTest {
                 assertTrue(response.body(), response.body().startsWith("#EXTM3U"));
                 assertTrue(response.body(), response.body().contains("#EXTINF:"));
                 assertTrue(response.body(), response.body().contains("segment.ts"));
-                assertTrue(response.body(), response.body().contains("/airsonic/rest/hls" + suffix + "/segment/segment.ts"));
+                assertTrue(response.body(), response.body().contains("/airsonic/ext/rest-hls/segment/segment.ts"));
                 assertEquals("*", response.headers().firstValue("access-control-allow-origin").orElse(""));
                 HttpResponse<String> sized = send(suffix, "id=" + song.getId() + "&maxBitRate=500&size=321x241", "admin", "admin", false);
                 assertTrue(sized.body(), sized.body().contains("maxBitRate=500&size=320x240"));
                 assertTrue(response.headers().firstValue("content-type").orElse("").startsWith("application/x-mpegurl"));
                 HttpResponse<String> variants = send(suffix, "id=" + song.getId() + "&maxBitRate=300&maxBitRate=600", "admin", "admin", false);
                 assertTrue(variants.body(), variants.body().contains("#EXT-X-STREAM-INF:"));
-                assertTrue(variants.body(), variants.body().contains("hls.m3u8"));
+                assertTrue(variants.body(), variants.body().contains("ext/rest-hls/hls.m3u8"));
                 assertTrue(variants.body(), variants.body().contains("maxBitRate=300"));
                 assertTrue(variants.body(), variants.body().contains("maxBitRate=600"));
                 HttpRequest head = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic/rest/hls" + suffix

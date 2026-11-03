@@ -76,6 +76,10 @@ public class HlsSession {
             Thread.sleep(2000L);
             segment = getSegment(segmentIndex);
         }
+        // A short transcoding process may exit before the first polling iteration.
+        if (segment == null && !isProcessAlive()) {
+            segment = getSegment(segmentIndex);
+        }
         if (segment != null) {
             this.logger.debug("Segment {} produced.", segmentIndex);
         } else {

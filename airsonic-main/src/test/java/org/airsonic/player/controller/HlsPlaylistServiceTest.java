@@ -40,4 +40,23 @@ public class HlsPlaylistServiceTest {
         assertTrue(variants, variants.contains("maxBitRate=1000@640x480&token=signed"));
         verify(jwt, times(5)).addJWTToken(eq("listener"), any(UriComponentsBuilder.class), isNull(java.time.Instant.class));
     }
+    @Test
+    public void restLinksRemainValidForLongVideos() {
+        JWTSecurityService jwt = mock(JWTSecurityService.class);
+        when(jwt.addJWTToken(anyString(), any(UriComponentsBuilder.class), any(java.time.Instant.class)))
+                .thenAnswer(invocation -> invocation.getArgument(1));
+        org.springframework.security.core.Authentication auth = mock(org.springframework.security.core.Authentication.class);
+        when(auth.getName()).thenReturn("listener");
+        MediaFile media = mock(MediaFile.class);
+        when(media.getId()).thenReturn(42);
+        when(media.getDuration()).thenReturn(7200.0);
+        Player player = mock(Player.class);
+        when(player.getId()).thenReturn(7);
+        new HlsPlaylistService(jwt).generate(auth, media, player, "https://example.test/", "ext/rest-hls",
+                new String[] {"500@320x240", "1000@640x480"}, null, true);
+        org.mockito.ArgumentCaptor<java.time.Instant> expiry = org.mockito.ArgumentCaptor.forClass(java.time.Instant.class);
+        verify(jwt, times(2)).addJWTToken(eq("listener"), any(UriComponentsBuilder.class), expiry.capture());
+        assertTrue(expiry.getValue().isAfter(java.time.Instant.now().plusSeconds(10790)));
+    }
+
 }

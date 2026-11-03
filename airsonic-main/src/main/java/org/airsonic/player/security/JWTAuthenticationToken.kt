@@ -6,7 +6,7 @@ import org.springframework.security.core.GrantedAuthority
 class JWTAuthenticationToken : UsernamePasswordAuthenticationToken {
     val requestedPath: String
 
-    constructor(principal: Any, credentials: Any, requestedPath: String) : super(principal, credentials) {
+    constructor(principal: Any?, credentials: Any, requestedPath: String) : super(principal, credentials) {
         this.requestedPath = requestedPath
     }
 
