@@ -133,7 +133,7 @@
     <th style="padding:0 0.5em 0 0.5em;border-style:double"><fmt:message key='common.delete'/></th>
   </tr>
   <tr>
-    <td style="text-align:center;border-style:dotted" colspan=9>Airsonic Credentials <c:import url="helpToolTip.jsp"><c:param name="topic" value="credentialsairsonic"/></c:import></td>
+    <td style="text-align:center;border-style:dotted" colspan="9">Airsonic Credentials <c:import url="helpToolTip.jsp"><c:param name="topic" value="credentialsairsonic"/></c:import></td>
   </tr>
   <c:forEach items="${command.credentials}" var="cred" varStatus="loopStatus">
     <c:if test="${cred.app == 'AIRSONIC'}">
@@ -189,13 +189,13 @@
   </c:forEach>
   <c:if test="${ldapAuthEnabledForUser}">
     <tr>
-      <td class="warning" style="text-align:center" colspan=9><i><fmt:message key="credentialsettings.ldapauthenabledforuser"/></i></td>
+      <td class="warning" style="text-align:center" colspan="9"><i><fmt:message key="credentialsettings.ldapauthenabledforuser"/></i></td>
     </tr>
   </c:if>
   <tr><td> </td></tr>
 
   <tr>
-    <td style="text-align:center;border-style:dotted" colspan=9>Third-party Credentials <c:import url="helpToolTip.jsp"><c:param name="topic" value="credentialsthirdparty"/></c:import></td>
+    <td style="text-align:center;border-style:dotted" colspan="9">Third-party Credentials <c:import url="helpToolTip.jsp"><c:param name="topic" value="credentialsthirdparty"/></c:import></td>
   </tr>
   <c:forEach items="${command.credentials}" var="cred" varStatus="loopStatus">
     <c:if test="${cred.app != 'AIRSONIC'}" >
@@ -301,7 +301,7 @@
   <form:form method="post" action="${pageContext.request.contextPath}/credentialsSettings/admin" modelAttribute="adminControls">
 
     <table style="white-space:nowrap" class="indent">
-      <tr><th colspan=4 style="text-align:left"><fmt:message key='credentialsettings.systemchecks'/></th></tr>
+      <tr><th colspan="4" style="text-align:left"><fmt:message key='credentialsettings.systemchecks'/></th></tr>
       <c:if test="${adminControls.legacyCredsPresent}">
       <tr>
         <td><fmt:message key="credentialsettings.legacycredspresent"/><c:import url="helpToolTip.jsp"><c:param name="topic" value="credentialslegacypasswords"/></c:import></td>
@@ -321,12 +321,12 @@
       </c:if>
       <c:if test="${adminControls.openCredsPresent}">
       <tr>
-        <td colspan=4 class="warning"><fmt:message key="credentialsettings.opencredspresent"/></td>
+        <td colspan="4" class="warning"><fmt:message key="credentialsettings.opencredspresent"/></td>
       </tr>
       </c:if>
       <c:if test="${adminControls.defaultAdminCredsPresent}">
       <tr>
-        <td colspan=4 class="warning"><fmt:message key="credentialsettings.defaultadmincredspresent"/></td>
+        <td colspan="4" class="warning"><fmt:message key="credentialsettings.defaultadmincredspresent"/></td>
       </tr>
       </c:if>
     </table>
@@ -399,7 +399,7 @@
       <tr><td>&nbsp;</td></tr>
 
       <tr><th style="text-align:left">Keys</th></tr>
-      <tr><td colspan=3><fmt:message key='credentialsettings.keepkeyssafe'/></td></tr>
+      <tr><td colspan="3"><fmt:message key='credentialsettings.keepkeyssafe'/></td></tr>
       <tr>
         <td>JWT Key</td>
         <td>
@@ -428,7 +428,7 @@
       </tr>
       <tr>
         <td>Encryption Key Salt</td>
-        <td colspan=2 style="font-size:90%;" class="sensitive blur">
+        <td colspan="2" style="font-size:90%;" class="sensitive blur">
           ${adminControls.encryptionKeySalt}
         </td>
       </tr>

@@ -1,3 +1,4 @@
+<%@ page contentType="text/html; charset=utf-8" pageEncoding="utf-8" %>
 <script src="<c:url value='/script/subsonic-playlists.js'/>"></script>
 <script>
 var playlistApi = createSubsonicPlaylists({
