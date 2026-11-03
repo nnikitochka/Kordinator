@@ -78,6 +78,8 @@ public class PlayerService {
             Integer playerId, boolean remoteControlEnabled, boolean isStreamRequest) throws Exception {
 
         Player player = getPlayerById(playerId);
+        boolean websiteSelection = "/playQueue/player".equals(request.getServletPath())
+                && request.getParameter("player") == null;
 
         // Find by 'player' request parameter.
         if (player == null) {
@@ -89,6 +91,9 @@ public class PlayerService {
             playerId = (Integer) request.getSession().getAttribute("player");
             if (playerId != null) {
                 player = getPlayerById(playerId);
+                if (websiteSelection && player != null && player.getClientId() != null) {
+                    player = null;
+                }
             }
         }
 
@@ -96,6 +101,9 @@ public class PlayerService {
         String username = securityService.getCurrentUsername(request);
         if (player == null && remoteControlEnabled) {
             player = getPlayerById(getPlayerIdFromCookie(request, username));
+            if (websiteSelection && player != null && player.getClientId() != null) {
+                player = null;
+            }
         }
 
         // Make sure we're not hijacking the player of another user.
@@ -118,8 +126,11 @@ public class PlayerService {
             updatePlayer(player);
         }
 
+        // Resolving a Subsonic client must not replace the browser's selected player.
+        boolean restClient = request.getParameter("c") != null && player.getClientId() != null;
+
         // Set cookie in response.
-        if (response != null) {
+        if (response != null && !restClient) {
             String cookieName = COOKIE_NAME + "-" + StringUtil.utf8HexEncode(username);
             Cookie cookie = new Cookie(cookieName, String.valueOf(player.getId()));
             cookie.setMaxAge(COOKIE_EXPIRY);
@@ -133,7 +144,7 @@ public class PlayerService {
         }
 
         // Save player in session context.
-        if (remoteControlEnabled && request.getSession() != null) {
+        if (remoteControlEnabled && !restClient && request.getSession() != null) {
             request.getSession().setAttribute("player", player.getId());
         }
 
