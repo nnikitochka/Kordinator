@@ -29,7 +29,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 /**
  * Provides services for "audioscrobbling" at www.last.fm.
  * <br/>
- * See https://www.last.fm/api/submissions
+ * See <a href="https://www.last.fm/api/submissions">...</a>
  */
 public class LastFMScrobbler {
 

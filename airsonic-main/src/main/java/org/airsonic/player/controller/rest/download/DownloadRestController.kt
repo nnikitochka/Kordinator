@@ -15,7 +15,6 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.head
 import io.ktor.server.routing.post
 import org.airsonic.player.controller.JAXBWriter
-import org.airsonic.player.service.DownloadResponse
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.UUID
