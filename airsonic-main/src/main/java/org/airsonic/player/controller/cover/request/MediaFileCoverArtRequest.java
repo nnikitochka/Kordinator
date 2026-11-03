@@ -1,6 +1,6 @@
 package org.airsonic.player.controller.cover.request;
 
-import org.airsonic.player.controller.cover.CoverArtController;
+import org.airsonic.player.service.CoverArtImageService;
 import org.airsonic.player.domain.CoverArt;
 import org.airsonic.player.domain.MediaFile;
 
@@ -8,16 +8,16 @@ public class MediaFileCoverArtRequest extends CoverArtRequest {
     private final MediaFile dir;
     private final Integer proxyId;
 
-    public MediaFileCoverArtRequest(CoverArtController coverArtController, MediaFile mediaFile, Integer proxyId) {
-        super(coverArtController, coverArtController.coverArtService.get(CoverArt.EntityType.MEDIA_FILE, mediaFile.getId()),
+    public MediaFileCoverArtRequest(CoverArtImageService coverArtImageService, MediaFile mediaFile, Integer proxyId) {
+        super(coverArtImageService, coverArtImageService.coverArtService.get(CoverArt.EntityType.MEDIA_FILE, mediaFile.getId()),
                 () -> mediaFile.getFolderId() + "/" + mediaFile.getPath(),
                 mediaFile::getChanged);
         this.dir = mediaFile;
         this.proxyId = proxyId;
     }
 
-    public MediaFileCoverArtRequest(CoverArtController coverArtController, MediaFile mediaFile) {
-        this(coverArtController, mediaFile, null);
+    public MediaFileCoverArtRequest(CoverArtImageService coverArtImageService, MediaFile mediaFile) {
+        this(coverArtImageService, mediaFile, null);
     }
 
     @Override

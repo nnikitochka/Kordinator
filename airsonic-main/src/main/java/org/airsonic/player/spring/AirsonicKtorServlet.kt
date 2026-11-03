@@ -52,7 +52,7 @@ import org.airsonic.player.controller.rest.shares.SharesRequest
 import org.airsonic.player.controller.rest.search.SearchController
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsController
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsRequest
-import org.airsonic.player.controller.cover.CoverArtController
+import org.airsonic.player.service.CoverArtImageService
 import org.airsonic.player.controller.rest.avatar.AvatarRestController
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController
 import org.airsonic.player.controller.rest.tags.TagEditController
@@ -284,6 +284,7 @@ class AirsonicKtorServlet(
             liveQueueController.routes(this) { call -> call.attributes[LIVE_QUEUE_REQUEST_KEY] }
             websiteSettingsController.routes(this) { call -> call.attributes[WEBSITE_SETTINGS_REQUEST_KEY] }
             tagEditController.routes(this) { call -> call.attributes[TAG_EDIT_REQUEST_KEY] }
+            coverArtRestController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             avatarRestController.routes(this) { call -> call.attributes[AVATAR_REQUEST_KEY] }
             coverArtActionsController.routes(this) { call -> call.attributes[COVER_ACTIONS_REQUEST_KEY] }
             lyricsController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
@@ -796,18 +797,8 @@ class AirsonicKtorServlet(
             val context = request.servletContext
             request.setAttribute(AVATAR_REQUEST, AvatarRestController.Request(parametersWithMappedId(request)) { context.getResourceAsStream(it) })
         } else if (path in CoverArtRestController.PATHS) {
-            val playerId = playerResolver.getOrCreatePlayerId(
-                request.remoteUser, request.getParameter("c"), request.remoteAddr, false
-            )
-            val wrappedRequest = object : HttpServletRequestWrapper(request) {
-                override fun getParameter(name: String): String? = when (name) {
-                    "player" -> playerId?.toString()
-                    "id" -> mapRestId(super.getParameter(name))
-                    else -> super.getParameter(name)
-                }
-            }
-            coverArtRestController.handleRequest(wrappedRequest, response)
-            return
+            playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
+            request.setAttribute(REST_PARAMETERS, parametersWithMappedId(request))
         }
         super.service(request, response)
     }
@@ -835,8 +826,8 @@ class AirsonicKtorServlet(
     }
 
     private fun mapRestId(id: String?): String? {
-        if (id == null || id.startsWith(CoverArtController.ALBUM_COVERART_PREFIX) ||
-            id.startsWith(CoverArtController.ARTIST_COVERART_PREFIX) || StringUtils.isNumeric(id)
+        if (id == null || id.startsWith(CoverArtImageService.ALBUM_COVERART_PREFIX) ||
+            id.startsWith(CoverArtImageService.ARTIST_COVERART_PREFIX) || StringUtils.isNumeric(id)
         ) return id
         return try {
             mediaFileService.getMediaFile(StringUtil.utf8HexDecode(id)).id.toString()

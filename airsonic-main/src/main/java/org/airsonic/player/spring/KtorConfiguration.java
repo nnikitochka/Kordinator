@@ -16,7 +16,6 @@ import org.airsonic.player.controller.HLSController;
 import org.airsonic.player.controller.rest.hls.HlsRestController;
 import org.airsonic.player.controller.rest.stream.StreamRestController;
 import org.airsonic.player.controller.StreamController;
-import org.airsonic.player.controller.cover.CoverArtController;
 import org.airsonic.player.controller.rest.cover.CoverArtRestController;
 import org.airsonic.player.controller.rest.avatar.AvatarRestController;
 import org.airsonic.player.controller.rest.indexes.IndexesController;
@@ -36,6 +35,7 @@ import org.airsonic.player.service.StatusService;
 import org.airsonic.player.service.MusicIndexService;
 import org.airsonic.player.service.DownloadService;
 import org.airsonic.player.service.CoverArtService;
+import org.airsonic.player.service.CoverArtImageService;
 import org.airsonic.player.controller.rest.playqueue.PlayQueueController;
 import org.airsonic.player.dao.PlayQueueDao;
 import org.airsonic.player.controller.UserSettingsController;
@@ -131,7 +131,7 @@ public class KtorConfiguration {
             LeftController leftController,
             UserSettingsController userSettingsController,
             LocaleResolver localeResolver,
-            CoverArtController coverArtController,
+            CoverArtImageService coverArtImageService,
             HLSController hlsController,
             StreamController streamController
     ) {
@@ -173,7 +173,7 @@ public class KtorConfiguration {
                                 new DownloadRestController(jaxbWriter), downloadService,
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver, leftController,
-                                new CoverArtRestController(coverArtController), new AvatarRestController(settingsService),
+                                new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService),
                                 new HlsRestController(), hlsController, new StreamRestController(), streamController, jaxbWriter),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);

@@ -1,7 +1,7 @@
 package org.airsonic.player.controller.cover.request;
 
 import org.airsonic.player.controller.cover.AutoCover;
-import org.airsonic.player.controller.cover.CoverArtController;
+import org.airsonic.player.service.CoverArtImageService;
 import org.airsonic.player.domain.CoverArt;
 import org.airsonic.player.util.FileUtil;
 import org.slf4j.Logger;
@@ -18,17 +18,17 @@ import java.util.function.Supplier;
 public abstract class CoverArtRequest {
     private static final Logger LOG = LoggerFactory.getLogger(CoverArtRequest.class);
 
-    protected final CoverArtController coverArtController;
+    protected final CoverArtImageService coverArtImageService;
     public CoverArt coverArt;
     protected Supplier<String> keyGenerator;
     protected Supplier<Instant> lastModifiedGenerator;
 
-    public CoverArtRequest(CoverArtController coverArtController) {
-        this.coverArtController = coverArtController;
+    public CoverArtRequest(CoverArtImageService coverArtImageService) {
+        this.coverArtImageService = coverArtImageService;
     }
 
-    public CoverArtRequest(CoverArtController coverArtController, CoverArt coverArt, Supplier<String> keyGenerator, Supplier<Instant> lastModifiedGenerator) {
-        this.coverArtController = coverArtController;
+    public CoverArtRequest(CoverArtImageService coverArtImageService, CoverArt coverArt, Supplier<String> keyGenerator, Supplier<Instant> lastModifiedGenerator) {
+        this.coverArtImageService = coverArtImageService;
         this.coverArt = CoverArt.NULL_ART.equals(coverArt) ? null : coverArt;
         this.keyGenerator = keyGenerator;
         this.lastModifiedGenerator = lastModifiedGenerator;
@@ -40,13 +40,13 @@ public abstract class CoverArtRequest {
     }
 
     public Instant lastModified() {
-        return Optional.ofNullable(coverArt).map(c -> FileUtil.lastModified(coverArtController.coverArtService.getFullPath(c)))
+        return Optional.ofNullable(coverArt).map(c -> FileUtil.lastModified(coverArtImageService.coverArtService.getFullPath(c)))
                 .orElseGet(lastModifiedGenerator);
     }
 
     public BufferedImage createImage(int size) {
         if (coverArt != null) {
-            try (InputStream in = coverArtController.getImageInputStream(coverArt)) {
+            try (InputStream in = coverArtImageService.getImageInputStream(coverArt)) {
                 String reason;
                 if (in == null) {
                     reason = "getImageInputStream";
@@ -55,7 +55,7 @@ public abstract class CoverArtRequest {
                     if (bimg == null) {
                         reason = "ImageIO.read";
                     } else {
-                        return CoverArtController.scale(bimg, size, size);
+                        return CoverArtImageService.scale(bimg, size, size);
                     }
                 }
                 LOG.warn("Failed to process cover art {}: {} failed", coverArt, reason);

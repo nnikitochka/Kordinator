@@ -1,6 +1,6 @@
 package org.airsonic.player.controller.cover.request;
 
-import org.airsonic.player.controller.cover.CoverArtController;
+import org.airsonic.player.service.CoverArtImageService;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.Playlist;
 
@@ -10,12 +10,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class PlaylistCoverArtRequest extends CoverArtRequest {
-    private final CoverArtController coverArtController;
+    private final CoverArtImageService coverArtImageService;
     private final Playlist playlist;
 
-    public PlaylistCoverArtRequest(CoverArtController coverArtController, Playlist playlist) {
-        super(coverArtController, null, () -> CoverArtController.PLAYLIST_COVERART_PREFIX + playlist.getId(), playlist::getChanged);
-        this.coverArtController = coverArtController;
+    public PlaylistCoverArtRequest(CoverArtImageService coverArtImageService, Playlist playlist) {
+        super(coverArtImageService, null, () -> CoverArtImageService.PLAYLIST_COVERART_PREFIX + playlist.getId(), playlist::getChanged);
+        this.coverArtImageService = coverArtImageService;
         this.playlist = playlist;
     }
 
@@ -41,26 +41,26 @@ public class PlaylistCoverArtRequest extends CoverArtRequest {
             return createAutoCover(size, size);
         }
         if (albums.size() < 4) {
-            return new MediaFileCoverArtRequest(coverArtController, albums.getFirst()).createImage(size);
+            return new MediaFileCoverArtRequest(coverArtImageService, albums.getFirst()).createImage(size);
         }
 
         BufferedImage image = new BufferedImage(size, size, BufferedImage.TYPE_INT_RGB);
         Graphics2D graphics = image.createGraphics();
 
         int half = size / 2;
-        graphics.drawImage(new MediaFileCoverArtRequest(coverArtController, albums.get(0)).createImage(half), null, 0, 0);
-        graphics.drawImage(new MediaFileCoverArtRequest(coverArtController, albums.get(1)).createImage(half), null, half, 0);
-        graphics.drawImage(new MediaFileCoverArtRequest(coverArtController, albums.get(2)).createImage(half), null, 0, half);
-        graphics.drawImage(new MediaFileCoverArtRequest(coverArtController, albums.get(3)).createImage(half), null, half, half);
+        graphics.drawImage(new MediaFileCoverArtRequest(coverArtImageService, albums.get(0)).createImage(half), null, 0, 0);
+        graphics.drawImage(new MediaFileCoverArtRequest(coverArtImageService, albums.get(1)).createImage(half), null, half, 0);
+        graphics.drawImage(new MediaFileCoverArtRequest(coverArtImageService, albums.get(2)).createImage(half), null, 0, half);
+        graphics.drawImage(new MediaFileCoverArtRequest(coverArtImageService, albums.get(3)).createImage(half), null, half, half);
         graphics.dispose();
         return image;
     }
 
     private List<MediaFile> getRepresentativeAlbums() {
-        return coverArtController.playlistService.getFilesInPlaylist(playlist.getId())
+        return coverArtImageService.playlistService.getFilesInPlaylist(playlist.getId())
                 .parallelStream()
-                .map(coverArtController.mediaFileService::getParentOf)
-                .filter(album -> album != null && !coverArtController.mediaFileService.isRoot(album))
+                .map(coverArtImageService.mediaFileService::getParentOf)
+                .filter(album -> album != null && !coverArtImageService.mediaFileService.isRoot(album))
                 .distinct()
                 .collect(Collectors.toList());
     }

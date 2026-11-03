@@ -1,6 +1,6 @@
 package org.airsonic.player.controller.cover.request;
 
-import org.airsonic.player.controller.cover.CoverArtController;
+import org.airsonic.player.service.CoverArtImageService;
 import org.airsonic.player.domain.MediaFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,8 +15,8 @@ public class VideoCoverArtRequest extends CoverArtRequest {
     private final MediaFile mediaFile;
     private final int offset;
 
-    public VideoCoverArtRequest(CoverArtController coverArtController, MediaFile mediaFile, int offset) {
-        super(coverArtController);
+    public VideoCoverArtRequest(CoverArtImageService coverArtImageService, MediaFile mediaFile, int offset) {
+        super(coverArtImageService);
         this.mediaFile = mediaFile;
         this.offset = offset;
         keyGenerator = () -> mediaFile.getFolderId() + "/" + mediaFile.getPath() + "/" + offset;
@@ -26,7 +26,7 @@ public class VideoCoverArtRequest extends CoverArtRequest {
     @Override
     public BufferedImage createImage(int height) {
         int width = height * 16 / 9;
-        try (InputStream in = coverArtController.getImageInputStreamForVideo(mediaFile, width, height, offset)) {
+        try (InputStream in = coverArtImageService.getImageInputStreamForVideo(mediaFile, width, height, offset)) {
             BufferedImage result = ImageIO.read(in);
             if (result != null) {
                 return result;

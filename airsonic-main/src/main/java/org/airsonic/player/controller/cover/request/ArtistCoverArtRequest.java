@@ -1,15 +1,15 @@
 package org.airsonic.player.controller.cover.request;
 
-import org.airsonic.player.controller.cover.CoverArtController;
+import org.airsonic.player.service.CoverArtImageService;
 import org.airsonic.player.domain.Artist;
 import org.airsonic.player.domain.CoverArt;
 
 public class ArtistCoverArtRequest extends CoverArtRequest {
     private final Artist artist;
 
-    public ArtistCoverArtRequest(CoverArtController coverArtController, Artist artist) {
-        super(coverArtController, coverArtController.coverArtService.get(CoverArt.EntityType.ARTIST, artist.getId()),
-                () -> CoverArtController.ARTIST_COVERART_PREFIX + artist.getId(),
+    public ArtistCoverArtRequest(CoverArtImageService coverArtImageService, Artist artist) {
+        super(coverArtImageService, coverArtImageService.coverArtService.get(CoverArt.EntityType.ARTIST, artist.getId()),
+                () -> CoverArtImageService.ARTIST_COVERART_PREFIX + artist.getId(),
                 artist::getLastScanned);
         this.artist = artist;
     }
