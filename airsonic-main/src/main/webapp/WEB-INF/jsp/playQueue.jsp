@@ -1005,7 +1005,15 @@
                 if (JSON.stringify(previousIds) != JSON.stringify(currentIds)) suppressPlaylistDownload = false;
             }
             this.queueRevision = playQueue.revision;
-            this.songs = playQueue.entries;
+            // REST omits null fields, while WebSocket updates can contain explicit nulls.
+            this.songs = playQueue.entries.map(function (entry) {
+                return Object.assign({
+                    trackNumber: null, discNumber: null, title: null, album: null, artist: null,
+                    albumArtist: null, genre: null, year: null, format: null, fileSize: null,
+                    duration: null, bitRate: null, playCount: null, lastPlayed: null,
+                    lastScanned: null, created: null, changed: null, starred: false
+                }, entry);
+            });
             this.shuffleRadioEnabled = playQueue.shuffleRadioEnabled;
 
             if (initial && this.refreshNowPlaying) this.refreshNowPlaying();

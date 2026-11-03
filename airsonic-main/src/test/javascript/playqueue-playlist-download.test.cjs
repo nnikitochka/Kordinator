@@ -49,3 +49,41 @@ test('connection refresh passes the suppression flag through the REST response',
     assert.match(jsp, /pq\.requestQueue\("get", \{\}, true, true\)/);
     assert.match(jsp, /pq\.playQueueCallback\(queue, initial, suppressPlaylistDownload\)/);
 });
+
+test('REST and WebSocket queue entries retain values and supply missing table columns', () => {
+    const fields = ['trackNumber', 'discNumber', 'title', 'album', 'artist', 'albumArtist', 'genre',
+        'year', 'format', 'fileSize', 'duration', 'bitRate', 'playCount', 'lastPlayed',
+        'lastScanned', 'created', 'changed', 'starred'];
+    const {page} = queuePage('WEB');
+    for (const [revision, entry] of [[1, {id: 1, title: 'Song', discNumber: 2, trackNumber: 0}],
+        [2, {id: 2, title: 'No disc number', discNumber: null}]]) {
+        page.playQueueCallback(queue(revision, [entry]), revision === 1, false);
+        for (const field of fields) assert.ok(Object.hasOwn(page.songs[0], field), field);
+        assert.equal(page.songs[0].discNumber, entry.discNumber);
+        assert.equal(page.songs[0].title, entry.title);
+        assert.equal(page.songs[0].albumArtist, null);
+    }
+    assert.equal(page.songs[0].trackNumber, null);
+});
+
+test('DataTables accepts the queue row without optional metadata', () => {
+    const library = fs.readFileSync(path.resolve(__dirname, '../../main/webapp/script/DataTables/datatables.js'), 'utf8');
+    const start = library.indexOf('function _fnGetCellData(');
+    const end = library.indexOf('\n\t}', start) + 3;
+    assert.ok(start >= 0 && end > start);
+    const warnings = [];
+    const getCell = vm.runInNewContext('(' + library.slice(start, end) + ')', {
+        _fnLog(settings, level, message) { warnings.push(message); }
+    });
+    const {page} = queuePage('WEB');
+    page.playQueueCallback(queue(1, [{id: 1, title: 'Track'}]), true, false);
+    const fields = ['trackNumber', 'discNumber', 'title', 'album', 'artist', 'albumArtist', 'genre',
+        'year', 'format', 'fileSize', 'duration', 'bitRate', 'playCount', 'lastPlayed',
+        'lastScanned', 'created', 'changed', 'starred'];
+    const settings = {iDraw: 1, aoData: [{_aData: page.songs[0]}], aoColumns: fields.map(field => ({
+        mData: field, sDefaultContent: null, fnGetData: row => row[field]
+    }))};
+    fields.forEach((field, i) => getCell(settings, 0, i, 'display'));
+    assert.deepEqual(warnings, []);
+    assert.equal(getCell(settings, 0, 1, 'display'), '');
+});
