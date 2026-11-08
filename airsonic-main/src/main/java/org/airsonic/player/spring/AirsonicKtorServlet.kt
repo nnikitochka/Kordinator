@@ -59,6 +59,7 @@ import org.airsonic.player.controller.rest.livequeue.LiveQueueController
 import org.airsonic.player.controller.rest.cover.CoverArtRestController
 import org.airsonic.player.controller.rest.admin.MusicFolderSettingsController
 import org.airsonic.player.controller.rest.admin.GeneralSettingsController
+import org.airsonic.player.controller.rest.admin.TranscodingSettingsController
 import org.airsonic.player.controller.rest.users.UsersController
 import org.airsonic.player.controller.rest.users.PasswordController
 import org.airsonic.player.controller.rest.users.UsersRequest
@@ -123,6 +124,7 @@ class AirsonicKtorServlet(
     private val starredController: StarredController,
     private val jukeboxController: JukeboxController,
     private val usersController: UsersController,
+    private val transcodingSettingsController: TranscodingSettingsController,
     private val generalSettingsController: GeneralSettingsController,
     private val musicFolderSettingsController: MusicFolderSettingsController,
     private val passwordController: PasswordController,
@@ -276,6 +278,7 @@ class AirsonicKtorServlet(
             bookmarksController.routes(this) { call -> call.attributes[BOOKMARKS_REQUEST_KEY] }
             starredController.routes(this) { call -> call.attributes[STARRED_REQUEST_KEY] }
             usersController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
+            transcodingSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             generalSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             musicFolderSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             passwordController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
@@ -319,7 +322,7 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
-        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view")) {
+        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view")) {
             if (!securityService.getCurrentUser(request).isAdminRole) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
@@ -455,6 +458,7 @@ class AirsonicKtorServlet(
             }
             request.setAttribute(ALBUM_INFO_REQUEST, AlbumInfoRequest(parameters(request), id))
         } else if (path in UsersController.PATHS || path in UsersController.WEBSITE_PATHS || path == UsersController.WEBSITE_READ_PATH ||
+            path == TranscodingSettingsController.READ_PATH || path == TranscodingSettingsController.SAVE_PATH ||
             path == GeneralSettingsController.READ_PATH || path in GeneralSettingsController.WRITE_PATHS ||
             path == MusicFolderSettingsController.READ_PATH || path in MusicFolderSettingsController.WRITE_PATHS || path in PasswordController.PATHS) {
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)

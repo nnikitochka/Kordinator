@@ -14,39 +14,33 @@
     <c:param name="toast" value="${settings_toast}"/>
 </c:import>
 
-<form method="post" action="transcodingSettings.view">
-<sec:csrfInput />
+<p id="transcodingSettingsError" class="warning" role="alert"></p>
+<p id="transcodingSettingsSaved" role="status" hidden><fmt:message key="common.settingssaved"/></p>
+<form id="transcodingSettings">
+<fieldset id="transcodingFields" disabled style="border:0;padding:0">
 <table class="indent">
-    <tr>
+    <thead><tr>
         <th><fmt:message key="transcodingsettings.name"/></th>
         <th><fmt:message key="transcodingsettings.sourceformat"/></th>
         <th><fmt:message key="transcodingsettings.targetformat"/></th>
         <th><fmt:message key="transcodingsettings.step1"/></th>
         <th><fmt:message key="transcodingsettings.step2"/></th>
         <th style="padding-left:1em"><fmt:message key="common.delete"/></th>
-    </tr>
+    </tr></thead>
 
-    <c:forEach items="${model.transcodings}" var="transcoding">
-        <tr>
-            <td><input class="monospace" name="name[${transcoding.id}]" size="10" value="${fn:escapeXml(transcoding.name)}"/></td>
-            <td><input class="monospace" name="sourceFormats[${transcoding.id}]" size="36" value="${transcoding.sourceFormats}"/></td>
-            <td><input class="monospace" name="targetFormat[${transcoding.id}]" size="10" value="${transcoding.targetFormat}"/></td>
-            <td><input class="monospace" name="step1[${transcoding.id}]" size="60" value="${transcoding.step1}"/></td>
-            <td><input class="monospace" name="step2[${transcoding.id}]" size="22" value="${transcoding.step2}"/></td>
-            <td align="center" style="padding-left:1em"><input type="checkbox" name="delete[${transcoding.id}]"/></td>
-        </tr>
-    </c:forEach>
+    <tbody id="transcodingRows"></tbody>
 
-    <tr>
+
+    <tbody><tr>
         <th colspan="6" align="left" style="padding-top:1em"><fmt:message key="transcodingsettings.add"/></th>
     </tr>
 
     <tr>
-        <td><input class="monospace" name="name" size="10" placeholder="<fmt:message key='transcodingsettings.name'/>" value="${fn:escapeXml(newTranscoding.name)}"/></td>
-        <td><input class="monospace" name="sourceFormats" size="36" placeholder="<fmt:message key='transcodingsettings.sourceformat'/>" value="${newTranscoding.sourceFormats}"/></td>
-        <td><input class="monospace" name="targetFormat" size="10" placeholder="<fmt:message key='transcodingsettings.targetformat'/>" value="${newTranscoding.targetFormat}"/></td>
-        <td><input class="monospace" name="step1" size="60" placeholder="<fmt:message key='transcodingsettings.step1'/>" value="${newTranscoding.step1}"/></td>
-        <td><input class="monospace" name="step2" size="22" placeholder="<fmt:message key='transcodingsettings.step2'/>" value="${newTranscoding.step2}"/></td>
+        <td><input class="monospace" name="name" size="10" placeholder="<fmt:message key='transcodingsettings.name'/>"/></td>
+        <td><input class="monospace" name="sourceFormats" size="36" placeholder="<fmt:message key='transcodingsettings.sourceformat'/>"/></td>
+        <td><input class="monospace" name="targetFormat" size="10" placeholder="<fmt:message key='transcodingsettings.targetformat'/>"/></td>
+        <td><input class="monospace" name="step1" size="60" placeholder="<fmt:message key='transcodingsettings.step1'/>"/></td>
+        <td><input class="monospace" name="step2" size="22" placeholder="<fmt:message key='transcodingsettings.step2'/>"/></td>
         <td/>
     </tr>
 
@@ -56,7 +50,7 @@
             <label for="defaultActive"><fmt:message key="transcodingsettings.defaultactive"/></label>
         </td>
     </tr>
-</table>
+</tbody></table>
 
 
     <table style="white-space:nowrap" class="indent">
@@ -66,7 +60,7 @@
                 <c:import url="helpToolTip.jsp"><c:param name="topic" value="downsamplecommand"/></c:import>
             </td>
             <td>
-                <input class="monospace" type="text" name="downsampleCommand" size="100" value="${model.downsampleCommand}"/>
+                <input class="monospace" type="text" name="downsampleCommand" size="100"/>
             </td>
         </tr>
         <tr>
@@ -75,7 +69,7 @@
                 <c:import url="helpToolTip.jsp"><c:param name="topic" value="hlscommand"/></c:import>
             </td>
             <td>
-                <input class="monospace" type="text" name="hlsCommand" size="100" value="${model.hlsCommand}"/>
+                <input class="monospace" type="text" name="hlsCommand" size="100"/>
             </td>
         </tr>
         <tr>
@@ -84,7 +78,7 @@
                 <c:import url="helpToolTip.jsp"><c:param name="topic" value="jukeboxcommand"/></c:import>
             </td>
             <td>
-                <input class="monospace" type="text" name="jukeboxCommand" size="100" value="${model.jukeboxCommand}"/>
+                <input class="monospace" type="text" name="jukeboxCommand" size="100"/>
             </td>
         </tr>
         <tr>
@@ -93,7 +87,7 @@
                 <c:import url="helpToolTip.jsp"><c:param name="topic" value="videoimagecommand"/></c:import>
             </td>
             <td>
-                <input class="monospace" type="text" name="videoImageCommand" size="100" value="${model.videoImageCommand}"/>
+                <input class="monospace" type="text" name="videoImageCommand" size="100"/>
             </td>
         </tr>
         <tr>
@@ -102,7 +96,7 @@
                 <c:import url="helpToolTip.jsp"><c:param name="topic" value="subtitlesextractioncommand"/></c:import>
             </td>
             <td>
-                <input class="monospace" type="text" name="subtitlesExtractionCommand" size="100" value="${model.subtitlesExtractionCommand}"/>
+                <input class="monospace" type="text" name="subtitlesExtractionCommand" size="100"/>
             </td>
         </tr>
     </table>
@@ -114,7 +108,7 @@
                 <c:import url="helpToolTip.jsp"><c:param name="topic" value="transcodeestimatetimepadding"/></c:import>
             </td>
             <td>
-                <input class="monospace" name="transcodeEstimateTimePadding" size="8" value="${model.transcodeEstimateTimePadding}"/>
+                <input class="monospace" name="transcodeEstimateTimePadding" size="8"/>
             </td>
         </tr>
         <tr>
@@ -123,7 +117,7 @@
                 <c:import url="helpToolTip.jsp"><c:param name="topic" value="transcodeestimatebytepadding"/></c:import>
             </td>
             <td>
-                <input class="monospace" name="transcodeEstimateBytePadding" size="8" value="${model.transcodeEstimateBytePadding}"/>
+                <input class="monospace" name="transcodeEstimateBytePadding" size="8"/>
             </td>
         </tr>
     </table>
@@ -134,13 +128,21 @@
         <a href="https://airsonic.github.io/docs/transcode/" target="_blank" rel="noopener noreferrer"><fmt:message key="transcodingsettings.recommended"/></a>
     </p>
 
+</fieldset>
 </form>
 
-<c:if test="${not empty error}">
-    <p class="warning"><fmt:message key="${error}"/></p>
-</c:if>
+
 
 <div style="width:80%">
-    <fmt:message key="transcodingsettings.info"><fmt:param value="${model.transcodeDirectory}"/><fmt:param value="${model.brand}"/></fmt:message>
+    <fmt:message key="transcodingsettings.info"><fmt:param><span id="transcodeDirectory"></span></fmt:param><fmt:param><span id="transcodingBrand"></span></fmt:param></fmt:message>
 </div>
+<script src="<c:url value='/script/transcoding-settings.js'/>"></script>
+<script>
+initTranscodingSettings({
+    readUrl: '<c:url value="/rest/getTranscodingSettings"/>',
+    saveUrl: '<c:url value="/rest/saveTranscodingSettings"/>',
+    csrfHeader: '${_csrf.headerName}',
+    csrfToken: '${_csrf.token}'
+});
+</script>
 </body></html>
