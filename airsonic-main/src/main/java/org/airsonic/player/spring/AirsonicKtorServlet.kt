@@ -82,6 +82,7 @@ import org.airsonic.player.controller.rest.lyrics.LyricsController
 import org.airsonic.player.controller.rest.rating.RatingController
 import org.airsonic.player.controller.rest.rating.RatingRequest
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingController
+import org.airsonic.player.controller.rest.upload.UploadStatusController
 import org.airsonic.player.controller.rest.download.DownloadRestController
 import org.airsonic.player.controller.rest.download.DownloadRequest
 import org.airsonic.player.controller.rest.error.ErrorCode
@@ -129,6 +130,7 @@ class AirsonicKtorServlet(
     private val randomSongsController: RandomSongsController,
     private val scrobbleController: ScrobbleController,
     private val nowPlayingController: NowPlayingController,
+    private val uploadStatusController: UploadStatusController,
     private val songController: SongController,
     private val videosController: VideosController,
     private val lyricsController: LyricsController,
@@ -233,6 +235,8 @@ class AirsonicKtorServlet(
             }
             val liveQueue = request.getAttribute(LIVE_QUEUE_REQUEST) as? LiveQueueController.Request
             if (liveQueue != null) call.attributes.put(LIVE_QUEUE_REQUEST_KEY, liveQueue)
+            val uploadStatus = request.getAttribute(UPLOAD_STATUS_REQUEST) as? UploadStatusController.Request
+            if (uploadStatus != null) call.attributes.put(UPLOAD_STATUS_REQUEST_KEY, uploadStatus)
             val websiteSettings = request.getAttribute(WEBSITE_SETTINGS_REQUEST) as? WebsiteSettingsController.Request
             if (websiteSettings != null) call.attributes.put(WEBSITE_SETTINGS_REQUEST_KEY, websiteSettings)
             val avatar = request.getAttribute(AVATAR_REQUEST) as? AvatarRestController.Request
@@ -273,6 +277,7 @@ class AirsonicKtorServlet(
             indexesController.routes(this) { call -> call.attributes[INDEXES_REQUEST_KEY] }
             songsByGenreController.routes(this) { call -> call.attributes[GENRE_SONGS_REQUEST_KEY] }
             downloadRestController.routes(this) { call -> call.attributes[DOWNLOAD_REQUEST_KEY] }
+            uploadStatusController.routes(this) { call -> call.attributes[UPLOAD_STATUS_REQUEST_KEY] }
             nowPlayingController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             scrobbleController.routes(this) { call -> call.attributes[SCROBBLE_REQUEST_KEY] }
             randomSongsController.routes(this) { call -> call.attributes[RANDOM_SONGS_REQUEST_KEY] }
@@ -842,6 +847,10 @@ class AirsonicKtorServlet(
             val player = request.getParameter("playerId")?.toIntOrNull()?.let { playerService.getPlayerById(it) }
             request.setAttribute(LIVE_QUEUE_REQUEST, LiveQueueController.Request(
                 player?.takeIf { it.username == username }, parameters(request), username))
+        } else if (path in UploadStatusController.PATHS) {
+            val user = requireNotNull(securityService.getCurrentUser(request))
+            request.setAttribute(UPLOAD_STATUS_REQUEST, UploadStatusController.Request(
+                user.username, user.isAdminRole || user.isUploadRole, parameters(request)))
         } else if (path in WebsiteSettingsController.PATHS) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(WEBSITE_SETTINGS_REQUEST, WebsiteSettingsController.Request(user.username, parameters(request)))
@@ -906,6 +915,8 @@ class AirsonicKtorServlet(
         val HLS_REQUEST_KEY = AttributeKey<HlsRestController.Request>(HLS_REQUEST)
         const val LIVE_QUEUE_REQUEST = "org.airsonic.player.liveQueueRequest"
         val LIVE_QUEUE_REQUEST_KEY = AttributeKey<LiveQueueController.Request>(LIVE_QUEUE_REQUEST)
+        const val UPLOAD_STATUS_REQUEST = "org.airsonic.player.uploadStatusRequest"
+        val UPLOAD_STATUS_REQUEST_KEY = AttributeKey<UploadStatusController.Request>(UPLOAD_STATUS_REQUEST)
         const val WEBSITE_SETTINGS_REQUEST = "org.airsonic.player.websiteSettingsRequest"
         val WEBSITE_SETTINGS_REQUEST_KEY = AttributeKey<WebsiteSettingsController.Request>(WEBSITE_SETTINGS_REQUEST)
         const val AVATAR_REQUEST = "org.airsonic.player.avatarRequest"

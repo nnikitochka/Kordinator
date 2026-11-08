@@ -4,6 +4,7 @@
 <html><head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+    <%@ include file="subsonicUploadStatus.jsp" %>
     <style type="text/css">
         .progress-bar {width: 350px; height: 10px; border: 1px solid black; display:block;}
         .progress-bar-content {width: 0; height: 10px; background: url("<c:url value="/icons/default_light/progress.png"/>") repeat;}
@@ -75,8 +76,18 @@
         }
 
         <c:if test="${model.user.uploadRole}">
-        function uploadStatus(msg) {
-            var uploadInfo = JSON.parse(msg.body);
+        function updateUploads(uploads) {
+            var active = {};
+            uploads.forEach(function (upload) {
+                active[upload.transferId] = true;
+                uploadStatus(upload);
+            });
+            $("#progressBars > div").each(function () {
+                if (!active[this.id.substring("progressBarHolder".length)]) $(this).remove();
+            });
+        }
+
+        function uploadStatus(uploadInfo) {
 
             var progressBarHolder = $("#progressBarHolder" + uploadInfo.transferId);
 
@@ -104,9 +115,7 @@
 
         $(function() {
             <c:if test="${model.user.uploadRole}">
-            top.StompClient.subscribe("more.jsp", {
-                '/user/queue/uploads/status': uploadStatus
-            });
+            watchUploads(updateUploads);
             </c:if>
             $("#randomPlayQueue").on("submit", saveShuffleForm);
             loadShuffleForm();

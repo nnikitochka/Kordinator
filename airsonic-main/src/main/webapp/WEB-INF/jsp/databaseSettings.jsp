@@ -6,6 +6,7 @@
 <head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
+    <%@ include file="subsonicUploadStatus.jsp" %>
     <script>
         function updateShownOptions() {
             $(".hideawayDatabaseOptions").hide();
@@ -17,6 +18,17 @@
             if(value != 'BUILTIN') {
                 $("#nonBUILTINDatabaseOptions").show();
             }
+        }
+
+        function updateUploads(uploads) {
+            var active = {};
+            uploads.forEach(function (upload) {
+                active[upload.transferId] = true;
+                uploadStatus(upload);
+            });
+            $("#progressBars > div").each(function () {
+                if (!active[this.id.substring("progressBarHolder".length)]) $(this).remove();
+            });
         }
 
         function uploadStatus(uploadInfo) {
@@ -83,8 +95,8 @@
             $('select#configType').on('change', function () {
                 updateShownOptions();
             });
+            watchUploads(updateUploads);
             top.StompClient.subscribe("databaseSettingsController.jsp", {
-                '/user/queue/uploads/status': function(msg) { uploadStatus(JSON.parse(msg.body)); },
                 '/topic/backupStatus': function(msg) { backupStatus(msg.body); },
                 '/topic/importStatus': function(msg) { importStatus(msg.body); },
                 '/topic/exportStatus': function(msg) { exportStatus(msg.body); }

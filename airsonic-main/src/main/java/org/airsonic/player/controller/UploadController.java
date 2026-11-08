@@ -6,7 +6,6 @@ import com.github.junrar.rarfile.FileHeader;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.MoreFiles;
 import com.google.common.util.concurrent.RateLimiter;
-import org.airsonic.player.ajax.UploadInfo;
 import org.airsonic.player.domain.TransferStatus;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.service.PlayerService;
@@ -29,7 +28,6 @@ import org.apache.commons.fileupload2.core.FileItemInputIterator;
 import org.apache.commons.fileupload2.jakarta.JakartaServletDiskFileUpload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -50,7 +48,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -67,17 +64,15 @@ public class UploadController {
     private final PlayerService playerService;
     private final StatusService statusService;
     private final SettingsService settingsService;
-    private final SimpMessagingTemplate brokerTemplate;
 
     private static final Set<String> SUPPORTED_ZIP_FORMATS = ImmutableSet.of("zip", "7z", "rar", "cpio", "jar", "tar");
     public static final Map<UUID, Consumer<Path>> registeredCallbacks = new ConcurrentHashMap<>();
 
-    public UploadController(SecurityService securityService, PlayerService playerService, StatusService statusService, SettingsService settingsService, SimpMessagingTemplate brokerTemplate) {
+    public UploadController(SecurityService securityService, PlayerService playerService, StatusService statusService, SettingsService settingsService) {
         this.securityService = securityService;
         this.playerService = playerService;
         this.statusService = statusService;
         this.settingsService = settingsService;
-        this.brokerTemplate = brokerTemplate;
     }
 
     /** A file part received from the network and buffered to a temp file until the target dir is known. */
@@ -113,8 +108,6 @@ public class UploadController {
 
             status = statusService.createUploadStatus(playerService.getPlayer(request, response, false, false));
             status.setBytesTotal(request.getContentLength());
-            brokerTemplate.convertAndSendToUser(status.getPlayer().getUsername(), "/queue/uploads/status",
-                    new UploadInfo(status.getId(), 0L, status.getBytesTotal()));
 
             // Check that we have a file upload request
             if (!JakartaServletDiskFileUpload.isMultipartContent(request)) {
@@ -123,7 +116,7 @@ public class UploadController {
 
             boolean unzip = false;
 
-            UploadListener listener = new UploadListenerImpl(status, settingsService.getUploadBitrateLimiter(), brokerTemplate);
+            UploadListener listener = new UploadListenerImpl(status, settingsService.getUploadBitrateLimiter());
 
             // commons-fileupload2's items are final (builder-only), so the parts are streamed manually.
             // This preserves the original upload-progress semantics: bytes are counted as they arrive
@@ -197,8 +190,6 @@ public class UploadController {
         } finally {
             if (status != null) {
                 statusService.removeUploadStatus(status);
-                brokerTemplate.convertAndSendToUser(status.getPlayer().getUsername(), "/queue/uploads/status",
-                        new UploadInfo(status.getId(), status.getBytesTotal() + 1, status.getBytesTotal()));
                 securityService.updateUserByteCounts(user, 0L, 0L, status.getBytesTransferred());
             }
             if (callback != null && dir != null) {
@@ -382,14 +373,10 @@ public class UploadController {
      */
     private static class UploadListenerImpl implements UploadListener {
         private final TransferStatus status;
-        private final SimpMessagingTemplate brokerTemplate;
         private final RateLimiter rateLimiter;
-        private volatile int lastBroadcastPercentage = 0;
 
-        private UploadListenerImpl(TransferStatus status, RateLimiter rateLimiter,
-                SimpMessagingTemplate brokerTemplate) {
+        private UploadListenerImpl(TransferStatus status, RateLimiter rateLimiter) {
             this.status = status;
-            this.brokerTemplate = brokerTemplate;
             this.rateLimiter = rateLimiter;
         }
 
@@ -401,22 +388,10 @@ public class UploadController {
         @Override
         public void bytesRead(long bytesRead) {
             status.addBytesTransferred(bytesRead);
-            broadcast();
             // Throttle bitrate.
             rateLimiter.acquire((int) bytesRead);
         }
 
-        private void broadcast() {
-            long percentDone = 100 * status.getBytesTransferred() / Math.max(1, status.getBytesTotal());
-            // broadcast every 2% (no need to broadcast at every byte read)
-            if (percentDone - lastBroadcastPercentage > 2) {
-                lastBroadcastPercentage = (int) percentDone;
-                CompletableFuture.runAsync(() -> brokerTemplate.convertAndSendToUser(
-                        status.getPlayer().getUsername(),
-                        "/queue/uploads/status",
-                        new UploadInfo(status.getId(), status.getBytesTransferred(), status.getBytesTotal())));
-            }
-        }
     }
 
 }
