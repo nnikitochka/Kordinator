@@ -1,8 +1,9 @@
 /* Browser-session client for the shared Subsonic bookmark API. */
 function createSubsonicBookmarks(options) {
     var pending = Promise.resolve();
+    var localChanges = 0;
     function request(url, parameters, onSuccess) {
-        // Keep automatic progress writes and notification-triggered reads in order.
+        // Keep automatic progress writes and polling reads in order.
         pending = pending.then(async function () {
             var form = new URLSearchParams(parameters);
             form.set("f", "json");
@@ -21,6 +22,7 @@ function createSubsonicBookmarks(options) {
             if (!body || body.status !== "ok") {
                 throw new Error("Subsonic bookmark request failed");
             }
+            if (url !== options.listUrl) localChanges++;
             if (onSuccess) {
                 onSuccess(body);
             }
@@ -50,39 +52,25 @@ function createSubsonicBookmarks(options) {
                 onSuccess(bookmarks);
             });
         },
-        watch: function (stomp, owner, onSuccess) {
-            var disposed = false;
-            var refresh = function () {
-                if (!disposed) {
-                    return api.list(function (bookmarks) {
-                        if (!disposed) {
-                            onSuccess(bookmarks);
-                        }
-                    });
-                }
-            };
-            var subscriptions = {
-                '/user/queue/bookmarks/added': refresh,
-                '/user/queue/bookmarks/deleted': refresh
-            };
-            function unsubscribe() {
-                Object.keys(subscriptions).forEach(function (topic) { stomp.unsubscribe(topic, owner); });
+        watch: function (onSuccess) {
+            var disposed = false, timer, previous, previousChanges = -1;
+            function poll() {
+                if (disposed) return;
+                api.list(function (bookmarks) {
+                    var snapshot = JSON.stringify(bookmarks);
+                    if (!disposed && (snapshot !== previous || localChanges !== previousChanges)) {
+                        previous = snapshot;
+                        previousChanges = localChanges;
+                        onSuccess(bookmarks);
+                    }
+                }).then(function () {
+                    if (!disposed) timer = window.setTimeout(poll, 20000);
+                });
             }
-            stomp.subscribe(owner, subscriptions, function () {
-                if (disposed) {
-                    unsubscribe();
-                    return;
-                }
-                refresh();
-                stomp.onConnect.push(refresh);
-            });
+            poll();
             window.addEventListener("pagehide", function () {
                 disposed = true;
-                var index = stomp.onConnect.indexOf(refresh);
-                if (index !== -1) {
-                    stomp.onConnect.splice(index, 1);
-                }
-                unsubscribe();
+                window.clearTimeout(timer);
             }, {once: true});
         },
         create: function (id, position, comment, onSuccess) {

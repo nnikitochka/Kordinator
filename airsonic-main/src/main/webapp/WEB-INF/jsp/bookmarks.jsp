@@ -228,7 +228,7 @@
                 selectAll(e.target.checked);
             } );
 
-            bookmarkApi.watch(top.StompClient, "bookmarks.jsp", getBookmarksCallback);
+            bookmarkApi.watch(getBookmarksCallback);
         }
 
         function onAdd(index) {

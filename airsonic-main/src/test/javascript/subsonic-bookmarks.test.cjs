@@ -66,7 +66,7 @@ test('empty or missing entries replace stale website bookmarks with an empty map
     }
 });
 
-test('automatic progress writes and notification reads run in order', async () => {
+test('automatic progress writes and polling reads run in order', async () => {
     let release;
     const firstResponse = new Promise(resolve => { release = resolve; });
     const calls = [];
@@ -158,61 +158,84 @@ test('video player keeps bookmark interval, milliseconds and duplicate suppressi
     assert.equal(calls.length, 1);
 });
 
-test('initial subscription, notifications and reconnect fetch REST state; page exit removes listeners', async () => {
-    let reads = 0, subscriptions, afterSubscribe, leave;
-    const {api} = setup(async () => { reads++; return ok(); }, {
-        addEventListener: (event, callback) => { assert.equal(event, 'pagehide'); leave = callback; }
-    });
-    const removed = [];
-    const stomp = {
-        onConnect: [],
-        subscribe: (owner, callbacks, ready) => {
-            assert.equal(owner, 'bookmarks.jsp'); subscriptions = callbacks; afterSubscribe = ready;
+function pollingWindow() {
+    let timer, leave, cleared = false;
+    return {
+        window: {
+            addEventListener: (event, callback) => { assert.equal(event, 'pagehide'); leave = callback; },
+            setTimeout: (callback, delay) => { assert.equal(delay, 20000); timer = callback; return 1; },
+            clearTimeout: () => { cleared = true; timer = undefined; }
         },
-        unsubscribe: (topic, owner) => removed.push([topic, owner])
+        tick: async () => { assert.ok(timer); const callback = timer; timer = undefined; callback(); await flush(); },
+        leave: () => leave(), hasTimer: () => !!timer, cleared: () => cleared
     };
-    let updates = 0;
-    api.watch(stomp, 'bookmarks.jsp', () => updates++);
-    assert.equal(reads, 0);
-    afterSubscribe();
-    await new Promise(resolve => setImmediate(resolve));
+}
+const flush = () => new Promise(resolve => setImmediate(resolve));
+
+test('polls immediately and every 20 seconds, updating only when bookmarks change', async () => {
+    let reads = 0, position = 100, updates = [];
+    const clock = pollingWindow();
+    const {api} = setup(async () => { reads++; return ok({bookmarks: {bookmark: [
+        {position, entry: {id: '1'}}]}}); }, clock.window);
+    api.watch(value => updates.push(value['1'].positionMillis));
+    await flush();
     assert.equal(reads, 1);
+    assert.deepEqual(updates, [100]);
+    await clock.tick();
+    assert.equal(reads, 2);
+    assert.deepEqual(updates, [100]);
+    position = 200;
+    await clock.tick();
+    assert.deepEqual(updates, [100, 200]);
+    clock.leave();
+    assert.equal(clock.cleared(), true);
+    assert.equal(clock.hasTimer(), false);
+});
+
+test('polling resumes after errors and local writes invalidate the previous snapshot', async () => {
+    let fail = false, updates = 0;
+    const clock = pollingWindow();
+    const {api, errors} = setup(async () => { if (fail) throw Error('offline'); return ok(); }, clock.window);
+    api.watch(() => updates++);
+    await flush();
+    fail = true;
+    await clock.tick();
+    assert.equal(errors(), 1);
     assert.equal(updates, 1);
-    await subscriptions['/user/queue/bookmarks/added']();
-    await subscriptions['/user/queue/bookmarks/deleted']();
-    await stomp.onConnect[0]();
-    // Flush the serialized REST requests started by the notification callbacks.
-    await new Promise(resolve => setImmediate(resolve));
-    assert.equal(reads, 4);
-    assert.equal(updates, 4);
-    leave();
-    assert.equal(stomp.onConnect.length, 0);
-    assert.equal(removed.length, 2);
-    assert.ok(removed.every(([, owner]) => owner === 'bookmarks.jsp'));
+    fail = false;
+    await api.create(1, 100, 'audio');
+    await clock.tick();
+    assert.equal(updates, 2);
 });
 
-test('leaving before WebSocket connects cannot restore obsolete callbacks', async () => {
-    let ready, leave;
-    const {api} = setup(() => assert.fail('obsolete page must not fetch'), {
-        addEventListener: (event, callback) => { leave = callback; }
-    });
-    const stomp = {onConnect: [], subscribe: (owner, callbacks, callback) => { ready = callback; }, unsubscribe() {}};
-    api.watch(stomp, 'bookmarks.jsp', () => assert.fail('obsolete UI update'));
-    leave();
-    ready();
-    assert.equal(stomp.onConnect.length, 0);
-});
-
-test('an in-flight REST read cannot update a page after it has been left', async () => {
-    let resolve, leave;
+test('next poll is scheduled only after the preceding request finishes', async () => {
+    let resolve, reads = 0;
     const response = new Promise(done => { resolve = done; });
-    const {api} = setup(() => response, {addEventListener: (event, callback) => { leave = callback; }});
-    const stomp = {onConnect: [], subscribe: (owner, callbacks, ready) => ready(), unsubscribe() {}};
-    api.watch(stomp, 'bookmarks.jsp', () => assert.fail('obsolete UI update'));
-    await new Promise(done => setImmediate(done));
-    leave();
+    const clock = pollingWindow();
+    const {api} = setup(() => { reads++; return response; }, clock.window);
+    api.watch(() => {});
+    await flush();
+    assert.equal(reads, 1);
+    assert.equal(clock.hasTimer(), false);
     resolve(ok());
-    await new Promise(done => setImmediate(done));
+    await flush();
+    assert.equal(clock.hasTimer(), true);
+    await clock.tick();
+    assert.equal(reads, 2);
+    clock.leave();
+});
+
+test('an in-flight REST read cannot update or reschedule after leaving the page', async () => {
+    let resolve;
+    const response = new Promise(done => { resolve = done; });
+    const clock = pollingWindow();
+    const {api} = setup(() => response, clock.window);
+    api.watch(() => assert.fail('obsolete UI update'));
+    await flush();
+    clock.leave();
+    resolve(ok());
+    await flush();
+    assert.equal(clock.hasTimer(), false);
 });
 
 test('audio player resumes at the REST bookmark position', () => {
@@ -244,5 +267,5 @@ test('bookmark rows include every optional table field and preserve values', asy
     for (const name of ['title', 'album', 'artist', 'duration', 'starred', 'present']) assert.ok(Object.hasOwn(result.mediaFileEntry, name), name);
     assert.equal(result.positionMillis, 0); assert.equal(result.mediaFileEntry.title, 'Song');
     assert.equal(result.mediaFileEntry.album, null); assert.equal(result.comment, null);
-    assert.match(readFileSync(root + 'WEB-INF/jsp/subsonicBookmarks.jsp', 'utf8'), /subsonic-bookmarks\.js\?v=2/);
+    assert.match(readFileSync(root + 'WEB-INF/jsp/subsonicBookmarks.jsp', 'utf8'), /subsonic-bookmarks\.js\?v=3/);
 });

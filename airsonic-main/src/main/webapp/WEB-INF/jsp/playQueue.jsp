@@ -387,7 +387,7 @@
             window.addEventListener('pagehide', function () {
                 stopPlayersPolling();
             });
-            bookmarkApi.watch(top.StompClient, "playQueue.jsp", function (bookmarks) {
+            bookmarkApi.watch(function (bookmarks) {
                 pq.getBookmarksCallback(bookmarks);
             });
 
