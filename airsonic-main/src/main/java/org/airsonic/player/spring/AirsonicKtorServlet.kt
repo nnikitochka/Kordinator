@@ -313,6 +313,27 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path == "/userSettings" || path == "/userSettings.view") {
+            if (!securityService.getCurrentUser(request).isAdminRole) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                return
+            }
+            if (request.method != "GET" && request.method != "HEAD") {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            // JSP tags still need the view context while the page loads its data from Ktor REST.
+            val context = org.springframework.web.context.support.WebApplicationContextUtils
+                .getRequiredWebApplicationContext(request.servletContext)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
+            request.getRequestDispatcher("/WEB-INF/jsp/userSettings.jsp").forward(request, response)
+            return
+        }
         if (path.startsWith("/ext/rest-hls/")) {
             val auth = request.userPrincipal as? JWTAuthenticationToken
             val token = auth?.details as? DecodedJWT

@@ -219,6 +219,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(UsersController.PATHS);
         registration.addUrlMappings(UsersController.WEBSITE_PATHS);
         registration.addUrlMappings(UsersController.WEBSITE_READ_PATH);
+        registration.addUrlMappings("/userSettings", "/userSettings.view");
         registration.addUrlMappings(PasswordController.PATHS);
         registration.addUrlMappings(PlayQueueController.PATHS);
         registration.addUrlMappings(IndexesController.PATHS);

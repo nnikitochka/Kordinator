@@ -1,6 +1,5 @@
 package org.airsonic.player.command;
 
-import org.airsonic.player.controller.UserSettingsController;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.TranscodeScheme;
 import org.airsonic.player.domain.User;
@@ -8,7 +7,7 @@ import org.airsonic.player.domain.User;
 import java.util.List;
 
 /**
- * Command used in {@link UserSettingsController}.
+ * Parameters for user administration operations.
  *
  * @author Sindre Mehus
  */

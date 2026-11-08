@@ -6,7 +6,6 @@ import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.TranscodeScheme;
-import org.airsonic.player.controller.UserSettingsController;
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.SecurityService;
@@ -18,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import java.net.URI;
 import java.net.CookieManager;
@@ -33,7 +31,6 @@ import java.util.regex.Pattern;
 import java.net.http.*;
 import java.util.Set;
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
@@ -44,7 +41,7 @@ public class UsersIntegrationTest {
     @Autowired private SecurityService security;
     @Autowired private SettingsService settings;
     @Autowired private MediaFolderService folders;
-    @MockitoSpyBean private UserSettingsController mvc;
+    @Autowired private org.springframework.context.ApplicationContext context;
     private final HttpClient client = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -105,7 +102,7 @@ public class UsersIntegrationTest {
         ok(call("getUser", "users-member", "own", "username=users-member"));
         ok(call("deleteUser.view", "users-admin", "username=users-created"));
         assertNull(security.getUserByName("users-created"));
-        verifyNoInteractions(mvc);
+        assertFalse(context.containsBean("userSettingsController"));
         websiteUserAdministration();
     }
     private void websiteUserAdministration() throws Exception {
@@ -123,6 +120,12 @@ public class UsersIntegrationTest {
         token = Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
         assertTrue(token.find());
         String csrf = URLEncoder.encode(token.group(1), StandardCharsets.UTF_8);
+        for (String path : new String[]{"/userSettings", "/userSettings.view"}) {
+            HttpResponse<String> userPage = browser.send(HttpRequest.newBuilder(URI.create(base() + path)).GET().build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(userPage.body(), 200, userPage.statusCode());
+            assertTrue(userPage.body().contains("initUserAdministration"));
+            assertFalse(userPage.body().contains("${_csrf.token}"));
+        }
         assertEquals(403, post(browser, "/rest/saveWebsiteUser", "f=json&c=airsonic-web&username=admin&deleteUser=true").statusCode());
         HttpClient memberBrowser = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
                 .followRedirects(HttpClient.Redirect.NEVER).build();
@@ -134,6 +137,7 @@ public class UsersIntegrationTest {
         HttpResponse<String> memberPage = memberBrowser.send(HttpRequest.newBuilder(URI.create(base() + "/top.view")).GET().build(), HttpResponse.BodyHandlers.ofString());
         memberToken = Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(memberPage.body());
         assertTrue(memberToken.find());
+        assertEquals(403, memberBrowser.send(HttpRequest.newBuilder(URI.create(base() + "/userSettings.view")).GET().build(), HttpResponse.BodyHandlers.ofString()).statusCode());
         error(websiteCall(memberBrowser, URLEncoder.encode(memberToken.group(1), StandardCharsets.UTF_8), "username=admin&deleteUser=true"), 50);
         String form = "_csrf=" + csrf + "&newUser=true&username=website-created&email=web%40example.com&password=secret&confirmPassword=secret&streamRole=true&transcodeSchemeName=OFF&allowedMusicFolderIds=" + folderId;
         ok(websiteCall(browser, csrf, form));
