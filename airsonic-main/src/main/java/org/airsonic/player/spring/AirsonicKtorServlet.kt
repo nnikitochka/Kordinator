@@ -65,6 +65,7 @@ import org.airsonic.player.controller.rest.admin.TranscodingSettingsController
 import org.airsonic.player.controller.rest.admin.AdvancedSettingsController
 import org.airsonic.player.controller.rest.admin.PlayerSettingsController
 import org.airsonic.player.controller.rest.settings.PersonalSettingsController
+import org.airsonic.player.controller.rest.settings.CredentialsManagementController
 import org.airsonic.player.controller.rest.users.UsersController
 import org.airsonic.player.controller.rest.users.PasswordController
 import org.airsonic.player.controller.rest.users.UsersRequest
@@ -129,6 +130,7 @@ class AirsonicKtorServlet(
     private val starredController: StarredController,
     private val jukeboxController: JukeboxController,
     private val usersController: UsersController,
+    private val credentialsManagementController: CredentialsManagementController,
     private val personalSettingsController: PersonalSettingsController,
     private val playerSettingsController: PlayerSettingsController,
     private val advancedSettingsController: AdvancedSettingsController,
@@ -288,6 +290,7 @@ class AirsonicKtorServlet(
             starredController.routes(this) { call -> call.attributes[STARRED_REQUEST_KEY] }
             usersController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             avatarUploadController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
+            credentialsManagementController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             personalSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             playerSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             advancedSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
@@ -335,9 +338,9 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
-        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view")) {
+        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view")) {
             val user = securityService.getCurrentUser(request)
-            val personalPage = path in setOf("/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view")
+            val personalPage = path in setOf("/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view")
             if (!user.isAdminRole && !(personalPage && user.isSettingsRole)) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
@@ -479,7 +482,7 @@ class AirsonicKtorServlet(
             request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)),
                 parseQueryString(request.queryString.orEmpty())))
         } else if (path in UsersController.PATHS || path in UsersController.WEBSITE_PATHS || path == UsersController.WEBSITE_READ_PATH ||
-            path in PlayerSettingsController.PATHS ||
+            path in PlayerSettingsController.PATHS || path in CredentialsManagementController.PATHS ||
             path == PersonalSettingsController.READ_PATH || path == PersonalSettingsController.SAVE_PATH ||
             path == AdvancedSettingsController.READ_PATH || path == AdvancedSettingsController.SAVE_PATH ||
             path == TranscodingSettingsController.READ_PATH || path == TranscodingSettingsController.SAVE_PATH ||

@@ -11,8 +11,13 @@ import jakarta.xml.bind.annotation.XmlType
 
 @XmlRootElement(name = "subsonic-response", namespace = "http://subsonic.org/restapi")
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "Response", propOrder = ["musicFolders", "indexes", "directory", "genres", "artists", "artist", "album", "song", "videos", "videoInfo", "nowPlaying", "searchResult", "searchResult2", "searchResult3", "playlists", "playlist", "jukeboxStatus", "jukeboxPlaylist", "license", "users", "user", "chatMessages", "albumList", "albumList2", "randomSongs", "songsByGenre", "lyrics", "podcasts", "newestPodcasts", "bookmarks", "playQueue", "shares", "starred", "starred2", "albumInfo", "artistInfo", "artistInfo2", "similarSongs", "similarSongs2", "topSongs", "scanStatus", "coverArtSearchResults", "livePlayQueue", "websiteDirectory", "websiteArtistInfo", "tagEdit", "websiteSettings", "websiteUserAdministration", "musicFolderSettings", "generalSettings", "transcodingSettings", "advancedSettings", "playerSettings", "personalSettings", "avatarUpload", "uploadStatuses", "databaseStatuses", "error"])
+@XmlType(name = "Response", propOrder = ["musicFolders", "indexes", "directory", "genres", "artists", "artist", "album", "song", "videos", "videoInfo", "nowPlaying", "searchResult", "searchResult2", "searchResult3", "playlists", "playlist", "jukeboxStatus", "jukeboxPlaylist", "license", "users", "user", "chatMessages", "albumList", "albumList2", "randomSongs", "songsByGenre", "lyrics", "podcasts", "newestPodcasts", "bookmarks", "playQueue", "shares", "starred", "starred2", "albumInfo", "artistInfo", "artistInfo2", "similarSongs", "similarSongs2", "topSongs", "scanStatus", "coverArtSearchResults", "livePlayQueue", "websiteDirectory", "websiteArtistInfo", "tagEdit", "websiteSettings", "websiteUserAdministration", "musicFolderSettings", "generalSettings", "transcodingSettings", "advancedSettings", "playerSettings", "personalSettings", "avatarUpload", "credentialManagement", "credentialKeys", "uploadStatuses", "databaseStatuses", "error"])
 class Response {
+    @field:XmlElement(name = "credentialManagement")
+    var credentialManagement: CredentialManagement? = null
+    @field:XmlElement(name = "credentialKeys")
+    var credentialKeys: CredentialKeys? = null
+
     @field:XmlElement(name = "avatarUpload")
     var avatarUpload: AvatarUpload? = null
 

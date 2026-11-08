@@ -51,6 +51,7 @@ import org.airsonic.player.controller.rest.admin.TranscodingSettingsController;
 import org.airsonic.player.controller.rest.admin.AdvancedSettingsController;
 import org.airsonic.player.controller.rest.admin.PlayerSettingsController;
 import org.airsonic.player.controller.rest.settings.PersonalSettingsController;
+import org.airsonic.player.controller.rest.settings.CredentialsManagementController;
 import org.airsonic.player.service.GeneralSettingsAdministrationService;
 import org.airsonic.player.service.MusicFolderAdministrationService;
 import org.airsonic.player.service.search.IndexManager;
@@ -153,6 +154,7 @@ public class KtorConfiguration {
             JukeboxService jukeboxService,
             PlayQueueService playQueueService,
             PlayQueueDao playQueueDao,
+            org.springframework.transaction.PlatformTransactionManager transactionManager,
             SecurityService securityService,
             SettingsService settingsService,
             MusicIndexService musicIndexService,
@@ -189,6 +191,7 @@ public class KtorConfiguration {
                                 new StarredController(mediaFileDao, albumDao, artistDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),
                                 new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, transcodingService, jaxbWriter),
+                                new CredentialsManagementController(securityService, settingsService, jaxbWriter, transactionManager),
                                 new PersonalSettingsController(settingsService, securityService, jaxbWriter),
                                 new PlayerSettingsController(playerService, transcodingService, playQueueService, jaxbWriter),
                                 new AdvancedSettingsController(settingsService, jaxbWriter),
@@ -240,6 +243,7 @@ public class KtorConfiguration {
         registration.addUrlMappings("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view");
         registration.addUrlMappings("/generalSettings", "/generalSettings.view");
         registration.addUrlMappings("/transcodingSettings", "/transcodingSettings.view", TranscodingSettingsController.READ_PATH, TranscodingSettingsController.SAVE_PATH);
+        registration.addUrlMappings("/credentialsSettings", "/credentialsSettings.view", CredentialsManagementController.READ_PATH, CredentialsManagementController.KEYS_PATH, CredentialsManagementController.CREATE_PATH, CredentialsManagementController.UPDATE_PATH, CredentialsManagementController.ADMIN_PATH);
         registration.addUrlMappings("/shareSettings", "/shareSettings.view");
         registration.addUrlMappings("/personalSettings", "/personalSettings.view", PersonalSettingsController.READ_PATH, PersonalSettingsController.SAVE_PATH);
         registration.addUrlMappings("/playerSettings", "/playerSettings.view", PlayerSettingsController.READ_PATH, PlayerSettingsController.SAVE_PATH, PlayerSettingsController.CLONE_PATH, PlayerSettingsController.DELETE_PATH);
