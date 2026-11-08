@@ -1,6 +1,5 @@
 package org.airsonic.player.service;
 
-import com.google.common.collect.ImmutableMap;
 import org.airsonic.player.ajax.media.MediaFileEntry;
 import org.airsonic.player.ajax.queue.PlayQueueInfo;
 import org.airsonic.player.dao.MediaFileDao;
@@ -13,9 +12,6 @@ import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.RandomSearchCriteria;
 import org.airsonic.player.domain.SavedPlayQueue;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
-import org.springframework.messaging.simp.SimpMessageType;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -25,16 +21,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-import static java.util.concurrent.CompletableFuture.runAsync;
 
 @Service
 public class PlayQueueService {
     /** Selects where the web-player start instruction is delivered. */
     public record PlaybackTarget(String sessionId, boolean returnToCaller) {
-        public static PlaybackTarget websocket(String sessionId) {
-            return new PlaybackTarget(sessionId, false);
-        }
-
         public static PlaybackTarget response() {
             return new PlaybackTarget(null, true);
         }
@@ -52,9 +43,8 @@ public class PlayQueueService {
     private final MediaFolderService mediaFolderService;
     private final PlayQueueDao playQueueDao;
     private final JWTSecurityService jwtSecurityService;
-    private final SimpMessagingTemplate brokerTemplate;
 
-    public PlayQueueService(SearchService searchService, JukeboxService jukeboxService, SettingsService settingsService, MediaFileService mediaFileService, LastFmService lastFmService, RatingService ratingService, PlaylistService playlistService, MediaFileDao mediaFileDao, SimpMessagingTemplate brokerTemplate, MediaFolderService mediaFolderService, PlayQueueDao playQueueDao, JWTSecurityService jwtSecurityService) {
+    public PlayQueueService(SearchService searchService, JukeboxService jukeboxService, SettingsService settingsService, MediaFileService mediaFileService, LastFmService lastFmService, RatingService ratingService, PlaylistService playlistService, MediaFileDao mediaFileDao, MediaFolderService mediaFolderService, PlayQueueDao playQueueDao, JWTSecurityService jwtSecurityService) {
         this.searchService = searchService;
         this.jukeboxService = jukeboxService;
         this.settingsService = settingsService;
@@ -63,7 +53,6 @@ public class PlayQueueService {
         this.ratingService = ratingService;
         this.playlistService = playlistService;
         this.mediaFileDao = mediaFileDao;
-        this.brokerTemplate = brokerTemplate;
         this.mediaFolderService = mediaFolderService;
         this.playQueueDao = playQueueDao;
         this.jwtSecurityService = jwtSecurityService;
@@ -74,8 +63,6 @@ public class PlayQueueService {
         if (player.isJukebox()) {
             jukeboxService.start(player);
         }
-        runAsync(() -> brokerTemplate.convertAndSendToUser(player.getUsername(),
-                "/queue/playqueues/" + player.getId() + "/playstatus", PlayQueue.Status.PLAYING));
     }
 
     public void stop(Player player) {
@@ -83,8 +70,6 @@ public class PlayQueueService {
         if (player.isJukebox()) {
             jukeboxService.stop(player);
         }
-        runAsync(() -> brokerTemplate.convertAndSendToUser(player.getUsername(),
-                "/queue/playqueues/" + player.getId() + "/playstatus", PlayQueue.Status.STOPPED));
     }
 
     public void toggleStartStop(Player player) {
@@ -101,12 +86,6 @@ public class PlayQueueService {
             jukeboxService.skip(player, index, (int) (offset / 1000));
         }
 
-        runAsync(() -> {
-            brokerTemplate.convertAndSendToUser(player.getUsername(),
-                    "/queue/playqueues/" + player.getId() + "/skip", ImmutableMap.of("index", index, "offset", offset));
-            brokerTemplate.convertAndSendToUser(player.getUsername(),
-                    "/queue/playqueues/" + player.getId() + "/playstatus", player.getPlayQueue().getStatus());
-        });
     }
 
     public PlayQueueInfo reloadSearchCriteria(Player player, PlaybackTarget target) {
@@ -298,15 +277,11 @@ public class PlayQueueService {
             playQueue.addFiles(true, files);
         }
         playQueue.setRandomSearchCriteria(null);
-        if (broadcast) {
-            broadcastPlayQueue(player);
-        }
     }
 
     public void addRandomCriteria(Player player, boolean append, RandomSearchCriteria criteria, boolean autoRandom) {
         player.getPlayQueue().addFiles(append, mediaFileService.getRandomSongs(criteria, player.getUsername()));
         player.getPlayQueue().setRandomSearchCriteria(autoRandom ? criteria : null);
-        broadcastPlayQueue(player);
     }
 
     public void addPlaylist(Player player, int id, boolean removeVideoFiles) {
@@ -320,7 +295,6 @@ public class PlayQueueService {
         playQueue.addFiles(true, files);
 
         playQueue.setRandomSearchCriteria(null);
-        broadcastPlayQueue(player);
     }
 
     public void reset(Player player, List<Integer> ids, boolean removeVideoFiles) {
@@ -334,17 +308,14 @@ public class PlayQueueService {
         int index = currentFile == null ? -1 : playQueue.getFiles().indexOf(currentFile);
         playQueue.setIndex(index);
         playQueue.setStatus(status);
-        broadcastPlayQueue(player);
     }
 
     public void clear(Player player) {
         player.getPlayQueue().clear();
-        broadcastPlayQueue(player);
     }
 
     public void shuffle(Player player) {
         player.getPlayQueue().shuffle();
-        broadcastPlayQueue(player);
     }
 
     public void remove(Player player, List<Integer> indexes) {
@@ -353,22 +324,18 @@ public class PlayQueueService {
         for (int i = indexes.size() - 1; i >= 0; i--) {
             player.getPlayQueue().removeFileAt(indexes.get(i));
         }
-        broadcastPlayQueue(player);
     }
 
     public void rearrange(Player player, List<Integer> indexes) {
         player.getPlayQueue().rearrange(indexes);
-        broadcastPlayQueue(player);
     }
 
     public void up(Player player, int index) {
         player.getPlayQueue().moveUp(index);
-        broadcastPlayQueue(player);
     }
 
     public void down(Player player, int index) {
         player.getPlayQueue().moveDown(index);
-        broadcastPlayQueue(player);
     }
 
     public void toggleRepeat(Player player) {
@@ -379,18 +346,14 @@ public class PlayQueueService {
         } else {
             playQueue.setRepeatStatus(RepeatStatus.getNext(playQueue.getRepeatStatus()));
         }
-        runAsync(() -> brokerTemplate.convertAndSendToUser(player.getUsername(),
-                "/queue/playqueues/" + player.getId() + "/repeat", playQueue.getRepeatStatus()));
     }
 
     public void undo(Player player) {
         player.getPlayQueue().undo();
-        broadcastPlayQueue(player);
     }
 
     public void sort(Player player, PlayQueue.SortOrder order) {
         player.getPlayQueue().sort(order);
-        broadcastPlayQueue(player);
     }
 
     private static final Function<PlayQueueInfo, PlayQueueInfo> identity = pq -> pq;
@@ -401,50 +364,22 @@ public class PlayQueueService {
     //
     public void setJukeboxGain(Player player, float gain) {
         jukeboxService.setGain(player, gain);
-        runAsync(() -> brokerTemplate.convertAndSendToUser(player.getUsername(),
-                "/queue/playqueues/" + player.getId() + "/jukebox/gain", gain));
     }
 
     public void setJukeboxPosition(Player player, int positionInSeconds) {
         jukeboxService.setPosition(player, positionInSeconds);
-        runAsync(() -> brokerTemplate.convertAndSendToUser(player.getUsername(),
-                "/queue/playqueues/" + player.getId() + "/jukebox/position", positionInSeconds));
     }
 
     //
     // End : Methods dedicated to jukebox
     //
 
-    private void broadcastPlayQueue(Player player) {
-        broadcastPlayQueue(player, identity, null);
-    }
-
-    private PlayQueueInfo broadcastPlayQueue(Player player, Function<PlayQueueInfo, PlayQueueInfo> playQueueModifier, PlaybackTarget target) {
-        PlayQueueInfo info = playQueueModifier.apply(getPlayQueueInfo(player));
-        runAsync(() -> {
-            brokerTemplate.convertAndSendToUser(player.getUsername(),
-                    "/queue/playqueues/" + player.getId() + "/updated", info);
-            postBroadcast(info, player, target);
-        });
-        return info;
-    }
-
-    private void postBroadcast(PlayQueueInfo info, Player player, PlaybackTarget target) {
-        if (info.getStartPlayerAt() != -1) {
-            if (player.isWeb() && target != null && target.returnToCaller()) {
-                return;
-            }
-            if (player.isWeb() && target != null && target.sessionId() != null) {
-                SimpMessageHeaderAccessor headerAccessor = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
-                headerAccessor.setSessionId(target.sessionId());
-                brokerTemplate.convertAndSendToUser(player.getUsername(),
-                        "/queue/playqueues/" + player.getId() + "/skip",
-                        ImmutableMap.of("index", info.getStartPlayerAt(), "offset", info.getStartPlayerAtPosition()),
-                        headerAccessor.getMessageHeaders());
-            } else if (!player.isExternalWithPlaylist()) {
-                skip(player, info.getStartPlayerAt(), info.getStartPlayerAtPosition());
-            }
+    private PlayQueueInfo broadcastPlayQueue(Player player, Function<PlayQueueInfo, PlayQueueInfo> modifier, PlaybackTarget target) {
+        PlayQueueInfo info = modifier.apply(getPlayQueueInfo(player));
+        if (info.getStartPlayerAt() != -1 && !player.isWeb() && !player.isExternalWithPlaylist()) {
+            skip(player, info.getStartPlayerAt(), info.getStartPlayerAtPosition());
         }
+        return info;
     }
 
     public PlayQueueInfo getPlayQueueInfo(Player player) {
