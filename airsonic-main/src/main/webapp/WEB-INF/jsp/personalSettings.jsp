@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="iso-8859-1" %>
-<%--@elvariable id="command" type="org.airsonic.player.command.PersonalSettingsCommand"--%>
+
 
 <html><head>
     <%@ include file="head.jsp" %>
@@ -8,8 +8,8 @@
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
 
     <script type="text/javascript" language="javascript">
-        var lastfmCredsAbsent = ${lastfmCredsAbsent};
-        var listenBrainzCredsAbsent = ${listenBrainzCredsAbsent};
+        var lastfmCredsAbsent = true;
+        var listenBrainzCredsAbsent = true;
         function enableFields() {
             $("#lastFm").is(":checked") ? $(".lastFmRow").show() : $(".lastFmRow").hide();
             if (lastfmCredsAbsent) {
@@ -33,27 +33,27 @@
 
 <c:import url="settingsHeader.jsp">
     <c:param name="cat" value="personal"/>
-    <c:param name="restricted" value="${not command.user.adminRole}"/>
-    <c:param name="toast" value="${settings_toast}"/>
+    <c:param name="restricted" value="${not playerSettingsAdmin}"/>
+    <c:param name="toast" value="${param.saved}"/>
 </c:import>
 
-<fmt:message key="personalsettings.title" var="title"><fmt:param>${command.user.username}</fmt:param></fmt:message>
+<fmt:message key="personalsettings.title" var="title"><fmt:param>${personalSettingsUsername}</fmt:param></fmt:message>
 <h2>${fn:escapeXml(title)}</h2>
 
 <fmt:message key="common.default" var="defaultTitle"/>
-<form:form method="post" action="personalSettings.view" modelAttribute="command">
+<p id="personalSettingsError" class="warning" role="alert"></p>
+<p id="personalSettingsSaved" role="status" ${param.saved ? '' : 'hidden'}><fmt:message key="common.settingssaved"/></p>
+<form id="personalSettings">
+<fieldset id="personalFields" disabled>
+<input type="hidden" name="playlistVisibility.entryTypeVisible"/>
+<input type="hidden" name="playqueueVisibility.entryTypeVisible"/>
 
     <table style="white-space:nowrap" class="indent">
 
         <tr>
             <td><fmt:message key="personalsettings.language"/></td>
             <td>
-                <form:select path="localeIndex" cssStyle="width:15em">
-                    <form:option value="-1" label="${defaultTitle}"/>
-                    <c:forEach items="${command.locales}" var="locale" varStatus="loopStatus">
-                        <form:option value="${loopStatus.count - 1}" label="${locale}"/>
-                    </c:forEach>
-                </form:select>
+                <select name="locale" style="width:15em"><option value="">${fn:escapeXml(defaultTitle)}</option></select>
                 <c:import url="helpToolTip.jsp"><c:param name="topic" value="language"/></c:import>
             </td>
         </tr>
@@ -61,12 +61,7 @@
         <tr>
             <td><fmt:message key="personalsettings.theme"/></td>
             <td>
-                <form:select path="themeIndex" cssStyle="width:15em">
-                    <form:option value="-1" label="${defaultTitle}"/>
-                    <c:forEach items="${command.themes}" var="theme" varStatus="loopStatus">
-                        <form:option value="${loopStatus.count - 1}" label="${theme.name}"/>
-                    </c:forEach>
-                </form:select>
+                <select name="themeId" style="width:15em"><option value="">${fn:escapeXml(defaultTitle)}</option></select>
                 <c:import url="helpToolTip.jsp"><c:param name="topic" value="theme"/></c:import>
             </td>
         </tr>
@@ -74,14 +69,14 @@
         <tr>
             <td><fmt:message key="personalsettings.albumlist"/></td>
             <td>
-                <form:select path="albumListId" cssStyle="width:15em">
-                    <c:forEach items="${command.albumLists}" var="albumList" varStatus="loopStatus">
+                <select name="albumListId" style="width:15em">
+                    <c:forTokens items="random,newest,starred,highest,frequent,recent,decade,genre,alphabetical" delims="," var="albumList">
                         <c:set var="label">
-                            <fmt:message key="home.${albumList.id}.title"/>
+                            <fmt:message key="home.${albumList}.title"/>
                         </c:set>
-                        <form:option value="${albumList.id}" label="${label}"/>
-                    </c:forEach>
-                </form:select>
+                        <option value="${albumList}">${fn:escapeXml(label)}</option>
+                    </c:forTokens>
+                </select>
             </td>
         </tr>
     </table>
@@ -98,109 +93,109 @@
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.header"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.headerVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.headerVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.headerVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.headerVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.headerVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.headerVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.tracknumber"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.trackNumberVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.trackNumberVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.trackNumberVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.trackNumberVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.trackNumberVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.trackNumberVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.discnumber"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.discNumberVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.discNumberVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.discNumberVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.discNumberVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.discNumberVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.discNumberVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.artist"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.artistVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.artistVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.artistVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.artistVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.artistVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.artistVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.albumartist"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.albumArtistVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.albumArtistVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.albumArtistVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.albumArtistVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.albumArtistVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.albumArtistVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.album"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.albumVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.albumVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.albumVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.albumVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.albumVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.albumVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.genre"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.genreVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.genreVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.genreVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.genreVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.genreVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.genreVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.year"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.yearVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.yearVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.yearVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.yearVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.yearVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.yearVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.bitrate"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.bitRateVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.bitRateVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.bitRateVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.bitRateVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.bitRateVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.bitRateVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.duration"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.durationVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.durationVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.durationVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.durationVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.durationVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.durationVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.format"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.formatVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.formatVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.formatVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.formatVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.formatVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.formatVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.filesize"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.fileSizeVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.fileSizeVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.fileSizeVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.fileSizeVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.fileSizeVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.fileSizeVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.playcount"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.playCountVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.playCountVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.playCountVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.playCountVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.playCountVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.playCountVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.lastplayed"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.lastPlayedVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.lastPlayedVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.lastPlayedVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.lastPlayedVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.lastPlayedVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.lastPlayedVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.lastscanned"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.lastScannedVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.lastScannedVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.lastScannedVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.lastScannedVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.lastScannedVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.lastScannedVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.created"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.createdVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.createdVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.createdVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.createdVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.createdVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.createdVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.changed"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.changedVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playlistVisibility.changedVisible" cssClass="checkbox"/></td>
-            <td style="text-align:center"><form:checkbox path="playqueueVisibility.changedVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.changedVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playlistVisibility.changedVisible" class="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="playqueueVisibility.changedVisible" class="checkbox"/></td>
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.entrytype"/></td>
-            <td style="text-align:center"><form:checkbox path="mainVisibility.entryTypeVisible" cssClass="checkbox"/></td>
+            <td style="text-align:center"><input type="checkbox" name="mainVisibility.entryTypeVisible" class="checkbox"/></td>
             <td style="text-align:center"></td>
             <td style="text-align:center"></td>
         </tr>
@@ -208,23 +203,23 @@
 
     <table class="indent">
         <tr>
-            <td><form:checkbox path="showNowPlayingEnabled" id="nowPlaying" cssClass="checkbox"/></td>
+            <td><input type="checkbox" name="showNowPlayingEnabled" id="nowPlaying" class="checkbox"/></td>
             <td><label for="nowPlaying"><fmt:message key="personalsettings.shownowplaying"/></label></td>
-            <td style="padding-left:2em"><form:checkbox path="showArtistInfoEnabled" id="artistInfo" cssClass="checkbox"/></td>
+            <td style="padding-left:2em"><input type="checkbox" name="showArtistInfoEnabled" id="artistInfo" class="checkbox"/></td>
             <td><label for="artistInfo"><fmt:message key="personalsettings.showartistinfo"/></label></td>
         </tr>
         <tr>
-            <td><form:checkbox path="nowPlayingAllowed" id="nowPlayingAllowed" cssClass="checkbox"/></td>
+            <td><input type="checkbox" name="nowPlayingAllowed" id="nowPlayingAllowed" class="checkbox"/></td>
             <td><label for="nowPlayingAllowed"><fmt:message key="personalsettings.nowplayingallowed"/></label></td>
-            <td style="padding-left:2em"><form:checkbox path="autoHidePlayQueue" id="autoHidePlayQueue" cssClass="checkbox"/></td>
+            <td style="padding-left:2em"><input type="checkbox" name="autoHidePlayQueue" id="autoHidePlayQueue" class="checkbox"/></td>
             <td><label for="autoHidePlayQueue"><fmt:message key="personalsettings.autohideplayqueue"/></label></td>
-            <td style="padding-left:2em"><form:checkbox path="partyModeEnabled" id="partyModeEnabled" cssClass="checkbox"/></td>
+            <td style="padding-left:2em"><input type="checkbox" name="partyModeEnabled" id="partyModeEnabled" class="checkbox"/></td>
             <td><label for="partyModeEnabled"><fmt:message key="personalsettings.partymode"/></label>
                 <c:import url="helpToolTip.jsp"><c:param name="topic" value="partymode"/></c:import>
             </td>
         </tr>
         <tr>
-            <td><form:checkbox path="queueFollowingSongs" id="queueFollowingSongs" cssClass="checkbox"/></td>
+            <td><input type="checkbox" name="queueFollowingSongs" id="queueFollowingSongs" class="checkbox"/></td>
             <td><label for="queueFollowingSongs"><fmt:message key="personalsettings.queuefollowingsongs"/></label></td>
             <td></td>
             <td></td>
@@ -235,22 +230,22 @@
 
     <table class="indent">
         <tr>
-            <td><form:checkbox path="finalVersionNotificationEnabled" id="final" cssClass="checkbox"/></td>
+            <td><input type="checkbox" name="finalVersionNotificationEnabled" id="final" class="checkbox"/></td>
             <td><label for="final"><fmt:message key="personalsettings.finalversionnotification"/></label></td>
         </tr>
         <tr>
-            <td><form:checkbox path="betaVersionNotificationEnabled" id="beta" cssClass="checkbox"/></td>
+            <td><input type="checkbox" name="betaVersionNotificationEnabled" id="beta" class="checkbox"/></td>
             <td><label for="beta"><fmt:message key="personalsettings.betaversionnotification"/></label></td>
         </tr>
         <tr>
-            <td><form:checkbox path="songNotificationEnabled" id="song" cssClass="checkbox"/></td>
+            <td><input type="checkbox" name="songNotificationEnabled" id="song" class="checkbox"/></td>
             <td><label for="song"><fmt:message key="personalsettings.songnotification"/></label></td>
         </tr>
     </table>
 
     <table class="indent">
         <tr>
-            <td><form:checkbox path="lastFmEnabled" id="lastFm" cssClass="checkbox" onclick="enableFields()"/></td>
+            <td><input type="checkbox" name="lastFmEnabled" id="lastFm" class="checkbox" onclick="enableFields()"/></td>
             <td><label for="lastFm"><fmt:message key="personalsettings.lastfmenabled"/></label></td>
             <td></td>
         </tr>
@@ -262,14 +257,14 @@
             </td>
         </tr>
         <tr>
-            <td><form:checkbox path="listenBrainzEnabled" id="listenBrainz" cssClass="checkbox" onclick="enableFields()"/></td>
+            <td><input type="checkbox" name="listenBrainzEnabled" id="listenBrainz" class="checkbox" onclick="enableFields()"/></td>
             <td><label for="listenBrainz"><fmt:message key="personalsettings.listenbrainzenabled"/></label></td>
             <td></td>
         </tr>
         <tr class="listenBrainzRow">
             <td></td>
             <td><fmt:message key="personalsettings.listenbrainzurl"/></td>
-            <td><form:input path="listenBrainzUrl" size="36"/></td>
+            <td><input type="text" name="listenBrainzUrl" size="36"/></td>
         </tr>
         <tr id="listenBrainzStatus" class="listenBrainzRow">
             <td></td>
@@ -282,29 +277,29 @@
 
     <table class="indent">
         <tr>
-            <td><form:checkbox path="autoBookmark" id="autoBookmark" cssClass="checkbox"/></td>
+            <td><input type="checkbox" name="autoBookmark" id="autoBookmark" class="checkbox"/></td>
             <td><label for="autoBookmark"><fmt:message key="personalsettings.autobookmark"/></label><c:import url="helpToolTip.jsp"><c:param name="topic" value="autobookmark"/></c:import></td>
         </tr>
         <tr>
             <td colspan="2"><fmt:message key="personalsettings.audiobookmarkfrequency"/></td>
-            <td><form:input path="audioBookmarkFrequency" size="10"/></td>
+            <td><input type="text" name="audioBookmarkFrequency" size="10"/></td>
         </tr>
         <tr>
             <td colspan="2"><fmt:message key="personalsettings.videobookmarkfrequency"/></td>
-            <td><form:input path="videoBookmarkFrequency" size="10"/></td>
+            <td><input type="text" name="videoBookmarkFrequency" size="10"/></td>
         </tr>
     </table>
 
     <table class="indent">
         <tr>
             <td colspan="2"><fmt:message key="personalsettings.searchcount"/></td>
-            <td><form:input path="searchCount" size="10"/></td>
+            <td><input type="text" name="searchCount" size="10"/></td>
         </tr>
     </table>
 
     <table class="indent">
         <tr>
-            <td><form:checkbox path="keyboardShortcutsEnabled" id="keyboardShortcutsEnabled" cssClass="checkbox"/></td>
+            <td><input type="checkbox" name="keyboardShortcutsEnabled" id="keyboardShortcutsEnabled" class="checkbox"/></td>
             <td><label for="keyboardShortcutsEnabled"><fmt:message key="personalsettings.keyboardshortcutsenabled"/></label></td>
         </tr>
     </table>
@@ -320,11 +315,11 @@
         </tr>
         <tr>
             <td><fmt:message key="personalsettings.paginationsize"/></td>
-            <td style="text-align:center"><form:input path="paginationSizeFiles" size="10"/></td>
-            <td style="text-align:center"><form:input path="paginationSizeFolders" size="10"/></td>
-            <td style="text-align:center"><form:input path="paginationSizePlaylist" size="10"/></td>
-            <td style="text-align:center"><form:input path="paginationSizePlayqueue" size="10"/></td>
-            <td style="text-align:center"><form:input path="paginationSizeBookmarks" size="10"/></td>
+            <td style="text-align:center"><input type="text" name="paginationSizeFiles" size="10"/></td>
+            <td style="text-align:center"><input type="text" name="paginationSizeFolders" size="10"/></td>
+            <td style="text-align:center"><input type="text" name="paginationSizePlaylist" size="10"/></td>
+            <td style="text-align:center"><input type="text" name="paginationSizePlayqueue" size="10"/></td>
+            <td style="text-align:center"><input type="text" name="paginationSizeBookmarks" size="10"/></td>
         </tr>
     </table>
 
@@ -336,33 +331,19 @@
     <h2><fmt:message key="personalsettings.avatar.title"/></h2>
 
     <p style="padding-top:1em">
-        <c:forEach items="${command.avatars}" var="avatar">
-            <c:url value="avatar.view" var="avatarUrl">
-                <c:param name="id" value="${avatar.id}"/>
-            </c:url>
-            <span style="white-space:nowrap;">
-                <form:radiobutton id="avatar-${avatar.id}" path="avatarId" value="${avatar.id}"/>
-                <label for="avatar-${avatar.id}"><img src="${avatarUrl}" alt="${fn:escapeXml(avatar.name)}" width="${avatar.width}" height="${avatar.height}" style="padding-right:2em;padding-bottom:1em"/></label>
-            </span>
-        </c:forEach>
+        <span id="personalAvatars"></span>
     </p>
     <p>
-        <form:radiobutton id="noAvatar" path="avatarId" value="-1"/>
+        <input type="radio" id="noAvatar" name="avatarId" value="-1"/>
         <label for="noAvatar"><fmt:message key="personalsettings.avatar.none"/></label>
     </p>
     <p>
-        <form:radiobutton id="customAvatar" path="avatarId" value="-2"/>
+        <input type="radio" id="customAvatar" name="avatarId" value="-2"/>
         <label for="customAvatar"><fmt:message key="personalsettings.avatar.custom"/>
-            <c:if test="${not empty command.customAvatar}">
-                <sub:url value="avatar.view" var="avatarUrl">
-                    <sub:param name="username" value="${command.user.username}"/>
-                    <sub:param name="forceCustom" value="true"/>
-                </sub:url>
-                <img src="${avatarUrl}" alt="${fn:escapeXml(command.customAvatar.name)}" width="${command.customAvatar.width}" height="${command.customAvatar.height}" style="padding-right:2em"/>
-            </c:if>
+            <span id="personalCustomAvatar"></span>
         </label>
     </p>
-</form:form>
+</fieldset></form>
 
 <form method="post" enctype="multipart/form-data" action="avatarUpload.view?${_csrf.parameterName}=${_csrf.token}">
     <table>
@@ -378,10 +359,17 @@
     <fmt:message key="personalsettings.avatar.courtesy"/>
 </p>
 
-<c:if test="${settings_reload}">
-    <script language="javascript" type="text/javascript">
-        parent.location.href="index.view?main=personalSettings.view";
-    </script>
-</c:if>
+<script src="<c:url value='/script/personal-settings.js'/>"></script>
+<script>
+initPersonalSettings({
+    readUrl: '<c:url value="/rest/getPersonalSettings"/>',
+    saveUrl: '<c:url value="/rest/savePersonalSettings"/>',
+    avatarUrl: '<c:url value="/rest/getAvatar"/>',
+    pageUrl: '<c:url value="/personalSettings.view"/>',
+    indexUrl: '<c:url value="/index.view"/>',
+    csrfHeader: '${_csrf.headerName}',
+    csrfToken: '${_csrf.token}'
+});
+</script>
 
 </body></html>
