@@ -240,6 +240,7 @@ public class KtorConfiguration {
         registration.addUrlMappings("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view");
         registration.addUrlMappings("/generalSettings", "/generalSettings.view");
         registration.addUrlMappings("/transcodingSettings", "/transcodingSettings.view", TranscodingSettingsController.READ_PATH, TranscodingSettingsController.SAVE_PATH);
+        registration.addUrlMappings("/shareSettings", "/shareSettings.view");
         registration.addUrlMappings("/personalSettings", "/personalSettings.view", PersonalSettingsController.READ_PATH, PersonalSettingsController.SAVE_PATH);
         registration.addUrlMappings("/playerSettings", "/playerSettings.view", PlayerSettingsController.READ_PATH, PlayerSettingsController.SAVE_PATH, PlayerSettingsController.CLONE_PATH, PlayerSettingsController.DELETE_PATH);
         registration.addUrlMappings("/advancedSettings", "/advancedSettings.view", AdvancedSettingsController.READ_PATH, AdvancedSettingsController.SAVE_PATH);

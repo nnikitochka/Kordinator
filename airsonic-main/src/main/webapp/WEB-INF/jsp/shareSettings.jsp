@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="iso-8859-1" %>
-<%--@elvariable id="model" type="Map"--%>
+
 
 <html><head>
     <%@ include file="head.jsp" %>
@@ -10,15 +10,16 @@
 
 <c:import url="settingsHeader.jsp">
     <c:param name="cat" value="share"/>
-    <c:param name="toast" value="${settings_toast}"/>
-    <c:param name="restricted" value="${not model.user.adminRole}"/>
+    <c:param name="restricted" value="${not playerSettingsAdmin}"/>
 </c:import>
 
-<form method="post" action="shareSettings.view">
-    <sec:csrfInput />
+<p id="shareSettingsError" class="warning" role="alert"></p>
+<p id="shareSettingsSaved" role="status" hidden><fmt:message key="common.settingssaved"/></p>
+<form id="shareSettings">
+<fieldset id="shareFields" disabled>
 
     <table class="music indent">
-        <tr>
+        <thead><tr>
             <th style="padding-left:1em"><fmt:message key="sharesettings.name"/></th>
             <th style="padding-left:1em"><fmt:message key="sharesettings.owner"/></th>
             <th style="padding-left:1em"><fmt:message key="sharesettings.description"/></th>
@@ -28,32 +29,9 @@
             <th style="padding-left:1em"><fmt:message key="sharesettings.expires"/></th>
             <th style="padding-left:1em"><fmt:message key="sharesettings.expirein"/></th>
             <th style="padding-left:1em"><fmt:message key="common.delete"/></th>
-        </tr>
+        </tr></thead>
 
-        <c:forEach items="${model.shareInfos}" var="shareInfo" varStatus="loopStatus">
-            <c:set var="share" value="${shareInfo.share}"/>
-
-            <c:url value="main.view" var="albumUrl">
-                <c:param name="id" value="${shareInfo.dir.id}"/>
-            </c:url>
-
-            <tr>
-                <td style="padding-left:1em"><a href="${shareInfo.shareUrl}" target="_blank">${share.name}</a></td>
-                <td style="padding-left:1em">${fn:escapeXml(share.username)}</td>
-                <td style="padding-left:1em"><input type="text" name="description[${share.id}]" size="40" value="${share.description}"/></td>
-                <td style="padding-left:1em"><javatime:format value="${share.lastVisited}" style="M-"/></td>
-                <td style="padding-left:1em; text-align:right">${share.visitCount}</td>
-                <td style="padding-left:1em"><a href="${albumUrl}" title="${shareInfo.dir.name}"><str:truncateNicely upper="30">${fn:escapeXml(shareInfo.dir.name)}</str:truncateNicely></a></td>
-                <td style="padding-left:1em"><javatime:format value="${share.expires}" style="M-"/></td>
-                <td style="padding-left:1em">
-                    <label><input type="radio" name="expireIn[${share.id}]" value="7"><fmt:message key="sharesettings.expirein.week"/></label>
-                    <label><input type="radio" name="expireIn[${share.id}]" value="30"><fmt:message key="sharesettings.expirein.month"/></label>
-                    <label><input type="radio" name="expireIn[${share.id}]" value="365"><fmt:message key="sharesettings.expirein.year"/></label>
-                    <label><input type="radio" name="expireIn[${share.id}]" value="0"><fmt:message key="sharesettings.expirein.never"/></label>
-                </td>
-                <td style="padding-left:1em" align="center" style="padding-left:1em"><input type="checkbox" name="delete[${share.id}]"/></td>
-            </tr>
-        </c:forEach>
+        <tbody id="shareRows"></tbody>
 
     </table>
 
@@ -64,6 +42,23 @@
         <label for="deleteExpired"><fmt:message key="sharesettings.deleteexpired"/></label>
     </p>
 
-</form>
+</fieldset></form>
 
+<template id="shareExpirationOptions">
+    <label><input type="radio" value="7"><fmt:message key="sharesettings.expirein.week"/></label>
+    <label><input type="radio" value="30"><fmt:message key="sharesettings.expirein.month"/></label>
+    <label><input type="radio" value="365"><fmt:message key="sharesettings.expirein.year"/></label>
+    <label><input type="radio" value="0"><fmt:message key="sharesettings.expirein.never"/></label>
+</template>
+<script src="<c:url value='/script/share-settings.js'/>"></script>
+<script>
+initShareSettings({
+    readUrl: '<c:url value="/rest/getShares"/>',
+    updateUrl: '<c:url value="/rest/updateShare"/>',
+    deleteUrl: '<c:url value="/rest/deleteShare"/>',
+    mediaUrl: '<c:url value="/main.view"/>',
+    csrfHeader: '${_csrf.headerName}',
+    csrfToken: '${_csrf.token}'
+});
+</script>
 </body></html>
