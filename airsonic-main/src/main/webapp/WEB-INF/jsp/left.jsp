@@ -7,7 +7,7 @@
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
     <script type="text/javascript" language="javascript">
         function init() {
-            playlistApi.watchList(top.StompClient, "left-playlists", populatePlaylistCallback);
+            playlistApi.watchList(populatePlaylistCallback);
 
             var mainLocation = top.main.location.href;
             if (${model.musicFolderChanged}) {
@@ -19,7 +19,7 @@
 
         function createEmptyPlaylist() {
             showAllPlaylists();
-            playlistApi.create("empty");
+            playlistApi.create("empty", null, function () { playlistApi.list(false, populatePlaylistCallback); });
         }
 
         function showAllPlaylists() {

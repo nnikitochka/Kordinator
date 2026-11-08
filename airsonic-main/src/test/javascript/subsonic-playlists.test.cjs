@@ -6,13 +6,15 @@ const source = readFileSync('airsonic-main/src/main/webapp/script/subsonic-playl
 const ok = body => ({ok: true, json: async () => ({'subsonic-response': {status: 'ok', ...body}})});
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function setup(fetch) {
-    let errors = 0, hide;
+    let errors = 0, hide, timer, delay, cleared = false;
     const context = {fetch, URLSearchParams, window: {addEventListener(type, callback) {
         assert.equal(type, 'pagehide'); hide = callback;
-    }}};
+    }, setTimeout(callback, ms) { timer = callback; delay = ms; return 1; },
+    clearTimeout() { cleared = true; timer = null; }}};
     vm.runInNewContext(source, context);
     return {api: context.createSubsonicPlaylists({baseUrl: '/airsonic/rest/', csrfHeader: 'X-CSRF-TOKEN',
-        csrfToken: 'session-token', onError() { errors++; }}), errors: () => errors, hide: () => hide()};
+        csrfToken: 'session-token', onError() { errors++; }}), errors: () => errors, hide: () => hide(),
+        fire: () => { const callback = timer; timer = null; callback(); }, delay: () => delay, cleared: () => cleared};
 }
 
 test('all playlist writes use session REST with CSRF and repeated parameters', async () => {
@@ -131,59 +133,53 @@ test('deleted playlist responses invoke the missing callback', async () => {
     assert.equal(fixture.errors(), 0);
 });
 
-function stompFixture() {
-    let topics, connected;
-    const unsubscribed = [];
-    return {onConnect: [], subscribe(owner, values, callback) { topics = values; connected = callback; },
-        unsubscribe(topic, owner) { unsubscribed.push({topic, owner}); },
-        connect: () => connected(), message: (topic, value) => topics[topic]({body: JSON.stringify(value)}), unsubscribed};
-}
-
-test('notifications and reconnects refresh lists via REST; pagehide removes subscriptions', async () => {
+test('polls lists every 20 seconds, applies only changes and stops on pagehide', async () => {
     let reads = 0, callbacks = 0;
-    const fixture = setup(async () => { reads++; return ok({playlists: {playlist: []}}); });
-    const stomp = stompFixture();
-    fixture.api.watchList(stomp, 'owner', () => callbacks++);
-    assert.equal(reads, 0);
-    stomp.connect(); await tick();
-    stomp.message('/topic/playlists/updated', {name: 'Untrusted notification'}); await tick();
-    stomp.message('/user/queue/playlists/deleted', 17); await tick();
-    stomp.onConnect[0](); await tick();
-    assert.equal(reads, 4);
-    assert.equal(callbacks, 4);
-    fixture.hide();
-    assert.equal(stomp.onConnect.length, 0);
-    assert.equal(stomp.unsubscribed.length, 4);
-    stomp.message('/topic/playlists/updated', {}); await tick();
-    assert.equal(reads, 4);
+    const fixture = setup(async () => { reads++; return ok({playlists: {playlist: reads < 3 ? [] : [{id: '17'}]}}); });
+    fixture.api.watchList(() => callbacks++);
+    await tick();
+    assert.equal(reads, 1); assert.equal(callbacks, 1); assert.equal(fixture.delay(), 20000);
+    fixture.fire(); await tick();
+    assert.equal(reads, 2); assert.equal(callbacks, 1);
+    fixture.fire(); await tick();
+    assert.equal(reads, 3); assert.equal(callbacks, 2);
+    fixture.hide(); assert.equal(fixture.cleared(), true);
 });
 
-test('pagehide before connect prevents initial fetch and subscription leakage', async () => {
-    const fixture = setup(() => assert.fail('unexpected fetch'));
-    const stomp = stompFixture();
-    fixture.api.watchList(stomp, 'owner', () => assert.fail('unexpected callback'));
-    fixture.hide(); stomp.connect(); await tick();
-    assert.equal(stomp.onConnect.length, 0);
-    assert.equal(stomp.unsubscribed.length, 8);
-});
-
-test('pagehide suppresses pending detail callbacks', async () => {
+test('pagehide suppresses pending detail callbacks and prevents rescheduling', async () => {
     let release;
     const fixture = setup(() => new Promise(resolve => { release = () => resolve(ok({playlist: {id: '17'}})); }));
-    const stomp = stompFixture();
-    fixture.api.watchPlaylist(stomp, 'owner', 17, () => assert.fail('disposed'), () => assert.fail('deleted'));
-    stomp.connect(); await tick(); fixture.hide(); release(); await tick();
+    fixture.api.watchPlaylist(17, () => assert.fail('disposed'), () => assert.fail('deleted'));
+    await tick(); fixture.hide(); release(); await tick();
+    assert.equal(fixture.delay(), undefined);
 });
 
-test('playlist deletion notifications only navigate away from the matching playlist', async () => {
-    const fixture = setup(async () => ok({playlist: {id: '17'}}));
-    const stomp = stompFixture(), deleted = [];
-    fixture.api.watchPlaylist(stomp, 'owner', 17, () => {}, id => deleted.push(id));
-    stomp.connect(); await tick();
-    stomp.message('/topic/playlists/deleted', 18); await tick();
-    assert.deepEqual(deleted, []);
-    stomp.message('/topic/playlists/deleted', 17); await tick();
+for (const code of [70, 50]) test(`polling reports an unavailable playlist (${code})`, async () => {
+    let reads = 0;
+    const fixture = setup(async () => ++reads === 1 ? ok({playlist: {id: '17'}}) :
+        ({ok: true, json: async () => ({'subsonic-response': {status: 'failed', error: {code}}})}));
+    const deleted = [];
+    fixture.api.watchPlaylist(17, () => {}, id => deleted.push(id));
+    await tick(); fixture.fire(); await tick();
     assert.deepEqual(deleted, [17]);
+});
+
+test('polling retries after a failed request', async () => {
+    let reads = 0, callbacks = 0;
+    const fixture = setup(async () => ++reads === 1 ? {ok: false} : ok({playlists: {playlist: []}}));
+    fixture.api.watchList(() => callbacks++);
+    await tick(); assert.equal(fixture.errors(), 1); assert.equal(fixture.delay(), 20000);
+    fixture.fire(); await tick(); assert.equal(callbacks, 1);
+});
+
+test('a local write invalidates the previous polling snapshot', async () => {
+    let callbacks = 0;
+    const fixture = setup(async url => url.endsWith('getPlaylists') ? ok({playlists: {playlist: []}}) : ok({}));
+    fixture.api.watchList(() => callbacks++);
+    await tick();
+    await fixture.api.delete(17);
+    fixture.fire(); await tick();
+    assert.equal(callbacks, 2);
 });
 
 test('all six JSP consumers include REST client, have valid scripts and no removed WS endpoints', () => {
@@ -263,5 +259,5 @@ test('playlist tables receive all columns when REST omits optional fields', asyn
         assert.ok(Object.hasOwn(songs[0], field), field);
     assert.equal(lists[0].importedFrom, null);
     assert.equal(songs[0].discNumber, null);
-    assert.match(readFileSync('airsonic-main/src/main/webapp/WEB-INF/jsp/subsonicPlaylists.jsp', 'utf8'), /subsonic-playlists\.js\?v=2/);
+    assert.match(readFileSync('airsonic-main/src/main/webapp/WEB-INF/jsp/subsonicPlaylists.jsp', 'utf8'), /subsonic-playlists\.js\?v=3/);
 });

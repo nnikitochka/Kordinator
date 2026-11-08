@@ -1,6 +1,7 @@
 /* Browser-session client for the shared Subsonic playlist API. */
 function createSubsonicPlaylists(options) {
     var pending = Promise.resolve();
+    var localChanges = 0;
     function request(operation, parameters, onSuccess, onMissing, onFailure) {
         pending = pending.then(async function () {
             var form = new URLSearchParams();
@@ -18,9 +19,11 @@ function createSubsonicPlaylists(options) {
             if (!response.ok || response.redirected) throw new Error("Playlist request failed");
             var body = (await response.json())["subsonic-response"];
             if (!body || body.status !== "ok") {
-                if (body && body.error && body.error.code === 70 && onMissing) return onMissing();
+                if (body && body.error && onMissing && (body.error.code === 70 ||
+                    (operation === 'getPlaylist' && body.error.code === 50))) return onMissing();
                 throw new Error("Subsonic playlist request failed");
             }
+            if (operation !== 'getPlaylists' && operation !== 'getPlaylist') localChanges++;
             if (onSuccess) onSuccess(body);
         }).catch(function () {
             options.onError();
@@ -46,34 +49,19 @@ function createSubsonicPlaylists(options) {
             lastScanned: value.lastScanned || null, changed: value.changed || null
         });
     }
-    function watch(stomp, owner, refresh, deleted) {
+    function watch(refresh) {
         var disposed = false;
-        var guarded = function () { if (!disposed) refresh(function () { return !disposed; }); };
-        var subscriptions = {};
-        ['/user/queue/playlists/updated', '/topic/playlists/updated'].forEach(function (topic) {
-            subscriptions[topic] = guarded;
-        });
-        ['/user/queue/playlists/deleted', '/topic/playlists/deleted'].forEach(function (topic) {
-            subscriptions[topic] = function (message) {
-                if (!disposed) {
-                    if (deleted) deleted(JSON.parse(message.body));
-                    guarded();
-                }
-            };
-        });
-        function unsubscribe() {
-            Object.keys(subscriptions).forEach(function (topic) { stomp.unsubscribe(topic, owner); });
+        var timer;
+        function poll() {
+            if (disposed) return;
+            refresh(function () { return !disposed; }).then(function () {
+                if (!disposed) timer = window.setTimeout(poll, 20000);
+            });
         }
-        stomp.subscribe(owner, subscriptions, function () {
-            if (disposed) return unsubscribe();
-            guarded();
-            stomp.onConnect.push(guarded);
-        });
+        poll();
         window.addEventListener('pagehide', function () {
             disposed = true;
-            var index = stomp.onConnect.indexOf(guarded);
-            if (index !== -1) stomp.onConnect.splice(index, 1);
-            unsubscribe();
+            window.clearTimeout(timer);
         }, {once: true});
     }
     var api = {
@@ -111,16 +99,28 @@ function createSubsonicPlaylists(options) {
             return request('updatePlaylist', {playlistId: id, songIndexOrder: indices}, callback, null, callback);
         },
         delete: function (id, callback) { return request('deletePlaylist', {id: id}, callback); },
-        watchList: function (stomp, owner, callback) {
-            watch(stomp, owner, function (active) {
-                api.list(false, function (values) { if (active()) callback(values); });
+        watchList: function (callback) {
+            var previous, previousChanges = -1;
+            watch(function (active) {
+                return api.list(false, function (values) {
+                    var snapshot = JSON.stringify(values);
+                    if (active() && (snapshot !== previous || localChanges !== previousChanges)) {
+                        previous = snapshot; previousChanges = localChanges; callback(values);
+                    }
+                });
             });
         },
-        watchPlaylist: function (stomp, owner, id, callback, deleted) {
-            watch(stomp, owner, function (active) {
-                api.get(id, function (value, entries) { if (active()) callback(value, entries); },
+        watchPlaylist: function (id, callback, deleted) {
+            var previous, previousChanges = -1;
+            watch(function (active) {
+                return api.get(id, function (value, entries) {
+                    var snapshot = JSON.stringify([value, entries]);
+                    if (active() && (snapshot !== previous || localChanges !== previousChanges)) {
+                        previous = snapshot; previousChanges = localChanges; callback(value, entries);
+                    }
+                },
                     function () { if (active()) deleted(id); });
-            }, function (deletedId) { if (deletedId == id) deleted(id); });
+            });
         }
     };
     return api;

@@ -298,7 +298,7 @@
                 selectAll(e.target.checked);
             } );
 
-            playlistApi.watchPlaylist(top.StompClient, "playlist-rest", playlistId, function (playlist, entries) {
+            playlistApi.watchPlaylist(playlistId, function (playlist, entries) {
                 updatedPlaylistCallback(playlist);
                 updatedPlaylistEntriesCallback(entries);
             }, deletedPlaylistCallback);

@@ -199,7 +199,7 @@
             selectAll(e.target.checked);
         } );
 
-        playlistApi.watchList(top.StompClient, "playlists-rest", populatePlaylistCallback);
+        playlistApi.watchList(populatePlaylistCallback);
         top.StompClient.subscribe("playlists.jsp", {
             "/user/queue/settings/viewAsList": function(msg) {
                 viewChangedCallback(JSON.parse(msg.body));

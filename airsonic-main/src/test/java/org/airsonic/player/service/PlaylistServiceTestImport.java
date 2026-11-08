@@ -22,7 +22,6 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -61,9 +60,6 @@ public class PlaylistServiceTestImport {
     SecurityService securityService;
 
     @Mock
-    SimpMessagingTemplate brokerTemplate;
-
-    @Mock
     PathWatcherService pathWatcherService;
 
     @Rule
@@ -91,7 +87,6 @@ public class PlaylistServiceTestImport {
                 settingsService,
                 Collections.emptyList(),
                 Lists.newArrayList(defaultPlaylistImportHandler),
-                brokerTemplate,
                 pathWatcherService);
 
     }

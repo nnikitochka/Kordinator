@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.lang.Nullable;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -37,8 +36,6 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.concurrent.CompletableFuture.runAsync;
-
 /**
  * Provides services for loading and saving playlists to and from persistent storage.
  * @see PlayQueue
@@ -52,7 +49,6 @@ public class PlaylistService {
     private final SettingsService settingsService;
     private final List<PlaylistExportHandler> exportHandlers;
     private final List<PlaylistImportHandler> importHandlers;
-    private final SimpMessagingTemplate brokerTemplate;
     private final PathWatcherService pathWatcherService;
 
     public PlaylistService(
@@ -62,7 +58,6 @@ public class PlaylistService {
             SettingsService settingsService,
             List<PlaylistExportHandler> exportHandlers,
             List<PlaylistImportHandler> importHandlers,
-            SimpMessagingTemplate brokerTemplate,
             PathWatcherService pathWatcherService
     ) {
         notNull(mediaFileDao, "mediaFileDao must not be null");
@@ -81,7 +76,6 @@ public class PlaylistService {
         this.importHandlers = importHandlers.stream()
                 .sorted(Comparator.comparingInt(PlaylistImportHandler::getOrder))
                 .toList();
-        this.brokerTemplate = brokerTemplate;
         this.pathWatcherService = pathWatcherService;
     }
 
@@ -162,31 +156,21 @@ public class PlaylistService {
         Pair<Integer, Double> stats = playlistDao.getPlaylistFileStats(id);
         playlist.setFileCount(stats.getLeft());
         playlist.setDuration(stats.getRight());
-        updatePlaylist(playlist, true);
+        updatePlaylist(playlist);
     }
 
     public void createPlaylist(Playlist playlist) {
         playlistDao.createPlaylist(playlist);
-        if (playlist.getShared()) {
-            runAsync(() -> brokerTemplate.convertAndSend("/topic/playlists/updated", playlist));
-        } else {
-            runAsync(() -> brokerTemplate.convertAndSendToUser(playlist.getUsername(), "/queue/playlists/updated", playlist));
-        }
     }
 
     @CacheEvict(cacheNames = "playlistUsersCache", key = "#playlist.id")
     public void addPlaylistUser(Playlist playlist, String username) {
         playlistDao.addPlaylistUser(playlist.getId(), username);
-        // this might cause dual notifications on the client if the playlist is already public
-        runAsync(() -> brokerTemplate.convertAndSendToUser(username, "/queue/playlists/updated", playlist));
     }
 
     @CacheEvict(cacheNames = "playlistUsersCache", key = "#playlist.id")
     public void deletePlaylistUser(Playlist playlist, String username) {
         playlistDao.deletePlaylistUser(playlist.getId(), username);
-        if (!playlist.getShared()) {
-            runAsync(() -> brokerTemplate.convertAndSendToUser(username, "/queue/playlists/deleted", playlist.getId()));
-        }
     }
 
     public boolean isReadAllowed(Playlist playlist, String username) {
@@ -206,46 +190,11 @@ public class PlaylistService {
     @CacheEvict(cacheNames = "playlistCache")
     public void deletePlaylist(int id) {
         playlistDao.deletePlaylist(id);
-        runAsync(() -> brokerTemplate.convertAndSend("/topic/playlists/deleted", id));
     }
 
-    public void updatePlaylist(Playlist playlist) {
-        updatePlaylist(playlist, false);
-    }
-
-    /**
-     * DO NOT pass in the mutated cache value. This method relies on the existing
-     * cached value to check the differences
-     */
     @CacheEvict(cacheNames = "playlistCache", key = "#playlist.id")
-    public void updatePlaylist(Playlist playlist, boolean filesChangedBroadcastContext) {
-        Playlist oldPlaylist = getPlaylist(playlist.getId());
+    public void updatePlaylist(Playlist playlist) {
         playlistDao.updatePlaylist(playlist);
-        runAsync(() -> {
-            BroadcastedPlaylist bp = new BroadcastedPlaylist(playlist, filesChangedBroadcastContext);
-            if (playlist.getShared()) {
-                brokerTemplate.convertAndSend("/topic/playlists/updated", bp);
-            } else {
-                if (oldPlaylist.getShared()) {
-                    brokerTemplate.convertAndSend("/topic/playlists/deleted", playlist.getId());
-                }
-                Stream.concat(Stream.of(playlist.getUsername()), getPlaylistUsers(playlist.getId()).stream())
-                        .forEach(u -> brokerTemplate.convertAndSendToUser(u, "/queue/playlists/updated", bp));
-            }
-        });
-    }
-
-    public static class BroadcastedPlaylist extends Playlist {
-        private final boolean filesChanged;
-
-        public BroadcastedPlaylist(Playlist p, boolean filesChanged) {
-            super(p);
-            this.filesChanged = filesChanged;
-        }
-
-        public boolean getFilesChanged() {
-            return filesChanged;
-        }
     }
 
     public String getExportPlaylistExtension() {

@@ -20,7 +20,6 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -58,9 +57,6 @@ public class PlaylistServiceTestExport {
     SecurityService securityService;
 
     @Mock
-    SimpMessagingTemplate brokerTemplate;
-
-    @Mock
     PathWatcherService pathWatcherService;
 
     @Rule
@@ -82,8 +78,7 @@ public class PlaylistServiceTestExport {
                                               Lists.newArrayList(
                                                       defaultPlaylistExportHandler),
                                               Collections.emptyList(),
-                                              brokerTemplate,
-                                              pathWatcherService);
+                                                                            pathWatcherService);
     }
 
     @Test

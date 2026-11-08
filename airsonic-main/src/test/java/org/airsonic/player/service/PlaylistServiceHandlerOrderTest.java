@@ -14,7 +14,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,7 +37,7 @@ public class PlaylistServiceHandlerOrderTest {
                 fixture.securityService, fixture.settingsService,
                 List.of(fixture.defaultExport, fixture.xspfExport),
                 List.of(fixture.defaultImport, fixture.xspfImport),
-                fixture.brokerTemplate, fixture.pathWatcherService);
+                fixture.pathWatcherService);
 
         fixture.verifyHandlerSelection(service);
     }
@@ -51,7 +50,6 @@ public class PlaylistServiceHandlerOrderTest {
             context.getBeanFactory().registerSingleton("playlistDao", fixture.playlistDao);
             context.getBeanFactory().registerSingleton("securityService", fixture.securityService);
             context.getBeanFactory().registerSingleton("settingsService", fixture.settingsService);
-            context.getBeanFactory().registerSingleton("brokerTemplate", fixture.brokerTemplate);
             context.getBeanFactory().registerSingleton("pathWatcherService", fixture.pathWatcherService);
             context.registerBean("defaultExport", DefaultPlaylistExportHandler.class, () -> fixture.defaultExport);
             context.registerBean("xspfExport", XspfPlaylistExportHandler.class, () -> fixture.xspfExport);
@@ -69,7 +67,6 @@ public class PlaylistServiceHandlerOrderTest {
         final PlaylistDao playlistDao = mock(PlaylistDao.class);
         final SecurityService securityService = mock(SecurityService.class);
         final SettingsService settingsService = mock(SettingsService.class);
-        final SimpMessagingTemplate brokerTemplate = mock(SimpMessagingTemplate.class);
         final PathWatcherService pathWatcherService = mock(PathWatcherService.class);
         final MediaFileService mediaFileService = mock(MediaFileService.class);
         final MediaFolderService mediaFolderService = mock(MediaFolderService.class);
