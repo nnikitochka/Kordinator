@@ -1,6 +1,5 @@
 package org.airsonic.player.command;
 
-import org.airsonic.player.controller.MusicFolderSettingsController;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.MusicFolder.Type;
 import org.apache.commons.lang.StringUtils;
@@ -13,7 +12,7 @@ import java.util.EnumSet;
 import java.util.List;
 
 /**
- * Command used in {@link MusicFolderSettingsController}.
+ * Parameters for library administration.
  *
  * @author Sindre Mehus
  */

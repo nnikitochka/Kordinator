@@ -44,6 +44,9 @@ import org.airsonic.player.controller.rest.playqueue.PlayQueueController;
 import org.airsonic.player.dao.PlayQueueDao;
 import org.airsonic.player.service.UserAdministrationService;
 import org.airsonic.player.controller.rest.users.UsersController;
+import org.airsonic.player.controller.rest.admin.MusicFolderSettingsController;
+import org.airsonic.player.service.MusicFolderAdministrationService;
+import org.airsonic.player.service.search.IndexManager;
 import org.airsonic.player.controller.rest.users.PasswordController;
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
@@ -152,6 +155,8 @@ public class KtorConfiguration {
             DownloadService downloadService,
             MusicIndexStateService musicIndexStateService,
             UserAdministrationService userAdministrationService,
+            CoverArtService coverArtService,
+            IndexManager indexManager,
             TranscodingService transcodingService,
             LocaleResolver localeResolver,
             CoverArtImageService coverArtImageService,
@@ -177,6 +182,7 @@ public class KtorConfiguration {
                                 new StarredController(mediaFileDao, albumDao, artistDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),
                                 new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, transcodingService, jaxbWriter),
+                                new MusicFolderSettingsController(new MusicFolderAdministrationService(settingsService, mediaScannerService, mediaFolderService, artistDao, albumDao, mediaFileDao, indexManager, playlistService, coverArtService), jaxbWriter),
                                 new PasswordController(securityService, jaxbWriter),
                                 new PlayQueueController(playQueueDao, mediaFileService, responseMapper, jaxbWriter),
                                 new IndexesController(settingsService, mediaFolderService, musicIndexService, musicIndexStateService, mediaFileDao, ratingService, responseMapper, jaxbWriter),
@@ -219,7 +225,9 @@ public class KtorConfiguration {
         registration.addUrlMappings(UsersController.PATHS);
         registration.addUrlMappings(UsersController.WEBSITE_PATHS);
         registration.addUrlMappings(UsersController.WEBSITE_READ_PATH);
-        registration.addUrlMappings("/userSettings", "/userSettings.view");
+        registration.addUrlMappings("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view");
+        registration.addUrlMappings(MusicFolderSettingsController.READ_PATH);
+        registration.addUrlMappings(MusicFolderSettingsController.WRITE_PATHS);
         registration.addUrlMappings(PasswordController.PATHS);
         registration.addUrlMappings(PlayQueueController.PATHS);
         registration.addUrlMappings(IndexesController.PATHS);

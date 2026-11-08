@@ -742,7 +742,7 @@ public class MediaFileDao extends AbstractDao {
     }
 
     public List<Integer> getSongExpungeCandidates() {
-        return queryForInts("select id from media_file where media_file.type in (?,?,?,?) and not present",
+        return queryForInts("select id from media_file where media_file.type in (?,?,?) and not present",
                 MediaFile.MediaType.MUSIC.name(),
                 MediaFile.MediaType.AUDIOBOOK.name(), MediaFile.MediaType.VIDEO.name());
     }
