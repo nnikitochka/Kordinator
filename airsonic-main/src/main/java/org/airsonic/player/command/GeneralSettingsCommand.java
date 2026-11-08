@@ -1,11 +1,10 @@
 package org.airsonic.player.command;
 
-import org.airsonic.player.controller.GeneralSettingsController;
 import org.airsonic.player.domain.CoverArtSource;
 import org.airsonic.player.domain.Theme;
 
 /**
- * Command used in {@link GeneralSettingsController}.
+ * General server settings.
  *
  * @author Sindre Mehus
  */

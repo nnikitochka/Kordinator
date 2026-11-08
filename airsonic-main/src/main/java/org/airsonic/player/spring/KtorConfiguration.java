@@ -45,6 +45,8 @@ import org.airsonic.player.dao.PlayQueueDao;
 import org.airsonic.player.service.UserAdministrationService;
 import org.airsonic.player.controller.rest.users.UsersController;
 import org.airsonic.player.controller.rest.admin.MusicFolderSettingsController;
+import org.airsonic.player.controller.rest.admin.GeneralSettingsController;
+import org.airsonic.player.service.GeneralSettingsAdministrationService;
 import org.airsonic.player.service.MusicFolderAdministrationService;
 import org.airsonic.player.service.search.IndexManager;
 import org.airsonic.player.controller.rest.users.PasswordController;
@@ -182,6 +184,7 @@ public class KtorConfiguration {
                                 new StarredController(mediaFileDao, albumDao, artistDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),
                                 new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, transcodingService, jaxbWriter),
+                                new GeneralSettingsController(new GeneralSettingsAdministrationService(settingsService, playlistService), jaxbWriter),
                                 new MusicFolderSettingsController(new MusicFolderAdministrationService(settingsService, mediaScannerService, mediaFolderService, artistDao, albumDao, mediaFileDao, indexManager, playlistService, coverArtService), jaxbWriter),
                                 new PasswordController(securityService, jaxbWriter),
                                 new PlayQueueController(playQueueDao, mediaFileService, responseMapper, jaxbWriter),
@@ -226,6 +229,9 @@ public class KtorConfiguration {
         registration.addUrlMappings(UsersController.WEBSITE_PATHS);
         registration.addUrlMappings(UsersController.WEBSITE_READ_PATH);
         registration.addUrlMappings("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view");
+        registration.addUrlMappings("/generalSettings", "/generalSettings.view");
+        registration.addUrlMappings(GeneralSettingsController.READ_PATH);
+        registration.addUrlMappings(GeneralSettingsController.WRITE_PATHS);
         registration.addUrlMappings(MusicFolderSettingsController.READ_PATH);
         registration.addUrlMappings(MusicFolderSettingsController.WRITE_PATHS);
         registration.addUrlMappings(PasswordController.PATHS);

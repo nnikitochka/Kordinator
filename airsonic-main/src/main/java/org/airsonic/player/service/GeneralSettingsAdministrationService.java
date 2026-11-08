@@ -1,43 +1,30 @@
-package org.airsonic.player.controller;
+package org.airsonic.player.service;
 
 import org.airsonic.player.command.GeneralSettingsCommand;
 import org.airsonic.player.domain.Theme;
-import org.airsonic.player.service.PlaylistService;
-import org.airsonic.player.service.SettingsService;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Locale;
 
 /**
- * Controller for the page used to administrate general settings.
+ * Reads and applies general server settings.
  *
  * @author Sindre Mehus
  */
-@Controller
-@RequestMapping("/generalSettings")
-public class GeneralSettingsController {
+public class GeneralSettingsAdministrationService {
 
     private final SettingsService settingsService;
     private final PlaylistService playlistService;
 
-    public GeneralSettingsController(SettingsService settingsService, PlaylistService playlistService) {
+    public GeneralSettingsAdministrationService(SettingsService settingsService, PlaylistService playlistService) {
         this.settingsService = settingsService;
         this.playlistService = playlistService;
     }
 
-    @GetMapping
-    protected String displayForm() {
-        return "generalSettings";
+    public Locale[] getAvailableLocales() {
+        return settingsService.getAvailableLocales();
     }
 
-    @ModelAttribute
-    protected void formBackingObject(Model model) {
+    public GeneralSettingsCommand getSettings() {
         GeneralSettingsCommand command = new GeneralSettingsCommand();
         command.setCoverArtFileTypes(settingsService.getCoverArtFileTypes());
         command.setCoverArtSource(settingsService.getCoverArtSource());
@@ -80,19 +67,15 @@ public class GeneralSettingsController {
         }
         command.setLocales(localeStrings);
 
-        model.addAttribute("command",command);
+        return command;
     }
 
-    @PostMapping
-    protected String doSubmitAction(@ModelAttribute("command") GeneralSettingsCommand command, RedirectAttributes redirectAttributes) {
-
+    public void save(GeneralSettingsCommand command) {
         int themeIndex = Integer.parseInt(command.getThemeIndex());
         Theme theme = settingsService.getAvailableThemes()[themeIndex];
 
         int localeIndex = Integer.parseInt(command.getLocaleIndex());
         Locale locale = settingsService.getAvailableLocales()[localeIndex];
-
-        redirectAttributes.addFlashAttribute("settings_toast", true);
 
         // if cover art source is changing then we need to do at least one full scan
         if (settingsService.getCoverArtSource() != command.getCoverArtSource() && !settingsService.getFullScan()) {
@@ -123,8 +106,6 @@ public class GeneralSettingsController {
         settingsService.setThemeId(theme.getId());
         settingsService.setLocale(locale);
         settingsService.save();
-
-        return "redirect:generalSettings.view";
     }
 
 }
