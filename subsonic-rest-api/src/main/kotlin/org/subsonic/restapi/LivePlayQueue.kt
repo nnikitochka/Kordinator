@@ -7,9 +7,10 @@ import jakarta.xml.bind.annotation.XmlElement
 import jakarta.xml.bind.annotation.XmlType
 
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(name = "LivePlayQueue", propOrder = ["entry"])
+@XmlType(name = "LivePlayQueue", propOrder = ["entry", "player"])
 class LivePlayQueue {
     @field:XmlElement(name = "entry") val entry: MutableList<LiveQueueEntry> = mutableListOf()
+    @field:XmlElement(name = "player") val player: MutableList<LiveQueuePlayer> = mutableListOf()
     @field:XmlAttribute var revision: Long = 0
     @field:XmlAttribute var playStatus: String? = null
     @field:XmlAttribute var repeatStatus: String? = null
@@ -18,6 +19,14 @@ class LivePlayQueue {
     @field:XmlAttribute var startPlayerAt: Int = -1
     @field:XmlAttribute var startPlayerAtPosition: Long = 0
     @field:XmlAttribute var savedQueueId: Int? = null
+}
+
+@XmlAccessorType(XmlAccessType.FIELD)
+@XmlType(name = "LiveQueuePlayer")
+class LiveQueuePlayer {
+    @field:XmlAttribute var id: Int = 0
+    @field:XmlAttribute var description: String? = null
+    @field:XmlAttribute var tech: String? = null
 }
 
 @XmlAccessorType(XmlAccessType.FIELD)

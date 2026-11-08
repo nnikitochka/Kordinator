@@ -7,7 +7,7 @@
 <%@ include file="subsonicBookmarks.jsp" %>
 <%@ include file="table.jsp" %>
 <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
-<script src="<c:url value='/script/subsonic-live-queue.js'/>?v=2"></script>
+<script src="<c:url value='/script/subsonic-live-queue.js'/>?v=3"></script>
 <script type="text/javascript" src="<c:url value='/script/mediaelement/mediaelement-and-player.min.js'/>"></script>
 <script src="<c:url value='/script/mediaelement/plugins/speed/speed.min.js'/>"></script>
 <script src="<c:url value='/script/mediaelement/plugins/speed/speed-i18n.js'/>"></script>
@@ -381,18 +381,11 @@
                 }
             });
 
-            top.StompClient.subscribe("playQueue.jsp", {
-                // Players
-                '/user/queue/players/updated'(msg) {
-                    pq.onPlayerUpdated(JSON.parse(msg.body));
-                },
-                '/user/queue/players/created'(msg) {
-                    pq.onPlayerCreated(JSON.parse(msg.body));
-                },
-                '/topic/players/deleted'(msg) {
-                    pq.onPlayerDeleted(JSON.parse(msg.body));
-                },
-
+            var stopPlayersPolling = liveQueueApi.watch('', function (result) {
+                pq.updatePlayers(result.player || []);
+            }, 'players');
+            window.addEventListener('pagehide', function () {
+                stopPlayersPolling();
             });
             bookmarkApi.watch(top.StompClient, "playQueue.jsp", function (bookmarks) {
                 pq.getBookmarksCallback(bookmarks);
@@ -494,6 +487,17 @@
         },
 
         // Player updates
+        updatePlayers(players) {
+            var pq = this;
+            $("#playerSelector option").each(function () {
+                var id = this.value;
+                if (!players.some(function (player) { return player.id == id; })) $(this).remove();
+            });
+            players.forEach(function (player) { pq.onPlayerUpdated(player); });
+            if (pq.player.id && !players.some(function (player) { return player.id == pq.player.id; })) {
+                pq.onPlayerChanged(null);
+            }
+        },
         onPlayerCreated(player) {
             // create node if necessary
             if ($("#playerSelector option[value='" + player.id + "']").length == 0) {

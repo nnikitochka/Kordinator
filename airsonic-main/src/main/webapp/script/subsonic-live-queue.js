@@ -20,12 +20,12 @@ function createLiveQueue(options) {
             pending.catch(function (error) { console.error(error); });
             return pending;
         },
-        watch: function (playerId, onQueue) {
+        watch: function (playerId, onQueue, action) {
             var stopped = false;
             var timer;
             function poll() {
                 if (stopped) return;
-                api.send(playerId, 'get', {}).then(function (queue) {
+                api.send(playerId, action || 'get', {}).then(function (queue) {
                     if (!stopped) onQueue(queue);
                 }).catch(function () {}).finally(function () {
                     if (!stopped) timer = window.setTimeout(poll, 5000);

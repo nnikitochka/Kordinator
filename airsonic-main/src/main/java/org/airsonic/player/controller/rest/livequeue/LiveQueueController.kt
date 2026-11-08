@@ -18,11 +18,13 @@ import org.airsonic.player.service.SecurityService
 import org.airsonic.player.dao.PlayQueueDao
 import org.slf4j.LoggerFactory
 import org.subsonic.restapi.LivePlayQueue
+import org.subsonic.restapi.LiveQueuePlayer
+import org.airsonic.player.service.PlayerService
 import org.airsonic.player.controller.rest.toWebsiteEntry
 import kotlin.coroutines.cancellation.CancellationException
 
-class LiveQueueController(private val service: PlayQueueService, private val writer: JAXBWriter, private val media: MediaFileService, private val playlists: PlaylistService, private val security: SecurityService, private val queues: PlayQueueDao) {
-    data class Request(val player: Player?, val params: Parameters)
+class LiveQueueController(private val service: PlayQueueService, private val writer: JAXBWriter, private val media: MediaFileService, private val playlists: PlaylistService, private val security: SecurityService, private val queues: PlayQueueDao, private val players: PlayerService) {
+    data class Request(val player: Player?, val params: Parameters, val username: String)
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
         PATHS.forEach { path -> root.post(path) { respond(call, request(call)) } }
@@ -32,7 +34,18 @@ class LiveQueueController(private val service: PlayQueueService, private val wri
         val p = request.params
         val result = try {
             val player = request.player
-            if (player == null) writer.createErrorResponse(ErrorCode.NOT_AUTHORIZED, "Player unavailable")
+            if (p["action"] == "players") writer.createResponse(true).apply {
+                livePlayQueue = LivePlayQueue().apply {
+                    players.getPlayersForUserAndClientId(request.username, null).forEach { source ->
+                        this.player.add(LiveQueuePlayer().apply {
+                            id = source.id
+                            description = source.shortDescription
+                            tech = source.technology.name
+                        })
+                    }
+                }
+            }
+            else if (player == null) writer.createErrorResponse(ErrorCode.NOT_AUTHORIZED, "Player unavailable")
             else {
                 fun integer(name: String): Int = requireNotNull(p[name]?.toIntOrNull()) { "Invalid $name" }
                 fun optionalInt(name: String): Int? = p[name]?.let { requireNotNull(it.toIntOrNull()) }

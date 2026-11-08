@@ -191,7 +191,7 @@ public class KtorConfiguration {
                                 new CoverArtActionsController(coverArtSearchService, jaxbWriter),
                                 new TagEditController(tagEditService, jaxbWriter),
                                 new WebsiteSettingsController(settingsService, messagingTemplate, jaxbWriter),
-                                new LiveQueueController(playQueueService, jaxbWriter, mediaFileService, playlistService, securityService, playQueueDao),
+                                new LiveQueueController(playQueueService, jaxbWriter, mediaFileService, playlistService, securityService, playQueueDao, playerService),
                                 new RatingController(mediaFileService, ratingService, jaxbWriter),
                                 new DownloadRestController(jaxbWriter), downloadService,
                                 shareService, mediaFileService,

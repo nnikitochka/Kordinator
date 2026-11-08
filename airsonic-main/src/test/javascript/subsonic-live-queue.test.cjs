@@ -71,3 +71,21 @@ test('reports errors and permits subsequent requests', async () => {
     await api.send(1, 'get', {});
     assert.equal(count, 2);
 });
+
+test('player polling updates options and handles a deleted selected player', () => {
+    const jsp = fs.readFileSync(path.join(__dirname, '../../main/webapp/WEB-INF/jsp/playQueue.jsp'), 'utf8');
+    const method = jsp.match(/        updatePlayers\(players\) \{[\s\S]*?\n        \},/)[0];
+    const removed = [], updated = [], changes = [];
+    const options = [{value: '1'}, {value: '2'}];
+    const context = {$: value => value === '#playerSelector option'
+        ? {each(fn) { options.forEach(option => fn.call(option)); }}
+        : {remove() { removed.push(value.value); }}};
+    vm.runInNewContext('var queue = {' + method + '};', context);
+    Object.assign(context.queue, {player: {id: 2}, onPlayerUpdated(player) { updated.push(player.id); },
+        onPlayerChanged(playerId) { changes.push(playerId); }});
+    context.queue.updatePlayers([{id: 1}, {id: 3}]);
+    assert.deepEqual(removed, ['2']);
+    assert.deepEqual(updated, [1, 3]);
+    assert.deepEqual(changes, [null]);
+    assert.doesNotMatch(jsp, /\/user\/queue\/players\//);
+});

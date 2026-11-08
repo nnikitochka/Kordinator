@@ -49,6 +49,9 @@ public class LiveQueueIntegrationTest {
         int id = player.path("id").asInt();
         assertTrue(id > 0);
         String params = "f=json&c=airsonic-web&playerId=" + id;
+        JsonNode listed = body(send(admin, "/rest/livePlayQueue", "f=json&action=players", csrf)).path("livePlayQueue").path("player");
+        assertTrue(listed.isArray());
+        assertTrue(listed.toString().contains("\"id\":" + id));
         assertEquals(403, send(admin, "/rest/livePlayQueue", params + "&action=get", null).statusCode());
         JsonNode initial = body(send(admin, "/rest/livePlayQueue", params + "&action=get", csrf));
         assertEquals("ok", initial.path("status").asText());
@@ -60,6 +63,8 @@ public class LiveQueueIntegrationTest {
         security.createUser(new User("other-listener", null), "secret", "test");
         HttpClient other = client();
         String otherCsrf = login(other, "other-listener", "secret");
+        JsonNode otherPlayers = body(send(other, "/rest/livePlayQueue", "f=json&action=players&playerId=" + id, otherCsrf)).path("livePlayQueue").path("player");
+        assertFalse(otherPlayers.toString().contains("\"id\":" + id));
         assertEquals(50, body(send(other, "/rest/livePlayQueue", params + "&action=clear", otherCsrf)).path("error").path("code").asInt());
     }
     @Test public void playsAndEditsRealMediaQueue() throws Exception {
