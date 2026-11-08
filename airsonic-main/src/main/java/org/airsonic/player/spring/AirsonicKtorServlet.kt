@@ -52,6 +52,8 @@ import org.airsonic.player.controller.rest.music.similar.SimilarSongsRequest
 import org.airsonic.player.service.MediaStreamService
 import org.airsonic.player.service.CoverArtImageService
 import org.airsonic.player.controller.rest.avatar.AvatarRestController
+import org.airsonic.player.controller.rest.avatar.AvatarUploadController
+import io.ktor.http.parseQueryString
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController
 import org.airsonic.player.controller.rest.tags.TagEditController
 import org.airsonic.player.controller.rest.settings.WebsiteSettingsController
@@ -161,6 +163,7 @@ class AirsonicKtorServlet(
     private val localeResolver: LocaleResolver,
     private val coverArtRestController: CoverArtRestController,
     private val avatarRestController: AvatarRestController,
+    private val avatarUploadController: AvatarUploadController,
     private val hlsRestController: HlsRestController,
     private val hlsSegmentRestController: HlsSegmentRestController,
     private val streamRestController: StreamRestController,
@@ -284,6 +287,7 @@ class AirsonicKtorServlet(
             bookmarksController.routes(this) { call -> call.attributes[BOOKMARKS_REQUEST_KEY] }
             starredController.routes(this) { call -> call.attributes[STARRED_REQUEST_KEY] }
             usersController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
+            avatarUploadController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             personalSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             playerSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             advancedSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
@@ -470,6 +474,10 @@ class AirsonicKtorServlet(
                 return
             }
             request.setAttribute(ALBUM_INFO_REQUEST, AlbumInfoRequest(parameters(request), id))
+        } else if (path == AvatarUploadController.PATH) {
+            // Multipart bodies belong to Ktor; capture only authentication and query parameters.
+            request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)),
+                parseQueryString(request.queryString.orEmpty())))
         } else if (path in UsersController.PATHS || path in UsersController.WEBSITE_PATHS || path == UsersController.WEBSITE_READ_PATH ||
             path in PlayerSettingsController.PATHS ||
             path == PersonalSettingsController.READ_PATH || path == PersonalSettingsController.SAVE_PATH ||

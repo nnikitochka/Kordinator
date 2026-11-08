@@ -345,7 +345,10 @@
     </p>
 </fieldset></form>
 
-<form method="post" enctype="multipart/form-data" action="avatarUpload.view?${_csrf.parameterName}=${_csrf.token}">
+<p id="avatarUploadError" class="warning" role="alert"></p>
+<p id="avatarUploadSaved" role="status" hidden><fmt:message key="common.settingssaved"/></p>
+<form id="avatarUpload" enctype="multipart/form-data">
+<fieldset id="avatarUploadFields" disabled>
     <table>
         <tr>
             <td style="padding-right:1em"><fmt:message key="personalsettings.avatar.changecustom"/></td>
@@ -353,17 +356,18 @@
             <td style="padding-right:1em"><input type="submit" value="<fmt:message key='personalsettings.avatar.upload'/>"/></td>
         </tr>
     </table>
-</form>
+</fieldset></form>
 
 <p class="detail" style="text-align:right">
     <fmt:message key="personalsettings.avatar.courtesy"/>
 </p>
 
-<script src="<c:url value='/script/personal-settings.js'/>"></script>
+<script src="<c:url value='/script/personal-settings.js?v=2'/>"></script>
 <script>
 initPersonalSettings({
     readUrl: '<c:url value="/rest/getPersonalSettings"/>',
     saveUrl: '<c:url value="/rest/savePersonalSettings"/>',
+    uploadUrl: '<c:url value="/rest/uploadAvatar"/>',
     avatarUrl: '<c:url value="/rest/getAvatar"/>',
     pageUrl: '<c:url value="/personalSettings.view"/>',
     indexUrl: '<c:url value="/index.view"/>',

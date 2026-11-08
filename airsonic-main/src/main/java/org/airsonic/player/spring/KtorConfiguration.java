@@ -21,6 +21,7 @@ import org.airsonic.player.service.TranscodingService;
 import org.airsonic.player.dao.PlayerDaoPlayQueueFactory;
 import org.airsonic.player.controller.rest.cover.CoverArtRestController;
 import org.airsonic.player.controller.rest.avatar.AvatarRestController;
+import org.airsonic.player.controller.rest.avatar.AvatarUploadController;
 import org.airsonic.player.controller.rest.indexes.IndexesController;
 import org.airsonic.player.controller.rest.music.genre.SongsByGenreController;
 import org.airsonic.player.controller.rest.music.top.TopSongsController;
@@ -215,7 +216,7 @@ public class KtorConfiguration {
                                 new DownloadRestController(jaxbWriter), downloadService,
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver,
-                                new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService),
+                                new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService), new AvatarUploadController(settingsService, jaxbWriter),
                                 new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(mediaStreamService), jaxbWriter),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
@@ -267,6 +268,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(WebsiteSettingsController.PATHS);
         registration.addUrlMappings(LiveQueueController.PATHS);
         registration.addUrlMappings(AvatarRestController.PATHS);
+        registration.addUrlMappings(AvatarUploadController.PATH);
         registration.addUrlMappings(HlsRestController.PATHS);
         registration.addUrlMappings(HlsSegmentRestController.PATHS);
         registration.addUrlMappings(StreamRestController.PATHS);

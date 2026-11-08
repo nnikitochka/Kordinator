@@ -3,6 +3,8 @@ function initPersonalSettings(options) {
     var fields = document.getElementById('personalFields');
     var errorBox = document.getElementById('personalSettingsError');
     var saved = document.getElementById('personalSettingsSaved');
+    var username;
+    var uploadForm = document.getElementById('avatarUpload');
     async function request(url, body) {
         var config = {credentials: 'same-origin'};
         if (body) {
@@ -25,6 +27,7 @@ function initPersonalSettings(options) {
     }
     async function load() {
         var data = await request(options.readUrl);
+        username = data.username;
         [['themeId', data.theme], ['locale', data.localeOption]].forEach(function (entry) {
             var select = form.elements[entry[0]];
             while (select.options.length > 1) select.remove(1);
@@ -47,6 +50,7 @@ function initPersonalSettings(options) {
         lastfmCredsAbsent = data.lastfmCredsAbsent;
         listenBrainzCredsAbsent = data.listenBrainzCredsAbsent;
         enableFields(); fields.disabled = false;
+        document.getElementById('avatarUploadFields').disabled = false;
     }
     form.addEventListener('submit', async function (event) {
         event.preventDefault();
@@ -59,6 +63,31 @@ function initPersonalSettings(options) {
                 window.parent.location.href = options.indexUrl + '?main=' + encodeURIComponent('personalSettings.view?saved=true');
             } else window.location.replace(options.pageUrl + '?saved=true');
         } catch (error) { errorBox.textContent = error.message; fields.disabled = false; }
+    });
+    uploadForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        var error = document.getElementById('avatarUploadError');
+        var success = document.getElementById('avatarUploadSaved');
+        var button = uploadForm.querySelector('input[type=submit]');
+        error.textContent = ''; success.hidden = true;
+        var file = uploadForm.elements.file.files[0];
+        if (!file) { error.textContent = 'Missing file'; return; }
+        var body = new FormData(); body.append('file', file);
+        var headers = {}; headers[options.csrfHeader] = options.csrfToken;
+        button.disabled = true;
+        try {
+            var response = await fetch(options.uploadUrl + '?f=json&c=airsonic-web', {
+                method: 'POST', body: body, credentials: 'same-origin', headers: headers
+            });
+            if (!response.ok || response.redirected) throw new Error('Request failed');
+            var result = (await response.json())['subsonic-response'];
+            if (!result || result.status !== 'ok') throw new Error(result && result.error ? result.error.message : 'Request failed');
+            var preview = document.getElementById('personalCustomAvatar');
+            preview.replaceChildren(image(result.avatarUpload.avatar,
+                'username=' + encodeURIComponent(username) + '&forceCustom=true&_=' + Date.now()));
+            uploadForm.reset(); success.hidden = false;
+        } catch (failure) { error.textContent = failure.message; }
+        finally { button.disabled = false; }
     });
     load().catch(function (error) { errorBox.textContent = error.message; });
 }
