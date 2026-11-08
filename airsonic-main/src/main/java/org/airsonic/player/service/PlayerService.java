@@ -1,6 +1,5 @@
 package org.airsonic.player.service;
 
-import com.google.common.collect.ImmutableMap;
 import org.airsonic.player.dao.PlayerDao;
 import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.Transcoding;
@@ -10,7 +9,6 @@ import org.airsonic.player.util.StringUtil;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.annotation.DependsOn;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.ServletRequestUtils;
 
@@ -41,14 +39,12 @@ public class PlayerService {
     private StatusService statusService;
     private SecurityService securityService;
     private TranscodingService transcodingService;
-    private final SimpMessagingTemplate brokerTemplate;
 
-    public PlayerService(PlayerDao playerDao, StatusService statusService, SecurityService securityService, TranscodingService transcodingService, SimpMessagingTemplate brokerTemplate) {
+    public PlayerService(PlayerDao playerDao, StatusService statusService, SecurityService securityService, TranscodingService transcodingService) {
         this.playerDao = playerDao;
         this.statusService = statusService;
         this.securityService = securityService;
         this.transcodingService = transcodingService;
-        this.brokerTemplate = brokerTemplate;
     }
 
     @PostConstruct
@@ -180,10 +176,6 @@ public class PlayerService {
      */
     public void updatePlayer(Player player) {
         playerDao.updatePlayer(player);
-        if (player.getUsername() != null) {
-            brokerTemplate.convertAndSendToUser(player.getUsername(), "/queue/players/updated",
-                    ImmutableMap.of("id", player.getId(), "description", player.getShortDescription(), "tech", player.getTechnology()));
-        }
     }
 
     /**
@@ -286,7 +278,6 @@ public class PlayerService {
      */
     public synchronized void removePlayerById(int id) {
         playerDao.deletePlayer(id);
-        brokerTemplate.convertAndSend("/topic/players/deleted", id);
     }
 
     /**
@@ -322,10 +313,6 @@ public class PlayerService {
         }
         if (player != null) {
             transcodingService.setTranscodingsForPlayer(player, defaultActiveTranscodings);
-            if (player.getUsername() != null) {
-                brokerTemplate.convertAndSendToUser(player.getUsername(), "/queue/players/created",
-                        ImmutableMap.of("id", player.getId(), "description", player.getShortDescription(), "tech", player.getTechnology()));
-            }
         }
     }
 

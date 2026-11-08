@@ -3,6 +3,7 @@ package org.airsonic.player.api;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.airsonic.player.domain.User;
+import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.service.MediaFolderService;
@@ -11,6 +12,7 @@ import org.airsonic.player.util.MusicFolderTestData;
 import java.util.List;
 import java.util.UUID;
 import org.airsonic.player.service.SecurityService;
+import org.airsonic.player.service.PlayerService;
 import org.airsonic.player.util.HomeRule;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -36,6 +38,7 @@ public class LiveQueueIntegrationTest {
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
     @Autowired private MediaFileDao files;
+    @Autowired private PlayerService players;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Test public void liveQueueRequiresCsrfAndPlayerOwnership() throws Exception {
@@ -66,6 +69,28 @@ public class LiveQueueIntegrationTest {
         JsonNode otherPlayers = body(send(other, "/rest/livePlayQueue", "f=json&action=players&playerId=" + id, otherCsrf)).path("livePlayQueue").path("player");
         assertFalse(otherPlayers.toString().contains("\"id\":" + id));
         assertEquals(50, body(send(other, "/rest/livePlayQueue", params + "&action=clear", otherCsrf)).path("error").path("code").asInt());
+    }
+    @Test public void playerChangesAreVisibleThroughRestPolling() throws Exception {
+        HttpClient browser = client();
+        String csrf = login(browser, "admin", "admin");
+        Player player = new Player();
+        player.setUsername("admin");
+        player.setName("Polling test player");
+        players.createPlayer(player);
+        try {
+            assertTrue(body(send(browser, "/rest/livePlayQueue", "f=json&action=players", csrf))
+                    .path("livePlayQueue").path("player").toString().contains("Polling test player"));
+            player.setName("Renamed polling player");
+            players.updatePlayer(player);
+            String updated = body(send(browser, "/rest/livePlayQueue", "f=json&action=players", csrf))
+                    .path("livePlayQueue").path("player").toString();
+            assertTrue(updated.contains("Renamed polling player"));
+            assertFalse(updated.contains("Polling test player"));
+        } finally {
+            players.removePlayerById(player.getId());
+        }
+        assertFalse(body(send(browser, "/rest/livePlayQueue", "f=json&action=players", csrf))
+                .path("livePlayQueue").path("player").toString().contains("Renamed polling player"));
     }
     @Test public void playsAndEditsRealMediaQueue() throws Exception {
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
