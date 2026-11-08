@@ -48,6 +48,7 @@ import org.airsonic.player.controller.rest.admin.MusicFolderSettingsController;
 import org.airsonic.player.controller.rest.admin.GeneralSettingsController;
 import org.airsonic.player.controller.rest.admin.TranscodingSettingsController;
 import org.airsonic.player.controller.rest.admin.AdvancedSettingsController;
+import org.airsonic.player.controller.rest.admin.PlayerSettingsController;
 import org.airsonic.player.service.GeneralSettingsAdministrationService;
 import org.airsonic.player.service.MusicFolderAdministrationService;
 import org.airsonic.player.service.search.IndexManager;
@@ -186,6 +187,7 @@ public class KtorConfiguration {
                                 new StarredController(mediaFileDao, albumDao, artistDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),
                                 new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, transcodingService, jaxbWriter),
+                                new PlayerSettingsController(playerService, transcodingService, playQueueService, jaxbWriter),
                                 new AdvancedSettingsController(settingsService, jaxbWriter),
                                 new TranscodingSettingsController(transcodingService, settingsService, jaxbWriter),
                                 new GeneralSettingsController(new GeneralSettingsAdministrationService(settingsService, playlistService), jaxbWriter),
@@ -235,6 +237,7 @@ public class KtorConfiguration {
         registration.addUrlMappings("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view");
         registration.addUrlMappings("/generalSettings", "/generalSettings.view");
         registration.addUrlMappings("/transcodingSettings", "/transcodingSettings.view", TranscodingSettingsController.READ_PATH, TranscodingSettingsController.SAVE_PATH);
+        registration.addUrlMappings("/playerSettings", "/playerSettings.view", PlayerSettingsController.READ_PATH, PlayerSettingsController.SAVE_PATH, PlayerSettingsController.CLONE_PATH, PlayerSettingsController.DELETE_PATH);
         registration.addUrlMappings("/advancedSettings", "/advancedSettings.view", AdvancedSettingsController.READ_PATH, AdvancedSettingsController.SAVE_PATH);
         registration.addUrlMappings(GeneralSettingsController.READ_PATH);
         registration.addUrlMappings(GeneralSettingsController.WRITE_PATHS);

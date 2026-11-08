@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="iso-8859-1" %>
-<%--@elvariable id="command" type="org.airsonic.player.command.PlayerSettingsCommand"--%>
+
 
 <html><head>
     <%@ include file="head.jsp" %>
@@ -42,58 +42,37 @@ $(document).ready(function() {
 <c:import url="settingsHeader.jsp">
     <c:param name="cat" value="player"/>
     <c:param name="toast" value="${settings_toast}"/>
-    <c:param name="restricted" value="${not command.admin}"/>
+    <c:param name="restricted" value="${not playerSettingsAdmin}"/>
 </c:import>
 
 <fmt:message key="common.unknown" var="unknown"/>
 
-<c:choose>
-    <c:when test="${empty command.players}">
-        <p><fmt:message key="playersettings.noplayers"/></p>
-    </c:when>
-    <c:otherwise>
+<p id="playerSettingsError" class="warning" role="alert"></p>
+<p id="playerSettingsSaved" role="status" hidden><fmt:message key="common.settingssaved"/></p>
+<p id="noPlayers" hidden><fmt:message key="playersettings.noplayers"/></p>
+<form id="playerSettings">
+<fieldset id="playerFields" disabled>
+<table class="indent">
+<tr><td><b><fmt:message key="playersettings.title"/></b></td><td><select id="playerSelector"></select></td></tr>
+<tr><td><button type="button" id="deletePlayer"><fmt:message key="playersettings.forget"/></button></td>
+<td><button type="button" id="clonePlayer"><fmt:message key="playersettings.clone"/></button></td></tr>
+</table>
 
-        <c:url value="playerSettings.view" var="deleteUrl">
-            <c:param name="delete" value="${command.playerId}"/>
-        </c:url>
-        <c:url value="playerSettings.view" var="cloneUrl">
-            <c:param name="clone" value="${command.playerId}"/>
-        </c:url>
-
-        <table class="indent">
-            <tr>
-                <td><b><fmt:message key="playersettings.title"/></b></td>
-                <td>
-                    <select name="player" onchange="location='playerSettings.view?id=' + options[selectedIndex].value;">
-                        <c:forEach items="${command.players}" var="player">
-                            <option ${player.id eq command.playerId ? "selected" : ""}
-                                    value="${player.id}">${fn:escapeXml(player.description)}</option>
-                        </c:forEach>
-                    </select>
-                </td>
-            </tr>
-            <tr>
-                <td style="padding-right:1em"><div class="forward"><a href="${deleteUrl}"><fmt:message key="playersettings.forget"/></a></div></td>
-                <td><div class="forward"><a href="${cloneUrl}"><fmt:message key="playersettings.clone"/></a></div></td>
-            </tr>
-        </table>
-
-        <form:form modelAttribute="command" method="post" action="playerSettings.view">
-            <form:hidden path="playerId"/>
+            <input type="hidden" name="id"/>
 
             <table class="ruleTable indent">
-                <c:forEach items="${command.technologyHolders}" var="technologyHolder">
+                <c:forEach items="${['WEB', 'EXTERNAL', 'EXTERNAL_WITH_PLAYLIST', 'JUKEBOX']}" var="technologyHolder">
                     <c:set var="technologyName">
-                        <fmt:message key="playersettings.technology.${fn:toLowerCase(technologyHolder.name)}.title"/>
+                        <fmt:message key="playersettings.technology.${fn:toLowerCase(technologyHolder)}.title"/>
                     </c:set>
 
                     <tr>
                         <td class="ruleTableHeader">
-                            <form:radiobutton class="technologyRadio" id="radio-${technologyName}" path="technologyName" value="${technologyHolder.name}"/>
-                            <b><label for="radio-${technologyName}">${technologyName}</label></b>
+                            <input type="radio" class="technologyRadio" id="radio-${technologyHolder}" name="technologyName" value="${technologyHolder}"/>
+                            <b><label for="radio-${technologyHolder}">${technologyName}</label></b>
                         </td>
                         <td class="ruleTableCell" style="width:40em">
-                            <fmt:message key="playersettings.technology.${fn:toLowerCase(technologyHolder.name)}.text"/>
+                            <fmt:message key="playersettings.technology.${fn:toLowerCase(technologyHolder)}.text"/>
                         </td>
                     </tr>
                 </c:forEach>
@@ -103,22 +82,19 @@ $(document).ready(function() {
                 <tr>
                     <td style="padding-right: 1.5em"><fmt:message key="playersettings.type"/></td>
                     <td>
-                        <c:choose>
-                            <c:when test="${empty command.type}">${unknown}</c:when>
-                            <c:otherwise>${command.type}</c:otherwise>
-                        </c:choose>
+                        <span id="playerType">${unknown}</span>
                     </td>
                 </tr>
                 <tr>
                     <td style="padding-right: 1.5em"><fmt:message key="playersettings.lastseen"/></td>
-                    <td><javatime:format value="${command.lastSeen}" style="LM"/></td>
+                    <td><span id="playerLastSeen"></span></td>
                 </tr>
             </table>
 
             <table class="indent" style="border-spacing:3pt;">
                 <tr>
                     <td><fmt:message key="playersettings.name"/></td>
-                    <td><form:input path="name" size="16"/></td>
+                    <td><input name="name" size="16"/></td>
                     <td colspan="2"><c:import url="helpToolTip.jsp"><c:param name="topic" value="playername"/></c:import></td>
                 </tr>
 
@@ -126,19 +102,15 @@ $(document).ready(function() {
                 <tr class="technologyDepends WEB EXTERNAL EXTERNAL_WITH_PLAYLIST JUKEBOX">
                     <td><fmt:message key="playersettings.maxbitrate"/></td>
                     <td>
-                        <form:select path="transcodeSchemeName" cssStyle="width:8em">
-                            <c:forEach items="${command.transcodeSchemeHolders}" var="transcodeSchemeHolder">
-                                <form:option value="${transcodeSchemeHolder.name}" label="${transcodeSchemeHolder.description}"/>
-                            </c:forEach>
-                        </form:select>
+                        <select name="transcodeSchemeName" style="width:8em"></select>
                     </td>
                     <td>
                         <c:import url="helpToolTip.jsp"><c:param name="topic" value="transcode"/></c:import>
                     </td>
                     <td class="warning">
-                        <c:if test="${not command.transcodingSupported}">
+                        <span id="noTranscoder" hidden>
                             <fmt:message key="playersettings.notranscoder"/>
-                        </c:if>
+                        </span>
                     </td>
                 </tr>
             </table>
@@ -146,7 +118,7 @@ $(document).ready(function() {
             <table class="indent technologyDepends WEB EXTERNAL EXTERNAL_WITH_PLAYLIST JUKEBOX" style="border-spacing:3pt">
                 <tr>
                     <td>
-                        <form:checkbox path="dynamicIp" id="dynamicIp" cssClass="checkbox"/>
+                        <input type="checkbox" name="dynamicIp" id="dynamicIp" class="checkbox"/>
                         <label for="dynamicIp"><fmt:message key="playersettings.dynamicip"/></label>
                     </td>
                     <td><c:import url="helpToolTip.jsp"><c:param name="topic" value="dynamicip"/></c:import></td>
@@ -154,7 +126,7 @@ $(document).ready(function() {
 
                 <tr>
                     <td>
-                        <form:checkbox path="autoControlEnabled" id="autoControlEnabled" cssClass="checkbox"/>
+                        <input type="checkbox" name="autoControlEnabled" id="autoControlEnabled" class="checkbox"/>
                         <label for="autoControlEnabled"><fmt:message key="playersettings.autocontrol"/></label>
                     </td>
                     <td><c:import url="helpToolTip.jsp"><c:param name="topic" value="autocontrol"/></c:import></td>
@@ -162,31 +134,31 @@ $(document).ready(function() {
 
                 <tr>
                     <td>
-                        <form:checkbox path="m3uBomEnabled" id="m3uBomEnabled" cssClass="checkbox"/>
+                        <input type="checkbox" name="m3uBomEnabled" id="m3uBomEnabled" class="checkbox"/>
                         <label for="m3uBomEnabled"><fmt:message key="playersettings.m3ubom"/></label>
                     </td>
                     <td><c:import url="helpToolTip.jsp"><c:param name="topic" value="m3ubom"/></c:import></td>
                 </tr>
             </table>
 
-            <c:if test="${not empty command.allTranscodings}">
-                <table class="indent technologyDepends WEB EXTERNAL EXTERNAL_WITH_PLAYLIST JUKEBOX">
-                    <tr><td><b><fmt:message key="playersettings.transcodings"/></b></td></tr>
-                    <c:forEach items="${command.allTranscodings}" var="transcoding" varStatus="loopStatus">
-                        <c:if test="${loopStatus.count % 3 == 1}"><tr></c:if>
-                        <td style="padding-right:2em">
-                            <form:checkbox path="activeTranscodingIds" id="transcoding${transcoding.id}" value="${transcoding.id}" cssClass="checkbox"/>
-                            <label for="transcoding${transcoding.id}">${transcoding.name}</label>
-                        </td>
-                        <c:if test="${loopStatus.count % 3 == 0 or loopStatus.count eq fn:length(command.allTranscodings)}"></tr></c:if>
-                    </c:forEach>
-                </table>
-            </c:if>
+            <div class="indent technologyDepends WEB EXTERNAL EXTERNAL_WITH_PLAYLIST JUKEBOX">
+                <b><fmt:message key="playersettings.transcodings"/></b>
+                <div id="playerTranscodings"></div>
+            </div>
 
             <input type="submit" value="<fmt:message key='common.save'/>" style="margin-top:1em;margin-right:0.3em">
             <a href='nowPlaying.view'><input type="button" value="<fmt:message key='common.cancel'/>" style="margin-top:1em"></a>
-        </form:form>
-    </c:otherwise>
-</c:choose>
+</fieldset></form>
 
+<script src="<c:url value='/script/player-settings.js'/>"></script>
+<script>
+initPlayerSettings({
+    readUrl: '<c:url value="/rest/getPlayerSettings"/>',
+    saveUrl: '<c:url value="/rest/savePlayerSettings"/>',
+    cloneUrl: '<c:url value="/rest/clonePlayer"/>',
+    deleteUrl: '<c:url value="/rest/deletePlayer"/>',
+    csrfHeader: '${_csrf.headerName}',
+    csrfToken: '${_csrf.token}'
+});
+</script>
 </body></html>
