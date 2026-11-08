@@ -850,7 +850,7 @@ class AirsonicKtorServlet(
         } else if (path in UploadStatusController.PATHS) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(UPLOAD_STATUS_REQUEST, UploadStatusController.Request(
-                user.username, user.isAdminRole || user.isUploadRole, parameters(request)))
+                user.username, user.isAdminRole || user.isUploadRole, user.isAdminRole, parameters(request)))
         } else if (path in WebsiteSettingsController.PATHS) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(WEBSITE_SETTINGS_REQUEST, WebsiteSettingsController.Request(user.username, parameters(request)))

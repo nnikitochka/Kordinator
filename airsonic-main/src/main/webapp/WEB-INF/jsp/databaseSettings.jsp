@@ -7,6 +7,7 @@
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
     <%@ include file="subsonicUploadStatus.jsp" %>
+    <script src="<c:url value='/script/subsonic-database-status.js'/>"></script>
     <script>
         function updateShownOptions() {
             $(".hideawayDatabaseOptions").hide();
@@ -55,12 +56,22 @@
             }
         }
 
+        var pendingDatabaseActions = {};
+        function markDatabaseAction(name) {
+            pendingDatabaseActions[name] = previousDatabaseStatuses ? previousDatabaseStatuses[name].version : 0;
+        }
         function backupDB() {
+            markDatabaseAction('backup');
             $("#backupdb").prop("disabled", true);
-            $.get("databaseSettings/backup");
+            $.get("databaseSettings/backup").fail(function () {
+                delete pendingDatabaseActions.backup;
+                $("#backupdb").prop("disabled", false);
+                $().toastmessage('showErrorToast', 'Backup DB failed');
+            });
         }
 
         function exportDB() {
+            markDatabaseAction('export');
             $("#exportdb").prop("disabled", true);
             location.href="databaseSettings/export";
         }
@@ -69,25 +80,24 @@
             $("#importdb").prop("disabled", true);
         }
 
-        function backupStatus(msg) {
-            if (msg == "ended") {
-               $("#backupdb").prop("disabled", false);
-            }
-            $().toastmessage('showSuccessToast', 'Backup DB: ' + msg);
-        }
-
-        function importStatus(msg) {
-            if (msg == "ended") {
-               $("#importdb").prop("disabled", false);
-            }
-            $().toastmessage('showSuccessToast', 'Import DB: ' + msg);
-        }
-
-        function exportStatus(msg) {
-            if (msg == "ended") {
-               $("#exportdb").prop("disabled", false);
-            }
-            $().toastmessage('showSuccessToast', 'Export DB: ' + msg);
+        var previousDatabaseStatuses;
+        function updateDatabaseStatuses(statuses) {
+            ['backup', 'export', 'import'].forEach(function (name) {
+                var current = statuses[name];
+                var previous = previousDatabaseStatuses && previousDatabaseStatuses[name];
+                if (pendingDatabaseActions[name] !== undefined && current.version > pendingDatabaseActions[name]) {
+                    delete pendingDatabaseActions[name];
+                }
+                $('#' + name + 'db').prop('disabled', current.running || pendingDatabaseActions[name] !== undefined);
+                if (previous && current.version > 0 &&
+                        (current.version !== previous.version || current.running !== previous.running ||
+                         current.message !== previous.message || current.failed !== previous.failed)) {
+                    var label = name.charAt(0).toUpperCase() + name.slice(1);
+                    $().toastmessage(current.failed ? 'showErrorToast' : 'showSuccessToast',
+                        label + ' DB: ' + (current.message || (current.running ? 'started' : 'ended')));
+                }
+            });
+            previousDatabaseStatuses = statuses;
         }
 
         $(document).ready(function () {
@@ -96,11 +106,11 @@
                 updateShownOptions();
             });
             watchUploads(updateUploads);
-            top.StompClient.subscribe("databaseSettingsController.jsp", {
-                '/topic/backupStatus': function(msg) { backupStatus(msg.body); },
-                '/topic/importStatus': function(msg) { importStatus(msg.body); },
-                '/topic/exportStatus': function(msg) { exportStatus(msg.body); }
-            });
+            watchDatabaseStatus({
+                url: "<c:url value='/rest/getDatabaseStatus'/>",
+                csrfHeader: "${_csrf.headerName}",
+                csrfToken: "${_csrf.token}"
+            }, updateDatabaseStatuses);
         });
     </script>
     <style>

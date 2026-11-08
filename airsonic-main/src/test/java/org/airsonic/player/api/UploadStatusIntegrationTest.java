@@ -7,6 +7,7 @@ import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.TransferStatus;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.service.SecurityService;
+import org.airsonic.player.service.DatabaseService;
 import org.airsonic.player.service.StatusService;
 import org.airsonic.player.util.HomeRule;
 import org.junit.ClassRule;
@@ -41,6 +42,7 @@ public class UploadStatusIntegrationTest {
     @ClassRule public static final HomeRule home = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private StatusService status;
+    @Autowired private DatabaseService database;
     @Autowired private SecurityService security;
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -84,10 +86,20 @@ public class UploadStatusIntegrationTest {
                 assertEquals(page.body(), 200, page.statusCode());
                 assertTrue(page.body(), page.body().contains("subsonic-upload-status.js"));
                 assertFalse(page.body().contains("/user/queue/uploads/status"));
+                if (pagePath.equals("/databaseSettings.view")) {
+                    assertTrue(page.body().contains("subsonic-database-status.js"));
+                    assertFalse(page.body().contains("/topic/backupStatus"));
+                    assertFalse(page.body().contains("/topic/importStatus"));
+                    assertFalse(page.body().contains("/topic/exportStatus"));
+                }
                 token = Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
                 assertTrue(page.body(), token.find());
                 assertEquals(403, send(browser, "/rest/getUploadStatus", "f=json", null).statusCode());
                 assertEquals("ok", body(send(browser, "/rest/getUploadStatus", "f=json", token.group(1))).path("status").asText());
+                if (pagePath.equals("/databaseSettings.view")) {
+                    assertEquals(403, send(browser, "/rest/getDatabaseStatus", "f=json", null).statusCode());
+                    assertTrue(body(send(browser, "/rest/getDatabaseStatus", "f=json", token.group(1))).path("databaseStatuses").isObject());
+                }
                 if (pagePath.equals("/more.view")) {
                     Path target = Path.of(TestCaseUtils.airsonicHomePathForTest(), "upload-status-test");
                     String multipart = "--boundary\r\nContent-Disposition: form-data; name=\"dir\"\r\n\r\n" + target +
@@ -106,6 +118,27 @@ public class UploadStatusIntegrationTest {
             status.removeUploadStatus(own);
             status.removeUploadStatus(other);
         }
+    }
+
+    @Test public void databaseStatusIsAdminOnlyAndReportsCompletedOperations() throws Exception {
+        User user = new User("database-status-user", null);
+        user.setRoles(Set.of(User.Role.UPLOAD));
+        security.createUser(user, "secret", "test");
+        HttpClient client = HttpClient.newHttpClient();
+        String admin = auth("admin", "admin") + "&f=json";
+        JsonNode before = body(send(client, "/rest/getDatabaseStatus.view", admin, null)).path("databaseStatuses");
+        assertTrue(before.toString(), before.path("import").isObject());
+        long version = before.path("import").path("version").asLong();
+        Path empty = Files.createTempDirectory(Path.of(TestCaseUtils.airsonicHomePathForTest()), "empty-import");
+        database.importDB(empty);
+        JsonNode after = body(send(client, "/rest/getDatabaseStatus.view", admin, null)).path("databaseStatuses");
+        assertEquals(version + 1, after.path("import").path("version").asLong());
+        assertFalse(after.path("import").path("running").asBoolean());
+        assertFalse(after.path("import").path("failed").asBoolean());
+        assertEquals("Nothing imported", after.path("import").path("message").asText());
+        assertEquals("failed", body(send(client, "/rest/getDatabaseStatus.view", auth("database-status-user", "secret") + "&f=json", null)).path("status").asText());
+        String xml = send(client, "/rest/getDatabaseStatus.view", auth("admin", "admin"), null).body();
+        assertTrue(xml, xml.contains("Nothing imported"));
     }
 
     private String auth(String username, String password) {
