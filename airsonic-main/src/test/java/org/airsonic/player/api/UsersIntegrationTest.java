@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.domain.User;
+import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.TranscodeScheme;
 import org.airsonic.player.controller.UserSettingsController;
 import org.airsonic.player.service.SettingsService;
@@ -24,6 +25,9 @@ import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.net.http.*;
@@ -82,6 +86,9 @@ public class UsersIntegrationTest {
         websiteUserAdministration();
     }
     private void websiteUserAdministration() throws Exception {
+        Path folderPath = Files.createTempDirectory("users-test-music");
+        folders.createMusicFolder(new MusicFolder(folderPath, "Users test", MusicFolder.Type.MEDIA, true, Instant.now()));
+        int folderId = folders.getAllMusicFolders().stream().filter(folder -> folder.getPath().equals(folderPath)).findFirst().orElseThrow().getId();
         HttpClient browser = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
                 .followRedirects(HttpClient.Redirect.NEVER).build();
         HttpResponse<String> login = browser.send(HttpRequest.newBuilder(URI.create(base() + "/login")).GET().build(), HttpResponse.BodyHandlers.ofString());
@@ -93,13 +100,41 @@ public class UsersIntegrationTest {
         token = Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
         assertTrue(token.find());
         String csrf = URLEncoder.encode(token.group(1), StandardCharsets.UTF_8);
-        String form = "_csrf=" + csrf + "&newUser=true&username=website-created&email=web%40example.com&password=secret&confirmPassword=secret&streamRole=true&transcodeSchemeName=OFF&_allowedMusicFolderIds=on";
-        assertEquals(302, post(browser, "/userSettings.view", form).statusCode());
+        assertEquals(403, post(browser, "/rest/saveWebsiteUser", "f=json&c=airsonic-web&username=admin&deleteUser=true").statusCode());
+        HttpClient memberBrowser = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
+                .followRedirects(HttpClient.Redirect.NEVER).build();
+        HttpResponse<String> memberLogin = memberBrowser.send(HttpRequest.newBuilder(URI.create(base() + "/login")).GET().build(), HttpResponse.BodyHandlers.ofString());
+        Matcher memberToken = Pattern.compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"").matcher(memberLogin.body());
+        assertTrue(memberToken.find());
+        String memberCredentials = "j_username=users-member&j_password=own&_csrf=" + URLEncoder.encode(memberToken.group(1), StandardCharsets.UTF_8);
+        assertEquals(302, post(memberBrowser, "/login", memberCredentials).statusCode());
+        HttpResponse<String> memberPage = memberBrowser.send(HttpRequest.newBuilder(URI.create(base() + "/top.view")).GET().build(), HttpResponse.BodyHandlers.ofString());
+        memberToken = Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(memberPage.body());
+        assertTrue(memberToken.find());
+        error(websiteCall(memberBrowser, URLEncoder.encode(memberToken.group(1), StandardCharsets.UTF_8), "username=admin&deleteUser=true"), 50);
+        String form = "_csrf=" + csrf + "&newUser=true&username=website-created&email=web%40example.com&password=secret&confirmPassword=secret&streamRole=true&transcodeSchemeName=OFF&allowedMusicFolderIds=" + folderId;
+        ok(websiteCall(browser, csrf, form));
         assertEquals("web@example.com", security.getUserByName("website-created").getEmail());
         assertTrue(security.getUserByName("website-created").isStreamRole());
-        assertEquals(302, post(browser, "/userSettings.view", "_csrf=" + csrf + "&username=website-created&email=changed%40example.com&shareRole=true&transcodeSchemeName=OFF&_allowedMusicFolderIds=on").statusCode());
+        assertEquals(1, folders.getMusicFoldersForUser("website-created").size());
+        ok(websiteCall(browser, csrf, "username=website-created&email=changed%40example.com&shareRole=true&streamRole=false&transcodeSchemeName=OFF"));
         assertEquals("changed@example.com", security.getUserByName("website-created").getEmail());
         assertTrue(security.getUserByName("website-created").isShareRole());
+        assertFalse(security.getUserByName("website-created").isStreamRole());
+        assertTrue(folders.getMusicFoldersForUser("website-created").isEmpty());
+        error(websiteCall(browser, csrf, "username=admin&deleteUser=true"), 50);
+        error(websiteCall(browser, csrf, "username=admin&transcodeSchemeName=OFF&adminRole=false"), 50);
+        error(websiteCall(browser, csrf, "username=website-created&transcodeSchemeName=INVALID"), 0);
+        error(websiteCall(browser, csrf, "newUser=true&username=bad-user&email=x&password=a&confirmPassword=b&transcodeSchemeName=OFF"), 0);
+        assertNull(security.getUserByName("bad-user"));
+        ok(websiteCall(browser, csrf, "username=website-created&deleteUser=true"));
+        assertNull(security.getUserByName("website-created"));
+        assertEquals(405, post(browser, "/userSettings.view", "_csrf=" + csrf).statusCode());
+    }
+    private JsonNode websiteCall(HttpClient browser, String csrf, String form) throws Exception {
+        HttpResponse<String> response = post(browser, "/rest/saveWebsiteUser", "f=json&c=airsonic-web&_csrf=" + csrf + "&" + form);
+        assertEquals(response.body(), 200, response.statusCode());
+        return mapper.readTree(response.body()).path("subsonic-response");
     }
     private String base() { return "http://localhost:" + port + "/airsonic"; }
     private HttpResponse<String> post(HttpClient browser, String path, String form) throws Exception {

@@ -9,23 +9,13 @@ import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.service.TranscodingService;
-import org.airsonic.player.service.UserAdministrationService;
 import org.airsonic.player.util.Util;
-import org.airsonic.player.validator.UserSettingsValidator;
-import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.ServletRequestUtils;
-import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.InitBinder;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -42,19 +32,12 @@ public class UserSettingsController {
     private final SettingsService settingsService;
     private final MediaFolderService mediaFolderService;
     private final TranscodingService transcodingService;
-    private final UserAdministrationService userAdministrationService;
 
-    public UserSettingsController(SecurityService securityService, SettingsService settingsService, MediaFolderService mediaFolderService, TranscodingService transcodingService, UserAdministrationService userAdministrationService) {
+    public UserSettingsController(SecurityService securityService, SettingsService settingsService, MediaFolderService mediaFolderService, TranscodingService transcodingService) {
         this.securityService = securityService;
         this.settingsService = settingsService;
         this.mediaFolderService = mediaFolderService;
         this.transcodingService = transcodingService;
-        this.userAdministrationService = userAdministrationService;
-    }
-
-    @InitBinder
-    protected void initBinder(WebDataBinder binder, HttpServletRequest request) {
-        binder.addValidators(new UserSettingsValidator(securityService, settingsService, request));
     }
 
     @GetMapping
@@ -111,42 +94,6 @@ public class UserSettingsController {
             result.add(musicFolder.getId());
         }
         return result;
-    }
-
-    @PostMapping
-    protected String doSubmitAction(@ModelAttribute("command") @Validated UserSettingsCommand command, BindingResult bindingResult, RedirectAttributes redirectAttributes) {
-
-        if (!bindingResult.hasErrors()) {
-            if (command.isDeleteUser()) {
-                deleteUser(command);
-            } else if (command.isNewUser()) {
-                userAdministrationService.createUser(command);
-            } else {
-                userAdministrationService.updateUser(command);
-            }
-            redirectAttributes.addFlashAttribute("settings_reload", true);
-            redirectAttributes.addFlashAttribute("settings_toast", true);
-        } else {
-            redirectAttributes.addFlashAttribute("command", command);
-            redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.command", bindingResult);
-            redirectAttributes.addFlashAttribute("userIndex", getUserIndex(command));
-        }
-
-        return "redirect:userSettings.view";
-    }
-
-    private Integer getUserIndex(UserSettingsCommand command) {
-        List<User> allUsers = securityService.getAllUsers();
-        for (int i = 0; i < allUsers.size(); i++) {
-            if (StringUtils.equalsIgnoreCase(allUsers.get(i).getUsername(), command.getUsername())) {
-                return i;
-            }
-        }
-        return null;
-    }
-
-    private void deleteUser(UserSettingsCommand command) {
-        securityService.deleteUser(command.getUsername());
     }
 
 }

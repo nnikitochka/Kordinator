@@ -36,6 +36,9 @@ class UsersController(
                 get(path) { respond(call, request(call), operation) }
                 post(path) { respond(call, request(call), operation) }
             }
+            WEBSITE_PATHS.forEach { path ->
+                post(path) { respond(call, request(call), "saveWebsiteUser") }
+            }
         }
     }
     private suspend fun respond(call: ApplicationCall, request: UsersRequest, operation: String) {
@@ -70,6 +73,7 @@ class UsersController(
             }
             return denied("${current.username} is not authorized to $action.")
         }
+        if (operation == "saveWebsiteUser") return saveWebsiteUser(request)
         when (operation) {
             "getUsers" -> return writer.createResponse(true).apply {
                 users = Users().apply { security.allUsers.forEach { user.add(mapUser(it)) } }
@@ -111,6 +115,45 @@ class UsersController(
         }
         return writer.createResponse(true)
     }
+    private fun saveWebsiteUser(request: UsersRequest): Response {
+        val p = request.parameters
+        val username = p.required("username").trim()
+        if (username.isEmpty()) return invalid("Username is required")
+        val existing = security.getUserByName(username)
+        val creating = p.bool("newUser", false)
+        if (creating && existing != null) return invalid("User already exists")
+        if (!creating && existing == null) return notFound(username)
+        val deleting = p.bool("deleteUser", false)
+        if (deleting) {
+            if (username == User.USERNAME_ADMIN || username == request.user.username) return denied("Cannot delete this user")
+            security.deleteUser(username)
+            return writer.createResponse(true)
+        }
+        val ldap = p.bool("ldapAuthenticated", false)
+        val changePassword = p.bool("passwordChange", false)
+        val password = p["password"]?.trim().orEmpty()
+        if (creating && p["email"].isNullOrBlank()) return invalid("Email is required")
+        if (ldap && creating && !settings.isLdapEnabled) return invalid("LDAP is disabled")
+        if (ldap && (changePassword || creating && password.isNotEmpty())) return invalid("Password is not supported for LDAP users")
+        if (!ldap && (creating || changePassword) && (password.isEmpty() || password != p["confirmPassword"])) return invalid("Passwords must match and cannot be empty")
+        val command = UserSettingsCommand()
+        command.username = username
+        command.email = p["email"]
+        command.password = password
+        command.isPasswordChange = changePassword
+        fillRoles(command, p, null)
+        if (username == request.user.username && !command.isAdminRole) return denied("Cannot remove admin from the current user")
+        command.transcodeSchemeName = p["transcodeSchemeName"]?.takeIf { name -> TranscodeScheme.values().any { it.name == name } }
+            ?: return invalid("Invalid transcoding scheme")
+        val rawFolders = p.getAll("allowedMusicFolderIds").orEmpty()
+        val ids = rawFolders.map { it.toIntOrNull() ?: return invalid("Invalid music folder") }
+        val available = folders.allMusicFolders.map { it.id }.toSet()
+        if (!available.containsAll(ids)) return invalid("Invalid music folder")
+        command.allowedMusicFolderIds = ids.toIntArray()
+        if (creating) userSettings.createUser(command) else userSettings.updateUser(command)
+        return writer.createResponse(true)
+    }
+    private fun invalid(message: String) = writer.createErrorResponse(ErrorCode.GENERIC, message)
     private fun fillRoles(command: UserSettingsCommand, p: Parameters, user: User?) {
         command.isLdapAuthenticated = p.bool("ldapAuthenticated", user?.isLdapAuthenticated ?: false)
         command.isAdminRole = p.bool("adminRole", user?.isAdminRole ?: false)
@@ -144,5 +187,6 @@ class UsersController(
     companion object {
         private val LOG = LoggerFactory.getLogger(UsersController::class.java)
         @JvmField val PATHS = listOf("getUser", "getUsers", "createUser", "updateUser", "deleteUser").flatMap { listOf("/rest/$it", "/rest/$it.view") }.toTypedArray()
+        @JvmField val WEBSITE_PATHS = arrayOf("/rest/saveWebsiteUser")
     }
 }

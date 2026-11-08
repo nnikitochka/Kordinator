@@ -9,9 +9,36 @@
     <script type="text/javascript">
         function init() {
             enablePasswordChangeFields();
+            document.getElementById('command').addEventListener('submit', saveUser);
             <c:if test="${settings_reload}">
             parent.frames.left.location.href="left.view?";
             </c:if>
+        }
+        async function saveUser(event) {
+            event.preventDefault();
+            var form = event.currentTarget;
+            var params = new URLSearchParams(new FormData(form));
+            ['adminRole', 'settingsRole', 'streamRole', 'jukeboxRole', 'downloadRole', 'uploadRole',
+             'shareRole', 'coverArtRole', 'commentRole', 'ldapAuthenticated', 'passwordChange', 'deleteUser'].forEach(function (name) {
+                var checkbox = form.querySelector('input[type=checkbox][name=' + name + ']');
+                params.set(name, checkbox && checkbox.checked ? 'true' : 'false');
+            });
+            params.set('f', 'json');
+            params.set('c', 'airsonic-web');
+            var headers = {};
+            headers['${_csrf.headerName}'] = '${_csrf.token}';
+            try {
+                var response = await fetch('<c:url value="/rest/saveWebsiteUser"/>', {
+                    method: 'POST', credentials: 'same-origin', headers: headers, body: params
+                });
+                if (!response.ok || response.redirected) throw new Error('Request failed');
+                var result = (await response.json())['subsonic-response'];
+                if (!result || result.status !== 'ok') throw new Error(result && result.error ? result.error.message : 'Request failed');
+                parent.frames.left.location.reload();
+                location.href = 'userSettings.view';
+            } catch (error) {
+                document.getElementById('userSettingsError').textContent = error.message;
+            }
         }
         function enablePasswordChangeFields() {
             var changePasswordCheckbox = $("#passwordChange");
@@ -62,6 +89,7 @@
 
 <p/>
 
+<div id="userSettingsError" class="warning" role="alert"></div>
 <form:form method="post" action="userSettings.view" modelAttribute="command">
         <table>
             <tr style="${command.currentUser ? 'display:none' : ''}">
