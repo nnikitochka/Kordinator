@@ -152,6 +152,7 @@ public class KtorConfiguration {
             DownloadService downloadService,
             MusicIndexStateService musicIndexStateService,
             UserAdministrationService userAdministrationService,
+            TranscodingService transcodingService,
             LocaleResolver localeResolver,
             CoverArtImageService coverArtImageService,
             HlsPlaylistService hlsPlaylistService,
@@ -175,7 +176,7 @@ public class KtorConfiguration {
                                 new BookmarksController(bookmarkService, mediaFileService, responseMapper, jaxbWriter),
                                 new StarredController(mediaFileDao, albumDao, artistDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),
-                                new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, jaxbWriter),
+                                new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, transcodingService, jaxbWriter),
                                 new PasswordController(securityService, jaxbWriter),
                                 new PlayQueueController(playQueueDao, mediaFileService, responseMapper, jaxbWriter),
                                 new IndexesController(settingsService, mediaFolderService, musicIndexService, musicIndexStateService, mediaFileDao, ratingService, responseMapper, jaxbWriter),
@@ -217,6 +218,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(JukeboxController.PATHS);
         registration.addUrlMappings(UsersController.PATHS);
         registration.addUrlMappings(UsersController.WEBSITE_PATHS);
+        registration.addUrlMappings(UsersController.WEBSITE_READ_PATH);
         registration.addUrlMappings(PasswordController.PATHS);
         registration.addUrlMappings(PlayQueueController.PATHS);
         registration.addUrlMappings(IndexesController.PATHS);

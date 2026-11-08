@@ -66,6 +66,29 @@ public class UsersIntegrationTest {
             assertEquals("users-member", call("getUser" + suffix, "users-member", "username=users-member").path("user").path("username").asText());
             assertTrue(call("getUsers" + suffix, "users-admin", "").path("users").path("user").isArray());
         }
+        error(call("getWebsiteUserAdministration", "users-member", ""), 50);
+        error(call("getWebsiteUserAdministration", "users-admin", "username=missing-user"), 70);
+        JsonNode newUserPage = call("getWebsiteUserAdministration", "users-admin", "").path("websiteUserAdministration");
+        assertTrue(newUserPage.path("user").path("newUser").asBoolean());
+        assertTrue(newUserPage.path("user").path("streamRole").asBoolean());
+        assertTrue(newUserPage.path("user").path("settingsRole").asBoolean());
+        assertTrue(newUserPage.path("schemes").path("scheme").isArray());
+        JsonNode current = call("getWebsiteUserAdministration", "users-admin", "username=users-admin").path("websiteUserAdministration");
+        assertTrue(current.path("user").path("currentUser").asBoolean());
+        assertTrue(current.path("user").path("adminRole").asBoolean());
+        assertEquals("admin", call("getWebsiteUserAdministration", "users-admin", "userIndex=0").path("websiteUserAdministration").path("user").path("username").asText());
+        User ldapUser = new User("users-ldap", "ldap@example.com");
+        ldapUser.setLdapAuthenticated(true);
+        security.createUser(ldapUser, "secret", "test");
+        JsonNode ldapDetails = call("getWebsiteUserAdministration", "users-admin", "username=users-ldap").path("websiteUserAdministration").path("user");
+        assertTrue(ldapDetails.path("ldapAuthenticated").asBoolean());
+        assertFalse(ldapDetails.has("password"));
+        String xmlUrl = base() + "/rest/getWebsiteUserAdministration?v=" + TestCaseUtils.restApiVersion()
+                + "&c=users-test&u=users-admin&p=secret&username=users-ldap";
+        HttpResponse<String> xml = client.send(HttpRequest.newBuilder(URI.create(xmlUrl)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, xml.statusCode());
+        assertTrue(xml.body().contains("websiteUserAdministration"));
+        assertTrue(xml.body().contains("ldapAuthenticated=\"true\""));
         ok(call("createUser", "users-admin", "username=users-created&password=enc:70617373&email=test%40example.com&downloadRole=true"));
         assertTrue(security.getUserByName("users-created").isDownloadRole());
         assertEquals(TranscodeScheme.OFF, settings.getUserSettings("users-created").getTranscodeScheme());
@@ -117,11 +140,17 @@ public class UsersIntegrationTest {
         assertEquals("web@example.com", security.getUserByName("website-created").getEmail());
         assertTrue(security.getUserByName("website-created").isStreamRole());
         assertEquals(1, folders.getMusicFoldersForUser("website-created").size());
+        JsonNode details = call("getWebsiteUserAdministration", "users-admin", "username=website-created").path("websiteUserAdministration");
+        assertEquals("web@example.com", details.path("user").path("email").asText());
+        assertTrue(details.path("user").path("streamRole").asBoolean());
+        assertTrue(details.path("folders").path("folder").findValues("allowed").stream().anyMatch(JsonNode::asBoolean));
         ok(websiteCall(browser, csrf, "username=website-created&email=changed%40example.com&shareRole=true&streamRole=false&transcodeSchemeName=OFF"));
         assertEquals("changed@example.com", security.getUserByName("website-created").getEmail());
         assertTrue(security.getUserByName("website-created").isShareRole());
         assertFalse(security.getUserByName("website-created").isStreamRole());
         assertTrue(folders.getMusicFoldersForUser("website-created").isEmpty());
+        details = call("getWebsiteUserAdministration", "users-admin", "username=website-created").path("websiteUserAdministration");
+        assertFalse(details.path("folders").path("folder").findValues("allowed").stream().anyMatch(JsonNode::asBoolean));
         error(websiteCall(browser, csrf, "username=admin&deleteUser=true"), 50);
         error(websiteCall(browser, csrf, "username=admin&transcodeSchemeName=OFF&adminRole=false"), 50);
         error(websiteCall(browser, csrf, "username=website-created&transcodeSchemeName=INVALID"), 0);
