@@ -4,7 +4,7 @@ import org.airsonic.player.ajax.media.MediaFileEntry
 import org.airsonic.player.domain.ArtistBio
 
 /**
- * Artist details sent to the authenticated WebSocket user.
+ * Artist details for the authenticated user.
  *
  * Nullable properties deliberately preserve the previous Java record's JVM
  * contract: callers may construct the response with absent values, and the

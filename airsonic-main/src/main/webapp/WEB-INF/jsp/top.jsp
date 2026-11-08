@@ -13,38 +13,6 @@
 
         function init() {
             websiteSettingsApi.watch("showSideBar", toggleLeftFrameCallback);
-
-            top.StompClient.onConnect.push(function() {
-                setConnectedImage();
-            });
-
-            top.StompClient.onDisconnect.push(function() {
-                setDisconnectedImage();
-            });
-
-            top.StompClient.onConnecting.push(function() {
-                setConnectingImage();
-            });
-
-            // in case this frame instantiates too late
-            if (top.StompClient.state == 'connected') {
-                setConnectedImage();
-            }
-        }
-
-        function setConnectedImage() {
-            $("#connectionStatus img").attr("src", "<spring:theme code='connectedImage'/>");
-            $("#connectionStatus div").text("<fmt:message key='top.connected' />");
-        }
-
-        function setDisconnectedImage() {
-            $("#connectionStatus img").attr("src", "<spring:theme code='disconnectedImage'/>");
-            $("#connectionStatus div").text("<fmt:message key='top.disconnected' />");
-        }
-
-        function setConnectingImage() {
-            $("#connectionStatus img").attr("src", "<spring:theme code='connectingImage'/>");
-            $("#connectionStatus div").text("<fmt:message key='top.connecting' />");
         }
 
         function toggleLeftFrameCallback(show) {
@@ -98,15 +66,6 @@
             });
         }
         
-        function toggleConnectionStatus() {
-            setConnectingImage();
-            if (top.StompClient.state == 'connected') {
-                top.StompClient.disconnect();
-            } else if (top.StompClient.state == 'dc') {
-                top.StompClient.connect();
-            }
-        }
-
         function airsonicLogout() {
             $("#logoutForm")[0].submit();
         }
@@ -210,15 +169,6 @@
                 </c:if>
               </div>
             </div>
-        </td>
-
-        <td style="padding-left:15pt;padding-right:5pt;vertical-align: right;width: 100%;text-align: center">
-            <a id="connectionStatus" href="javascript:void(0)" onclick="toggleConnectionStatus();">
-                <img src="<spring:theme code='disconnectedImage'/>" alt="connect" height="24">
-                <div class="detail">
-                    <fmt:message key="top.disconnected"></fmt:message>
-                </div>
-            </a>
         </td>
 
         <td style="padding-left:15pt;padding-right:5pt;vertical-align: right;width: 100%;text-align: center">

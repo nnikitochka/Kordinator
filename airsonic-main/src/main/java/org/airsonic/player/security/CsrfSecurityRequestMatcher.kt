@@ -17,8 +17,7 @@ import java.util.*
 class CsrfSecurityRequestMatcher : RequestMatcher {
     private val whiteListedMatchers = listOf(
         RegexRequestMatcher("/rest/.*\\.view(\\?.*)?", "POST"),
-        RegexRequestMatcher("/search(?:\\.view)?", "POST"),  // websockets are protected by stomp headers
-        AntPathRequestMatcher("/websocket/**"),
+        RegexRequestMatcher("/search(?:\\.view)?", "POST"),
         AntPathRequestMatcher("/actuator/caches/**", "DELETE")
     )
 

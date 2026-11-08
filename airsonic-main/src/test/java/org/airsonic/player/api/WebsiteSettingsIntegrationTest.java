@@ -48,6 +48,15 @@ public class WebsiteSettingsIntegrationTest {
         assertEquals(page.body(), 200, page.statusCode());
         assertTrue(page.body().contains("/airsonic/script/subsonic-website-settings.js"));
         assertFalse(page.body().contains("/app/settings/"));
+        assertFalse(page.body().contains("StompClient"));
+        assertFalse(page.body().contains("connectionStatus"));
+        HttpResponse<String> index = send(browser, "/index.view", null, null);
+        assertEquals(index.body(), 200, index.statusCode());
+        assertFalse(index.body().contains("StompClient"));
+        assertFalse(index.body().contains("sockjs"));
+        assertFalse(index.body().contains("stomp-"));
+        assertEquals(404, send(browser, "/websocket/info", null, null).statusCode());
+        assertFalse(context.containsBean("websocketConfiguration"));
         for (String path : new String[] {"/playlists.view", "/main.view"}) {
             HttpResponse<String> rendered = send(browser, path, null, null);
             assertEquals(rendered.body(), 200, rendered.statusCode());

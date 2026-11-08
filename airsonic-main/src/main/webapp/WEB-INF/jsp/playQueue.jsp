@@ -421,7 +421,7 @@
             if (playerId) {
                 playerUrl = playerUrl + "?player=" + playerId;
             }
-            // use ajax to set player cookie (not possible via websocket)
+            // Set the selected player cookie.
             $.ajax(playerUrl, {
               method: "GET",
               success: player => {
@@ -985,7 +985,7 @@
                 if (JSON.stringify(previousIds) != JSON.stringify(currentIds)) suppressPlaylistDownload = false;
             }
             this.queueRevision = playQueue.revision;
-            // REST omits null fields, while WebSocket updates can contain explicit nulls.
+            // Supply defaults for fields omitted from the REST response.
             this.songs = playQueue.entries.map(function (entry) {
                 return Object.assign({
                     trackNumber: null, discNumber: null, title: null, album: null, artist: null,

@@ -3,7 +3,6 @@
 
 <html><head>
     <%@ include file="head.jsp" %>
-    <%@ include file="websocket.jsp" %>
     <style>
         iframe {
             border: none;

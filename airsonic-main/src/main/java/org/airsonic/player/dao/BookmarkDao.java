@@ -73,7 +73,7 @@ public class BookmarkDao extends AbstractDao {
     /**
      * Creates or updates a bookmark.
      *
-     * <p>Several WebSocket messages for the same bookmark may arrive at once. The
+     * <p>Several requests for the same bookmark may arrive at once. The
      * operation is consequently serialized by username and media-file ID. The
      * transaction is completed while the lock is held, so the next request sees
      * the inserted row and updates it by primary key. Updating by primary key also
