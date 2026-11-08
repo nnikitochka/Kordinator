@@ -12,11 +12,7 @@
         var showSideBar = ${model.showSideBar};
 
         function init() {
-            top.StompClient.subscribe("top.jsp", {
-                "/user/queue/settings/sidebar": function(msg) {
-                    toggleLeftFrameCallback(JSON.parse(msg.body));
-                }
-            });
+            websiteSettingsApi.watch("showSideBar", toggleLeftFrameCallback);
 
             top.StompClient.onConnect.push(function() {
                 setConnectedImage();

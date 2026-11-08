@@ -10,27 +10,35 @@ import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.error.ErrorCode
 import org.airsonic.player.service.SettingsService
 import org.slf4j.LoggerFactory
-import org.springframework.messaging.simp.SimpMessagingTemplate
+import org.subsonic.restapi.WebsiteSettings
 import java.time.Instant
 import kotlin.coroutines.cancellation.CancellationException
 
 class WebsiteSettingsController(
     private val settings: SettingsService,
-    private val messaging: SimpMessagingTemplate,
     private val writer: JAXBWriter
 ) {
     data class Request(val username: String, val params: Parameters)
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
-        PATHS.forEach { path -> root.post(path) { respond(call, request(call)) } }
+        UPDATE_PATHS.forEach { path -> root.post(path) { respond(call, request(call), false) } }
+        READ_PATHS.forEach { path -> root.post(path) { respond(call, request(call), true) } }
     }
 
-    private suspend fun respond(call: ApplicationCall, request: Request) {
+    private suspend fun respond(call: ApplicationCall, request: Request, read: Boolean) {
         val p = request.params
         val sidebar = p["showSideBar"]
         val list = p["viewAsList"]
         val result = try {
-            if (sidebar == null && list == null) {
+            if (read) {
+                val userSettings = settings.getUserSettings(request.username)
+                writer.createResponse(true).apply {
+                    websiteSettings = WebsiteSettings().apply {
+                        showSideBar = userSettings.showSideBar
+                        viewAsList = userSettings.viewAsList
+                    }
+                }
+            } else if (sidebar == null && list == null) {
                 writer.createErrorResponse(ErrorCode.MISSING_PARAMETER, "A setting is required")
             } else if (listOfNotNull(sidebar, list).any { it != "true" && it != "false" }) {
                 writer.createErrorResponse(ErrorCode.GENERIC, "Invalid boolean setting")
@@ -47,8 +55,6 @@ class WebsiteSettingsController(
                     userSettings.changed = Instant.now()
                     settings.updateUserSettings(userSettings)
                 }
-                sidebar?.let { messaging.convertAndSendToUser(request.username, "/queue/settings/sidebar", it.toBooleanStrict()) }
-                list?.let { messaging.convertAndSendToUser(request.username, "/queue/settings/viewAsList", it.toBooleanStrict()) }
                 writer.createResponse(true)
             }
         } catch (e: CancellationException) {
@@ -63,6 +69,8 @@ class WebsiteSettingsController(
 
     companion object {
         private val LOG = LoggerFactory.getLogger(WebsiteSettingsController::class.java)
-        @JvmField val PATHS = arrayOf("/rest/updateWebsiteSettings", "/rest/updateWebsiteSettings.view")
+        private val UPDATE_PATHS = arrayOf("/rest/updateWebsiteSettings", "/rest/updateWebsiteSettings.view")
+        private val READ_PATHS = arrayOf("/rest/getWebsiteSettings", "/rest/getWebsiteSettings.view")
+        @JvmField val PATHS = UPDATE_PATHS + READ_PATHS
     }
 }

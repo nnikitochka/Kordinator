@@ -733,11 +733,7 @@
 
         viewSelectorRefresh();
 
-        top.StompClient.subscribe("mediaMain.jsp", {
-            "/user/queue/settings/viewAsList": function(msg) {
-                viewChangedCallback(JSON.parse(msg.body));
-            }
-        });
+        websiteSettingsApi.watch("viewAsList", viewChangedCallback);
         if (initialIds.length != 0 || Object.keys(initialPaths).length != 0) {
             getMediaDirectories(initialIds, initialPaths);
         }

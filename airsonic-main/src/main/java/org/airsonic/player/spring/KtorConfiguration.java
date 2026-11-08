@@ -9,7 +9,6 @@ import org.airsonic.player.controller.rest.cover.CoverArtActionsController;
 import org.airsonic.player.controller.rest.settings.WebsiteSettingsController;
 import org.airsonic.player.controller.rest.livequeue.LiveQueueController;
 import org.airsonic.player.service.MediaDirectoryService;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.service.MusicIndexStateService;
 import org.airsonic.player.service.hls.HlsPlaylistService;
@@ -145,7 +144,6 @@ public class KtorConfiguration {
             PlayQueueDao playQueueDao,
             SecurityService securityService,
             SettingsService settingsService,
-            SimpMessagingTemplate messagingTemplate,
             MusicIndexService musicIndexService,
             AudioScrobblerService audioScrobblerService,
             StatusService statusService,
@@ -190,7 +188,7 @@ public class KtorConfiguration {
                                 new LyricsController(lyricsService, jaxbWriter),
                                 new CoverArtActionsController(coverArtSearchService, jaxbWriter),
                                 new TagEditController(tagEditService, jaxbWriter),
-                                new WebsiteSettingsController(settingsService, messagingTemplate, jaxbWriter),
+                                new WebsiteSettingsController(settingsService, jaxbWriter),
                                 new LiveQueueController(playQueueService, jaxbWriter, mediaFileService, playlistService, securityService, playQueueDao, playerService),
                                 new RatingController(mediaFileService, ratingService, jaxbWriter),
                                 new DownloadRestController(jaxbWriter), downloadService,

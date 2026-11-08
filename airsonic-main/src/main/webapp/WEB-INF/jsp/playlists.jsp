@@ -200,11 +200,7 @@
         } );
 
         playlistApi.watchList(populatePlaylistCallback);
-        top.StompClient.subscribe("playlists.jsp", {
-            "/user/queue/settings/viewAsList": function(msg) {
-                viewChangedCallback(JSON.parse(msg.body));
-            }
-        });
+        websiteSettingsApi.watch("viewAsList", viewChangedCallback);
         
         viewSelectorRefresh();
         toggleViewDependentComponents();

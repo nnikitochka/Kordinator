@@ -15,16 +15,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.ApplicationContext;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import java.net.*;
 import java.net.http.*;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.*;
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
@@ -35,7 +32,6 @@ public class WebsiteSettingsIntegrationTest {
     @Autowired private ApplicationContext context;
     @Autowired private SecurityService security;
     @Autowired private SettingsService settings;
-    @MockitoSpyBean private SimpMessagingTemplate messaging;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Test public void updatesOnlyAuthenticatedUsersSettingsAndPreservesContracts() throws Exception {
@@ -71,8 +67,12 @@ public class WebsiteSettingsIntegrationTest {
         assertEquals(list, settings.getUserSettings("admin").getViewAsList());
         assertEquals(otherSidebar, settings.getUserSettings("settings-reader").getShowSideBar());
         assertEquals(otherList, settings.getUserSettings("settings-reader").getViewAsList());
-        verify(messaging).convertAndSendToUser("admin", "/queue/settings/sidebar", sidebar);
-        verify(messaging).convertAndSendToUser("admin", "/queue/settings/viewAsList", list);
+        assertEquals(403, send(browser, "/rest/getWebsiteSettings", "f=json", null).statusCode());
+        JsonNode current = body(send(browser, "/rest/getWebsiteSettings", "f=json", csrf)).path("websiteSettings");
+        assertTrue(current.toString(), current.path("showSideBar").isBoolean());
+        assertTrue(current.toString(), current.path("viewAsList").isBoolean());
+        assertEquals(sidebar, current.path("showSideBar").asBoolean());
+        assertEquals(list, current.path("viewAsList").asBoolean());
         assertEquals(10, body(send(browser, "/rest/updateWebsiteSettings", "f=json", csrf)).path("error").path("code").asInt());
         assertEquals("failed", body(send(browser, "/rest/updateWebsiteSettings", "f=json&viewAsList=yes", csrf)).path("status").asText());
         assertEquals(list, settings.getUserSettings("admin").getViewAsList());
@@ -81,6 +81,10 @@ public class WebsiteSettingsIntegrationTest {
         assertEquals(xml.body(), 200, xml.statusCode());
         assertTrue(xml.body().contains("status=\"ok\""));
         assertEquals(!otherList, settings.getUserSettings("settings-reader").getViewAsList());
+        String readAuth = "v=" + TestCaseUtils.restApiVersion() + "&c=test&u=settings-reader&p=secret";
+        HttpResponse<String> readXml = send(HttpClient.newHttpClient(), "/rest/getWebsiteSettings.view", readAuth, null);
+        assertTrue(readXml.body(), readXml.body().contains("viewAsList=\"" + !otherList + "\""));
+        assertTrue(readXml.body(), readXml.body().contains("showSideBar=\"" + otherSidebar + "\""));
         assertFalse(context.containsBean("userSettingsWSController"));
     }
     private HttpResponse<String> send(HttpClient client, String path, String form, String csrf) throws Exception {
