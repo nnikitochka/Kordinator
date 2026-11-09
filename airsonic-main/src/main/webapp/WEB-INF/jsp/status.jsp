@@ -5,7 +5,7 @@
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/chart-3.5.0.min.js'/>"></script>
-    <script src="<c:url value='/script/status-statistics.js?v=2'/>"></script>
+    <script src="<c:url value='/script/status-statistics.js?v=3'/>"></script>
     <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
     <style>
       #sessionsTable td, .cacheusage, .cachehits, .cachemiss, .cacheputs, .cacheremovals {
@@ -228,20 +228,10 @@
     }).catch(error => console.error(error));
   }
 
-  var pathWatcherUrl = "<c:url value='/actuator/pathwatcher'/>";
   function updatePathWatcherData() {
-    $.get(pathWatcherUrl, data => {
-      $('#pathWatcherTable > tbody').empty();
-      var appendedRows = '';
-      Object.keys(data).forEach(k => {
-        appendedRows += '<tr>';
-        appendedRows +=   '<td>' + k + '</td>';
-        appendedRows +=   '<td>' + data[k] + '</td>';
-        appendedRows += '</tr>';
-      });
-
-      $('#pathWatcherTable > tbody').append(appendedRows);
-    });
+    statisticsApi.pathWatchers().then(data => {
+      renderPathWatchers(document, data);
+    }).catch(error => console.error(error));
   }
 
   var sessionsCurrentUrl = "<c:url value='/actuator/metrics/tomcat.sessions.active.current'/>";

@@ -4,10 +4,6 @@ import org.airsonic.player.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
-import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
-import org.springframework.boot.actuate.endpoint.web.WebEndpointResponse;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -114,20 +110,10 @@ public class PathWatcherService {
         }
     }
 
-    @Component
-    @Endpoint(id = "pathwatcher")
-    public static class PathWatcherEndpoint {
-        private final PathWatcherService pathWatcherService;
-
-        public PathWatcherEndpoint(PathWatcherService pathWatcherService) {
-            this.pathWatcherService = pathWatcherService;
-        }
-
-        @ReadOperation
-        public WebEndpointResponse<Map<String, String>> info() {
-            return new WebEndpointResponse<>(pathWatcherService.watchNames.entrySet().stream()
-                    .collect(toMap(Map.Entry::getKey, e -> e.getValue().watchable().toString())));
-        }
+    /** A detached snapshot for diagnostics; reading it does not change active watchers. */
+    public Map<String, String> getWatchers() {
+        return watchNames.entrySet().stream()
+                .collect(toMap(Map.Entry::getKey, e -> e.getValue().watchable().toString()));
     }
 
 }

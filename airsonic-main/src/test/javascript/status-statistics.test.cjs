@@ -100,3 +100,28 @@ test('renders safe task names, absent and incalculable dates, and unknown schedu
     context.renderScheduledTasks(document, [], {});
     assert.equal(body.children.length, 0);
 });
+
+test('reads watcher snapshots, renders names and paths safely and clears removed watchers', async () => {
+    let next = response({pathWatchers: {watcher: [{name: '<watcher>', path: '/music/<img src=x>'}]}});
+    const context = {fetch: async (url, options) => {
+        assert.equal(url, '/airsonic/rest/getPathWatchers?f=json&c=airsonic-web');
+        assert.equal(options.credentials, 'same-origin');
+        assert.equal(options.cache, 'no-store');
+        return next;
+    }};
+    vm.runInNewContext(code, context);
+    const api = context.createStatusStatistics({baseUrl: '/airsonic/rest/'});
+    const body = element('tbody');
+    const document = {querySelector: selector => {
+        assert.equal(selector, '#pathWatcherTable > tbody'); return body;
+    }, createElement: element};
+    context.renderPathWatchers(document, await api.pathWatchers());
+    assert.equal(body.children.length, 1);
+    assert.equal(body.children[0].children[0].textContent, '<watcher>');
+    assert.equal(body.children[0].children[1].textContent, '/music/<img src=x>');
+    next = response({pathWatchers: {}});
+    context.renderPathWatchers(document, await api.pathWatchers());
+    assert.equal(body.children.length, 0);
+    next = response({pathWatchers: {watcher: {}}});
+    await assert.rejects(api.pathWatchers());
+});

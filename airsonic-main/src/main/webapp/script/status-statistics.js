@@ -15,6 +15,7 @@ function createStatusStatistics(options) {
     return {
         transfers: function () { return read('getTransferStatistics', 'transferStatistics', 'transfer'); },
         users: function () { return read('getUserTransferStatistics', 'userTransferStatistics', 'user'); },
+        pathWatchers: function () { return read('getPathWatchers', 'pathWatchers', 'watcher'); },
         scheduledTasks: function () { return read('getScheduledTasks', 'scheduledTasks', 'task'); }
     };
 }
@@ -55,6 +56,20 @@ function renderScheduledTasks(document, rows, labels) {
             date(row.lastRun), date(row.nextRun), row.scheduledBy].forEach(function (value) {
             var td = document.createElement('td');
             td.textContent = value == null ? labels.null : value;
+            tr.appendChild(td);
+        });
+        body.appendChild(tr);
+    });
+}
+
+function renderPathWatchers(document, rows) {
+    var body = document.querySelector('#pathWatcherTable > tbody');
+    body.replaceChildren();
+    rows.forEach(function (row) {
+        var tr = document.createElement('tr');
+        [row.name, row.path].forEach(function (value) {
+            var td = document.createElement('td');
+            td.textContent = value;
             tr.appendChild(td);
         });
         body.appendChild(tr);

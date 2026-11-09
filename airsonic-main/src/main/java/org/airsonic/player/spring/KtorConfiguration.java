@@ -36,6 +36,7 @@ import org.airsonic.player.controller.rest.nowplaying.NowPlayingController;
 import org.airsonic.player.controller.rest.upload.UploadStatusController;
 import org.airsonic.player.controller.rest.statistics.StatisticsController;
 import org.airsonic.player.controller.rest.statistics.ScheduledTasksController;
+import org.airsonic.player.controller.rest.statistics.PathWatchersController;
 import org.airsonic.player.controller.rest.download.DownloadRestController;
 import org.airsonic.player.service.AudioScrobblerService;
 import org.airsonic.player.service.StatusService;
@@ -168,6 +169,7 @@ public class KtorConfiguration {
             UPnPService upnpService,
             StatusService statusService,
             TaskSchedulingService taskSchedulingService,
+            org.airsonic.player.service.PathWatcherService pathWatcherService,
             org.airsonic.player.service.DatabaseService databaseService,
             DownloadService downloadService,
             MusicIndexStateService musicIndexStateService,
@@ -220,6 +222,7 @@ public class KtorConfiguration {
                                 new UploadStatusController(statusService, jaxbWriter, databaseService),
                                 new StatisticsController(statusService, securityService, jaxbWriter),
                                 new ScheduledTasksController(taskSchedulingService, jaxbWriter),
+                                new PathWatchersController(pathWatcherService, jaxbWriter),
                                 new SongController(mediaFileDao, securityService, responseMapper, jaxbWriter),
                                 new VideosController(mediaFileDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new LyricsController(lyricsService, jaxbWriter),
@@ -284,6 +287,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(UploadStatusController.PATHS);
         registration.addUrlMappings(StatisticsController.PATHS);
         registration.addUrlMappings(ScheduledTasksController.PATH);
+        registration.addUrlMappings(PathWatchersController.PATH);
         registration.addUrlMappings(DownloadRestController.PATHS);
         registration.addUrlMappings(CoverArtRestController.PATHS);
         registration.addUrlMappings(CoverArtActionsController.PATHS);
