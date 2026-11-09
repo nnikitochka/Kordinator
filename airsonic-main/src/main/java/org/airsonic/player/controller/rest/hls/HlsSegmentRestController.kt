@@ -21,11 +21,11 @@ import java.util.concurrent.TimeoutException
 class HlsSegmentRestController(private val segments: HlsSegmentService) {
     data class Request(val auth: Authentication, val user: User, val player: Player, val id: Int,
                        val playerId: String, val index: Int, val bitRate: Int, val size: String,
-                       val duration: Int, val audioTrack: Int?)
+                       val duration: Int, val audioTrack: Int?, val enforceFolderAccess: Boolean = true)
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
         with(root) {
-            PATHS.forEach { path ->
+            (PATHS + WEBSITE_PATHS).forEach { path ->
                 get(path) { respond(call, request(call), false) }
                 head(path) { respond(call, request(call), true) }
             }
@@ -36,7 +36,7 @@ class HlsSegmentRestController(private val segments: HlsSegmentService) {
         val result = try {
             withContext(Dispatchers.IO) {
                 segments.getSegment(request.auth, request.user, request.player, request.id, request.playerId,
-                    request.index, request.bitRate, request.size, request.duration, request.audioTrack, true, !head)
+                    request.index, request.bitRate, request.size, request.duration, request.audioTrack, request.enforceFolderAccess, !head)
             }
         } catch (e: TimeoutException) {
             call.respond(HttpStatusCode.ServiceUnavailable)
@@ -60,6 +60,7 @@ class HlsSegmentRestController(private val segments: HlsSegmentService) {
     }
 
     companion object {
+        @JvmField val WEBSITE_PATHS = arrayOf("/hls/segment/{tail...}", "/ext/hls/segment/{tail...}")
         @JvmField val PATHS = arrayOf("/ext/rest-hls/segment/segment.ts", "/rest/hls/segment/segment.ts", "/rest/hls.view/segment/segment.ts")
     }
 }

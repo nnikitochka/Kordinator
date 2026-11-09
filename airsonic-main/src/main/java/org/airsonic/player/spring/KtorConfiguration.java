@@ -347,6 +347,8 @@ public class KtorConfiguration {
         registration.addUrlMappings(PlaylistExportController.PATH);
         registration.addUrlMappings(PlaylistImportController.PATH, "/importPlaylist", "/importPlaylist.view");
         registration.addUrlMappings(HlsRestController.PATHS);
+        registration.addUrlMappings(HlsRestController.WEBSITE_PATHS);
+        registration.addUrlMappings("/hls/segment/*", "/ext/hls/segment/*");
         registration.addUrlMappings(HlsSegmentRestController.PATHS);
         registration.addUrlMappings(StreamRestController.PATHS);
         registration.addUrlMappings("/stream", "/stream/*", "/ext/stream", "/ext/stream/*");

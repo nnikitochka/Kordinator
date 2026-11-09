@@ -917,6 +917,54 @@ class AirsonicKtorServlet(
                     request.getParameter("duration"), request.getParameter("size")), request.getHeader("icy-metadata"),
                 java.util.function.BiPredicate { tag, modified -> webRequest.checkNotModified(tag, modified) },
                 { response.status }))
+        } else if ((path in HlsRestController.WEBSITE_PATHS || path == "/hls/segment" || path == "/ext/hls/segment")
+            && request.method in setOf("GET", "HEAD")) {
+            val auth = request.userPrincipal as Authentication
+            val rawPlayer = request.getParameter("player")
+            val id = request.getParameter("id")?.toIntOrNull()
+            if (id == null || (rawPlayer != null && rawPlayer.toIntOrNull() == null)) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST)
+                return
+            }
+            val media = mediaFileService.getMediaFile(id)
+            if (media == null || media.isDirectory) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND)
+                return
+            }
+            val player = playerService.getPlayer(request, response)
+            val user = requireNotNull(securityService.getUserByName(auth.name))
+            val signed = auth is JWTAuthenticationToken
+            if (!signed && !securityService.isFolderAccessAllowed(media, player.username)) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                return
+            }
+            if (path in HlsRestController.WEBSITE_PATHS) {
+                val duration = media.duration
+                if (duration == null || duration < 0.0001) {
+                    response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR)
+                    return
+                }
+                request.setAttribute(HLS_REQUEST, HlsRestController.Request(auth, media, player,
+                    NetworkService.getBaseUrl(request), path.removePrefix("/").removeSuffix("/hls.m3u8"),
+                    request.getParameterValues("maxBitRate"), request.getParameter("size"), false))
+            } else {
+                val index = request.getParameter("segmentIndex")?.toIntOrNull()
+                val bitRate = request.getParameter("maxBitRate")?.toIntOrNull()
+                val size = request.getParameter("size")
+                val rawDuration = request.getParameter("duration")
+                val duration = rawDuration?.toIntOrNull() ?: 10
+                val rawAudio = request.getParameter("audioTrack")
+                val audioTrack = rawAudio?.toIntOrNull()
+                if (rawPlayer == null || index == null || index < 0 || bitRate == null || bitRate <= 0 ||
+                    size == null || !size.matches(Regex("[1-9][0-9]*x[1-9][0-9]*")) || duration <= 0 ||
+                    (rawDuration != null && rawDuration.toIntOrNull() == null) ||
+                    (rawAudio != null && audioTrack == null)) {
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST)
+                    return
+                }
+                request.setAttribute(HLS_SEGMENT_REQUEST, HlsSegmentRestController.Request(auth, user, player,
+                    id, rawPlayer, index, bitRate, size, duration, audioTrack, false))
+            }
         } else if (path in HlsRestController.PATHS && request.method in setOf("GET", "POST", "HEAD")) {
             val rawId = request.getParameter("id")
             if (rawId == null || rawId.isEmpty()) {

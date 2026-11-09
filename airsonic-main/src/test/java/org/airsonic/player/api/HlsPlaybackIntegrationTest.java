@@ -1,7 +1,6 @@
 package org.airsonic.player.api;
 
 import org.airsonic.player.TestCaseUtils;
-import org.airsonic.player.controller.HLSController;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
@@ -16,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.net.URI;
@@ -31,8 +29,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
@@ -43,7 +39,9 @@ public class HlsPlaybackIntegrationTest {
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
     @Autowired private MediaFileDao mediaFiles;
-    @MockitoSpyBean private HLSController mvc;
+    @Autowired private org.springframework.context.ApplicationContext context;
+    @Autowired private org.airsonic.player.service.JWTSecurityService jwt;
+    @Autowired private org.airsonic.player.service.SecurityService security;
     private final HttpClient client = HttpClient.newHttpClient();
 
     @Test public void playsSignedVariantAndSegmentWithoutClientCredentials() throws Exception {
@@ -60,6 +58,61 @@ public class HlsPlaybackIntegrationTest {
         try {
             MediaFile media = mediaFiles.getMediaFile("sample.mp4", folder.getId());
             assertNotNull(media);
+            assertFalse(context.containsBean("hlsController"));
+            org.airsonic.player.domain.User restricted = new org.airsonic.player.domain.User("hls-public", null);
+            restricted.setRoles(java.util.Set.of(org.airsonic.player.domain.User.Role.DOWNLOAD));
+            security.createUser(restricted, "secret", "test");
+            folders.setMusicFoldersForUser(restricted.getUsername(), java.util.Set.of());
+            for (String prefix : List.of("hls", "ext/hls")) {
+                String relative = prefix + "/hls.m3u8?id=" + media.getId()
+                        + "&maxBitRate=300&maxBitRate=500&size=160x120";
+                String websiteUrl = "http://localhost:" + port + "/airsonic/";
+                HttpResponse<String> websiteMaster;
+                if (prefix.startsWith("ext/")) {
+                    websiteUrl += jwt.addJWTToken(restricted.getUsername(), relative);
+                    websiteMaster = getText(websiteUrl);
+                } else {
+                    websiteUrl += relative;
+                    websiteMaster = basicText(websiteUrl, "admin:admin");
+                }
+                assertEquals(websiteMaster.body(), 200, websiteMaster.statusCode());
+                String websiteVariantUrl = firstUrl(websiteMaster.body());
+                assertTrue(websiteVariantUrl, websiteVariantUrl.contains("/airsonic/" + prefix + "/hls.m3u8"));
+                HttpResponse<String> websiteVariant = prefix.startsWith("ext/")
+                        ? getText(websiteVariantUrl) : basicText(websiteVariantUrl, "admin:admin");
+                assertEquals(websiteVariant.body(), 200, websiteVariant.statusCode());
+                String websiteSegmentUrl = firstUrl(websiteVariant.body());
+                assertTrue(websiteSegmentUrl, websiteSegmentUrl.contains("/" + prefix + "/segment/segment.ts"));
+                HttpRequest.Builder segmentRequest = HttpRequest.newBuilder(URI.create(websiteSegmentUrl));
+                if (!prefix.startsWith("ext/")) segmentRequest.header("Authorization", basic("admin:admin"));
+                HttpResponse<byte[]> websiteSegment = client.send(segmentRequest.GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+                assertEquals(new String(websiteSegment.body(), StandardCharsets.UTF_8), 200, websiteSegment.statusCode());
+                assertTrue(websiteSegment.body().length > 188);
+                assertEquals(0x47, websiteSegment.body()[0] & 0xff);
+                assertEquals("*", websiteSegment.headers().firstValue("Access-Control-Allow-Origin").orElse(""));
+                assertTrue(websiteSegment.headers().firstValue("Content-Type").orElse("").toLowerCase().startsWith("video/mp2t"));
+                assertEquals("inline; filename=\"f.ts\"", websiteSegment.headers().firstValue("Content-Disposition").orElse(""));
+                HttpRequest.Builder websiteHead = HttpRequest.newBuilder(URI.create(websiteSegmentUrl));
+                if (!prefix.startsWith("ext/")) websiteHead.header("Authorization", basic("admin:admin"));
+                HttpResponse<byte[]> headSegment = client.send(websiteHead.method("HEAD", HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofByteArray());
+                assertEquals(200, headSegment.statusCode());
+                assertEquals(0, headSegment.body().length);
+                assertEquals(websiteSegment.body().length, Long.parseLong(headSegment.headers().firstValue("Content-Length").orElseThrow()));
+                if (prefix.startsWith("ext/")) {
+                    assertTrue(getText(websiteSegmentUrl.replaceFirst("&jwt=.*", "")).statusCode() >= 300);
+                    String expired = jwt.addJWTToken(restricted.getUsername(),
+                            org.springframework.web.util.UriComponentsBuilder.fromUriString(relative), Instant.now().minusSeconds(60)).toUriString();
+                    assertTrue(getText("http://localhost:" + port + "/airsonic/" + expired).statusCode() >= 300);
+                }
+            }
+            String websiteBase = "http://localhost:" + port + "/airsonic/hls/";
+            assertEquals(403, basicText(websiteBase + "hls.m3u8?id=" + media.getId(), "hls-public:secret").statusCode());
+            for (String query : List.of("", "id=bad", "id=" + media.getId() + "&player=bad"))
+                assertEquals(400, basicText(websiteBase + "hls.m3u8?" + query, "admin:admin").statusCode());
+            assertEquals(404, basicText(websiteBase + "hls.m3u8?id=2147483647", "admin:admin").statusCode());
+            for (String extra : List.of("", "&player=1", "&player=1&segmentIndex=-1&maxBitRate=300&size=160x120",
+                    "&player=1&segmentIndex=0&maxBitRate=300&size=bad"))
+                assertEquals(400, basicText(websiteBase + "segment/other.ts?id=" + media.getId() + extra, "admin:admin").statusCode());
             String url = "http://localhost:" + port + "/airsonic/rest/hls.view?v=" + TestCaseUtils.restApiVersion()
                     + "&c=video-test&u=admin&p=admin&id=" + media.getId() + "&maxBitRate=300&maxBitRate=500&size=160x120";
             HttpResponse<String> master = getText(url);
@@ -101,7 +154,6 @@ public class HlsPlaybackIntegrationTest {
             assertEquals(403, getText(segmentUrl.replace("segmentIndex=0", "segmentIndex=1")).statusCode());
             assertEquals(403, getText(segmentUrl.replace("size=160x120", "size=320x240")).statusCode());
             assertNotEquals(200, getText(segmentUrl.replaceFirst("&jwt=.*", "")).statusCode());
-            verify(mvc, never()).handleSegmentRequest(any(), anyInt(), anyInt(), anyString(), anyInt(), anyString(), any(), any(), any());
         } finally {
             ScanningTestUtils.after(cleanup, folders);
             folders.expunge();
@@ -109,6 +161,14 @@ public class HlsPlaybackIntegrationTest {
                 for (Path path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);
             }
         }
+    }
+
+    private String basic(String credentials) {
+        return "Basic " + java.util.Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private HttpResponse<String> basicText(String url, String credentials) throws Exception {
+        return client.send(HttpRequest.newBuilder(URI.create(url)).header("Authorization", basic(credentials)).GET().build(), HttpResponse.BodyHandlers.ofString());
     }
 
     private boolean available(String command) {

@@ -3,7 +3,6 @@ package org.airsonic.player.api;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.dao.MediaFileDao;
-import org.airsonic.player.controller.HLSController;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.User;
@@ -20,7 +19,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -33,8 +31,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
@@ -46,11 +42,12 @@ public class HlsIntegrationTest {
     @Autowired private MediaScannerService scanner;
     @Autowired private MediaFileDao mediaFiles;
     @Autowired private SecurityService security;
-    @MockitoSpyBean private HLSController mvc;
+    @Autowired private org.springframework.context.ApplicationContext context;
     private final HttpClient client = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Test public void preservesHlsContract() throws Exception {
+        assertFalse(context.containsBean("hlsController"));
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
         UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
         try {
@@ -96,7 +93,6 @@ public class HlsIntegrationTest {
             }
             assertEquals(200, send(".view", "id=" + song.getId(), "admin", "admin", true).statusCode());
             assertEquals(403, send("", "id=" + song.getId(), "admin", "admin", true).statusCode());
-            verify(mvc, never()).handleHlsRequest(any(), any(), any(), any());
             String basic = Base64.getEncoder().encodeToString("admin:admin".getBytes(StandardCharsets.UTF_8));
             HttpRequest website = HttpRequest.newBuilder(URI.create("http://localhost:" + port
                     + "/airsonic/hls/hls.m3u8?id=" + song.getId() + "&maxBitRate=500&size=321x241"))
@@ -106,7 +102,6 @@ public class HlsIntegrationTest {
             assertTrue(websiteResponse.body(), websiteResponse.body().startsWith("#EXTM3U"));
             assertTrue(websiteResponse.body(), websiteResponse.body().contains("maxBitRate=500&size=320x240"));
             assertTrue(websiteResponse.body(), websiteResponse.body().contains("/airsonic/hls/segment/segment.ts"));
-            verify(mvc).handleHlsRequest(any(), any(), any(), any());
         } finally {
             ScanningTestUtils.after(cleanup, folders);
             folders.expunge();
