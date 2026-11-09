@@ -60,7 +60,9 @@ public class StatusPageIntegrationTest {
                     assertTrue(id, page.body().contains("id=\"" + id + "\""));
                 }
                 assertTrue(page.body().contains("/airsonic/script/chart-3.5.0.min.js"));
-                assertTrue(page.body().contains("/airsonic/statistics/transfers"));
+                assertTrue(page.body().contains("/airsonic/script/status-statistics.js"));
+                assertTrue(page.body().contains("/airsonic/rest/"));
+                assertFalse(page.body().contains("/statistics/"));
                 assertTrue(page.body().contains("/airsonic/actuator/health"));
                 assertFalse(page.body().contains("<spring:theme"));
                 HttpResponse<String> head = authorized.send(HttpRequest.newBuilder(URI.create(base() + path))

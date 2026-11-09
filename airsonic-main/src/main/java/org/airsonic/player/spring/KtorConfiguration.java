@@ -34,6 +34,7 @@ import org.airsonic.player.controller.rest.rating.RatingController;
 import org.airsonic.player.controller.rest.scrobble.ScrobbleController;
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingController;
 import org.airsonic.player.controller.rest.upload.UploadStatusController;
+import org.airsonic.player.controller.rest.statistics.StatisticsController;
 import org.airsonic.player.controller.rest.download.DownloadRestController;
 import org.airsonic.player.service.AudioScrobblerService;
 import org.airsonic.player.service.StatusService;
@@ -214,6 +215,7 @@ public class KtorConfiguration {
                                 new ScrobbleController(mediaFileService, statusService, audioScrobblerService, jaxbWriter),
                                 new NowPlayingController(statusService, responseMapper, jaxbWriter),
                                 new UploadStatusController(statusService, jaxbWriter, databaseService),
+                                new StatisticsController(statusService, securityService, jaxbWriter),
                                 new SongController(mediaFileDao, securityService, responseMapper, jaxbWriter),
                                 new VideosController(mediaFileDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new LyricsController(lyricsService, jaxbWriter),
@@ -276,6 +278,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(ScrobbleController.PATHS);
         registration.addUrlMappings(NowPlayingController.PATHS);
         registration.addUrlMappings(UploadStatusController.PATHS);
+        registration.addUrlMappings(StatisticsController.PATHS);
         registration.addUrlMappings(DownloadRestController.PATHS);
         registration.addUrlMappings(CoverArtRestController.PATHS);
         registration.addUrlMappings(CoverArtActionsController.PATHS);

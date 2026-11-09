@@ -5,6 +5,7 @@
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/chart-3.5.0.min.js'/>"></script>
+    <script src="<c:url value='/script/status-statistics.js'/>"></script>
     <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
     <style>
       #sessionsTable td, .cacheusage, .cachehits, .cachemiss, .cacheputs, .cacheremovals {
@@ -65,36 +66,22 @@
 
   var transfersCharts = [];
 
-  var transfersUrl = "<c:url value='/statistics/transfers'/>";
+  var statisticsApi = createStatusStatistics({baseUrl: "<c:url value='/rest/'/>"});
 
   function updateTransferData() {
-   $.get(transfersUrl, data => {
-    $('#transfersTable > tbody').empty();
-
+   statisticsApi.transfers().then(data => {
     transfersCharts.forEach(tc => tc.destroy());
     transfersCharts = [];
-    var appendedRows = '';
-    data.forEach((row, i) => {
-        appendedRows += '<tr>';
-        appendedRows +=   '<td>' + labels[row.transferType] + '</td>';
-        appendedRows +=   '<td>' + row.playerDescription + '<br>' + row.playerType + '</td>';
-        appendedRows +=   '<td>' + row.username + '</td>';
-        appendedRows +=   '<td>' + row.path + '</td>';
-        appendedRows +=   '<td>' + row.bytesTransferred + '</td>';
-        appendedRows +=   '<td><canvas id="transfersChart' + i + '"></canvas></td>';
-        appendedRows += '</tr>';
-    });
-
-    $('#transfersTable > tbody').append(appendedRows);
+    renderTransferStatistics(document, data, labels);
 
     data.forEach((row, i) => {
         var series = [];
-        if (row.history.length > 0) {
+        if (row.sample && row.sample.length > 0) {
 
-            var previous = row.history[0];
+            var previous = row.sample[0];
 
-            for (var j = 1; j < row.history.length; j++) {
-                var sample = row.history[j];
+            for (var j = 1; j < row.sample.length; j++) {
+                var sample = row.sample[j];
 
                 var elapsedTimeMillis = sample.timestamp - previous.timestamp;
                 var bytesStreamed = Math.max(0, sample.bytesTransferred - previous.bytesTransferred);
@@ -120,7 +107,7 @@
 
         transfersCharts[i] = new Chart($('#transfersChart' + i), config);
     });
-   });
+   }).catch(error => console.error(error));
   }
 
   const userChartConfig = {
@@ -172,11 +159,11 @@
     }
   };
 
-  var userChartUrl = "<c:url value='/statistics/users'/>";
   var userChart = null;
 
   function updateUserChartData() {
-   $.get(userChartUrl, data => {
+   statisticsApi.users().then(rows => {
+    var data = rows.map(row => ({user: row.username, streamed: row.streamed, downloaded: row.downloaded, uploaded: row.uploaded}));
     data.forEach(x => {
       x.streamed = x.streamed / (1024 * 1024);
       x.downloaded = x.downloaded / (1024 * 1024);
@@ -186,7 +173,7 @@
     userChart.data.datasets[1].data = data;
     userChart.data.datasets[2].data = data;
     userChart.update();
-   });
+   }).catch(error => console.error(error));
   }
 
   var airsonicCaches = [];
