@@ -276,7 +276,7 @@ public class GlobalSecurityConfig {
                         // Views are forwarded internally to /WEB-INF/jsp/*.jsp after the
                         // public controller endpoint has already been authorized.
                         .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
-                        .requestMatchers("/recover*", "/accessDenied*", "/style/**", "/icons/**", "/flash/**", "/script/**",
+                        .requestMatchers("/rest/recover", "/recover*", "/accessDenied*", "/style/**", "/icons/**", "/flash/**", "/script/**",
                                 "/login", "/error").permitAll()
                         .requestMatchers("/personalSettings*",
                                 "/playerSettings*", "/shareSettings*", "/credentialsSettings*").hasRole("SETTINGS")

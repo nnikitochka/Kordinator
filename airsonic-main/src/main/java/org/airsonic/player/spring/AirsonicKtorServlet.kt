@@ -21,6 +21,7 @@ import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import org.airsonic.player.controller.rest.stream.StreamRestController
 import org.airsonic.player.controller.JAXBWriter
+import org.airsonic.player.controller.rest.recovery.PasswordRecoveryController
 import org.airsonic.player.controller.rest.video.VideoPlayerRestController
 import org.airsonic.player.controller.captions.CaptionsRestController
 import org.airsonic.player.controller.rest.shares.PublicShareController
@@ -205,6 +206,7 @@ class AirsonicKtorServlet(
     private val publicShareController: PublicShareController,
     private val captionsRestController: CaptionsRestController,
     private val videoPlayerRestController: VideoPlayerRestController,
+    private val passwordRecoveryController: PasswordRecoveryController,
     private val jaxbWriter: JAXBWriter,
 ) : ServletApplicationEngine() {
     @OptIn(InternalAPI::class)
@@ -312,6 +314,9 @@ class AirsonicKtorServlet(
             }
             val hlsSegment = request.getAttribute(HLS_SEGMENT_REQUEST) as? HlsSegmentRestController.Request
             if (hlsSegment != null) call.attributes.put(HLS_SEGMENT_REQUEST_KEY, hlsSegment)
+            (request.getAttribute(RECOVERY_REQUEST) as? PasswordRecoveryController.Request)?.let {
+                call.attributes.put(RECOVERY_REQUEST_KEY, it)
+            }
             (request.getAttribute(VIDEO_PLAYER_REQUEST) as? VideoPlayerRestController.Request)?.let {
                 call.attributes.put(VIDEO_PLAYER_REQUEST_KEY, it)
             }
@@ -390,6 +395,7 @@ class AirsonicKtorServlet(
             ratingController.routes(this) { call -> call.attributes[RATING_REQUEST_KEY] }
             topSongsController.routes(this) { call -> call.attributes[TOP_SONGS_REQUEST_KEY] }
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
+            passwordRecoveryController.routes(this) { call -> call.attributes[RECOVERY_REQUEST_KEY] }
             videoPlayerRestController.routes(this) { call -> call.attributes[VIDEO_PLAYER_REQUEST_KEY] }
             captionsRestController.routes(this) { call -> call.attributes[CAPTIONS_REQUEST_KEY] }
             publicShareController.routes(this) { call -> call.attributes[PUBLIC_SHARE_REQUEST_KEY] }
@@ -423,6 +429,36 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path == PasswordRecoveryController.PATH) {
+            if (request.method !in setOf("GET", "HEAD", "POST")) {
+                response.setHeader("Allow", "GET, HEAD, POST")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            request.characterEncoding = "UTF-8"
+            val csrf = request.getAttribute(org.springframework.security.web.csrf.CsrfToken::class.java.name)
+                as? org.springframework.security.web.csrf.CsrfToken
+            request.setAttribute(RECOVERY_REQUEST, PasswordRecoveryController.Request(
+                request.getParameter("usernameOrEmail"), request.getParameter("g-recaptcha-response"),
+                csrf?.headerName, csrf?.token))
+        }
+        if (path in setOf("/recover", "/recover.view")) {
+            if (request.method !in setOf("GET", "HEAD")) {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            response.setHeader("Cache-Control", "no-store")
+            val context = org.springframework.web.context.support.WebApplicationContextUtils
+                .getRequiredWebApplicationContext(request.servletContext)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
+            request.getRequestDispatcher("/WEB-INF/jsp/recover.jsp").forward(request, response)
+            return
+        }
         if (path == VideoPlayerRestController.PATH) {
             if (request.method !in setOf("GET", "HEAD")) {
                 response.setHeader("Allow", "GET, HEAD")
@@ -1274,6 +1310,8 @@ class AirsonicKtorServlet(
         val STREAM_REQUEST_KEY = AttributeKey<StreamRestController.Request>(STREAM_REQUEST)
         const val HLS_SEGMENT_REQUEST = "org.airsonic.player.hlsSegmentRequest"
         val HLS_SEGMENT_REQUEST_KEY = AttributeKey<HlsSegmentRestController.Request>(HLS_SEGMENT_REQUEST)
+        const val RECOVERY_REQUEST = "org.airsonic.player.recoveryRequest"
+        val RECOVERY_REQUEST_KEY = AttributeKey<PasswordRecoveryController.Request>(RECOVERY_REQUEST)
         const val VIDEO_PLAYER_REQUEST = "org.airsonic.player.videoPlayerRequest"
         val VIDEO_PLAYER_REQUEST_KEY = AttributeKey<VideoPlayerRestController.Request>(VIDEO_PLAYER_REQUEST)
         const val CAPTIONS_REQUEST = "org.airsonic.player.captionsRequest"

@@ -1,26 +1,18 @@
-package org.airsonic.player.controller;
+package org.airsonic.player.service;
 
 import de.triology.recaptchav2java.ReCaptcha;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.domain.UserCredential;
 import org.airsonic.player.domain.UserCredential.App;
-import org.airsonic.player.service.SecurityService;
-import org.airsonic.player.service.SettingsService;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.servlet.ModelAndView;
 
 import jakarta.mail.Message;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -30,12 +22,11 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Spring MVC Controller that serves the login page.
+ * Password recovery shared by HTTP clients.
  */
-@Controller
-@RequestMapping("/recover")
-public class RecoverController {
-    private static final Logger LOG = LoggerFactory.getLogger(RecoverController.class);
+@org.springframework.stereotype.Service
+public class PasswordRecoveryService {
+    private static final Logger LOG = LoggerFactory.getLogger(PasswordRecoveryService.class);
 
     private static final String SYMBOLS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
     private final SecureRandom random = new SecureRandom();
@@ -44,16 +35,22 @@ public class RecoverController {
     private final SettingsService settingsService;
     private final SecurityService securityService;
 
-    public RecoverController(SettingsService settingsService, SecurityService securityService) {
+    public PasswordRecoveryService(SettingsService settingsService, SecurityService securityService) {
         this.settingsService = settingsService;
         this.securityService = securityService;
     }
 
-    @RequestMapping(method = {RequestMethod.GET, RequestMethod.POST})
-    public ModelAndView recover(HttpServletRequest request, HttpServletResponse response) {
-
+    public Map<String, Object> configuration() {
         Map<String, Object> map = new HashMap<>();
-        String usernameOrEmail = StringUtils.trimToNull(request.getParameter("usernameOrEmail"));
+        if (settingsService.isCaptchaEnabled()) {
+            map.put("recaptchaSiteKey", settingsService.getRecaptchaSiteKey());
+        }
+        return map;
+    }
+
+    public Map<String, Object> recover(String usernameOrEmail, String recaptchaResponse) {
+        Map<String, Object> map = new HashMap<>();
+        usernameOrEmail = StringUtils.trimToNull(usernameOrEmail);
 
         if (usernameOrEmail != null) {
 
@@ -62,9 +59,7 @@ public class RecoverController {
 
             boolean captchaOk;
             if (settingsService.isCaptchaEnabled()) {
-                String recaptchaResponse = request.getParameter("g-recaptcha-response");
-                ReCaptcha captcha = new ReCaptcha(settingsService.getRecaptchaSecretKey());
-                captchaOk = recaptchaResponse != null && captcha.isValid(recaptchaResponse);
+                captchaOk = verifyCaptcha(recaptchaResponse);
             } else {
                 captchaOk = true;
             }
@@ -95,11 +90,11 @@ public class RecoverController {
             }
         }
 
-        if (settingsService.isCaptchaEnabled()) {
-            map.put("recaptchaSiteKey", settingsService.getRecaptchaSiteKey());
-        }
+        return map;
+    }
 
-        return new ModelAndView("recover", "model", map);
+    protected boolean verifyCaptcha(String response) {
+        return response != null && new ReCaptcha(settingsService.getRecaptchaSecretKey()).isValid(response);
     }
 
     private User getUserByUsernameOrEmail(String usernameOrEmail) {
@@ -116,7 +111,7 @@ public class RecoverController {
     /*
     * e-mail user new password via configured Smtp server
     */
-    private boolean emailPassword(String password, String username, String email) {
+    protected boolean emailPassword(String password, String username, String email) {
         /* Default to protocol smtp when SmtpEncryption is set to "None" */
         String prot = "smtp";
 

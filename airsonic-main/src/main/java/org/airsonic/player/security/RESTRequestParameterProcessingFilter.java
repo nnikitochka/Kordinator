@@ -54,6 +54,12 @@ public class RESTRequestParameterProcessingFilter extends AbstractAuthentication
     }
 
     @Override
+    protected boolean requiresAuthentication(HttpServletRequest request, HttpServletResponse response) {
+        // Password recovery must be usable before the user can authenticate.
+        return !"/rest/recover".equals(request.getServletPath()) && super.requiresAuthentication(request, response);
+    }
+
+    @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
             throws AuthenticationException, IOException, ServletException {
         String username = StringUtils.trimToNull(request.getParameter("u"));
