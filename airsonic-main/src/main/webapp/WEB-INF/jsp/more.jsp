@@ -5,6 +5,7 @@
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
     <%@ include file="subsonicUploadStatus.jsp" %>
+    <script src="<c:url value='/script/random-queue.js?v=1'/>"></script>
     <style type="text/css">
         .progress-bar {width: 350px; height: 10px; border: 1px solid black; display:block;}
         .progress-bar-content {width: 0; height: 10px; background: url("<c:url value="/icons/default_light/progress.png"/>") repeat;}
@@ -117,8 +118,20 @@
             <c:if test="${model.user.uploadRole}">
             watchUploads(updateUploads);
             </c:if>
-            $("#randomPlayQueue").on("submit", saveShuffleForm);
-            loadShuffleForm();
+            var form = document.getElementById('randomPlayQueue');
+            if (form) bindRandomQueue(form, document.getElementById('randomQueueError'), {
+                url: "<c:url value='/rest/createRandomPlayQueue'/>",
+                csrfHeader: '${_csrf.headerName}', csrfToken: '${_csrf.token}', save: saveShuffleForm,
+                player: function () {
+                    var queue = top.playQueue && top.playQueue.playQueue;
+                    return queue && queue.player.id || null;
+                },
+                updated: function (id) {
+                    var queue = top.playQueue && top.playQueue.playQueue;
+                    if (queue && queue.player.id == id) queue.requestQueue('get', {}, false, true);
+                }
+            });
+            if (form) loadShuffleForm();
         });
 
     </script>
@@ -143,7 +156,8 @@
         <span style="vertical-align: middle"><fmt:message key="more.random.title"/></span>
     </h2>
 
-    <form id="randomPlayQueue" method="post" action="randomPlayQueue.view?">
+    <p id="randomQueueError" class="warning" hidden></p>
+    <form id="randomPlayQueue" method="post" action="<c:url value='/rest/createRandomPlayQueue'/>">
         <sec:csrfInput />
         <table>
             <tr>

@@ -8,6 +8,7 @@ import org.airsonic.player.service.CoverArtSearchService;
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController;
 import org.airsonic.player.controller.rest.settings.WebsiteSettingsController;
 import org.airsonic.player.controller.rest.livequeue.LiveQueueController;
+import org.airsonic.player.controller.rest.livequeue.RandomQueueController;
 import org.airsonic.player.service.MediaDirectoryService;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.service.MusicIndexStateService;
@@ -218,6 +219,7 @@ public class KtorConfiguration {
                                 new PlaylistsController(playlistService, mediaFileService, securityService, responseMapper, jaxbWriter,
                                         mediaFileDao, mediaFolderService, playerService, localeResolver),
                                 new PlaylistImportController(playlistService, jaxbWriter),
+                                new RandomQueueController(playQueueService, mediaFolderService, jaxbWriter),
                                 new SharesController(shareService, mediaFileService, mediaFolderService, responseMapper, jaxbWriter),
                                 new AlbumsController(albumDao, mediaFileDao, mediaFileService, mediaFolderService,
                                         ratingService, albumSearchService, responseMapper, jaxbWriter),
@@ -322,6 +324,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(TagEditController.PATHS);
         registration.addUrlMappings(WebsiteSettingsController.PATHS);
         registration.addUrlMappings(LiveQueueController.PATHS);
+        registration.addUrlMappings(RandomQueueController.PATH);
         registration.addUrlMappings(AvatarRestController.PATHS);
         registration.addUrlMappings(AvatarUploadController.PATH);
         registration.addUrlMappings(PlaylistImportController.PATH, "/importPlaylist", "/importPlaylist.view");
