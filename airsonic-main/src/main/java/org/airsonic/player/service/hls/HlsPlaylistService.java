@@ -2,7 +2,7 @@ package org.airsonic.player.service.hls;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.Payload;
-import org.airsonic.player.controller.VideoPlayerController;
+import org.airsonic.player.service.VideoPlaybackService;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.Player;
 import org.airsonic.player.security.JWTAuthenticationToken;
@@ -49,8 +49,8 @@ public class HlsPlaylistService {
                 .collect(Collectors.toList());
         if (bitRates.isEmpty())
             bitRates = Collections.singletonList(
-                    Pair.of(VideoPlayerController.DEFAULT_BIT_RATE, TranscodingService.getSuitableVideoSize(
-                            mediaFile.getWidth(), mediaFile.getHeight(), VideoPlayerController.DEFAULT_BIT_RATE)));
+                    Pair.of(VideoPlaybackService.DEFAULT_BIT_RATE, TranscodingService.getSuitableVideoSize(
+                            mediaFile.getWidth(), mediaFile.getHeight(), VideoPlaybackService.DEFAULT_BIT_RATE)));
         UriComponentsBuilder prefix = UriComponentsBuilder.fromUriString(prefixPath);
         Instant linkExpiration = expiration(authentication, signedRestUrls, mediaFile.getDuration());
         StringWriter body = new StringWriter();

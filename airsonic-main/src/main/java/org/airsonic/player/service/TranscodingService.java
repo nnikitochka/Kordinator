@@ -1,7 +1,6 @@
 package org.airsonic.player.service;
 
 import com.google.common.io.MoreFiles;
-import org.airsonic.player.controller.VideoPlayerController;
 import org.airsonic.player.dao.TranscodingDao;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.io.TranscodeInputStream;
@@ -195,7 +194,7 @@ public class TranscodingService {
         if (transcoding != null) {
             parameters.setTranscoding(transcoding);
             if (maxBitRate == null) {
-                maxBitRate = mediaFile.isVideo() ? VideoPlayerController.DEFAULT_BIT_RATE : TranscodeScheme.MAX_192.getMaxBitRate();
+                maxBitRate = mediaFile.isVideo() ? VideoPlaybackService.DEFAULT_BIT_RATE : TranscodeScheme.MAX_192.getMaxBitRate();
             }
         } else if (maxBitRate != null) {
             boolean supported = isDownsamplingSupported(mediaFile);

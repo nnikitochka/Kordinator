@@ -98,7 +98,8 @@ function pageFunction(page, signature) {
     return source.slice(start, end).replace(/<spring:theme code=["']([^"']+)["']\/>/g, '$1');
 }
 
-for (const page of ['starred', 'videoPlayer']) {
+// The video page's REST rendering and star actions are covered in video-player.test.cjs.
+for (const page of ['starred']) {
     test(`${page}: star image changes only on successful REST completion`, () => {
         let image = 'ratingOffImage', request;
         const context = {

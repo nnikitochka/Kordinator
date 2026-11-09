@@ -146,15 +146,14 @@ test('audio player autosaves milliseconds through REST and can disable autosavin
 });
 
 test('video player keeps bookmark interval, milliseconds and duplicate suppression', () => {
-    const calls = [];
-    const context = {bookmarkApi: {create: (...args) => calls.push(args)}, videoPlayer: {currentTime: 10},
-        videoModel: {autoBookmark: true, position: 0, videoBookmarkFrequency: 5, videoId: '42'}};
-    vm.runInNewContext(pageFunction('videoPlayer', 'function setBookmark()'), context);
-    context.setBookmark();
-    context.setBookmark();
+    const {saveVideoBookmark} = require('../../main/webapp/script/video-player.js');
+    const calls = [], api = {create: (...args) => calls.push(args)}, media = {currentTime: 10};
+    const model = {autoBookmark: true, position: 0, videoBookmarkFrequency: 5, videoId: '42'};
+    saveVideoBookmark(media, model, api);
+    saveVideoBookmark(media, model, api);
     assert.deepEqual(calls, [['42', 10000, 'Played on Web Video Player']]);
-    context.videoPlayer.currentTime = 11;
-    context.setBookmark();
+    media.currentTime = 11;
+    saveVideoBookmark(media, model, api);
     assert.equal(calls.length, 1);
 });
 
@@ -253,7 +252,7 @@ test('audio player resumes at the REST bookmark position', () => {
 test('all bookmark pages include the REST helper and have no internal bookmark API calls', () => {
     for (const page of ['bookmarks', 'playQueue', 'videoPlayer']) {
         const source = readFileSync(root + `WEB-INF/jsp/${page}.jsp`, 'utf8');
-        assert.ok(source.includes('include file="subsonicBookmarks.jsp"'));
+        assert.ok(source.includes('include file="subsonicBookmarks.jsp"') || (page === 'videoPlayer' && source.includes('subsonic-bookmarks.js?v=3')));
         assert.ok(!source.includes('/app/bookmarks/'));
         assert.ok(!source.includes('/user/queue/bookmarks/get'));
     }

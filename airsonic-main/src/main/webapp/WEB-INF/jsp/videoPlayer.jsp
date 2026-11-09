@@ -5,8 +5,8 @@
 <head>
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
-    <%@ include file="subsonicStars.jsp" %>
-<%@ include file="subsonicBookmarks.jsp" %>
+    <script src="<c:url value='/script/subsonic-stars.js'/>"></script>
+<script src="<c:url value='/script/subsonic-bookmarks.js?v=3'/>"></script>
     <script type="text/javascript" src="<c:url value='/script/mediaelement/mediaelement-and-player.min.js'/>"></script>
     <script src="<c:url value='/script/mediaelement/plugins/speed/speed.min.js'/>"></script>
     <script src="<c:url value='/script/mediaelement/plugins/speed/speed-i18n.js'/>"></script>
@@ -37,143 +37,32 @@
         }
     </style>
 
-    <script type="text/javascript" language="javascript">
-        function toggleStar(mediaFileId, imageId) {
-            if ($(imageId).attr("src").indexOf("<spring:theme code='ratingOnImage'/>") != -1) {
-                setMediaFilesStarred([mediaFileId], false, function () {
-                    $(imageId).attr("src", "<spring:theme code="ratingOffImage"/>");
-                });
-            }
-            else if ($(imageId).attr("src").indexOf("<spring:theme code='ratingOffImage'/>") != -1) {
-                setMediaFilesStarred([mediaFileId], true, function () {
-                    $(imageId).attr("src", "<spring:theme code='ratingOnImage'/>");
-                });
-            }
-        }
-
-        var videoModel = {
-          duration: ${empty model.video.duration ? -1 : model.video.duration},
-          videoTitle: "${model.video.title}",
-          streamable: ${model.streamable},
-          castable: ${model.castable},
-          streamUrls: ${sub:toJson(model.streamUrls)},
-          remoteCoverArtUrl: "${model.remoteCoverArtUrl}",
-          remoteStreamUrl: "${model.remoteStreamUrl}",
-          remoteCaptionsListUrl: "${model.remoteCaptionsUrl}",
-          remoteCaptions: [],
-          currentUrl: "${model.defaultBitRate}",
-          videoId: "${model.video.id}",
-          position: ${model.position},
-          autoBookmark: ${model.autoBookmark},
-          videoBookmarkFrequency: ${model.videoBookmarkFrequency},
-          contentType: "${model.contentType}",
-          hideShare: ${model.user.shareRole ? 'true': 'false'},
-          hideDownload: ${model.user.downloadRole ? 'true': 'false'}
-        }
-
-        function setBookmark() {
-            if (videoModel.autoBookmark) {
-                var position = Math.round(this.videoPlayer.currentTime);
-                if ((videoModel.position != (position * 1000)) && (position % videoModel.videoBookmarkFrequency == 0)) {
-                    videoModel.position = position * 1000;
-                    bookmarkApi.create(videoModel.videoId, videoModel.position, "Played on Web Video Player");
-                }
-            }
-        }
-
-        function init() {
-            $.get(videoModel.remoteCaptionsListUrl, data => {
-                videoModel.remoteCaptions = data;
-            });
-            var vpr = this;
-            this.videoPlayer = new MediaElementPlayer("videoPlayer", {
-                alwaysShowControls: true,
-                enableKeyboard: true,
-                useDefaultControls: true,
-                enableTracks: true,
-                castAppID: "4FBFE470",
-                features: ["speed", "quality", "chromecast"],
-                hls: {
-                    path: "<c:url value='/script/mediaelement/renderers/hls-1.0.10/hls.min.js'/>"
-                },
-                dash: {
-                    path: "<c:url value='/script/mediaelement/renderers/dash.all-4.0.1.min.js'/>"
-                },
-                defaultSpeed: "1.00",
-                speeds: ["8.00", "2.00", "1.50", "1.25", "1.00", "0.75", "0.5"],
-                defaultQuality: "${model.defaultBitRate}",
-                videoWidth: "100%",
-                videoHeight: "100%",
-                qualityChangeCallback: function(media, node, newQuality, url, event) {
-                    videoModel.currentUrl = newQuality;
-                },
-                success(mediaElement, originalNode, instance) {
-                    if (videoModel.streamable) {
-                        // "hack" html5 renderer and reinitialize speed
-                        instance.media.rendererName = "html5";
-                        instance.buildspeed(instance, instance.getElement(instance.controls), instance.getElement(instance.layers), instance.media);
-                    }
-                    <c:if test="${model.user.shareRole}">
-                    $("#share").on('click', () => location.href = "createShare.view?id=" + videoModel.videoId);
-                    </c:if>
-                    <c:if test="${model.user.downloadRole}">
-                    $("#download").on('click', () => location.href = "<c:url value='/rest/downloadMedia'/>?id=" + videoModel.videoId);
-                    </c:if>
-                    // add dimensions to playing vid
-                    instance.setSrc($('#videoPlayer source[data-quality="${model.defaultBitRate}"]')[0].src);
-                    // set position
-                    instance.setCurrentTime(videoModel.position/1000);
-
-                    // Once playback reaches the end, go to the next song, if any.
-                    $(mediaElement).on("ended", () => vpr.setBookmark());
-                    $(mediaElement).on("timeupdate", () => vpr.setBookmark());
-                    $(mediaElement).on("seeked", () => vpr.setBookmark());
-                    $(mediaElement).on("paused", () => vpr.setBookmark());
-                }
-            });
-            // add dimensions to play at
-            $('#videoPlayer source').each((s, d) => d.src = d.src + "&size=" + Math.floor($('.mejs__container').width()) + "x" + Math.floor($('.mejs__container').height()));
-        }
-    </script>
+    <script src="<c:url value='/script/video-player.js?v=1'/>"></script>
 </head>
 
-<body class="mainframe bgcolor1" style="padding-bottom:0.5em" onload="init();">
+<body class="mainframe bgcolor1" style="padding-bottom:0.5em" onload="loadVideoPlayer(document);">
 
+<spring:theme code="ratingOnImage" var="starOnImage"/>
+<spring:theme code="ratingOffImage" var="starOffImage"/>
+<div id="videoPlayerData" hidden data-url="<c:url value='/rest/videoPlayer'/>"
+     data-share-url="<c:url value='/createShare.view'/>" data-download-url="<c:url value='/rest/downloadMedia'/>"
+     data-back-url="<c:url value='/main.view'/>"
+     data-star-url="<c:url value='/rest/star'/>" data-unstar-url="<c:url value='/rest/unstar'/>"
+     data-bookmarks-url="<c:url value='/rest/getBookmarks'/>" data-bookmark-create-url="<c:url value='/rest/createBookmark'/>"
+     data-bookmark-delete-url="<c:url value='/rest/deleteBookmark'/>"
+     data-star-on="${fn:escapeXml(starOnImage)}" data-star-off="${fn:escapeXml(starOffImage)}"
+     data-hls-url="<c:url value='/script/mediaelement/renderers/hls-1.0.10/hls.min.js'/>"
+     data-dash-url="<c:url value='/script/mediaelement/renderers/dash.all-4.0.1.min.js'/>"></div>
 <div style="width:100%;height:100%;display:flex;flex-direction:column;">
-    <div style="flex:0 1 auto">
-		<video id="videoPlayer">
-		  <c:forEach items="${model.streamUrls}" var="streamUrl">
-		    <source src="${streamUrl.value}" data-quality="${streamUrl.key}" type="${model.streamType}">
-		  </c:forEach>
-		  <c:forEach items="${model.captions}" var="caption">
-		    <c:url value="/captions" var="suburl">
-		        <c:param name="id" value="${model.video.id}" />
-		        <c:param name="captionId" value="${caption.identifier}" />
-		    </c:url>
-		    <track src="${caption.url}" label="${caption.identifier} (${caption.language})" srclang="${caption.language}" kind="subtitles">
-		  </c:forEach>
-		</video>
-	</div>
-
-	<h1 style="padding-top:1em;padding-bottom:0.5em;">
-	    <span style="vertical-align:middle">${fn:escapeXml(model.video.title)}</span>
-	</h1>
-
-	<div>
-	  <c:if test="${model.user.shareRole}">
-	    <img id="share" src="<spring:theme code='shareImage'/>" title="<fmt:message key='main.more.share'/>" alt="<fmt:message key='main.more.share'/>">
-	  </c:if>
-	  <c:if test="${model.user.downloadRole}">
-	    <img id="download" src="<spring:theme code='downloadImage'/>" title="<fmt:message key='common.download'/>" alt="<fmt:message key='common.download'/>">
-	  </c:if>
-	  <img id="starImage" src="<spring:theme code='${not empty model.video.starredDate ? \'ratingOnImage\' : \'ratingOffImage\'}'/>"
-	         onclick="toggleStar(${model.video.id}, '#starImage'); return false;" title="<fmt:message key='playlist.more.star'/> / <fmt:message key='playlist.more.unstar'/>" alt="<fmt:message key='playlist.more.star'/> / <fmt:message key='playlist.more.unstar'/>">
-	</div>
-
-	<sub:url value="main.view" var="backUrl"><sub:param name="id" value="${model.video.id}"/></sub:url>
-	<div class="back" style="float:left;padding-right:2em;margin-top:1em;"><a href="${backUrl}"><fmt:message key="common.back"/></a></div>
-	<div style="clear: both"></div>
+    <div style="flex:0 1 auto"><video id="videoPlayer" controls preload="metadata"></video></div>
+    <h1 id="videoTitle" style="padding-top:1em;padding-bottom:0.5em;"></h1>
+    <p id="videoError" role="alert"></p>
+    <div>
+        <img id="share" hidden src="<spring:theme code='shareImage'/>" title="<fmt:message key='main.more.share'/>" alt="<fmt:message key='main.more.share'/>">
+        <img id="download" hidden src="<spring:theme code='downloadImage'/>" title="<fmt:message key='common.download'/>" alt="<fmt:message key='common.download'/>">
+        <img id="starImage" hidden title="<fmt:message key='playlist.more.star'/> / <fmt:message key='playlist.more.unstar'/>" alt="<fmt:message key='playlist.more.star'/> / <fmt:message key='playlist.more.unstar'/>">
+    </div>
+    <div class="back" style="float:left;padding-right:2em;margin-top:1em;"><a id="videoBack"><fmt:message key="common.back"/></a></div>
 </div>
-
 </body>
 </html>

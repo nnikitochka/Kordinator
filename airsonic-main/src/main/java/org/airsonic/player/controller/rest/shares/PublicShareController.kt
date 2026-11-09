@@ -11,7 +11,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.head
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.airsonic.player.controller.VideoPlayerController
+import org.airsonic.player.service.VideoPlaybackService
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.Share
 import org.airsonic.player.domain.Player
@@ -104,7 +104,7 @@ class PublicShareController(
         val direct = !file.isVideo || streamable(file)
         val stream = if (direct) url("ext/stream") { it.queryParam("player", request.player.id).queryParam("format", "raw") }
             else url("ext/hls/hls.m3u8") {
-                it.queryParam("player", request.player.id).queryParam("maxBitRate", VideoPlayerController.BIT_RATES)
+                it.queryParam("player", request.player.id).queryParam("maxBitRate", VideoPlaybackService.BIT_RATES)
             }
         return mapOf("id" to file.id, "title" to file.title, "artist" to file.artist, "album" to file.albumName,
             "video" to file.isVideo, "streamable" to direct,

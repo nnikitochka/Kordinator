@@ -21,6 +21,7 @@ import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import org.airsonic.player.controller.rest.stream.StreamRestController
 import org.airsonic.player.controller.JAXBWriter
+import org.airsonic.player.controller.rest.video.VideoPlayerRestController
 import org.airsonic.player.controller.captions.CaptionsRestController
 import org.airsonic.player.controller.rest.shares.PublicShareController
 import org.airsonic.player.controller.rest.hls.HlsRestController
@@ -203,6 +204,7 @@ class AirsonicKtorServlet(
     private val streamRestController: StreamRestController,
     private val publicShareController: PublicShareController,
     private val captionsRestController: CaptionsRestController,
+    private val videoPlayerRestController: VideoPlayerRestController,
     private val jaxbWriter: JAXBWriter,
 ) : ServletApplicationEngine() {
     @OptIn(InternalAPI::class)
@@ -310,6 +312,9 @@ class AirsonicKtorServlet(
             }
             val hlsSegment = request.getAttribute(HLS_SEGMENT_REQUEST) as? HlsSegmentRestController.Request
             if (hlsSegment != null) call.attributes.put(HLS_SEGMENT_REQUEST_KEY, hlsSegment)
+            (request.getAttribute(VIDEO_PLAYER_REQUEST) as? VideoPlayerRestController.Request)?.let {
+                call.attributes.put(VIDEO_PLAYER_REQUEST_KEY, it)
+            }
             (request.getAttribute(CAPTIONS_REQUEST) as? CaptionsRestController.Request)?.let {
                 call.attributes.put(CAPTIONS_REQUEST_KEY, it)
             }
@@ -385,6 +390,7 @@ class AirsonicKtorServlet(
             ratingController.routes(this) { call -> call.attributes[RATING_REQUEST_KEY] }
             topSongsController.routes(this) { call -> call.attributes[TOP_SONGS_REQUEST_KEY] }
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
+            videoPlayerRestController.routes(this) { call -> call.attributes[VIDEO_PLAYER_REQUEST_KEY] }
             captionsRestController.routes(this) { call -> call.attributes[CAPTIONS_REQUEST_KEY] }
             publicShareController.routes(this) { call -> call.attributes[PUBLIC_SHARE_REQUEST_KEY] }
             hlsRestController.routes(this) { call -> call.attributes[HLS_REQUEST_KEY] }
@@ -417,6 +423,48 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path == VideoPlayerRestController.PATH) {
+            if (request.method !in setOf("GET", "HEAD")) {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            val user = securityService.getCurrentUser(request)
+            if (!user.isStreamRole) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                return
+            }
+            val id = request.getParameter("id")?.toIntOrNull()
+            val rawPosition = request.getParameter("position")
+            val position = rawPosition?.toLongOrNull()
+            val rawPlayer = request.getParameter("player")
+            if (id == null || (rawPosition != null && (position == null || position < 0)) ||
+                (rawPlayer != null && rawPlayer.toIntOrNull() == null)) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST)
+                return
+            }
+            val file = mediaFileService.getMediaFile(id)
+            if (file == null || !file.isVideo) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND)
+                return
+            }
+            if (!securityService.isFolderAccessAllowed(file, user.username)) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                return
+            }
+            if (rawPlayer != null) {
+                val explicit = playerService.getPlayerById(rawPlayer.toInt())
+                if (explicit == null || explicit.username != user.username) {
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                    return
+                }
+            }
+            val player = playerService.getPlayer(request, response)
+            val csrf = request.getAttribute(org.springframework.security.web.csrf.CsrfToken::class.java.name)
+                as? org.springframework.security.web.csrf.CsrfToken
+            request.setAttribute(VIDEO_PLAYER_REQUEST, VideoPlayerRestController.Request(file, user, player.id,
+                NetworkService.getBaseUrl(request), position, csrf?.headerName, csrf?.token))
+        }
         if (path in CaptionsRestController.PATHS) {
             if (request.method !in setOf("GET", "HEAD")) {
                 response.setHeader("Allow", "GET, HEAD")
@@ -492,10 +540,10 @@ class AirsonicKtorServlet(
             }
             request.setAttribute(PUBLIC_SHARE_REQUEST, publicRequest)
         }
-        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view", "/databaseSettings", "/databaseSettings.view", "/dlnaSettings", "/dlnaSettings.view", "/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view")) {
+        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view", "/databaseSettings", "/databaseSettings.view", "/dlnaSettings", "/dlnaSettings.view", "/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view")) {
             val user = securityService.getCurrentUser(request)
             val personalPage = path in setOf("/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view")
-            if (path !in setOf("/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view") && !user.isAdminRole && !(personalPage && user.isSettingsRole)) {
+            if (path !in setOf("/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view") && !user.isAdminRole && !(personalPage && user.isSettingsRole)) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
@@ -504,7 +552,7 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
                 return
             }
-            if (path == "/createShare" || path == "/createShare.view") response.setHeader("Cache-Control", "no-store")
+            if (path in setOf("/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view")) response.setHeader("Cache-Control", "no-store")
             // JSP tags still need the view context while the page loads its data from Ktor REST.
             val context = org.springframework.web.context.support.WebApplicationContextUtils
                 .getRequiredWebApplicationContext(request.servletContext)
@@ -1226,6 +1274,8 @@ class AirsonicKtorServlet(
         val STREAM_REQUEST_KEY = AttributeKey<StreamRestController.Request>(STREAM_REQUEST)
         const val HLS_SEGMENT_REQUEST = "org.airsonic.player.hlsSegmentRequest"
         val HLS_SEGMENT_REQUEST_KEY = AttributeKey<HlsSegmentRestController.Request>(HLS_SEGMENT_REQUEST)
+        const val VIDEO_PLAYER_REQUEST = "org.airsonic.player.videoPlayerRequest"
+        val VIDEO_PLAYER_REQUEST_KEY = AttributeKey<VideoPlayerRestController.Request>(VIDEO_PLAYER_REQUEST)
         const val CAPTIONS_REQUEST = "org.airsonic.player.captionsRequest"
         val CAPTIONS_REQUEST_KEY = AttributeKey<CaptionsRestController.Request>(CAPTIONS_REQUEST)
         const val PUBLIC_SHARE_REQUEST = "org.airsonic.player.publicShareRequest"
