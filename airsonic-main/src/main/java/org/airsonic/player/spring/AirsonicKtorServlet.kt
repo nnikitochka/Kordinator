@@ -363,10 +363,10 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
-        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view", "/databaseSettings", "/databaseSettings.view", "/dlnaSettings", "/dlnaSettings.view", "/top", "/top.view")) {
+        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view", "/databaseSettings", "/databaseSettings.view", "/dlnaSettings", "/dlnaSettings.view", "/top", "/top.view", "/status", "/status.view")) {
             val user = securityService.getCurrentUser(request)
             val personalPage = path in setOf("/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view")
-            if (path !in setOf("/top", "/top.view") && !user.isAdminRole && !(personalPage && user.isSettingsRole)) {
+            if (path !in setOf("/top", "/top.view", "/status", "/status.view") && !user.isAdminRole && !(personalPage && user.isSettingsRole)) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
