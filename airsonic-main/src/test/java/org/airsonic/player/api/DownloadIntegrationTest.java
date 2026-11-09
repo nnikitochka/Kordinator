@@ -129,7 +129,7 @@ public class DownloadIntegrationTest {
                 assertEquals(400, send(suffix, query + "&playlist=bad", "admin", "admin", null, null, false).statusCode());
             }
             assertTrue(security.getUserByName("admin").getBytesDownloaded() > downloadedBefore);
-            HttpRequest siteRequest = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic/download?id=" + song.getId()))
+            HttpRequest siteRequest = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic/rest/downloadMedia?id=" + song.getId()))
                     .header("Authorization", "Basic " + Base64.getEncoder().encodeToString("admin:admin".getBytes(java.nio.charset.StandardCharsets.UTF_8))).build();
             HttpResponse<byte[]> site = client.send(siteRequest, HttpResponse.BodyHandlers.ofByteArray());
             assertEquals(200, site.statusCode());

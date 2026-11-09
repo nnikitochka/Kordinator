@@ -70,7 +70,7 @@ PARAMETERS
 
 <c:if test="${param.asTable}"><td class="fit"></c:if>
 <c:if test="${param.downloadEnabled}">
-    <sub:url value="/download.view" var="downloadUrl">
+    <sub:url value="/rest/downloadMedia" var="downloadUrl">
         <sub:param name="id" value="${param.id}"/>
     </sub:url>
     <a href="${downloadUrl}">

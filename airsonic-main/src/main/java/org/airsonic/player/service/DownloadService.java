@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import java.io.*;
 import java.nio.file.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.*;
@@ -43,6 +44,12 @@ public class DownloadService {
     }
 
     public DownloadResponse prepare(User user, Player transferPlayer, Optional<Integer> id, Integer playlist, Integer player, List<Integer> indices) throws IOException {
+        return prepare(user, transferPlayer, id, playlist, player, indices, null);
+    }
+
+    /** Uses a validated selection snapshot so live queue or playlist edits cannot replace checked files. */
+    public DownloadResponse prepare(User user, Player transferPlayer, Optional<Integer> id, Integer playlist,
+            Integer player, List<Integer> indices, List<MediaFile> selection) throws IOException {
         String defaultDownloadName = null;
         DownloadResponse response = null;
 
@@ -71,14 +78,14 @@ public class DownloadService {
                         additionalFiles = Collections.singletonList(Pair.of(art.getRelativePath(), art.getFolderId()));
                     }
                 }
-                response = prepareResponse(mediaFileService.getChildrenOf(mediaFile, true, false, true), indices, statusSupplier, statusCloser, additionalFiles);
+                response = prepareResponse(selection != null ? selection : mediaFileService.getChildrenOf(mediaFile, true, false, true), indices, statusSupplier, statusCloser, additionalFiles);
                 defaultDownloadName = FilenameUtils.getBaseName(mediaFile.getPath()) + ".zip";
             }
         } else if (playlist != null) {
-            response = prepareResponse(playlistService.getFilesInPlaylist(playlist), indices, statusSupplier, statusCloser, additionalFiles);
+            response = prepareResponse(selection != null ? selection : playlistService.getFilesInPlaylist(playlist), indices, statusSupplier, statusCloser, additionalFiles);
             defaultDownloadName = playlistService.getPlaylist(playlist).getName() + ".zip";
         } else if (player != null) {
-            response = prepareResponse(transferPlayer.getPlayQueue().getFiles(), indices, statusSupplier, statusCloser, additionalFiles);
+            response = prepareResponse(selection != null ? selection : transferPlayer.getPlayQueue().getFiles(), indices, statusSupplier, statusCloser, additionalFiles);
             defaultDownloadName = "player-" + transferPlayer.getId() + "-" + transferPlayer.getName() + "-" + "playqueue.zip";
         }
 
@@ -108,7 +115,7 @@ public class DownloadService {
     }
 
     private static long zipSize(Stream<Entry<String, Long>> paths) {
-        return paths.mapToLong(e -> 30 + 46 + (2L * e.getKey().length()) + e.getValue()).sum() + 22;
+        return paths.mapToLong(e -> 30 + 46 + (2L * e.getKey().getBytes(StandardCharsets.UTF_8).length) + e.getValue()).sum() + 22;
     }
 
     private DownloadResponse prepareResponse(List<MediaFile> files, List<Integer> indices,
@@ -198,7 +205,7 @@ public class DownloadService {
                     } catch (Exception e1) {
                         LOG.debug("Error with output to zip", e1);
                     }
-                }, "DownloadControllerDatafeed").start();
+                }, "DownloadDatafeed").start();
 
                 // wait for src data thread to connect
                 while (pin.source == null) {

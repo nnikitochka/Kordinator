@@ -1101,7 +1101,7 @@
             } else if (id == "savePlaylist") {
                 this.onSavePlaylist();
             } else if (id == "downloadPlaylist") {
-                location.href = "download.view?player=" + this.player.id;
+                location.href = "<c:url value='/rest/downloadMedia'/>?player=" + this.player.id;
             } else if (id == "sharePlaylist") {
                 parent.frames.main.location.href = "createShare.view?player=" + this.player.id + "&" + this.querize(this.getSelectedIndexes(), "i");
             } else if (id == "sortByTrack") {
@@ -1117,7 +1117,7 @@
             } else if (id == "unstar" && selectedIndexes.length > 0) {
                 this.onStar(selectedIndexes, false);
             } else if (id == "download" && selectedIndexes.length > 0) {
-                location.href = "download.view?player=" + this.player.id + "&" + this.querize(selectedIndexes, "i");
+                location.href = "<c:url value='/rest/downloadMedia'/>?player=" + this.player.id + "&" + this.querize(selectedIndexes, "i");
             } else if (id == "appendPlaylist" && selectedIndexes.length > 0) {
                 this.onAppendPlaylist();
             }

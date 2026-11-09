@@ -242,6 +242,8 @@ class AirsonicKtorServlet(
             if (playQueueRequest != null) call.attributes.put(PLAY_QUEUE_REQUEST_KEY, playQueueRequest)
             val scrobbleRequest = request.getAttribute(SCROBBLE_REQUEST) as? ScrobbleRequest
             if (scrobbleRequest != null) call.attributes.put(SCROBBLE_REQUEST_KEY, scrobbleRequest)
+            val websiteDownload = request.getAttribute(WEBSITE_DOWNLOAD_REQUEST) as? DownloadRestController.WebsiteRequest
+            if (websiteDownload != null) call.attributes.put(WEBSITE_DOWNLOAD_REQUEST_KEY, websiteDownload)
             val downloadRequest = request.getAttribute(DOWNLOAD_REQUEST) as? DownloadRequest
             if (downloadRequest != null) call.attributes.put(DOWNLOAD_REQUEST_KEY, downloadRequest)
             val randomSongsRequest = request.getAttribute(RANDOM_SONGS_REQUEST) as? RandomSongsRequest
@@ -348,7 +350,8 @@ class AirsonicKtorServlet(
             playQueueController.routes(this) { call -> call.attributes[PLAY_QUEUE_REQUEST_KEY] }
             indexesController.routes(this) { call -> call.attributes[INDEXES_REQUEST_KEY] }
             songsByGenreController.routes(this) { call -> call.attributes[GENRE_SONGS_REQUEST_KEY] }
-            downloadRestController.routes(this) { call -> call.attributes[DOWNLOAD_REQUEST_KEY] }
+            downloadRestController.routes(this, { call -> call.attributes[DOWNLOAD_REQUEST_KEY] },
+                { call -> call.attributes[WEBSITE_DOWNLOAD_REQUEST_KEY] })
             uploadStatusController.routes(this) { call -> call.attributes[UPLOAD_STATUS_REQUEST_KEY] }
             statisticsController.routes(this) { call -> call.attributes[STATISTICS_REQUEST_KEY] }
             scheduledTasksController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
@@ -592,6 +595,17 @@ class AirsonicKtorServlet(
             val username = if (listing) requireNotNull(securityService.getCurrentUsername(request))
                 else requireNotNull(securityService.getCurrentUser(request)).username
             request.setAttribute(STARRED_REQUEST, StarredRequest(username, parameters(request), player))
+        } else if (path == DownloadRestController.WEBSITE_PATH && request.method in setOf("GET", "HEAD")) {
+            val user = requireNotNull(securityService.getCurrentUser(request))
+            val explicit = request.getParameter("player")
+            val player = if (!user.isDownloadRole) null
+                else if (explicit != null) explicit.toIntOrNull()?.let { playerService.getPlayerById(it) }
+                else playerService.getPlayer(request, response, false, false)
+            val webRequest = ServletWebRequest(request, response)
+            request.setAttribute(WEBSITE_DOWNLOAD_REQUEST, DownloadRestController.WebsiteRequest(
+                user, player?.takeIf { it.username == user.username }, parameters(request),
+                java.util.function.BiPredicate { tag, modified -> webRequest.checkNotModified(tag, modified) },
+                { response.status }))
         } else if (path in DownloadRestController.PATHS) {
             val params = parameters(request)
             val rawPlaylist = params["playlist"]
@@ -1113,6 +1127,8 @@ class AirsonicKtorServlet(
         val PLAY_QUEUE_REQUEST_KEY = AttributeKey<PlayQueueRequest>(PLAY_QUEUE_REQUEST)
         const val SCROBBLE_REQUEST = "org.airsonic.player.scrobbleRequest"
         val SCROBBLE_REQUEST_KEY = AttributeKey<ScrobbleRequest>(SCROBBLE_REQUEST)
+        const val WEBSITE_DOWNLOAD_REQUEST = "org.airsonic.player.websiteDownloadRequest"
+        val WEBSITE_DOWNLOAD_REQUEST_KEY = AttributeKey<DownloadRestController.WebsiteRequest>(WEBSITE_DOWNLOAD_REQUEST)
         const val DOWNLOAD_REQUEST = "org.airsonic.player.downloadRequest"
         val DOWNLOAD_REQUEST_KEY = AttributeKey<DownloadRequest>(DOWNLOAD_REQUEST)
         const val RANDOM_SONGS_REQUEST = "org.airsonic.player.randomSongsRequest"

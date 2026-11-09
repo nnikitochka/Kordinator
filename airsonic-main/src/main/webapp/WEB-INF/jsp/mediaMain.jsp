@@ -894,7 +894,7 @@
         } else if (id == "share" && selectedIndexes.length > 0) {
             location.href = "createShare.view?id=" + mediaDir.id  + "&" + querize(selectedIndexes, "i");
         } else if (id == "download" && selectedIndexes.length > 0) {
-            location.href = "download.view?id=" + mediaDir.id  + "&" + querize(selectedIndexes, "i");
+            location.href = "<c:url value='/rest/downloadMedia'/>?id=" + mediaDir.id  + "&" + querize(selectedIndexes, "i");
         } else if (id == "appendPlaylist" && selectedIndexes.length > 0) {
             onAppendPlaylist();
         }
@@ -1007,7 +1007,7 @@
     }
 
     function downloadAll() {
-        location.href = "download.view?id=" + mediaDir.id;
+        location.href = "<c:url value='/rest/downloadMedia'/>?id=" + mediaDir.id;
     }
 
     function shareAlbum() {

@@ -117,7 +117,7 @@
                     $("#share").on('click', () => location.href = "createShare.view?id=" + videoModel.videoId);
                     </c:if>
                     <c:if test="${model.user.downloadRole}">
-                    $("#download").on('click', () => location.href = "download.view?id=" + videoModel.videoId);
+                    $("#download").on('click', () => location.href = "<c:url value='/rest/downloadMedia'/>?id=" + videoModel.videoId);
                     </c:if>
                     // add dimensions to playing vid
                     instance.setSrc($('#videoPlayer source[data-quality="${model.defaultBitRate}"]')[0].src);

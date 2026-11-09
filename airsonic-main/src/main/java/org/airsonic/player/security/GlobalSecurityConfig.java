@@ -283,7 +283,6 @@ public class GlobalSecurityConfig {
                         .requestMatchers("/generalSettings*", "/advancedSettings*", "/userSettings*",
                                 "/musicFolderSettings*", "/databaseSettings*", "/transcodeSettings*", "/rest/startScan*").hasRole("ADMIN")
                         .requestMatchers("/deletePlaylist*", "/savePlaylist*").hasRole("PLAYLIST")
-                        .requestMatchers("/download*").hasRole("DOWNLOAD")
                         .requestMatchers("/upload*").hasRole("UPLOAD")
                         .requestMatchers("/createShare*").hasRole("SHARE")
                         .requestMatchers("/changeCoverArt*", "/editTags*").hasRole("COVERART")

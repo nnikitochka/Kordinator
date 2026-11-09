@@ -271,7 +271,7 @@ public class KtorConfiguration {
                                 new WebsiteSettingsController(settingsService, jaxbWriter),
                                 new LiveQueueController(playQueueService, jaxbWriter, mediaFileService, playlistService, securityService, playQueueDao, playerService),
                                 new RatingController(mediaFileService, ratingService, jaxbWriter),
-                                new DownloadRestController(jaxbWriter), downloadService,
+                                new DownloadRestController(jaxbWriter, downloadService, mediaFileService, playlistService, securityService), downloadService,
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver,
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService), new AvatarUploadController(settingsService, jaxbWriter),
@@ -332,6 +332,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(ServerHealthController.PATH);
         registration.addUrlMappings(CacheStatisticsController.PATHS);
         registration.addUrlMappings(DownloadRestController.PATHS);
+        registration.addUrlMappings(DownloadRestController.WEBSITE_PATH);
         registration.addUrlMappings(CoverArtRestController.PATHS);
         registration.addUrlMappings(CoverArtActionsController.PATHS);
         registration.addUrlMappings(MediaFileCommentController.PATH);
