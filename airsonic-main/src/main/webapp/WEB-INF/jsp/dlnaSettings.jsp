@@ -13,14 +13,15 @@
 
 <c:import url="settingsHeader.jsp">
     <c:param name="cat" value="dlna"/>
-    <c:param name="toast" value="${settings_toast}"/>
 </c:import>
 
-<form method="post" action="dlnaSettings.view">
-    <sec:csrfInput />
+<p id="dlnaSettingsError" class="warning" role="alert"></p>
+<p id="dlnaSettingsSaved" role="status" hidden><fmt:message key="common.settingssaved"/></p>
+<form id="dlnaSettings">
+<fieldset id="dlnaFields" disabled style="border:0;padding:0">
 
     <div>
-        <input type="checkbox" name="dlnaEnabled" id="dlnaEnabled" ${model.dlnaEnabled? "checked": ""}/>
+        <input type="checkbox" name="dlnaEnabled" id="dlnaEnabled"/>
         <label for="dlnaEnabled"><fmt:message key="dlnasettings.enabled"/></label>
     </div>
     <p class="detail" style="width:60%;white-space:normal">
@@ -29,8 +30,7 @@
 
     <div>
         <fmt:message key="dlnasettings.servername"/>
-        <input name="dlnaServerName" id="dlnaServerName" size="40"
-               value="<c:out value='${model.dlnaServerName}' escapeXml='true'/>"/>
+        <input name="dlnaServerName" id="dlnaServerName" size="40"/>
     </div>
     <p class="detail" style="width:60%;white-space:normal;padding-top:0">
         <fmt:message key="dlnasettings.servername.description"/>
@@ -38,8 +38,7 @@
 
     <div>
         <label for="dlnaBaseLANURL" ><fmt:message key="dlnasettings.baselanurl"/></label>
-        <input type="text" size="50" name="dlnaBaseLANURL" id="dlnaBaseLANURL"
-               value="<c:out value='${model.dlnaBaseLANURL}' />" />
+        <input type="text" size="50" name="dlnaBaseLANURL" id="dlnaBaseLANURL"/>
     </div>
     <p class="detail" style="width:60%;white-space:normal">
         <fmt:message key="dlnasettings.lanurl.description"/>
@@ -50,6 +49,16 @@
         <a href='nowPlaying.view'><input type="button" value="<fmt:message key='common.cancel'/>"></a>
     </p>
 
+</fieldset>
 </form>
+<script src="<c:url value='/script/dlna-settings.js'/>"></script>
+<script>
+initDlnaSettings({
+    readUrl: '<c:url value="/rest/getDlnaSettings"/>',
+    saveUrl: '<c:url value="/rest/saveDlnaSettings"/>',
+    csrfHeader: '${_csrf.headerName}',
+    csrfToken: '${_csrf.token}'
+});
+</script>
 
 </body></html>

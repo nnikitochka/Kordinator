@@ -52,6 +52,8 @@ import org.airsonic.player.controller.rest.admin.AdvancedSettingsController;
 import org.airsonic.player.controller.rest.admin.PlayerSettingsController;
 import org.airsonic.player.controller.rest.settings.PersonalSettingsController;
 import org.airsonic.player.controller.rest.admin.DatabaseSettingsController;
+import org.airsonic.player.controller.rest.admin.DLNASettingsController;
+import org.airsonic.player.service.UPnPService;
 import org.airsonic.player.controller.rest.settings.CredentialsManagementController;
 import org.airsonic.player.service.GeneralSettingsAdministrationService;
 import org.airsonic.player.service.MusicFolderAdministrationService;
@@ -160,6 +162,7 @@ public class KtorConfiguration {
             SettingsService settingsService,
             MusicIndexService musicIndexService,
             AudioScrobblerService audioScrobblerService,
+            UPnPService upnpService,
             StatusService statusService,
             org.airsonic.player.service.DatabaseService databaseService,
             DownloadService downloadService,
@@ -192,6 +195,7 @@ public class KtorConfiguration {
                                 new StarredController(mediaFileDao, albumDao, artistDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),
                                 new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, transcodingService, jaxbWriter),
+                                new DLNASettingsController(settingsService, upnpService, jaxbWriter),
                                 new DatabaseSettingsController(settingsService, databaseService, statusService, securityService, jaxbWriter),
                                 new CredentialsManagementController(securityService, settingsService, jaxbWriter, transactionManager),
                                 new PersonalSettingsController(settingsService, securityService, jaxbWriter),
@@ -246,6 +250,7 @@ public class KtorConfiguration {
         registration.addUrlMappings("/generalSettings", "/generalSettings.view");
         registration.addUrlMappings("/transcodingSettings", "/transcodingSettings.view", TranscodingSettingsController.READ_PATH, TranscodingSettingsController.SAVE_PATH);
         registration.addUrlMappings("/credentialsSettings", "/credentialsSettings.view", CredentialsManagementController.READ_PATH, CredentialsManagementController.KEYS_PATH, CredentialsManagementController.CREATE_PATH, CredentialsManagementController.UPDATE_PATH, CredentialsManagementController.ADMIN_PATH);
+        registration.addUrlMappings("/dlnaSettings", "/dlnaSettings.view", DLNASettingsController.READ_PATH, DLNASettingsController.SAVE_PATH);
         registration.addUrlMappings(DatabaseSettingsController.PATHS);
         registration.addUrlMappings("/databaseSettings", "/databaseSettings.view");
         registration.addUrlMappings("/shareSettings", "/shareSettings.view");
