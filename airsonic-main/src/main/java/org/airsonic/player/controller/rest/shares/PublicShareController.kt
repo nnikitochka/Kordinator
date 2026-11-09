@@ -110,7 +110,7 @@ class PublicShareController(
             "video" to file.isVideo, "streamable" to direct,
             "contentType" to if (direct) StringUtil.getMimeType(MoreFiles.getFileExtension(file.relativePath)) else "application/x-mpegurl",
             "streamUrl" to stream, "coverArtUrl" to url("ext/coverArt.view") { it.queryParam("size", 500) },
-            "captionsUrl" to url("ext/captions/list"))
+            "captionsUrl" to url("ext/rest/captions/list"))
     }
 
     private fun streamable(file: MediaFile): Boolean {

@@ -21,6 +21,7 @@ import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import org.airsonic.player.controller.rest.stream.StreamRestController
 import org.airsonic.player.controller.JAXBWriter
+import org.airsonic.player.controller.captions.CaptionsRestController
 import org.airsonic.player.controller.rest.shares.PublicShareController
 import org.airsonic.player.controller.rest.hls.HlsRestController
 import org.airsonic.player.controller.rest.hls.HlsSegmentRestController
@@ -201,6 +202,7 @@ class AirsonicKtorServlet(
     private val hlsSegmentRestController: HlsSegmentRestController,
     private val streamRestController: StreamRestController,
     private val publicShareController: PublicShareController,
+    private val captionsRestController: CaptionsRestController,
     private val jaxbWriter: JAXBWriter,
 ) : ServletApplicationEngine() {
     @OptIn(InternalAPI::class)
@@ -308,6 +310,9 @@ class AirsonicKtorServlet(
             }
             val hlsSegment = request.getAttribute(HLS_SEGMENT_REQUEST) as? HlsSegmentRestController.Request
             if (hlsSegment != null) call.attributes.put(HLS_SEGMENT_REQUEST_KEY, hlsSegment)
+            (request.getAttribute(CAPTIONS_REQUEST) as? CaptionsRestController.Request)?.let {
+                call.attributes.put(CAPTIONS_REQUEST_KEY, it)
+            }
             (request.getAttribute(PUBLIC_SHARE_REQUEST) as? PublicShareController.Request)?.let {
                 call.attributes.put(PUBLIC_SHARE_REQUEST_KEY, it)
             }
@@ -380,6 +385,7 @@ class AirsonicKtorServlet(
             ratingController.routes(this) { call -> call.attributes[RATING_REQUEST_KEY] }
             topSongsController.routes(this) { call -> call.attributes[TOP_SONGS_REQUEST_KEY] }
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
+            captionsRestController.routes(this) { call -> call.attributes[CAPTIONS_REQUEST_KEY] }
             publicShareController.routes(this) { call -> call.attributes[PUBLIC_SHARE_REQUEST_KEY] }
             hlsRestController.routes(this) { call -> call.attributes[HLS_REQUEST_KEY] }
             hlsSegmentRestController.routes(this) { call -> call.attributes[HLS_SEGMENT_REQUEST_KEY] }
@@ -411,6 +417,45 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path in CaptionsRestController.PATHS) {
+            if (request.method !in setOf("GET", "HEAD")) {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            val auth = request.userPrincipal as Authentication
+            val id = request.getParameter("id")?.toIntOrNull()
+            if (id == null) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST)
+                return
+            }
+            val file = mediaFileService.getMediaFile(id)
+            if (file == null || file.isDirectory) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND)
+                return
+            }
+            val signed = auth is JWTAuthenticationToken
+            if (auth is JWTAuthenticationToken) {
+                val expected = (auth.details as? DecodedJWT)?.getClaim(JWTSecurityService.CLAIM_PATH)?.asString()
+                val valid = try {
+                    val params = UriComponentsBuilder.fromUriString(expected ?: "").build().queryParams
+                    // A public link grants access to this video's subtitles only.
+                    params.getFirst("id") == request.getParameter("id")
+                } catch (_: IllegalArgumentException) { false }
+                if (!valid) {
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                    return
+                }
+            }
+            if (!signed && !securityService.isFolderAccessAllowed(file, auth.name)) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                return
+            }
+            request.setAttribute(CAPTIONS_REQUEST, CaptionsRestController.Request(file,
+                org.airsonic.player.service.NetworkService.getBaseUrl(request), if (signed) auth.name else null,
+                if (auth is JWTAuthenticationToken) JWTSecurityService.getExpiration(auth) else null,
+                request.getParameter("captionId"), request.getParameter("format")))
+        }
         if (path == PublicShareController.PAGE_PATH || path == PublicShareController.DATA_PATH) {
             response.setHeader("Cache-Control", "no-store")
             if (request.method !in setOf("GET", "HEAD")) {
@@ -1181,6 +1226,8 @@ class AirsonicKtorServlet(
         val STREAM_REQUEST_KEY = AttributeKey<StreamRestController.Request>(STREAM_REQUEST)
         const val HLS_SEGMENT_REQUEST = "org.airsonic.player.hlsSegmentRequest"
         val HLS_SEGMENT_REQUEST_KEY = AttributeKey<HlsSegmentRestController.Request>(HLS_SEGMENT_REQUEST)
+        const val CAPTIONS_REQUEST = "org.airsonic.player.captionsRequest"
+        val CAPTIONS_REQUEST_KEY = AttributeKey<CaptionsRestController.Request>(CAPTIONS_REQUEST)
         const val PUBLIC_SHARE_REQUEST = "org.airsonic.player.publicShareRequest"
         val PUBLIC_SHARE_REQUEST_KEY = AttributeKey<PublicShareController.Request>(PUBLIC_SHARE_REQUEST)
         const val HLS_REQUEST = "org.airsonic.player.hlsRequest"

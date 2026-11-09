@@ -3,7 +3,7 @@ package org.airsonic.player.controller;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.MoreFiles;
 import org.airsonic.player.controller.captions.CaptionInfo;
-import org.airsonic.player.controller.captions.CaptionsController;
+import org.airsonic.player.service.CaptionService;
 import org.airsonic.player.domain.Bookmark;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.User;
@@ -50,16 +50,16 @@ public class VideoPlayerController {
     private final MediaFileService mediaFileService;
     private final PlayerService playerService;
     private final SecurityService securityService;
-    private final CaptionsController captionsController;
+    private final CaptionService captionService;
     private final JWTSecurityService jwtSecurityService;
     private final BookmarkService bookmarkService;
     private final SettingsService settingsService;
 
-    public VideoPlayerController(MediaFileService mediaFileService, PlayerService playerService, SecurityService securityService, CaptionsController captionsController, JWTSecurityService jwtSecurityService, BookmarkService bookmarkService, SettingsService settingsService) {
+    public VideoPlayerController(MediaFileService mediaFileService, PlayerService playerService, SecurityService securityService, CaptionService captionService, JWTSecurityService jwtSecurityService, BookmarkService bookmarkService, SettingsService settingsService) {
         this.mediaFileService = mediaFileService;
         this.playerService = playerService;
         this.securityService = securityService;
-        this.captionsController = captionsController;
+        this.captionService = captionService;
         this.jwtSecurityService = jwtSecurityService;
         this.bookmarkService = bookmarkService;
         this.settingsService = settingsService;
@@ -90,7 +90,7 @@ public class VideoPlayerController {
         boolean castable = isCastable(file);
 
         Pair<String, Map<String, String>> streamUrls = getStreamUrls(file, user, url, streamable, playerId);
-        List<CaptionInfo> captions = captionsController.listCaptions(file, NetworkService.getBaseUrl(request));
+        List<CaptionInfo> captions = captionService.listCaptions(file, NetworkService.getBaseUrl(request));
 
         Map<String, Object> map = new HashMap<>();
         map.put("video", file);
@@ -105,7 +105,7 @@ public class VideoPlayerController {
                 : StringUtil.getMimeType(MoreFiles.getFileExtension(file.getRelativePath())));
         map.put("remoteStreamUrl", streamUrls.getRight().get("remoteStreamUrl"));
         map.put("remoteCoverArtUrl", url + jwtSecurityService.addJWTToken(user.getUsername(), "ext/coverArt.view?id=" + file.getId()));
-        map.put("remoteCaptionsUrl", url + jwtSecurityService.addJWTToken(user.getUsername(), "ext/captions/list?id=" + file.getId()));
+        map.put("remoteCaptionsUrl", url + jwtSecurityService.addJWTToken(user.getUsername(), "ext/rest/captions/list?id=" + file.getId()));
         // map.put("bitRates", BIT_RATES);
         map.put("defaultBitRate", streamUrls.getLeft());
         map.put("user", user);
@@ -143,7 +143,7 @@ public class VideoPlayerController {
         if (!STREAMABLE_FORMATS.contains(StringUtils.lowerCase(file.getFormat())))
             return false;
 
-        MetaData metaData = captionsController.getVideoMetaData(file);
+        MetaData metaData = captionService.getVideoMetaData(file);
         if (metaData == null) return true;
 
         if (!metaData.getVideoTracks().isEmpty() && !metaData.getVideoTracks().getFirst().isStreamable())
