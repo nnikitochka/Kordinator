@@ -65,6 +65,7 @@ import org.airsonic.player.controller.rest.admin.TranscodingSettingsController
 import org.airsonic.player.controller.rest.admin.AdvancedSettingsController
 import org.airsonic.player.controller.rest.admin.PlayerSettingsController
 import org.airsonic.player.controller.rest.settings.PersonalSettingsController
+import org.airsonic.player.controller.rest.admin.DatabaseSettingsController
 import org.airsonic.player.controller.rest.settings.CredentialsManagementController
 import org.airsonic.player.controller.rest.users.UsersController
 import org.airsonic.player.controller.rest.users.PasswordController
@@ -130,6 +131,7 @@ class AirsonicKtorServlet(
     private val starredController: StarredController,
     private val jukeboxController: JukeboxController,
     private val usersController: UsersController,
+    private val databaseSettingsController: DatabaseSettingsController,
     private val credentialsManagementController: CredentialsManagementController,
     private val personalSettingsController: PersonalSettingsController,
     private val playerSettingsController: PlayerSettingsController,
@@ -290,6 +292,7 @@ class AirsonicKtorServlet(
             starredController.routes(this) { call -> call.attributes[STARRED_REQUEST_KEY] }
             usersController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             avatarUploadController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
+            databaseSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             credentialsManagementController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             personalSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             playerSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
@@ -338,7 +341,7 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
-        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view")) {
+        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view", "/databaseSettings", "/databaseSettings.view")) {
             val user = securityService.getCurrentUser(request)
             val personalPage = path in setOf("/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view")
             if (!user.isAdminRole && !(personalPage && user.isSettingsRole)) {
@@ -477,19 +480,21 @@ class AirsonicKtorServlet(
                 return
             }
             request.setAttribute(ALBUM_INFO_REQUEST, AlbumInfoRequest(parameters(request), id))
-        } else if (path == AvatarUploadController.PATH) {
+        } else if (path == AvatarUploadController.PATH || path == DatabaseSettingsController.IMPORT_PATH) {
             // Multipart bodies belong to Ktor; capture only authentication and query parameters.
             request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)),
                 parseQueryString(request.queryString.orEmpty())))
         } else if (path in UsersController.PATHS || path in UsersController.WEBSITE_PATHS || path == UsersController.WEBSITE_READ_PATH ||
-            path in PlayerSettingsController.PATHS || path in CredentialsManagementController.PATHS ||
+            path in DatabaseSettingsController.PATHS || path in PlayerSettingsController.PATHS || path in CredentialsManagementController.PATHS ||
             path == PersonalSettingsController.READ_PATH || path == PersonalSettingsController.SAVE_PATH ||
             path == AdvancedSettingsController.READ_PATH || path == AdvancedSettingsController.SAVE_PATH ||
             path == TranscodingSettingsController.READ_PATH || path == TranscodingSettingsController.SAVE_PATH ||
             path == GeneralSettingsController.READ_PATH || path in GeneralSettingsController.WRITE_PATHS ||
             path == MusicFolderSettingsController.READ_PATH || path in MusicFolderSettingsController.WRITE_PATHS || path in PasswordController.PATHS) {
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
-            request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)), parameters(request)))
+            request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)), parameters(request)).apply {
+                if (path == DatabaseSettingsController.EXPORT_PATH && user.isAdminRole) transferPlayer = playerService.getPlayer(request, response, false, false)
+            })
         } else if (path in JukeboxController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(
                 request.remoteUser, request.getParameter("c"), request.remoteAddr, true
