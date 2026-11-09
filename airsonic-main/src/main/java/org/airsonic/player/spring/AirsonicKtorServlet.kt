@@ -2,10 +2,14 @@ package org.airsonic.player.spring
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.call
 import io.ktor.server.application.isHandled
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondRedirect
+import io.ktor.server.routing.get
+import io.ktor.server.routing.head
 import io.ktor.server.routing.RoutingFailureStatusCode
 import io.ktor.server.routing.routing
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine
@@ -278,6 +282,10 @@ class AirsonicKtorServlet(
             if (stream != null) call.attributes.put(STREAM_REQUEST_KEY, stream)
         }
         application.routing {
+            for (path in listOf("/settings", "/settings.view")) {
+                get(path) { redirectSettings(call) }
+                head(path) { redirectSettings(call) }
+            }
             searchController.routes(this) { call -> call.attributes[SEARCH_REQUEST_KEY] }
             musicFoldersController.routes(this) { call -> call.attributes[MUSIC_FOLDERS_REQUEST_KEY] }
             genresController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
@@ -340,6 +348,17 @@ class AirsonicKtorServlet(
                 )
             }
         }
+    }
+
+    private suspend fun redirectSettings(call: ApplicationCall) {
+        val user = call.attributes[USERS_REQUEST_KEY].user
+        call.response.headers.append("Cache-Control", "no-store")
+        if (!user.isAdminRole && !user.isSettingsRole) {
+            call.respond(HttpStatusCode.Forbidden)
+            return
+        }
+        // Relative locations preserve the servlet context, including deployments below '/'.
+        call.respondRedirect(if (user.isAdminRole) "musicFolderSettings" else "personalSettings")
     }
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
@@ -483,6 +502,8 @@ class AirsonicKtorServlet(
                 return
             }
             request.setAttribute(ALBUM_INFO_REQUEST, AlbumInfoRequest(parameters(request), id))
+        } else if (path == "/settings" || path == "/settings.view") {
+            request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)), Parameters.Empty))
         } else if (path == AvatarUploadController.PATH || path == DatabaseSettingsController.IMPORT_PATH) {
             // Multipart bodies belong to Ktor; capture only authentication and query parameters.
             request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)),
