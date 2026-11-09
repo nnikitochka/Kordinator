@@ -3,7 +3,7 @@ package org.airsonic.player.api;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.dao.MediaFileDao;
-import org.airsonic.player.controller.StreamController;
+import org.springframework.context.ApplicationContext;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.User;
@@ -20,7 +20,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -32,8 +31,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
@@ -45,7 +42,7 @@ public class StreamIntegrationTest {
     @Autowired private MediaScannerService scanner;
     @Autowired private MediaFileDao mediaFiles;
     @Autowired private SecurityService security;
-    @MockitoSpyBean private StreamController mvc;
+    @Autowired private ApplicationContext context;
     private final HttpClient client = HttpClient.newHttpClient();
 
     @Test public void preservesStreamContract() throws Exception {
@@ -159,14 +156,14 @@ public class StreamIntegrationTest {
                     Files.deleteIfExists(audio);
                 }
             }
-            verify(mvc, never()).handleRequest(any(), any(), any(), any(), any(), any(), any(), any());
+            assertFalse(context.containsBean("streamController"));
             String basic = java.util.Base64.getEncoder().encodeToString("admin:admin".getBytes(java.nio.charset.StandardCharsets.UTF_8));
             HttpRequest website = HttpRequest.newBuilder(URI.create("http://localhost:" + port
                     + "/airsonic/stream?format=raw&id=" + song.getId())).header("Authorization", "Basic " + basic).GET().build();
             HttpResponse<byte[]> websiteResponse = client.send(website, HttpResponse.BodyHandlers.ofByteArray());
             assertEquals(200, websiteResponse.statusCode());
             assertArrayEquals(expected, websiteResponse.body());
-            verify(mvc).handleRequest(any(), any(), any(), any(), any(), any(), any(), any());
+
         } finally {
             ScanningTestUtils.after(cleanup, folders);
             folders.expunge();

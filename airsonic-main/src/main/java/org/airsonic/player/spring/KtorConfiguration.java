@@ -348,6 +348,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(HlsRestController.PATHS);
         registration.addUrlMappings(HlsSegmentRestController.PATHS);
         registration.addUrlMappings(StreamRestController.PATHS);
+        registration.addUrlMappings("/stream", "/stream/*", "/ext/stream", "/ext/stream/*");
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);

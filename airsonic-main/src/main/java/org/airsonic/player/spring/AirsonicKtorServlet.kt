@@ -846,7 +846,14 @@ class AirsonicKtorServlet(
                 return
             }
             request.setAttribute(PLAYLISTS_REQUEST, PlaylistsRequest(username, admin, parameters(request), id, player))
-        } else if (path in StreamRestController.PATHS && request.method in setOf("GET", "POST", "HEAD")) {
+        } else if ((path in StreamRestController.PATHS || path in StreamRestController.WEBSITE_PATHS)
+            && (request.method in setOf("GET", "HEAD") || (path in StreamRestController.PATHS && request.method == "POST"))) {
+            val restStream = path in StreamRestController.PATHS
+            val rawPlayer = if (restStream) null else request.getParameter("player")?.trim()?.takeIf { it.isNotEmpty() }
+            if (rawPlayer != null && rawPlayer.toIntOrNull() == null) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST)
+                return
+            }
             val rawId = request.getParameter("id")?.trim()?.takeIf { it.isNotEmpty() }
             val rawBitRate = request.getParameter("maxBitRate")?.trim()?.takeIf { it.isNotEmpty() }
             val rawOffset = request.getParameter("offsetSeconds")?.trim()?.takeIf { it.isNotEmpty() }
@@ -857,26 +864,33 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST)
                 return
             }
-            val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
-            val wrapped = object : HttpServletRequestWrapper(request) {
+            val playerId = if (restStream) playerResolver.getOrCreatePlayerId(
+                request.remoteUser, request.getParameter("c"), request.remoteAddr, false) else null
+            val wrapped = if (restStream) object : HttpServletRequestWrapper(request) {
                 override fun getParameter(name: String): String? = when (name) {
                     "player" -> playerId?.toString()
                     "id" -> mapRestId(super.getParameter(name))
                     else -> super.getParameter(name)
                 }
-            }
+            } else request
             val authentication = request.userPrincipal as Authentication
-            val user = requireNotNull(securityService.getUserByName(authentication.name))
-            if (!user.isStreamRole) {
+            val restUser = if (restStream) requireNotNull(securityService.getUserByName(authentication.name)) else null
+            if (restUser != null && !restUser.isStreamRole) {
                 jaxbWriter.writeErrorResponse(wrapped, response, ErrorCode.NOT_AUTHORIZED,
-                    "${user.username} is not authorized to play files.")
+                    "${restUser.username} is not authorized to play files.")
                 return
             }
             val player = playerService.getPlayer(wrapped, response, false, true)
+            val user = restUser ?: requireNotNull(securityService.getUserByName(player.username))
+            if (!restStream && authentication !is JWTAuthenticationToken && !user.isStreamRole) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                return
+            }
             val file = request.getParameter("path")?.let { mediaFileService.getMediaFile(it) }
                 ?: id?.let { mediaFileService.getMediaFile(it) }
-            if (file != null && !securityService.isFolderAccessAllowed(file, user.username)) {
-                if (path.endsWith(".view")) {
+            if (file != null && (restStream || authentication !is JWTAuthenticationToken)
+                && !securityService.isFolderAccessAllowed(file, user.username)) {
+                if (!restStream || path.endsWith(".view")) {
                     response.sendError(HttpServletResponse.SC_FORBIDDEN)
                     return
                 }

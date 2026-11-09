@@ -1,7 +1,6 @@
-package org.airsonic.player.controller;
+package org.airsonic.player.service;
 
 import junit.framework.TestCase;
-import org.airsonic.player.service.TranscodingService;
 
 import java.awt.Dimension;
 
@@ -9,32 +8,32 @@ import java.awt.Dimension;
  * @author Sindre Mehus
  * @version $Id$
  */
-public class StreamControllerTestCase extends TestCase {
+public class MediaStreamServiceTestCase extends TestCase {
 
     public void testGetRequestedVideoSize() {
         // Valid spec.
-        assertEquals("Wrong size.", new Dimension(123, 456), StreamController.getRequestedVideoSize("123x456"));
-        assertEquals("Wrong size.", new Dimension(456, 123), StreamController.getRequestedVideoSize("456x123"));
-        assertEquals("Wrong size.", new Dimension(1, 1), StreamController.getRequestedVideoSize("1x1"));
+        assertEquals("Wrong size.", new Dimension(123, 456), MediaStreamService.getRequestedVideoSize("123x456"));
+        assertEquals("Wrong size.", new Dimension(456, 123), MediaStreamService.getRequestedVideoSize("456x123"));
+        assertEquals("Wrong size.", new Dimension(1, 1), MediaStreamService.getRequestedVideoSize("1x1"));
 
         // Missing spec.
-        assertNull("Wrong size.", StreamController.getRequestedVideoSize(null));
+        assertNull("Wrong size.", MediaStreamService.getRequestedVideoSize(null));
 
         // Invalid spec.
-        assertNull("Wrong size.", StreamController.getRequestedVideoSize("123"));
-        assertNull("Wrong size.", StreamController.getRequestedVideoSize("123x"));
-        assertNull("Wrong size.", StreamController.getRequestedVideoSize("x123"));
-        assertNull("Wrong size.", StreamController.getRequestedVideoSize("x"));
-        assertNull("Wrong size.", StreamController.getRequestedVideoSize("foo123x456bar"));
-        assertNull("Wrong size.", StreamController.getRequestedVideoSize("foo123x456"));
-        assertNull("Wrong size.", StreamController.getRequestedVideoSize("123x456bar"));
-        assertNull("Wrong size.", StreamController.getRequestedVideoSize("fooxbar"));
-        assertNull("Wrong size.", StreamController.getRequestedVideoSize("-1x1"));
-        assertNull("Wrong size.", StreamController.getRequestedVideoSize("1x-1"));
+        assertNull("Wrong size.", MediaStreamService.getRequestedVideoSize("123"));
+        assertNull("Wrong size.", MediaStreamService.getRequestedVideoSize("123x"));
+        assertNull("Wrong size.", MediaStreamService.getRequestedVideoSize("x123"));
+        assertNull("Wrong size.", MediaStreamService.getRequestedVideoSize("x"));
+        assertNull("Wrong size.", MediaStreamService.getRequestedVideoSize("foo123x456bar"));
+        assertNull("Wrong size.", MediaStreamService.getRequestedVideoSize("foo123x456"));
+        assertNull("Wrong size.", MediaStreamService.getRequestedVideoSize("123x456bar"));
+        assertNull("Wrong size.", MediaStreamService.getRequestedVideoSize("fooxbar"));
+        assertNull("Wrong size.", MediaStreamService.getRequestedVideoSize("-1x1"));
+        assertNull("Wrong size.", MediaStreamService.getRequestedVideoSize("1x-1"));
 
         // Too large.
-        assertNull("Wrong size.", StreamController.getRequestedVideoSize("3000x100"));
-        assertNull("Wrong size.", StreamController.getRequestedVideoSize("100x3000"));
+        assertNull("Wrong size.", MediaStreamService.getRequestedVideoSize("3000x100"));
+        assertNull("Wrong size.", MediaStreamService.getRequestedVideoSize("100x3000"));
     }
 
     public void testGetSuitableVideoSize() {
