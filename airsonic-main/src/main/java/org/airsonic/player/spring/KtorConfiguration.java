@@ -20,6 +20,8 @@ import org.airsonic.player.controller.captions.CaptionsRestController;
 import org.airsonic.player.controller.rest.video.VideoPlayerRestController;
 import org.airsonic.player.controller.rest.recovery.PasswordRecoveryController;
 import org.airsonic.player.service.PasswordRecoveryService;
+import org.airsonic.player.service.ServerInfoService;
+import org.airsonic.player.controller.rest.server.ServerInfoController;
 import org.airsonic.player.service.VideoPlaybackService;
 import org.airsonic.player.service.CaptionService;
 import org.airsonic.player.controller.rest.hls.HlsRestController;
@@ -175,6 +177,7 @@ public class KtorConfiguration {
             CaptionService captionService,
             VideoPlaybackService videoPlaybackService,
             PasswordRecoveryService passwordRecoveryService,
+            ServerInfoService serverInfoService,
             org.airsonic.player.service.metadata.MetaDataParserFactory metadataParsers,
             MediaScannerService mediaScannerService,
             MediaFileService mediaFileService,
@@ -288,7 +291,7 @@ public class KtorConfiguration {
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService), new AvatarUploadController(settingsService, jaxbWriter),
                                 new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(mediaStreamService),
                                 new PublicShareController(shareService, mediaFileService, mediaFolderService, jwtSecurityService, metadataParsers, objectMapper), new CaptionsRestController(captionService, mediaFolderService, objectMapper),
-                                new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), jaxbWriter),
+                                new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper), jaxbWriter),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);
@@ -361,6 +364,8 @@ public class KtorConfiguration {
         registration.addUrlMappings(PlaylistImportController.PATH, "/importPlaylist", "/importPlaylist.view");
         registration.addUrlMappings("/ext/share/*", "/ext/rest/share/*");
         registration.addUrlMappings(CaptionsRestController.PATHS);
+        registration.addUrlMappings(ServerInfoController.PATHS);
+        registration.addUrlMappings("/help", "/help.view");
         registration.addUrlMappings(PasswordRecoveryController.PATH, "/recover", "/recover.view");
         registration.addUrlMappings(VideoPlayerRestController.PATH, "/videoPlayer", "/videoPlayer.view");
         registration.addUrlMappings(HlsRestController.PATHS);

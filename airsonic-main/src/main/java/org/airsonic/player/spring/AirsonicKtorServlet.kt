@@ -21,6 +21,7 @@ import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import org.airsonic.player.controller.rest.stream.StreamRestController
 import org.airsonic.player.controller.JAXBWriter
+import org.airsonic.player.controller.rest.server.ServerInfoController
 import org.airsonic.player.controller.rest.recovery.PasswordRecoveryController
 import org.airsonic.player.controller.rest.video.VideoPlayerRestController
 import org.airsonic.player.controller.captions.CaptionsRestController
@@ -207,6 +208,7 @@ class AirsonicKtorServlet(
     private val captionsRestController: CaptionsRestController,
     private val videoPlayerRestController: VideoPlayerRestController,
     private val passwordRecoveryController: PasswordRecoveryController,
+    private val serverInfoController: ServerInfoController,
     private val jaxbWriter: JAXBWriter,
 ) : ServletApplicationEngine() {
     @OptIn(InternalAPI::class)
@@ -314,6 +316,9 @@ class AirsonicKtorServlet(
             }
             val hlsSegment = request.getAttribute(HLS_SEGMENT_REQUEST) as? HlsSegmentRestController.Request
             if (hlsSegment != null) call.attributes.put(HLS_SEGMENT_REQUEST_KEY, hlsSegment)
+            (request.getAttribute(SERVER_INFO_REQUEST) as? ServerInfoController.Request)?.let {
+                call.attributes.put(SERVER_INFO_REQUEST_KEY, it)
+            }
             (request.getAttribute(RECOVERY_REQUEST) as? PasswordRecoveryController.Request)?.let {
                 call.attributes.put(RECOVERY_REQUEST_KEY, it)
             }
@@ -395,6 +400,7 @@ class AirsonicKtorServlet(
             ratingController.routes(this) { call -> call.attributes[RATING_REQUEST_KEY] }
             topSongsController.routes(this) { call -> call.attributes[TOP_SONGS_REQUEST_KEY] }
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
+            serverInfoController.routes(this) { call -> call.attributes[SERVER_INFO_REQUEST_KEY] }
             passwordRecoveryController.routes(this) { call -> call.attributes[RECOVERY_REQUEST_KEY] }
             videoPlayerRestController.routes(this) { call -> call.attributes[VIDEO_PLAYER_REQUEST_KEY] }
             captionsRestController.routes(this) { call -> call.attributes[CAPTIONS_REQUEST_KEY] }
@@ -429,6 +435,15 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path in ServerInfoController.PATHS) {
+            if (request.method !in setOf("GET", "HEAD")) {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            val user = securityService.getCurrentUser(request)
+            request.setAttribute(SERVER_INFO_REQUEST, ServerInfoController.Request(request.servletContext.serverInfo, user.isAdminRole))
+        }
         if (path == PasswordRecoveryController.PATH) {
             if (request.method !in setOf("GET", "HEAD", "POST")) {
                 response.setHeader("Allow", "GET, HEAD, POST")
@@ -576,10 +591,10 @@ class AirsonicKtorServlet(
             }
             request.setAttribute(PUBLIC_SHARE_REQUEST, publicRequest)
         }
-        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view", "/databaseSettings", "/databaseSettings.view", "/dlnaSettings", "/dlnaSettings.view", "/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view")) {
+        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view", "/databaseSettings", "/databaseSettings.view", "/dlnaSettings", "/dlnaSettings.view", "/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view", "/help", "/help.view")) {
             val user = securityService.getCurrentUser(request)
             val personalPage = path in setOf("/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view")
-            if (path !in setOf("/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view") && !user.isAdminRole && !(personalPage && user.isSettingsRole)) {
+            if (path !in setOf("/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view", "/help", "/help.view") && !user.isAdminRole && !(personalPage && user.isSettingsRole)) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
@@ -588,7 +603,7 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
                 return
             }
-            if (path in setOf("/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view")) response.setHeader("Cache-Control", "no-store")
+            if (path in setOf("/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view", "/help", "/help.view")) response.setHeader("Cache-Control", "no-store")
             // JSP tags still need the view context while the page loads its data from Ktor REST.
             val context = org.springframework.web.context.support.WebApplicationContextUtils
                 .getRequiredWebApplicationContext(request.servletContext)
@@ -1310,6 +1325,8 @@ class AirsonicKtorServlet(
         val STREAM_REQUEST_KEY = AttributeKey<StreamRestController.Request>(STREAM_REQUEST)
         const val HLS_SEGMENT_REQUEST = "org.airsonic.player.hlsSegmentRequest"
         val HLS_SEGMENT_REQUEST_KEY = AttributeKey<HlsSegmentRestController.Request>(HLS_SEGMENT_REQUEST)
+        const val SERVER_INFO_REQUEST = "org.airsonic.player.serverInfoRequest"
+        val SERVER_INFO_REQUEST_KEY = AttributeKey<ServerInfoController.Request>(SERVER_INFO_REQUEST)
         const val RECOVERY_REQUEST = "org.airsonic.player.recoveryRequest"
         val RECOVERY_REQUEST_KEY = AttributeKey<PasswordRecoveryController.Request>(RECOVERY_REQUEST)
         const val VIDEO_PLAYER_REQUEST = "org.airsonic.player.videoPlayerRequest"
