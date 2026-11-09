@@ -15,7 +15,7 @@ function queuePage(tech) {
     Object.defineProperty(location, 'href', {set: value => navigations.push(value)});
     const context = {parent: {frames: {main: {location}}}, $: () => ui, formatDuration: () => "0:00"};
     const page = vm.runInNewContext('({' + method + accept + '})', context);
-    Object.assign(page, {player: {tech}, musicTable: ui, playQueueRepeatStatusCallback() {},
+    Object.assign(page, {player: {tech, id: 17}, musicTable: ui, playQueueRepeatStatusCallback() {},
         playQueuePlayStatusCallback() {}, jukeBoxGainCallback() {}, getCurrentSongIndex() { return -1; }, updateCurrentImage() {}});
     return {page, navigations};
 }
@@ -26,7 +26,7 @@ test('reconnect refresh does not download a second playlist for either external 
         const {page, navigations} = queuePage(tech);
         page.playQueueCallback(queue(1), true, false);
         page.playQueueCallback(queue(2), true, true);
-        assert.deepEqual(navigations, ['play.m3u?']);
+        assert.deepEqual(navigations, ["<c:url value='/rest/exportLivePlayQueue'/>?playerId=17&c=airsonic-web"]);
         page.playQueueCallback(queue(3), false, false);
         assert.equal(navigations.length, tech === 'EXTERNAL_WITH_PLAYLIST' ? 2 : 1);
     }

@@ -9,6 +9,7 @@ import org.airsonic.player.service.CoverArtSearchService;
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController;
 import org.airsonic.player.controller.rest.settings.WebsiteSettingsController;
 import org.airsonic.player.controller.rest.livequeue.LiveQueueController;
+import org.airsonic.player.controller.rest.livequeue.LiveQueueExportController;
 import org.airsonic.player.controller.rest.livequeue.RandomQueueController;
 import org.airsonic.player.service.MediaDirectoryService;
 import org.airsonic.player.controller.JAXBWriter;
@@ -94,6 +95,7 @@ import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.LastFmService;
+import org.airsonic.player.service.JWTSecurityService;
 import org.airsonic.player.service.JukeboxService;
 import org.airsonic.player.service.PlayQueueService;
 import org.airsonic.player.service.BookmarkService;
@@ -162,6 +164,7 @@ public class KtorConfiguration {
             GenresController genresController,
             ArtistsController artistsController,
             JAXBWriter jaxbWriter,
+            JWTSecurityService jwtSecurityService,
             MediaScannerService mediaScannerService,
             MediaFileService mediaFileService,
             ArtistDao artistDao,
@@ -227,6 +230,7 @@ public class KtorConfiguration {
                                 new PlaylistExportController(playlistService, jaxbWriter),
                                 new PlaylistImportController(playlistService, jaxbWriter),
                                 new RandomQueueController(playQueueService, mediaFolderService, jaxbWriter),
+                                new LiveQueueExportController(transcodingService, jwtSecurityService, securityService, jaxbWriter),
                                 new SharesController(shareService, mediaFileService, mediaFolderService, responseMapper, jaxbWriter, playerService, playlistService, securityService),
                                 new AlbumsController(albumDao, mediaFileDao, mediaFileService, mediaFolderService,
                                         ratingService, albumSearchService, responseMapper, jaxbWriter),
@@ -335,6 +339,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(WebsiteSettingsController.PATHS);
         registration.addUrlMappings(LiveQueueController.PATHS);
         registration.addUrlMappings(RandomQueueController.PATH);
+        registration.addUrlMappings(LiveQueueExportController.PATH);
         registration.addUrlMappings(AvatarRestController.PATHS);
         registration.addUrlMappings(AvatarUploadController.PATH);
         registration.addUrlMappings(UploadController.PATH);

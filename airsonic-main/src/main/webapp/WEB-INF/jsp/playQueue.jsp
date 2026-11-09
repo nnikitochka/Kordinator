@@ -1004,7 +1004,7 @@
             // download m3u for external player only once at the beginning, every subsequent change is just reflected on the server
             // download m3u for external with playlist player every time the playlist changes
             if (!suppressPlaylistDownload && ((this.player.tech == 'EXTERNAL' && initial) || this.player.tech == 'EXTERNAL_WITH_PLAYLIST')) {
-                parent.frames.main.location.href="play.m3u?";
+                parent.frames.main.location.href="<c:url value='/rest/exportLivePlayQueue'/>?playerId=" + encodeURIComponent(this.player.id) + "&c=airsonic-web";
             }
 
             if (this.songs.length == 0) {
