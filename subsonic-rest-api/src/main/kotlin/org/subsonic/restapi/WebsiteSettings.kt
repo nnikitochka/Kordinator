@@ -8,6 +8,9 @@ import jakarta.xml.bind.annotation.XmlType
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "WebsiteSettings")
 class WebsiteSettings {
+    @field:XmlAttribute var username: String = ""
+    @field:XmlAttribute var settingsRole: Boolean = false
+    @field:XmlAttribute var showAvatar: Boolean = false
     @field:XmlAttribute var showSideBar: Boolean = false
     @field:XmlAttribute var viewAsList: Boolean = false
 }

@@ -6,13 +6,17 @@
     <%@ include file="jquery.jsp" %>
     <%@ include file="subsonicWebsiteSettings.jsp" %>
 
+    <script src="<c:url value='/script/top-panel.js'/>"></script>
     <script type="text/javascript">
         var previousQuery = "";
         var instantSearchTimeout;
-        var showSideBar = ${model.showSideBar};
+        var showSideBar = null;
 
         function init() {
-            websiteSettingsApi.watch("showSideBar", toggleLeftFrameCallback);
+            websiteSettingsApi.watch("showSideBar", function(show, settings) {
+                renderTopPanel(document, settings, "<c:url value='/avatar.view'/>");
+                toggleLeftFrameCallback(show);
+            });
         }
 
         function toggleLeftFrameCallback(show) {
@@ -46,11 +50,10 @@
         }
 
         function doShowLeftFrame() {
-            $("div.left-nav-container", window.parent.document).show('slide', {direction:"left"}, 100, function() {
-                $("#show-left-frame").hide();
-                $("#hide-left-frame").show();
-                showSideBar = true;
-            });
+            $("div.left-nav-container", window.parent.document).show('slide', {direction:"left"}, 100);
+            $("#show-left-frame").hide();
+            $("#hide-left-frame").show();
+            showSideBar = true;
         }
 
         function hideLeftFrame() {
@@ -59,11 +62,10 @@
         }
 
         function doHideLeftFrame() {
-            $("div.left-nav-container", window.parent.document).hide('slide', {direction:"left"}, 100, function() {
-                $("#hide-left-frame").hide();
-                $("#show-left-frame").show();
-                showSideBar = false;
-            });
+            $("div.left-nav-container", window.parent.document).hide('slide', {direction:"left"}, 100);
+            $("#hide-left-frame").hide();
+            $("#show-left-frame").show();
+            showSideBar = false;
         }
         
         function airsonicLogout() {
@@ -90,8 +92,8 @@
 <table style="margin:0;padding-top:5px">
     <tr>
         <td style="padding-right:4.5em;">
-            <img id="show-left-frame" src="<spring:theme code='sidebarImage'/>" onclick="showLeftFrame()" alt="" style="display:${model.showSideBar ? 'none' : 'inline'};cursor:pointer">
-            <img id="hide-left-frame" src="<spring:theme code='sidebarImage'/>" onclick="hideLeftFrame()" alt="" style="display:${model.showSideBar ? 'inline' : 'none'};cursor:pointer">
+            <img id="show-left-frame" src="<spring:theme code='sidebarImage'/>" onclick="showLeftFrame()" alt="" style="display:none;cursor:pointer">
+            <img id="hide-left-frame" src="<spring:theme code='sidebarImage'/>" onclick="hideLeftFrame()" alt="" style="display:none;cursor:pointer">
         </td>
         <td style="min-width:3em;padding-right:1em;text-align: center">
             <a href="home.view?" target="main"><img src="<spring:theme code='homeImage'/>" style="max-width:24px" title="${home}" alt="${home}"></a>
@@ -113,12 +115,10 @@
             <a href="bookmarks.view?" target="main"><img src="<spring:theme code='bookmarkImage'/>" style="max-width:24px" title="${bookmarks}" alt="${bookmarks}"></a>
             <div class="topHeader"><a href="bookmarks.view?" target="main">${bookmarks}</a></div>
         </td>
-        <c:if test="${model.user.settingsRole}">
-            <td style="min-width:3em;padding-right:1em;text-align: center">
-                <a href="settings.view?" target="main"><img src="<spring:theme code='settingsImage'/>" style="max-width:24px" title="${settings}" alt="${settings}"></a>
-                <div class="topHeader"><a href="settings.view?" target="main">${settings}</a></div>
-            </td>
-        </c:if>
+        <td id="top-settings" hidden style="min-width:3em;padding-right:1em;text-align: center">
+            <a href="settings.view?" target="main"><img src="<spring:theme code='settingsImage'/>" style="max-width:24px" title="${settings}" alt="${settings}"></a>
+            <div class="topHeader"><a href="settings.view?" target="main">${settings}</a></div>
+        </td>
         <td style="min-width:3em;padding-right:1em;text-align: center">
             <a href="status.view?" target="main"><img src="<spring:theme code='statusImage'/>" style="max-width:24px" title="${status}" alt="${status}"></a>
             <div class="topHeader"><a href="status.view?" target="main">${status}</a></div>
@@ -142,31 +142,12 @@
 
         <td style="padding-left:15pt;padding-right:5pt;vertical-align: middle;width: 100%;text-align: center">
             <div>
-            <c:if test="${model.user.settingsRole}">
-              <a href="personalSettings.view" target="main">
-            </c:if>
-            <c:choose>
-              <c:when test="${model.showAvatar}">
-                <sub:url value="avatar.view" var="avatarUrl">
-                  <sub:param name="username" value="${model.user.username}"/>
-                </sub:url>
-                <img src="${avatarUrl}" alt="User" width="30" height="30">
-              </c:when>
-              <c:otherwise>
-                <img src="<spring:theme code='userImage'/>" alt="User" height="24">
-              </c:otherwise>
-            </c:choose>
-            <c:if test="${model.user.settingsRole}">
+              <a id="top-avatar-link" target="main">
+                <img id="top-avatar" hidden alt="User" width="30" height="30">
+                <img id="top-default-avatar" src="<spring:theme code='userImage'/>" alt="User" height="24">
               </a>
-            </c:if>
               <div class="topHeader">
-                <c:if test="${model.user.settingsRole}">
-                  <a href="personalSettings.view" target="main">
-                </c:if>
-                  <c:out value="${model.user.username}" escapeXml="true"/>
-                <c:if test="${model.user.settingsRole}">
-                  </a>
-                </c:if>
+                <a id="top-username" target="main"></a>
               </div>
             </div>
         </td>

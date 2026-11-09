@@ -8,6 +8,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.error.ErrorCode
+import org.airsonic.player.domain.AvatarScheme
 import org.airsonic.player.service.SettingsService
 import org.slf4j.LoggerFactory
 import org.subsonic.restapi.WebsiteSettings
@@ -18,7 +19,7 @@ class WebsiteSettingsController(
     private val settings: SettingsService,
     private val writer: JAXBWriter
 ) {
-    data class Request(val username: String, val params: Parameters)
+    data class Request(val username: String, val params: Parameters, val settingsRole: Boolean)
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
         UPDATE_PATHS.forEach { path -> root.post(path) { respond(call, request(call), false) } }
@@ -26,6 +27,7 @@ class WebsiteSettingsController(
     }
 
     private suspend fun respond(call: ApplicationCall, request: Request, read: Boolean) {
+        call.response.headers.append("Cache-Control", "no-store")
         val p = request.params
         val sidebar = p["showSideBar"]
         val list = p["viewAsList"]
@@ -34,6 +36,9 @@ class WebsiteSettingsController(
                 val userSettings = settings.getUserSettings(request.username)
                 writer.createResponse(true).apply {
                     websiteSettings = WebsiteSettings().apply {
+                        username = request.username
+                        settingsRole = request.settingsRole
+                        showAvatar = userSettings.avatarScheme != AvatarScheme.NONE
                         showSideBar = userSettings.showSideBar
                         viewAsList = userSettings.viewAsList
                     }

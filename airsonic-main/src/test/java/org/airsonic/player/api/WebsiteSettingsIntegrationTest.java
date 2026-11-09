@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.domain.UserSettings;
+import org.airsonic.player.domain.AvatarScheme;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.util.HomeRule;
@@ -36,6 +37,7 @@ public class WebsiteSettingsIntegrationTest {
 
     @Test public void updatesOnlyAuthenticatedUsersSettingsAndPreservesContracts() throws Exception {
         security.createUser(new User("settings-reader", null), "secret", "test");
+        assertFalse(context.containsBean("topController"));
         UserSettings other = settings.getUserSettings("settings-reader");
         boolean otherSidebar = other.getShowSideBar();
         boolean otherList = other.getViewAsList();
@@ -50,6 +52,16 @@ public class WebsiteSettingsIntegrationTest {
         assertFalse(page.body().contains("/app/settings/"));
         assertFalse(page.body().contains("StompClient"));
         assertFalse(page.body().contains("connectionStatus"));
+        assertTrue(page.body().contains("/airsonic/script/top-panel.js"));
+        assertFalse(page.body().contains("model.user"));
+        for (String path : new String[]{"/top", "/top.view"}) {
+            assertEquals(401, send(HttpClient.newHttpClient(), path, null, null).statusCode());
+            assertEquals(200, send(browser, path, null, null).statusCode());
+            HttpResponse<String> head = browser.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic" + path))
+                    .method("HEAD", HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, head.statusCode());
+            assertEquals("", head.body());
+        }
         HttpResponse<String> index = send(browser, "/index.view", null, null);
         assertEquals(index.body(), 200, index.statusCode());
         assertFalse(index.body().contains("StompClient"));
@@ -66,6 +78,10 @@ public class WebsiteSettingsIntegrationTest {
         token = Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
         assertTrue(token.find());
         String csrf = token.group(1);
+        for (String path : new String[]{"/top", "/top.view"}) {
+            assertEquals(403, send(browser, path, "", null).statusCode());
+            assertEquals(405, send(browser, path, "", csrf).statusCode());
+        }
         UserSettings admin = settings.getUserSettings("admin");
         boolean sidebar = !admin.getShowSideBar();
         boolean list = !admin.getViewAsList();
@@ -82,6 +98,13 @@ public class WebsiteSettingsIntegrationTest {
         assertTrue(current.toString(), current.path("viewAsList").isBoolean());
         assertEquals(sidebar, current.path("showSideBar").asBoolean());
         assertEquals(list, current.path("viewAsList").asBoolean());
+        assertEquals("admin", current.path("username").asText());
+        assertTrue(current.path("settingsRole").asBoolean());
+        assertEquals(admin.getAvatarScheme() != AvatarScheme.NONE, current.path("showAvatar").asBoolean());
+        admin.setAvatarScheme(AvatarScheme.NONE);
+        settings.updateUserSettings(admin);
+        assertFalse(body(send(browser, "/rest/getWebsiteSettings", "f=json&username=settings-reader&settingsRole=false", csrf))
+                .path("websiteSettings").path("showAvatar").asBoolean());
         assertEquals(10, body(send(browser, "/rest/updateWebsiteSettings", "f=json", csrf)).path("error").path("code").asInt());
         assertEquals("failed", body(send(browser, "/rest/updateWebsiteSettings", "f=json&viewAsList=yes", csrf)).path("status").asText());
         assertEquals(list, settings.getUserSettings("admin").getViewAsList());
@@ -94,6 +117,14 @@ public class WebsiteSettingsIntegrationTest {
         HttpResponse<String> readXml = send(HttpClient.newHttpClient(), "/rest/getWebsiteSettings.view", readAuth, null);
         assertTrue(readXml.body(), readXml.body().contains("viewAsList=\"" + !otherList + "\""));
         assertTrue(readXml.body(), readXml.body().contains("showSideBar=\"" + otherSidebar + "\""));
+        assertTrue(readXml.body(), readXml.body().contains("username=\"settings-reader\""));
+        assertTrue(readXml.body(), readXml.body().contains("settingsRole=\"false\""));
+        assertTrue(readXml.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
+        HttpClient member = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL)).build();
+        Matcher memberToken = Pattern.compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"").matcher(send(member, "/login", null, null).body());
+        assertTrue(memberToken.find());
+        assertEquals(302, send(member, "/login", "j_username=settings-reader&j_password=secret&_csrf=" + memberToken.group(1), null).statusCode());
+        assertEquals(200, send(member, "/top.view", null, null).statusCode());
         assertFalse(context.containsBean("userSettingsWSController"));
     }
     private HttpResponse<String> send(HttpClient client, String path, String form, String csrf) throws Exception {

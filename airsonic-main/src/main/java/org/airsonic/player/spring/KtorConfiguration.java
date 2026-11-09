@@ -247,7 +247,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(UsersController.WEBSITE_PATHS);
         registration.addUrlMappings(UsersController.WEBSITE_READ_PATH);
         registration.addUrlMappings("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view");
-        registration.addUrlMappings("/settings", "/settings.view");
+        registration.addUrlMappings("/settings", "/settings.view", "/top", "/top.view");
         registration.addUrlMappings("/generalSettings", "/generalSettings.view");
         registration.addUrlMappings("/transcodingSettings", "/transcodingSettings.view", TranscodingSettingsController.READ_PATH, TranscodingSettingsController.SAVE_PATH);
         registration.addUrlMappings("/credentialsSettings", "/credentialsSettings.view", CredentialsManagementController.READ_PATH, CredentialsManagementController.KEYS_PATH, CredentialsManagementController.CREATE_PATH, CredentialsManagementController.UPDATE_PATH, CredentialsManagementController.ADMIN_PATH);

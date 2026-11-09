@@ -32,7 +32,7 @@ function createWebsiteSettings(options) {
                 request(options.readUrl).then(function (body) {
                     var settings = body.websiteSettings;
                     if (!settings || typeof settings[name] !== 'boolean') throw new Error('Invalid settings response');
-                    if (!disposed && changes === localChanges) callback(settings[name]);
+                    if (!disposed && changes === localChanges) callback(settings[name], settings);
                 }).catch(function (error) { if (!disposed) console.error(error); }).then(function () {
                     if (!disposed) timer = window.setTimeout(poll, 20000);
                 });

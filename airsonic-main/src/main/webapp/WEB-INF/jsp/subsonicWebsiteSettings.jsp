@@ -1,5 +1,5 @@
 <%@ page contentType="text/html; charset=utf-8" pageEncoding="utf-8" %>
-<script src="<c:url value='/script/subsonic-website-settings.js?v=2'/>"></script>
+<script src="<c:url value='/script/subsonic-website-settings.js?v=3'/>"></script>
 <script>
     var websiteSettingsApi = createWebsiteSettings({
         readUrl: "<c:url value='/rest/getWebsiteSettings'/>",
