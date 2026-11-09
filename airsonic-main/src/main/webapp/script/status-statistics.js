@@ -1,11 +1,15 @@
 function createStatusStatistics(options) {
-    async function read(name, container, field) {
-        var response = await fetch(options.baseUrl + name + '?f=json&c=airsonic-web', {
+    async function request(name, init) {
+        var response = await fetch(options.baseUrl + name + '?f=json&c=airsonic-web', Object.assign({
             credentials: 'same-origin', cache: 'no-store'
-        });
+        }, init));
         if (!response.ok || response.redirected) throw new Error('Statistics request failed');
         var body = (await response.json())['subsonic-response'];
         if (!body || body.status !== 'ok') throw new Error((body && body.error && body.error.message) || 'Statistics request failed');
+        return body;
+    }
+    async function read(name, container, field) {
+        var body = await request(name);
         if (!body[container]) throw new Error('Missing statistics');
         var rows = body[container][field];
         if (rows == null) rows = [];
@@ -13,6 +17,12 @@ function createStatusStatistics(options) {
         return rows;
     }
     return {
+        caches: function () { return read('getCacheStatistics', 'cacheStatistics', 'cache'); },
+        clearCache: function (name) {
+            var headers = {'Content-Type': 'application/x-www-form-urlencoded'};
+            if (options.csrfHeader && options.csrfToken) headers[options.csrfHeader] = options.csrfToken;
+            return request('clearCache', {method: 'POST', headers: headers, body: 'cache=' + encodeURIComponent(name)});
+        },
         transfers: function () { return read('getTransferStatistics', 'transferStatistics', 'transfer'); },
         users: function () { return read('getUserTransferStatistics', 'userTransferStatistics', 'user'); },
         pathWatchers: function () { return read('getPathWatchers', 'pathWatchers', 'watcher'); },
@@ -73,5 +83,30 @@ function renderPathWatchers(document, rows) {
             tr.appendChild(td);
         });
         body.appendChild(tr);
+    });
+}
+
+function renderCacheStatistics(document, rows, labels, clearCache) {
+    var body = document.querySelector('#cachesTable > tbody');
+    body.replaceChildren();
+    rows.forEach(function (row) {
+        var tr = document.createElement('tr');
+        var total = row.hits + row.misses;
+        var usage = row.hits != null && row.misses != null && total > 0 ? row.hits / total * 100 : 'N/A';
+        [row.name, usage, row.hits, row.misses, row.puts, row.removals].forEach(function (value, index) {
+            var td = document.createElement('td');
+            td.className = ['cachename', 'cacheusage', 'cachehits', 'cachemiss', 'cacheputs', 'cacheremovals'][index];
+            td.textContent = value == null ? 'N/A' : value;
+            tr.appendChild(td);
+        });
+        var cell = document.createElement('td'), button = document.createElement('button');
+        button.type = 'button'; button.textContent = labels.cacheevict;
+        button.addEventListener('click', async function () {
+            button.disabled = true;
+            try { await clearCache(row.name); }
+            catch (error) { console.error(error); }
+            finally { button.disabled = false; }
+        });
+        cell.appendChild(button); tr.appendChild(cell); body.appendChild(tr);
     });
 }

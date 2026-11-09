@@ -37,6 +37,7 @@ import org.airsonic.player.controller.rest.upload.UploadStatusController;
 import org.airsonic.player.controller.rest.statistics.StatisticsController;
 import org.airsonic.player.controller.rest.statistics.ScheduledTasksController;
 import org.airsonic.player.controller.rest.statistics.PathWatchersController;
+import org.airsonic.player.controller.rest.statistics.CacheStatisticsController;
 import org.airsonic.player.controller.rest.download.DownloadRestController;
 import org.airsonic.player.service.AudioScrobblerService;
 import org.airsonic.player.service.StatusService;
@@ -168,6 +169,8 @@ public class KtorConfiguration {
             AudioScrobblerService audioScrobblerService,
             UPnPService upnpService,
             StatusService statusService,
+            javax.cache.CacheManager jCacheCacheManager,
+            io.micrometer.core.instrument.MeterRegistry meterRegistry,
             TaskSchedulingService taskSchedulingService,
             org.airsonic.player.service.PathWatcherService pathWatcherService,
             org.airsonic.player.service.DatabaseService databaseService,
@@ -223,6 +226,7 @@ public class KtorConfiguration {
                                 new StatisticsController(statusService, securityService, jaxbWriter),
                                 new ScheduledTasksController(taskSchedulingService, jaxbWriter),
                                 new PathWatchersController(pathWatcherService, jaxbWriter),
+                                new CacheStatisticsController(jCacheCacheManager, meterRegistry, jaxbWriter),
                                 new SongController(mediaFileDao, securityService, responseMapper, jaxbWriter),
                                 new VideosController(mediaFileDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new LyricsController(lyricsService, jaxbWriter),
@@ -288,6 +292,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(StatisticsController.PATHS);
         registration.addUrlMappings(ScheduledTasksController.PATH);
         registration.addUrlMappings(PathWatchersController.PATH);
+        registration.addUrlMappings(CacheStatisticsController.PATHS);
         registration.addUrlMappings(DownloadRestController.PATHS);
         registration.addUrlMappings(CoverArtRestController.PATHS);
         registration.addUrlMappings(CoverArtActionsController.PATHS);

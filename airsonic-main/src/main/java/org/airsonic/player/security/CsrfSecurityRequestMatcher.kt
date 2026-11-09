@@ -1,7 +1,6 @@
 package org.airsonic.player.security
 
 import jakarta.servlet.http.HttpServletRequest
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher
 import org.springframework.security.web.util.matcher.RegexRequestMatcher
 import org.springframework.security.web.util.matcher.RequestMatcher
 import org.springframework.stereotype.Component
@@ -17,8 +16,7 @@ import java.util.*
 class CsrfSecurityRequestMatcher : RequestMatcher {
     private val whiteListedMatchers = listOf(
         RegexRequestMatcher("/rest/.*\\.view(\\?.*)?", "POST"),
-        RegexRequestMatcher("/search(?:\\.view)?", "POST"),
-        AntPathRequestMatcher("/actuator/caches/**", "DELETE")
+        RegexRequestMatcher("/search(?:\\.view)?", "POST")
     )
 
     override fun matches(request: HttpServletRequest): Boolean {

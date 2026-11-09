@@ -125,3 +125,61 @@ test('reads watcher snapshots, renders names and paths safely and clears removed
     next = response({pathWatchers: {watcher: {}}});
     await assert.rejects(api.pathWatchers());
 });
+
+test('loads caches in one request and clears exactly one encoded cache with CSRF', async () => {
+    const calls = [];
+    let next = response({cacheStatistics: {cache: [{name: 'a', hits: 12, misses: 3}]}});
+    const context = {fetch: async (url, options) => { calls.push({url, options}); return next; }};
+    vm.runInNewContext(code, context);
+    const api = context.createStatusStatistics({baseUrl: '/airsonic/rest/', csrfHeader: 'X-CSRF-TOKEN', csrfToken: 'token'});
+    assert.equal((await api.caches())[0].hits, 12);
+    assert.equal(calls[0].url, '/airsonic/rest/getCacheStatistics?f=json&c=airsonic-web');
+    next = response({});
+    await api.clearCache('<cache /&>');
+    const clear = calls[1];
+    assert.equal(clear.url, '/airsonic/rest/clearCache?f=json&c=airsonic-web');
+    assert.equal(clear.options.method, 'POST');
+    assert.equal(clear.options.headers['X-CSRF-TOKEN'], 'token');
+    assert.equal(new URLSearchParams(clear.options.body).get('cache'), '<cache /&>');
+    assert.equal(clear.options.credentials, 'same-origin');
+    assert.equal(clear.options.cache, 'no-store');
+    next = {ok: true, json: async () => ({'subsonic-response': {status: 'failed', error: {message: 'unknown cache'}}})};
+    await assert.rejects(api.clearCache('missing'), /unknown cache/);
+    next = response({cacheStatistics: {}});
+    assert.equal((await api.caches()).length, 0);
+});
+
+test('renders cache hit ratios, unavailable counters, and safe clearing controls', async () => {
+    const body = element('tbody');
+    const document = {querySelector: selector => { assert.equal(selector, '#cachesTable > tbody'); return body; },
+        createElement: tag => { const node = element(tag); node.addEventListener = (name, fn) => { node[name] = fn; }; return node; }};
+    const errors = [];
+    const context = {console: {error: error => errors.push(error)}};
+    vm.runInNewContext(code, context);
+    let resolve;
+    const names = [];
+    context.renderCacheStatistics(document, [{name: '<cache onclick=x>', hits: 3, misses: 1, puts: 2, removals: 0},
+        {name: 'empty', hits: 0, misses: 0}, {name: 'unavailable'}], {cacheevict: 'Clear'}, name => {
+        names.push(name); return new Promise(r => { resolve = r; });
+    });
+    const cells = body.children[0].children;
+    assert.equal(cells[0].textContent, '<cache onclick=x>');
+    assert.equal(cells[1].textContent, 75);
+    assert.equal(cells[5].textContent, 0);
+    assert.equal(body.children[1].children[1].textContent, 'N/A');
+    assert.equal(body.children[2].children[2].textContent, 'N/A');
+    const button = cells[6].children[0];
+    assert.equal(button.textContent, 'Clear');
+    const pending = button.click();
+    assert.equal(button.disabled, true);
+    assert.deepEqual(names, ['<cache onclick=x>']);
+    resolve(); await pending;
+    assert.equal(button.disabled, false);
+    context.renderCacheStatistics(document, [{name: 'failed'}], {cacheevict: 'Clear'}, async () => { throw Error('denied'); });
+    const failed = body.children[0].children[6].children[0];
+    await failed.click();
+    assert.equal(failed.disabled, false);
+    assert.equal(errors[0].message, 'denied');
+    context.renderCacheStatistics(document, [], {}, () => {});
+    assert.equal(body.children.length, 0);
+});

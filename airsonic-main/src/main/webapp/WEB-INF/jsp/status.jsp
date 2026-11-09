@@ -5,7 +5,7 @@
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/chart-3.5.0.min.js'/>"></script>
-    <script src="<c:url value='/script/status-statistics.js?v=3'/>"></script>
+    <script src="<c:url value='/script/status-statistics.js?v=4'/>"></script>
     <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
     <style>
       #sessionsTable td, .cacheusage, .cachehits, .cachemiss, .cacheputs, .cacheremovals {
@@ -20,6 +20,7 @@
     'stream': '<fmt:message key="status.stream"/>',
     'never': '<fmt:message key="status.never"/>',
     'incalculable': '<fmt:message key="status.incalculable"/>',
+    'cacheevict': '<fmt:message key="status.cacheevict"/>',
     'RUN_ONCE': '<fmt:message key="status.scheduledrunonce"/>',
     'FIXED_DELAY': '<fmt:message key="status.scheduledfixeddelay"/>',
     'FIXED_RATE': '<fmt:message key="status.scheduledfixedrate"/>',
@@ -66,7 +67,8 @@
 
   var transfersCharts = [];
 
-  var statisticsApi = createStatusStatistics({baseUrl: "<c:url value='/rest/'/>"});
+  var statisticsApi = createStatusStatistics({baseUrl: "<c:url value='/rest/'/>",
+    csrfHeader: '${_csrf.headerName}', csrfToken: '${_csrf.token}'});
 
   function updateTransferData() {
    statisticsApi.transfers().then(data => {
@@ -176,51 +178,11 @@
    }).catch(error => console.error(error));
   }
 
-  var airsonicCaches = [];
-  var cacheNamesUrl = "<c:url value='/actuator/metrics/cache.gets'/>";
-
-  var cacheMissUrl = "<c:url value='/actuator/metrics/cache.gets?tag=result:miss&'/>";
-  var cacheHitsUrl = "<c:url value='/actuator/metrics/cache.gets?tag=result:hit&'/>";
-  var cachePutsUrl = "<c:url value='/actuator/metrics/cache.puts?'/>";
-  var cacheRemovalsUrl = "<c:url value='/actuator/metrics/cache.removals?'/>";
-  var cacheEvictionssUrl = "<c:url value='/actuator/caches/'/>";
-
-  var updateCacheUsage = c => {
-    var hit = +($('#cachesTable > tbody .' + c + ' .cachehits').text());
-    var miss = +($('#cachesTable > tbody .' + c + ' .cachemiss').text());
-    var usage = "N/A";
-    if (!isNaN(hit) && !isNaN(miss) && (hit+miss != 0)) {
-      usage = hit / (hit + miss) * 100.0;
-    }
-    $('#cachesTable > tbody .' + c + ' .cacheusage').text(usage);
-  };
-  var updateCacheMissData = c => $.get(cacheMissUrl+"tag=cache:"+c, data => {
-    $('#cachesTable > tbody .' + c + ' .cachemiss').text(data.measurements[0].value);
-    updateCacheUsage(c);
-  });
-  var updateCacheHitsData = c => $.get(cacheHitsUrl+"tag=cache:"+c, data => {
-    $('#cachesTable > tbody .' + c + ' .cachehits').text(data.measurements[0].value);
-    updateCacheUsage(c);
-  });
-  var updateCachePutsData = c => $.get(cachePutsUrl+"tag=cache:"+c, data => {
-    $('#cachesTable > tbody .' + c + ' .cacheputs').text(data.measurements[0].value);
-  });
-  var updateCacheRemovalsData = c => $.get(cacheRemovalsUrl+"tag=cache:"+c, data => {
-    $('#cachesTable > tbody .' + c + ' .cacheremovals').text(data.measurements[0].value);
-  });
-  var evictCache = c => $.ajax(cacheEvictionssUrl+c, {type: 'DELETE'}).always((data, status) => {
-    console.log("eviction request for " + c + " completed with status: " + status);
-    updateCacheData(c);
-  });
-  var updateCacheData = c => {
-    updateCacheMissData(c);
-    updateCacheHitsData(c);
-    updateCachePutsData(c);
-    updateCacheRemovalsData(c);
-  };
   function updateCachesData() {
-    airsonicCaches.forEach(c => updateCacheData(c));
-  };
+    return statisticsApi.caches().then(data => {
+      renderCacheStatistics(document, data, labels, name => statisticsApi.clearCache(name).then(updateCachesData));
+    }).catch(error => console.error(error));
+  }
 
   function updateScheduledTasksData() {
     statisticsApi.scheduledTasks().then(data => {
@@ -284,24 +246,7 @@
       userChartConfig
     );
 
-    $.get(cacheNamesUrl, data => {
-      airsonicCaches = data.availableTags.filter(i => i.tag == 'cache')[0].values.sort();
-      var appendedRows = '';
-      airsonicCaches.forEach((row, i) => {
-        appendedRows += '<tr class="' + row + '">';
-        appendedRows +=   '<td class="cachename">' + row + '</td>';
-        appendedRows +=   '<td class="cacheusage"></td>';
-        appendedRows +=   '<td class="cachehits"></td>';
-        appendedRows +=   '<td class="cachemiss"></td>';
-        appendedRows +=   '<td class="cacheputs"></td>';
-        appendedRows +=   '<td class="cacheremovals"></td>';
-        appendedRows +=   '<td class="cacheevictions"><button onclick="evictCache(\''+row+'\')"><fmt:message key="status.cacheevict"/></button></td>';
-        appendedRows += '</tr>';
-      });
-
-      $('#cachesTable > tbody').append(appendedRows);
-      updateCachesData();
-    });
+    updateCachesData();
 
     updateTransferData();
     updateUserChartData();
