@@ -45,6 +45,7 @@ import org.airsonic.player.controller.rest.artists.ArtistsRequest
 import org.airsonic.player.controller.rest.genres.GenresController
 import org.airsonic.player.controller.rest.music.folder.MusicFoldersController
 import org.airsonic.player.controller.rest.ping.PingController
+import org.airsonic.player.controller.rest.playlists.PlaylistExportController
 import org.airsonic.player.controller.rest.playlists.PlaylistImportController
 import org.airsonic.player.controller.rest.playlists.PlaylistsController
 import org.airsonic.player.controller.rest.playlists.PlaylistsRequest
@@ -137,6 +138,7 @@ class AirsonicKtorServlet(
     private val artistInfoController: ArtistInfoController,
     private val albumInfoController: AlbumInfoController,
     private val playlistsController: PlaylistsController,
+    private val playlistExportController: PlaylistExportController,
     private val playlistImportController: PlaylistImportController,
     private val randomQueueController: RandomQueueController,
     private val sharesController: SharesController,
@@ -314,6 +316,7 @@ class AirsonicKtorServlet(
             artistInfoController.routes(this) { call -> call.attributes[ARTIST_INFO_REQUEST_KEY] }
             albumInfoController.routes(this) { call -> call.attributes[ALBUM_INFO_REQUEST_KEY] }
             playlistsController.routes(this) { call -> call.attributes[PLAYLISTS_REQUEST_KEY] }
+            playlistExportController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             playlistImportController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             randomQueueController.routes(this) { call -> call.attributes[RANDOM_QUEUE_REQUEST_KEY] }
             sharesController.routes(this) { call -> call.attributes[SHARES_REQUEST_KEY] }
@@ -533,7 +536,7 @@ class AirsonicKtorServlet(
             // Multipart bodies belong to Ktor; capture only authentication and query parameters.
             request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)),
                 parseQueryString(request.queryString.orEmpty())))
-        } else if (path in CacheStatisticsController.PATHS || path == ServerHealthController.PATH || path == PathWatchersController.PATH || path == ScheduledTasksController.PATH || path in UsersController.PATHS || path in UsersController.WEBSITE_PATHS || path == UsersController.WEBSITE_READ_PATH ||
+        } else if (path == PlaylistExportController.PATH || path in CacheStatisticsController.PATHS || path == ServerHealthController.PATH || path == PathWatchersController.PATH || path == ScheduledTasksController.PATH || path in UsersController.PATHS || path in UsersController.WEBSITE_PATHS || path == UsersController.WEBSITE_READ_PATH ||
             path in DatabaseSettingsController.PATHS || path in PlayerSettingsController.PATHS || path in CredentialsManagementController.PATHS ||
             path == PersonalSettingsController.READ_PATH || path == PersonalSettingsController.SAVE_PATH ||
             path == DLNASettingsController.READ_PATH || path == DLNASettingsController.SAVE_PATH ||

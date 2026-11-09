@@ -486,7 +486,7 @@
         | <span class="header"><a href="javascript:void(0)" onclick="onEditPlaylist();"><fmt:message key="common.edit"/></a></span>
         | <span class="header"><a href="javascript:void(0)" onclick="onDeletePlaylist();"><fmt:message key="common.delete"/></a></span>
     </c:if>
-    <c:url value="exportPlaylist.view" var="exportUrl"><c:param name="id" value="${model.playlist.id}"/></c:url>
+    <c:url value="/rest/exportPlaylist" var="exportUrl"><c:param name="id" value="${model.playlist.id}"/></c:url>
     | <span class="header"><a href="${exportUrl}"><fmt:message key="playlist2.export"/></a></span>
 
 </h2>

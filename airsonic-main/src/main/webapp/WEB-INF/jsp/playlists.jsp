@@ -213,7 +213,7 @@
         top.playQueue.onAddPlaylist(playlists[index].id);
       }
       function onExport(index) {
-        location.href="exportPlaylist.view?id="+playlists[index].id;
+        location.href="<c:url value="/rest/exportPlaylist"/>?id="+encodeURIComponent(playlists[index].id);
       }
       function onDelete(index) {
         if (playlists[index].username == user) {
