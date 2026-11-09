@@ -8,12 +8,17 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.SubsonicResponseMapper
 import org.airsonic.player.controller.rest.error.ErrorCode
 import org.airsonic.player.domain.Share as DomainShare
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.PlayerService
+import org.airsonic.player.service.PlaylistService
+import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.ShareService
 import org.slf4j.LoggerFactory
 import org.subsonic.restapi.Response
@@ -28,22 +33,27 @@ class SharesController(
     private val folders: MediaFolderService,
     private val mapper: SubsonicResponseMapper,
     private val writer: JAXBWriter,
+    private val players: PlayerService,
+    private val playlists: PlaylistService,
+    private val security: SecurityService,
 ) {
     fun routes(root: Route, request: (ApplicationCall) -> SharesRequest) {
         with(root) {
             PATHS.forEach { path ->
                 val operation = path.substringAfterLast('/').removeSuffix(".view")
-                get(path) { respond(call, request(call), operation) }
+                if (operation != "createWebShare") get(path) { respond(call, request(call), operation) }
                 post(path) { respond(call, request(call), operation) }
             }
         }
     }
 
     private suspend fun respond(call: ApplicationCall, request: SharesRequest, operation: String) {
+        if (operation == "createWebShare") call.response.headers.append("Cache-Control", "no-store")
         val result = try {
             when (operation) {
                 "getShares" -> getShares(request)
                 "createShare" -> createShare(request)
+                "createWebShare" -> withContext(Dispatchers.IO) { createWebShare(request) }
                 "updateShare" -> changeShare(request, false)
                 "deleteShare" -> changeShare(request, true)
                 else -> error("Unknown share operation")
@@ -91,6 +101,58 @@ class SharesController(
         return writer.createResponse(true).apply { this.shares = result }
     }
 
+    /** Website selection syntax stays separate from the standard Subsonic createShare contract. */
+    private fun createWebShare(request: SharesRequest): Response {
+        if (!request.user.isShareRole) return errorResponse(ErrorCode.NOT_AUTHORIZED, "Sharing is not allowed")
+        val p = request.parameters
+        val sources = listOf("id", "player", "playlist").filter { p.contains(it) }
+        if (sources.isEmpty()) return errorResponse(ErrorCode.MISSING_PARAMETER, "A media, player or playlist selection is required")
+        if (sources.size != 1) return errorResponse(ErrorCode.GENERIC, "Specify one selection source")
+        val source = sources.single()
+        val id = p[source]?.toIntOrNull() ?: return errorResponse(ErrorCode.GENERIC, "Invalid selection id")
+        var description: String? = null
+        val available = when (source) {
+            "id" -> {
+                val file = mediaFiles.getMediaFile(id) ?: return errorResponse(ErrorCode.NOT_FOUND, "Media not found")
+                if (!security.isFolderAccessAllowed(file, request.user.username))
+                    return errorResponse(ErrorCode.NOT_AUTHORIZED, "Music folder access denied")
+                if (p.contains("i")) mediaFiles.getChildrenOf(file, true, false, true) else listOf(file)
+            }
+            "player" -> {
+                val player = players.getPlayerById(id)
+                if (player == null || player.username != request.user.username)
+                    return errorResponse(ErrorCode.NOT_AUTHORIZED, "Player access denied")
+                player.playQueue.files.toList()
+            }
+            else -> {
+                val playlist = playlists.getPlaylist(id) ?: return errorResponse(ErrorCode.NOT_FOUND, "Playlist not found")
+                if (!playlists.isReadAllowed(playlist, request.user.username))
+                    return errorResponse(ErrorCode.NOT_AUTHORIZED, "Playlist access denied")
+                description = playlist.name
+                playlists.getFilesInPlaylist(id)
+            }
+        }
+        val selected = p.getAll("i")?.map { value ->
+            val index = value.toIntOrNull()
+            if (index == null || index !in available.indices)
+                return errorResponse(ErrorCode.GENERIC, "Invalid selection index")
+            available[index]
+        } ?: available
+        if (selected.isEmpty()) return errorResponse(ErrorCode.GENERIC, "The selection is empty")
+        if (selected.any { !security.isFolderAccessAllowed(it, request.user.username) })
+            return errorResponse(ErrorCode.NOT_AUTHORIZED, "Music folder access denied")
+        val share = request.createShare(selected)
+        if (description != null) {
+            share.description = description
+            shares.updateShare(share)
+        }
+        return writer.createResponse(true).apply {
+            this.shares = Shares().apply {
+                this.share.add(toRest(request, share, folders.getMusicFoldersForUser(request.user.username)))
+            }
+        }
+    }
+
     private fun changeShare(request: SharesRequest, delete: Boolean): Response? {
         val id = request.id?.let { it.toIntOrNull() ?: return null } ?: return missingId()
         val share = shares.getShareById(id) ?: return errorResponse(ErrorCode.NOT_FOUND, "Shared media not found.")
@@ -134,6 +196,7 @@ class SharesController(
     companion object {
         private val LOG = LoggerFactory.getLogger(SharesController::class.java)
         @JvmField val PATHS = arrayOf(
+            "/rest/createWebShare",
             "/rest/getShares", "/rest/getShares.view",
             "/rest/createShare", "/rest/createShare.view",
             "/rest/deleteShare", "/rest/deleteShare.view",

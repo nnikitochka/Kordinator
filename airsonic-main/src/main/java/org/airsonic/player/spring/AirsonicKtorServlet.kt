@@ -397,10 +397,10 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
-        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view", "/databaseSettings", "/databaseSettings.view", "/dlnaSettings", "/dlnaSettings.view", "/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view")) {
+        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view", "/databaseSettings", "/databaseSettings.view", "/dlnaSettings", "/dlnaSettings.view", "/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view")) {
             val user = securityService.getCurrentUser(request)
             val personalPage = path in setOf("/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view")
-            if (path !in setOf("/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view") && !user.isAdminRole && !(personalPage && user.isSettingsRole)) {
+            if (path !in setOf("/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view") && !user.isAdminRole && !(personalPage && user.isSettingsRole)) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
@@ -409,6 +409,7 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
                 return
             }
+            if (path == "/createShare" || path == "/createShare.view") response.setHeader("Cache-Control", "no-store")
             // JSP tags still need the view context while the page loads its data from Ktor REST.
             val context = org.springframework.web.context.support.WebApplicationContextUtils
                 .getRequiredWebApplicationContext(request.servletContext)
@@ -793,7 +794,7 @@ class AirsonicKtorServlet(
             val playerId = playerResolver.getOrCreatePlayerId(
                 request.remoteUser, request.getParameter("c"), request.remoteAddr, false
             )
-            val player = if (operation == "getShares" || operation == "createShare") {
+            val player = if (operation == "getShares" || operation == "createShare" || operation == "createWebShare") {
                 val wrappedRequest = object : HttpServletRequestWrapper(request) {
                     override fun getParameter(name: String): String? =
                         if (name == "player") playerId?.toString() else super.getParameter(name)

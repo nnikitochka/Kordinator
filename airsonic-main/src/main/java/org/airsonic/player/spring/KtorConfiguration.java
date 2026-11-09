@@ -227,7 +227,7 @@ public class KtorConfiguration {
                                 new PlaylistExportController(playlistService, jaxbWriter),
                                 new PlaylistImportController(playlistService, jaxbWriter),
                                 new RandomQueueController(playQueueService, mediaFolderService, jaxbWriter),
-                                new SharesController(shareService, mediaFileService, mediaFolderService, responseMapper, jaxbWriter),
+                                new SharesController(shareService, mediaFileService, mediaFolderService, responseMapper, jaxbWriter, playerService, playlistService, securityService),
                                 new AlbumsController(albumDao, mediaFileDao, mediaFileService, mediaFolderService,
                                         ratingService, albumSearchService, responseMapper, jaxbWriter),
                                 new BookmarksController(bookmarkService, mediaFileService, responseMapper, jaxbWriter),
@@ -284,6 +284,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(AlbumInfoController.PATHS);
         registration.addUrlMappings(PlaylistsController.PATHS);
         registration.addUrlMappings(SharesController.PATHS);
+        registration.addUrlMappings("/createShare", "/createShare.view");
         registration.addUrlMappings(AlbumsController.PATHS);
         registration.addUrlMappings(BookmarksController.PATHS);
         registration.addUrlMappings(StarredController.PATHS);
