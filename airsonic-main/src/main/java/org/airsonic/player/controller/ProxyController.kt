@@ -7,6 +7,7 @@ import org.apache.commons.io.IOUtils
 import org.apache.http.client.config.RequestConfig
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.HttpClients
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.ServletRequestUtils
@@ -21,9 +22,15 @@ import java.io.InputStream
 @Controller
 @RequestMapping("/proxy")
 class ProxyController {
+    companion object {
+        private val LOG = LoggerFactory.getLogger(ProxyController::class.java)
+    }
+
     @GetMapping
     @Throws(Exception::class)
     fun handleRequest(request: HttpServletRequest, response: HttpServletResponse): ModelAndView? {
+        // Count legacy clients without exposing target URLs, credentials or tokens.
+        LOG.info("Legacy /proxy endpoint invoked; check usage before removing this route")
         val url = ServletRequestUtils.getRequiredStringParameter(request, "url")
 
         val requestConfig = RequestConfig.custom()
