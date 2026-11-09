@@ -183,3 +183,45 @@ test('renders cache hit ratios, unavailable counters, and safe clearing controls
     context.renderCacheStatistics(document, [], {}, () => {});
     assert.equal(body.children.length, 0);
 });
+
+test('health reads healthy and unhealthy snapshots and rejects malformed or failed responses', async () => {
+    let next;
+    const calls = [];
+    const context = {fetch: async (url, options) => { calls.push({url, options}); return next; }};
+    vm.runInNewContext(code, context);
+    const api = context.createStatusStatistics({baseUrl: '/airsonic/rest/'});
+    for (const status of ['UP', 'DOWN', 'OUT_OF_SERVICE', 'UNKNOWN']) {
+        next = response({serverHealth: {status, component: [{name: 'db', status}]}});
+        assert.equal((await api.health()).status, status);
+    }
+    assert.equal(calls[0].url, '/airsonic/rest/getServerHealth?f=json&c=airsonic-web');
+    assert.equal(calls[0].options.credentials, 'same-origin');
+    assert.equal(calls[0].options.cache, 'no-store');
+    next = response({serverHealth: {status: 'UNKNOWN'}});
+    assert.equal((await api.health()).status, 'UNKNOWN');
+    for (const invalid of [response({}), response({serverHealth: {}}), response({serverHealth: {status: 'UP', component: {}}}),
+        {ok: false}, {...response({}), redirected: true},
+        {ok: true, json: async () => ({'subsonic-response': {status: 'failed', error: {message: 'denied'}}})}]) {
+        next = invalid;
+        await assert.rejects(api.health());
+    }
+});
+
+test('health renders aggregate and nested failures safely and replaces stale components', () => {
+    const body = element('tbody');
+    const document = {querySelector: selector => { assert.equal(selector, '#healthTable > tbody'); return body; }, createElement: element};
+    const context = {};
+    vm.runInNewContext(code, context);
+    const unsafe = '<img src=x onerror=alert(1)>';
+    context.renderServerHealth(document, {status: 'DOWN', component: [
+        {name: unsafe, status: 'DOWN', details: unsafe, component: [{name: 'db', status: 'OUT_OF_SERVICE', details: '{"reason":"offline"}'}]},
+        {name: 'ping', status: 'UP'}]});
+    assert.equal(body.children.length, 4);
+    assert.deepEqual(body.children[0].children.map(c => c.textContent), ['server', 'DOWN', '']);
+    assert.deepEqual(body.children[1].children.map(c => c.textContent), [unsafe, 'DOWN', unsafe]);
+    assert.deepEqual(body.children[2].children.map(c => c.textContent), [unsafe + '/db', 'OUT_OF_SERVICE', '{"reason":"offline"}']);
+    assert.equal(body.children[3].children[2].textContent, '');
+    context.renderServerHealth(document, {status: 'UNKNOWN'});
+    assert.equal(body.children.length, 1);
+    assert.equal(body.children[0].children[1].textContent, 'UNKNOWN');
+});

@@ -98,6 +98,7 @@ import org.airsonic.player.controller.rest.rating.RatingController
 import org.airsonic.player.controller.rest.rating.RatingRequest
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingController
 import org.airsonic.player.controller.rest.statistics.ScheduledTasksController
+import org.airsonic.player.controller.rest.statistics.ServerHealthController
 import org.airsonic.player.controller.rest.statistics.PathWatchersController
 import org.airsonic.player.controller.rest.statistics.CacheStatisticsController
 import org.airsonic.player.controller.rest.statistics.StatisticsController
@@ -162,6 +163,7 @@ class AirsonicKtorServlet(
     private val statisticsController: StatisticsController,
     private val scheduledTasksController: ScheduledTasksController,
     private val pathWatchersController: PathWatchersController,
+    private val serverHealthController: ServerHealthController,
     private val cacheStatisticsController: CacheStatisticsController,
     private val songController: SongController,
     private val videosController: VideosController,
@@ -330,6 +332,7 @@ class AirsonicKtorServlet(
             statisticsController.routes(this) { call -> call.attributes[STATISTICS_REQUEST_KEY] }
             scheduledTasksController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             pathWatchersController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
+            serverHealthController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             cacheStatisticsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             nowPlayingController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             scrobbleController.routes(this) { call -> call.attributes[SCROBBLE_REQUEST_KEY] }
@@ -522,7 +525,7 @@ class AirsonicKtorServlet(
             // Multipart bodies belong to Ktor; capture only authentication and query parameters.
             request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)),
                 parseQueryString(request.queryString.orEmpty())))
-        } else if (path in CacheStatisticsController.PATHS || path == PathWatchersController.PATH || path == ScheduledTasksController.PATH || path in UsersController.PATHS || path in UsersController.WEBSITE_PATHS || path == UsersController.WEBSITE_READ_PATH ||
+        } else if (path in CacheStatisticsController.PATHS || path == ServerHealthController.PATH || path == PathWatchersController.PATH || path == ScheduledTasksController.PATH || path in UsersController.PATHS || path in UsersController.WEBSITE_PATHS || path == UsersController.WEBSITE_READ_PATH ||
             path in DatabaseSettingsController.PATHS || path in PlayerSettingsController.PATHS || path in CredentialsManagementController.PATHS ||
             path == PersonalSettingsController.READ_PATH || path == PersonalSettingsController.SAVE_PATH ||
             path == DLNASettingsController.READ_PATH || path == DLNASettingsController.SAVE_PATH ||

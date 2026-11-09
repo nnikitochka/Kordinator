@@ -37,6 +37,7 @@ import org.airsonic.player.controller.rest.upload.UploadStatusController;
 import org.airsonic.player.controller.rest.statistics.StatisticsController;
 import org.airsonic.player.controller.rest.statistics.ScheduledTasksController;
 import org.airsonic.player.controller.rest.statistics.PathWatchersController;
+import org.airsonic.player.controller.rest.statistics.ServerHealthController;
 import org.airsonic.player.controller.rest.statistics.CacheStatisticsController;
 import org.airsonic.player.controller.rest.download.DownloadRestController;
 import org.airsonic.player.service.AudioScrobblerService;
@@ -107,6 +108,21 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class KtorConfiguration {
 
+    // Keep the health contributors independent of Actuator HTTP endpoint exposure.
+    @Bean
+    public org.springframework.boot.actuate.health.HealthContributorRegistry serverHealthContributors(
+            java.util.Map<String, org.springframework.boot.actuate.health.HealthContributor> contributors) {
+        return new org.springframework.boot.actuate.health.DefaultHealthContributorRegistry(contributors);
+    }
+
+    @Bean
+    public org.springframework.boot.actuate.health.StatusAggregator serverHealthStatusAggregator(
+            @org.springframework.beans.factory.annotation.Value("${management.endpoint.health.status.order:DOWN,OUT_OF_SERVICE,UP,UNKNOWN}")
+            java.util.List<String> order) {
+        return new org.springframework.boot.actuate.health.SimpleStatusAggregator(order);
+    }
+
+
     @Bean
     public DownloadService downloadService(StatusService statusService, SecurityService securityService,
             PlaylistService playlistService, SettingsService settingsService, MediaFileService mediaFileService,
@@ -170,6 +186,9 @@ public class KtorConfiguration {
             UPnPService upnpService,
             StatusService statusService,
             javax.cache.CacheManager jCacheCacheManager,
+            org.springframework.boot.actuate.health.HealthContributorRegistry healthContributors,
+            org.springframework.boot.actuate.health.StatusAggregator healthStatusAggregator,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             io.micrometer.core.instrument.MeterRegistry meterRegistry,
             TaskSchedulingService taskSchedulingService,
             org.airsonic.player.service.PathWatcherService pathWatcherService,
@@ -226,6 +245,7 @@ public class KtorConfiguration {
                                 new StatisticsController(statusService, securityService, jaxbWriter),
                                 new ScheduledTasksController(taskSchedulingService, jaxbWriter),
                                 new PathWatchersController(pathWatcherService, jaxbWriter),
+                                new ServerHealthController(healthContributors, healthStatusAggregator, objectMapper, jaxbWriter),
                                 new CacheStatisticsController(jCacheCacheManager, meterRegistry, jaxbWriter),
                                 new SongController(mediaFileDao, securityService, responseMapper, jaxbWriter),
                                 new VideosController(mediaFileDao, mediaFolderService, responseMapper, jaxbWriter),
@@ -292,6 +312,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(StatisticsController.PATHS);
         registration.addUrlMappings(ScheduledTasksController.PATH);
         registration.addUrlMappings(PathWatchersController.PATH);
+        registration.addUrlMappings(ServerHealthController.PATH);
         registration.addUrlMappings(CacheStatisticsController.PATHS);
         registration.addUrlMappings(DownloadRestController.PATHS);
         registration.addUrlMappings(CoverArtRestController.PATHS);

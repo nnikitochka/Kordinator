@@ -5,7 +5,7 @@
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/chart-3.5.0.min.js'/>"></script>
-    <script src="<c:url value='/script/status-statistics.js?v=4'/>"></script>
+    <script src="<c:url value='/script/status-statistics.js?v=5'/>"></script>
     <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
     <style>
       #sessionsTable td, .cacheusage, .cachehits, .cachemiss, .cacheputs, .cacheremovals {
@@ -220,24 +220,10 @@
     updateSessionsRejectedData();
   };
 
-  var healthUrl = "<c:url value='/actuator/health'/>";
   function updateHealthData() {
-    $.get(healthUrl).always(data => {
-      $('#healthTable > tbody').empty();
-      var appendedRows = '';
-      var dc = (typeof data.responseJSON != 'undefined' && typeof data.responseJSON.components != 'undefined') ? data.responseJSON.components : data.components;
-      if (typeof dc != 'undefined') {
-        Object.keys(dc).forEach(k => {
-          appendedRows += '<tr>';
-          appendedRows +=   '<td>' + k + '</td>';
-          appendedRows +=   '<td>' + dc[k].status + '</td>';
-          appendedRows +=   '<td>' + JSON.stringify(dc[k].details) + '</td>';
-          appendedRows += '</tr>';
-        });
-      }
-
-      $('#healthTable > tbody').append(appendedRows);
-    });
+    return statisticsApi.health().then(data => {
+      renderServerHealth(document, data);
+    }).catch(error => console.error(error));
   }
 
   function init() {

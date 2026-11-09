@@ -63,7 +63,8 @@ public class StatusPageIntegrationTest {
                 assertTrue(page.body().contains("/airsonic/script/status-statistics.js"));
                 assertTrue(page.body().contains("/airsonic/rest/"));
                 assertFalse(page.body().contains("/statistics/"));
-                assertTrue(page.body().contains("/airsonic/actuator/health"));
+                assertTrue(page.body().contains("statisticsApi.health()"));
+                assertFalse(page.body().contains("/actuator/health"));
                 assertFalse(page.body().contains("<spring:theme"));
                 HttpResponse<String> head = authorized.send(HttpRequest.newBuilder(URI.create(base() + path))
                         .method("HEAD", HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());

@@ -17,6 +17,14 @@ function createStatusStatistics(options) {
         return rows;
     }
     return {
+        health: async function () {
+            var body = await request('getServerHealth');
+            if (!body.serverHealth || typeof body.serverHealth.status !== 'string' ||
+                (body.serverHealth.component != null && !Array.isArray(body.serverHealth.component))) {
+                throw new Error('Invalid server health');
+            }
+            return body.serverHealth;
+        },
         caches: function () { return read('getCacheStatistics', 'cacheStatistics', 'cache'); },
         clearCache: function (name) {
             var headers = {'Content-Type': 'application/x-www-form-urlencoded'};
@@ -109,4 +117,27 @@ function renderCacheStatistics(document, rows, labels, clearCache) {
         });
         cell.appendChild(button); tr.appendChild(cell); body.appendChild(tr);
     });
+}
+
+function renderServerHealth(document, health) {
+    var body = document.querySelector('#healthTable > tbody');
+    body.replaceChildren();
+    function row(name, status, details) {
+        var tr = document.createElement('tr');
+        [name, status, details == null ? '' : details].forEach(function (value) {
+            var td = document.createElement('td');
+            td.textContent = value;
+            tr.appendChild(td);
+        });
+        body.appendChild(tr);
+    }
+    row('server', health.status, null);
+    function components(items, prefix) {
+        (items || []).forEach(function (item) {
+            var name = prefix + item.name;
+            row(name, item.status, item.details);
+            components(item.component, name + '/');
+        });
+    }
+    components(health.component, '');
 }
