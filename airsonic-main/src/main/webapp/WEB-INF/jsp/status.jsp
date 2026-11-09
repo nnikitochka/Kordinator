@@ -5,7 +5,7 @@
     <%@ include file="head.jsp" %>
     <%@ include file="jquery.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/chart-3.5.0.min.js'/>"></script>
-    <script src="<c:url value='/script/status-statistics.js'/>"></script>
+    <script src="<c:url value='/script/status-statistics.js?v=2'/>"></script>
     <meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
     <style>
       #sessionsTable td, .cacheusage, .cachehits, .cachemiss, .cacheputs, .cacheremovals {
@@ -222,40 +222,10 @@
     airsonicCaches.forEach(c => updateCacheData(c));
   };
 
-  var parseScheduledDate = date => {
-    if (date == null) {
-      return labels['never'];
-    }
-    if (date == "-1000000000-01-01T00:00Z") {
-      return labels['incalculable'];
-    }
-    try {
-      return new Date(date);
-    } catch (e) {
-      return date;
-    }
-  };
-
-  var scheduledTasksUrl = "<c:url value='/actuator/customscheduledtasks'/>";
   function updateScheduledTasksData() {
-    $.get(scheduledTasksUrl, data => {
-      $('#scheduledTasksTable > tbody').empty();
-      var appendedRows = '';
-      Object.keys(data).forEach(k => {
-        var taskData = data[k];
-        appendedRows += '<tr>';
-        appendedRows +=   '<td>' + taskData['name'] + '</td>';
-        appendedRows +=   '<td>' + labels[taskData['runMetadata']['type']] + '</td>';
-        appendedRows +=   '<td>' + parseScheduledDate(taskData['created']) + '</td>';
-        appendedRows +=   '<td>' + parseScheduledDate(taskData['runMetadata']['firstRun']) + '</td>';
-        appendedRows +=   '<td>' + parseScheduledDate(taskData['runMetadata']['lastRun']) + '</td>';
-        appendedRows +=   '<td>' + parseScheduledDate(taskData['runMetadata']['nextRun']) + '</td>';
-        appendedRows +=   '<td>' + taskData['scheduledBy'] + '</td>';
-        appendedRows += '</tr>';
-      });
-
-      $('#scheduledTasksTable > tbody').append(appendedRows);
-    });
+    statisticsApi.scheduledTasks().then(data => {
+      renderScheduledTasks(document, data, labels);
+    }).catch(error => console.error(error));
   }
 
   var pathWatcherUrl = "<c:url value='/actuator/pathwatcher'/>";

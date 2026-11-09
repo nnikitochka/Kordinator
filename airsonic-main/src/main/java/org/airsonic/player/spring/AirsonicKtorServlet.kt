@@ -97,6 +97,7 @@ import org.airsonic.player.controller.rest.lyrics.LyricsController
 import org.airsonic.player.controller.rest.rating.RatingController
 import org.airsonic.player.controller.rest.rating.RatingRequest
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingController
+import org.airsonic.player.controller.rest.statistics.ScheduledTasksController
 import org.airsonic.player.controller.rest.statistics.StatisticsController
 import org.airsonic.player.controller.rest.upload.UploadStatusController
 import org.airsonic.player.controller.rest.download.DownloadRestController
@@ -157,6 +158,7 @@ class AirsonicKtorServlet(
     private val nowPlayingController: NowPlayingController,
     private val uploadStatusController: UploadStatusController,
     private val statisticsController: StatisticsController,
+    private val scheduledTasksController: ScheduledTasksController,
     private val songController: SongController,
     private val videosController: VideosController,
     private val lyricsController: LyricsController,
@@ -322,6 +324,7 @@ class AirsonicKtorServlet(
             downloadRestController.routes(this) { call -> call.attributes[DOWNLOAD_REQUEST_KEY] }
             uploadStatusController.routes(this) { call -> call.attributes[UPLOAD_STATUS_REQUEST_KEY] }
             statisticsController.routes(this) { call -> call.attributes[STATISTICS_REQUEST_KEY] }
+            scheduledTasksController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             nowPlayingController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             scrobbleController.routes(this) { call -> call.attributes[SCROBBLE_REQUEST_KEY] }
             randomSongsController.routes(this) { call -> call.attributes[RANDOM_SONGS_REQUEST_KEY] }
@@ -513,7 +516,7 @@ class AirsonicKtorServlet(
             // Multipart bodies belong to Ktor; capture only authentication and query parameters.
             request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)),
                 parseQueryString(request.queryString.orEmpty())))
-        } else if (path in UsersController.PATHS || path in UsersController.WEBSITE_PATHS || path == UsersController.WEBSITE_READ_PATH ||
+        } else if (path == ScheduledTasksController.PATH || path in UsersController.PATHS || path in UsersController.WEBSITE_PATHS || path == UsersController.WEBSITE_READ_PATH ||
             path in DatabaseSettingsController.PATHS || path in PlayerSettingsController.PATHS || path in CredentialsManagementController.PATHS ||
             path == PersonalSettingsController.READ_PATH || path == PersonalSettingsController.SAVE_PATH ||
             path == DLNASettingsController.READ_PATH || path == DLNASettingsController.SAVE_PATH ||

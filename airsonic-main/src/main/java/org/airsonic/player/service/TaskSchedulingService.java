@@ -1,13 +1,9 @@
 package org.airsonic.player.service;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
-import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
-import org.springframework.boot.actuate.endpoint.web.WebEndpointResponse;
 import org.springframework.boot.task.ThreadPoolTaskSchedulerBuilder;
 import org.springframework.scheduling.TriggerContext;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -19,23 +15,20 @@ import org.springframework.scheduling.config.ScheduledTaskHolder;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import org.springframework.scheduling.config.TriggerTask;
 import org.springframework.scheduling.support.PeriodicTrigger;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-import static java.util.stream.Collectors.toMap;
 
 @Service
 public class TaskSchedulingService implements ScheduledTaskHolder {
@@ -121,99 +114,93 @@ public class TaskSchedulingService implements ScheduledTaskHolder {
         }
     }
 
-    @Component
-    @Endpoint(id = "customscheduledtasks")
-    public static class CustomScheduledTasksEndpoint {
-        @Autowired
-        private TaskSchedulingService taskService;
+    /** Read-only diagnostic snapshot; execution times are estimates derived from the schedule. */
+    public List<TaskInfo> getTaskInfos() {
+        Instant now = Instant.now();
+        return tasks.entrySet().stream().map(entry -> {
+            ScheduledTask task = entry.getValue();
+            Instant created = (Instant) taskMetadata.get(task).get("created");
+            return new TaskInfo(entry.getKey(), created, task.getTask().getRunnable().getClass().getName(),
+                    getRunMetadata(created, task, now));
+        }).toList();
+    }
 
-        @ReadOperation
-        public WebEndpointResponse<Map<String, Map<String, Object>>> info() {
-            Map<String, Map<String, Object>> map = taskService.tasks.entrySet().stream().map(e -> {
-                Map<String, Object> metadata = new HashMap<>(taskService.taskMetadata.getOrDefault(e.getValue(), Collections.emptyMap()));
-                metadata.put("scheduledTask", e.getValue());
-                metadata.put("scheduledBy", e.getValue().getTask().getRunnable().getClass().getName());
-                metadata.put("runMetadata", getRunMetadata((Instant) metadata.get("created"), e.getValue(), Instant.now()));
-                return Pair.of(e.getKey(), metadata);
-            }).collect(toMap(p -> p.getKey(), p -> p.getValue()));
-            return new WebEndpointResponse<>(map);
-        }
+    public record TaskInfo(String name, Instant created, String scheduledBy, RunMetadata runMetadata) { }
 
-        private RunMetadata getRunMetadata(Instant created, ScheduledTask scheduledTask, Instant now) {
-            if (scheduledTask.getTask() instanceof TriggerTask) {
-                TriggerTask task = (TriggerTask) scheduledTask.getTask();
-                if (task.getTrigger() instanceof RunOnceTrigger) {
-                    RunOnceTrigger trigger = (RunOnceTrigger) task.getTrigger();
-                    Instant firstRun = created.plusMillis(trigger.getInitialDelay());
-                    if (firstRun.isAfter(now)) {
-                        return new RunMetadata(firstRun, null, firstRun, RunMetadata.Type.RUN_ONCE);
-                    } else {
-                        return new RunMetadata(firstRun, firstRun, null, RunMetadata.Type.RUN_ONCE);
-                    }
-                }
-            } else if (scheduledTask.getTask() instanceof IntervalTask) {
-                IntervalTask task = (IntervalTask) scheduledTask.getTask();
-                Instant firstRun = created.plusMillis(task.getInitialDelay());
-                long millis = ChronoUnit.MILLIS.between(firstRun, now);
-                if (millis < 0) {
-                    // firstRun will happen in the future
-                    return new RunMetadata(firstRun, null, firstRun,
-                            task instanceof FixedRateTask ? RunMetadata.Type.FIXED_RATE : RunMetadata.Type.FIXED_DELAY);
+    private RunMetadata getRunMetadata(Instant created, ScheduledTask scheduledTask, Instant now) {
+        if (scheduledTask.getTask() instanceof TriggerTask) {
+            TriggerTask task = (TriggerTask) scheduledTask.getTask();
+            if (task.getTrigger() instanceof RunOnceTrigger) {
+                RunOnceTrigger trigger = (RunOnceTrigger) task.getTrigger();
+                Instant firstRun = created.plusMillis(trigger.getInitialDelay());
+                if (firstRun.isAfter(now)) {
+                    return new RunMetadata(firstRun, null, firstRun, RunMetadata.Type.RUN_ONCE);
                 } else {
-                    // firstRun happened in the past
-                    long runs = millis / task.getInterval();
-                    if (task instanceof FixedRateTask) {
-                        Instant lastRun = firstRun.plusMillis(task.getInterval() * runs);
-                        Instant nextRun = lastRun.plusMillis(task.getInterval());
-                        return new RunMetadata(firstRun, lastRun, nextRun, RunMetadata.Type.FIXED_RATE);
-                    } else if (task instanceof FixedDelayTask) {
-                        if (runs < 1) {
-                            // cannot calculate the next run because don't know how long the previous task lasted
-                            return new RunMetadata(firstRun, firstRun, Instant.MIN, RunMetadata.Type.FIXED_DELAY);
-                        } else {
-                            // cannot calculate the last or next runs because don't know how long previous tasks lasted
-                            return new RunMetadata(firstRun, Instant.MIN, Instant.MIN, RunMetadata.Type.FIXED_DELAY);
-                        }
+                    return new RunMetadata(firstRun, firstRun, null, RunMetadata.Type.RUN_ONCE);
+                }
+            }
+        } else if (scheduledTask.getTask() instanceof IntervalTask) {
+            IntervalTask task = (IntervalTask) scheduledTask.getTask();
+            Instant firstRun = created.plusMillis(task.getInitialDelay());
+            long millis = ChronoUnit.MILLIS.between(firstRun, now);
+            if (millis < 0) {
+                // firstRun will happen in the future
+                return new RunMetadata(firstRun, null, firstRun,
+                        task instanceof FixedRateTask ? RunMetadata.Type.FIXED_RATE : RunMetadata.Type.FIXED_DELAY);
+            } else {
+                // firstRun happened in the past
+                long runs = millis / task.getInterval();
+                if (task instanceof FixedRateTask) {
+                    Instant lastRun = firstRun.plusMillis(task.getInterval() * runs);
+                    Instant nextRun = lastRun.plusMillis(task.getInterval());
+                    return new RunMetadata(firstRun, lastRun, nextRun, RunMetadata.Type.FIXED_RATE);
+                } else if (task instanceof FixedDelayTask) {
+                    if (runs < 1) {
+                        // cannot calculate the next run because don't know how long the previous task lasted
+                        return new RunMetadata(firstRun, firstRun, Instant.MIN, RunMetadata.Type.FIXED_DELAY);
+                    } else {
+                        // cannot calculate the last or next runs because don't know how long previous tasks lasted
+                        return new RunMetadata(firstRun, Instant.MIN, Instant.MIN, RunMetadata.Type.FIXED_DELAY);
                     }
                 }
             }
-
-            return null;
         }
 
-        public static class RunMetadata {
-            private final Instant firstRun;
-            private final Instant lastRun;
-            private final Instant nextRun;
-            private final Type type;
+        return null;
+    }
 
-            public RunMetadata(Instant firstRun, Instant lastRun, Instant nextRun, Type type) {
-                super();
-                this.firstRun = firstRun;
-                this.lastRun = lastRun;
-                this.nextRun = nextRun;
-                this.type = type;
-            }
+    public static class RunMetadata {
+        private final Instant firstRun;
+        private final Instant lastRun;
+        private final Instant nextRun;
+        private final Type type;
 
-            public Instant getFirstRun() {
-                return firstRun;
-            }
+        public RunMetadata(Instant firstRun, Instant lastRun, Instant nextRun, Type type) {
+            super();
+            this.firstRun = firstRun;
+            this.lastRun = lastRun;
+            this.nextRun = nextRun;
+            this.type = type;
+        }
 
-            public Instant getLastRun() {
-                return lastRun;
-            }
+        public Instant getFirstRun() {
+            return firstRun;
+        }
 
-            public Instant getNextRun() {
-                return nextRun;
-            }
+        public Instant getLastRun() {
+            return lastRun;
+        }
 
-            public Type getType() {
-                return type;
-            }
+        public Instant getNextRun() {
+            return nextRun;
+        }
 
-            public static enum Type {
-                FIXED_RATE, FIXED_DELAY, RUN_ONCE
-            }
+        public Type getType() {
+            return type;
+        }
+
+        public static enum Type {
+            FIXED_RATE, FIXED_DELAY, RUN_ONCE
         }
     }
 }

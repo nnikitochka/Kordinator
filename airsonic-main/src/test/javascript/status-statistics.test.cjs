@@ -68,3 +68,35 @@ test('renders untrusted names and paths as text, preserves chart slots and clear
     context.renderTransferStatistics(document, [], {});
     assert.equal(body.children.length, 0);
 });
+
+test('loads scheduled tasks through authenticated REST', async () => {
+    const context = {fetch: async (url, options) => {
+        assert.equal(url, '/airsonic/rest/getScheduledTasks?f=json&c=airsonic-web');
+        assert.equal(options.credentials, 'same-origin');
+        assert.equal(options.cache, 'no-store');
+        return response({scheduledTasks: {task: [{name: 'scan', type: 'FIXED_DELAY'}]}});
+    }};
+    vm.runInNewContext(code, context);
+    assert.equal((await context.createStatusStatistics({baseUrl: '/airsonic/rest/'}).scheduledTasks())[0].name, 'scan');
+});
+
+test('renders safe task names, absent and incalculable dates, and unknown schedules', () => {
+    const body = element('tbody');
+    const document = {querySelector: () => body, createElement: element};
+    const context = {};
+    vm.runInNewContext(code, context);
+    context.renderScheduledTasks(document, [{name: '<img src=x>', type: 'FIXED_DELAY', scheduledBy: '<source>',
+        created: '2026-01-01T00:00:00Z', firstRun: 'not a date', lastRun: null, nextRun: '-1000000000-01-01T00:00:00Z'},
+        {name: 'unknown', type: null}], {FIXED_DELAY: 'Delay', never: 'Never', incalculable: 'Unknown time', null: 'Unknown'});
+    const cells = body.children[0].children;
+    assert.equal(cells[0].textContent, '<img src=x>');
+    assert.equal(cells[1].textContent, 'Delay');
+    assert.notEqual(cells[2].textContent, 'Invalid Date');
+    assert.equal(cells[3].textContent, 'not a date');
+    assert.equal(cells[4].textContent, 'Never');
+    assert.equal(cells[5].textContent, 'Unknown time');
+    assert.equal(cells[6].textContent, '<source>');
+    assert.equal(body.children[1].children[1].textContent, 'Unknown');
+    context.renderScheduledTasks(document, [], {});
+    assert.equal(body.children.length, 0);
+});

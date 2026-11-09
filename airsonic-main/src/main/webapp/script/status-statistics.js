@@ -14,7 +14,8 @@ function createStatusStatistics(options) {
     }
     return {
         transfers: function () { return read('getTransferStatistics', 'transferStatistics', 'transfer'); },
-        users: function () { return read('getUserTransferStatistics', 'userTransferStatistics', 'user'); }
+        users: function () { return read('getUserTransferStatistics', 'userTransferStatistics', 'user'); },
+        scheduledTasks: function () { return read('getScheduledTasks', 'scheduledTasks', 'task'); }
     };
 }
 
@@ -35,5 +36,27 @@ function renderTransferStatistics(document, rows, labels) {
         var cell = document.createElement('td'), chart = document.createElement('canvas');
         chart.id = 'transfersChart' + index;
         cell.appendChild(chart); tr.appendChild(cell); body.appendChild(tr);
+    });
+}
+
+
+function renderScheduledTasks(document, rows, labels) {
+    function date(value) {
+        if (value == null) return labels.never;
+        if (value.startsWith('-1000000000-01-01T')) return labels.incalculable;
+        var parsed = new Date(value);
+        return isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
+    }
+    var body = document.querySelector('#scheduledTasksTable > tbody');
+    body.replaceChildren();
+    rows.forEach(function (row) {
+        var tr = document.createElement('tr');
+        [row.name, labels[row.type] || labels.null, date(row.created), date(row.firstRun),
+            date(row.lastRun), date(row.nextRun), row.scheduledBy].forEach(function (value) {
+            var td = document.createElement('td');
+            td.textContent = value == null ? labels.null : value;
+            tr.appendChild(td);
+        });
+        body.appendChild(tr);
     });
 }
