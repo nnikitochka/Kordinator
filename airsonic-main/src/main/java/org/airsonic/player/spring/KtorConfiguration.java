@@ -79,6 +79,8 @@ import org.airsonic.player.controller.rest.genres.GenresController;
 import org.airsonic.player.controller.rest.music.folder.MusicFoldersController;
 import org.airsonic.player.controller.rest.ping.PingController;
 import org.airsonic.player.controller.rest.playlists.PlaylistsController;
+import org.airsonic.player.controller.rest.upload.UploadController;
+import org.airsonic.player.service.UploadFileService;
 import org.airsonic.player.controller.rest.playlists.PlaylistExportController;
 import org.airsonic.player.controller.rest.playlists.PlaylistImportController;
 import org.airsonic.player.controller.rest.scan.ScanController;
@@ -206,7 +208,8 @@ public class KtorConfiguration {
             CoverArtImageService coverArtImageService,
             HlsPlaylistService hlsPlaylistService,
             HlsSegmentService hlsSegmentService,
-            MediaStreamService mediaStreamService
+            MediaStreamService mediaStreamService,
+            UploadFileService uploadFileService
     ) {
         ServletRegistrationBean<ServletApplicationEngine> registration =
                 new ServletRegistrationBean<>(
@@ -219,6 +222,7 @@ public class KtorConfiguration {
                                 new AlbumInfoController(mediaFileService, albumDao, lastFmService, jaxbWriter),
                                 new PlaylistsController(playlistService, mediaFileService, securityService, responseMapper, jaxbWriter,
                                         mediaFileDao, mediaFolderService, playerService, localeResolver),
+                                new UploadController(uploadFileService, statusService, securityService, settingsService, jaxbWriter),
                                 new PlaylistExportController(playlistService, jaxbWriter),
                                 new PlaylistImportController(playlistService, jaxbWriter),
                                 new RandomQueueController(playQueueService, mediaFolderService, jaxbWriter),
@@ -329,6 +333,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(RandomQueueController.PATH);
         registration.addUrlMappings(AvatarRestController.PATHS);
         registration.addUrlMappings(AvatarUploadController.PATH);
+        registration.addUrlMappings(UploadController.PATH);
         registration.addUrlMappings(PlaylistExportController.PATH);
         registration.addUrlMappings(PlaylistImportController.PATH, "/importPlaylist", "/importPlaylist.view");
         registration.addUrlMappings(HlsRestController.PATHS);

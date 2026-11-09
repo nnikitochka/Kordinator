@@ -6,6 +6,7 @@
     <%@ include file="jquery.jsp" %>
     <%@ include file="subsonicUploadStatus.jsp" %>
     <script src="<c:url value='/script/random-queue.js?v=1'/>"></script>
+    <script src="<c:url value='/script/file-upload.js?v=1'/>"></script>
     <style type="text/css">
         .progress-bar {width: 350px; height: 10px; border: 1px solid black; display:block;}
         .progress-bar-content {width: 0; height: 10px; background: url("<c:url value="/icons/default_light/progress.png"/>") repeat;}
@@ -117,6 +118,12 @@
         $(function() {
             <c:if test="${model.user.uploadRole}">
             watchUploads(updateUploads);
+            bindFileUpload(document.getElementById('fileUpload'), document.getElementById('uploadResults'), {
+                url: '<c:url value="/rest/upload"/>',
+                csrfHeader: '${_csrf.headerName}', csrfToken: '${_csrf.token}',
+                uploaded: document.getElementById('uploadSuccessTemplate').textContent,
+                extracted: document.getElementById('uploadExtractedTemplate').textContent
+            });
             </c:if>
             var form = document.getElementById('randomPlayQueue');
             if (form) bindRandomQueue(form, document.getElementById('randomQueueError'), {
@@ -311,7 +318,7 @@
         <span style="vertical-align: middle"><fmt:message key="more.upload.title"/></span>
     </h2>
 
-    <form method="post" enctype="multipart/form-data" action="upload.view?${_csrf.parameterName}=${_csrf.token}">
+    <form id="fileUpload" method="post" enctype="multipart/form-data" action="<c:url value='/rest/upload'/>">
         <table>
             <tr>
                 <td><fmt:message key="more.upload.source"/></td>
@@ -319,7 +326,7 @@
             </tr>
             <tr>
                 <td><fmt:message key="more.upload.target"/></td>
-                <td><input type="text" id="dir" name="dir" size="37" value="${model.uploadDirectory}"/></td>
+                <td><input type="text" id="dir" name="dir" size="37" value="${fn:escapeXml(model.uploadDirectory)}"/></td>
                 <td><input type="submit" value="<fmt:message key='more.upload.ok'/>"/></td>
             </tr>
             <tr>
@@ -331,6 +338,9 @@
         </table>
     </form>
 
+    <span id="uploadSuccessTemplate" hidden><fmt:message key="upload.success"><fmt:param value="{file}"/></fmt:message></span>
+    <span id="uploadExtractedTemplate" hidden><fmt:message key="upload.unzipped"><fmt:param value="{file}"/></fmt:message></span>
+    <div id="uploadResults" aria-live="polite"></div>
     <div id="progressBars"></div>
 
 </c:if>

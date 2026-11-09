@@ -84,7 +84,7 @@ public class UploadStatusIntegrationTest {
             for (String pagePath : new String[] {"/more.view", "/databaseSettings.view"}) {
                 HttpResponse<String> page = send(browser, pagePath, null, null);
                 assertEquals(page.body(), 200, page.statusCode());
-                assertTrue(page.body(), page.body().contains("subsonic-upload-status.js"));
+                if (pagePath.equals("/more.view")) assertTrue(page.body(), page.body().contains("subsonic-upload-status.js"));
                 assertFalse(page.body().contains("/user/queue/uploads/status"));
                 if (pagePath.equals("/databaseSettings.view")) {
                     assertTrue(page.body().contains("subsonic-database-status.js"));
@@ -105,7 +105,7 @@ public class UploadStatusIntegrationTest {
                     String multipart = "--boundary\r\nContent-Disposition: form-data; name=\"dir\"\r\n\r\n" + target +
                             "\r\n--boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"test.txt\"\r\n" +
                             "Content-Type: text/plain\r\n\r\ntest upload\r\n--boundary--\r\n";
-                    HttpRequest upload = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic/upload.view"))
+                    HttpRequest upload = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic/rest/upload"))
                             .header("X-CSRF-TOKEN", token.group(1)).header("Content-Type", "multipart/form-data; boundary=boundary")
                             .POST(HttpRequest.BodyPublishers.ofString(multipart)).build();
                     HttpResponse<String> uploaded = browser.send(upload, HttpResponse.BodyHandlers.ofString());

@@ -45,6 +45,7 @@ import org.airsonic.player.controller.rest.artists.ArtistsRequest
 import org.airsonic.player.controller.rest.genres.GenresController
 import org.airsonic.player.controller.rest.music.folder.MusicFoldersController
 import org.airsonic.player.controller.rest.ping.PingController
+import org.airsonic.player.controller.rest.upload.UploadController
 import org.airsonic.player.controller.rest.playlists.PlaylistExportController
 import org.airsonic.player.controller.rest.playlists.PlaylistImportController
 import org.airsonic.player.controller.rest.playlists.PlaylistsController
@@ -138,6 +139,7 @@ class AirsonicKtorServlet(
     private val artistInfoController: ArtistInfoController,
     private val albumInfoController: AlbumInfoController,
     private val playlistsController: PlaylistsController,
+    private val uploadController: UploadController,
     private val playlistExportController: PlaylistExportController,
     private val playlistImportController: PlaylistImportController,
     private val randomQueueController: RandomQueueController,
@@ -316,6 +318,7 @@ class AirsonicKtorServlet(
             artistInfoController.routes(this) { call -> call.attributes[ARTIST_INFO_REQUEST_KEY] }
             albumInfoController.routes(this) { call -> call.attributes[ALBUM_INFO_REQUEST_KEY] }
             playlistsController.routes(this) { call -> call.attributes[PLAYLISTS_REQUEST_KEY] }
+            uploadController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             playlistExportController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             playlistImportController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             randomQueueController.routes(this) { call -> call.attributes[RANDOM_QUEUE_REQUEST_KEY] }
@@ -532,10 +535,13 @@ class AirsonicKtorServlet(
             request.setAttribute(ALBUM_INFO_REQUEST, AlbumInfoRequest(parameters(request), id))
         } else if (path == "/settings" || path == "/settings.view") {
             request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)), Parameters.Empty))
-        } else if (path == PlaylistImportController.PATH || path == AvatarUploadController.PATH || path == DatabaseSettingsController.IMPORT_PATH) {
+        } else if (path == UploadController.PATH || path == PlaylistImportController.PATH || path == AvatarUploadController.PATH || path == DatabaseSettingsController.IMPORT_PATH) {
             // Multipart bodies belong to Ktor; capture only authentication and query parameters.
             request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)),
-                parseQueryString(request.queryString.orEmpty())))
+                parseQueryString(request.queryString.orEmpty())).apply {
+                if (path == UploadController.PATH && (user.isAdminRole || user.isUploadRole))
+                    transferPlayer = playerService.getPlayer(request, response, false, false)
+            })
         } else if (path == PlaylistExportController.PATH || path in CacheStatisticsController.PATHS || path == ServerHealthController.PATH || path == PathWatchersController.PATH || path == ScheduledTasksController.PATH || path in UsersController.PATHS || path in UsersController.WEBSITE_PATHS || path == UsersController.WEBSITE_READ_PATH ||
             path in DatabaseSettingsController.PATHS || path in PlayerSettingsController.PATHS || path in CredentialsManagementController.PATHS ||
             path == PersonalSettingsController.READ_PATH || path == PersonalSettingsController.SAVE_PATH ||
