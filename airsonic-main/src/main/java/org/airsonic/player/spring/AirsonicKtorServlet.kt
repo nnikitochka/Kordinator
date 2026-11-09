@@ -62,6 +62,7 @@ import org.airsonic.player.controller.rest.avatar.AvatarRestController
 import org.airsonic.player.controller.rest.avatar.AvatarUploadController
 import io.ktor.http.parseQueryString
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController
+import org.airsonic.player.controller.rest.tags.MediaFileCommentController
 import org.airsonic.player.controller.rest.tags.TagEditController
 import org.airsonic.player.controller.rest.settings.WebsiteSettingsController
 import org.airsonic.player.controller.rest.livequeue.RandomQueueController
@@ -177,6 +178,7 @@ class AirsonicKtorServlet(
     private val videosController: VideosController,
     private val lyricsController: LyricsController,
     private val coverArtActionsController: CoverArtActionsController,
+    private val mediaFileCommentController: MediaFileCommentController,
     private val tagEditController: TagEditController,
     private val websiteSettingsController: WebsiteSettingsController,
     private val liveQueueController: LiveQueueController,
@@ -319,6 +321,7 @@ class AirsonicKtorServlet(
             albumInfoController.routes(this) { call -> call.attributes[ALBUM_INFO_REQUEST_KEY] }
             playlistsController.routes(this) { call -> call.attributes[PLAYLISTS_REQUEST_KEY] }
             uploadController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
+            mediaFileCommentController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             playlistExportController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             playlistImportController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             randomQueueController.routes(this) { call -> call.attributes[RANDOM_QUEUE_REQUEST_KEY] }
@@ -542,7 +545,7 @@ class AirsonicKtorServlet(
                 if (path == UploadController.PATH && (user.isAdminRole || user.isUploadRole))
                     transferPlayer = playerService.getPlayer(request, response, false, false)
             })
-        } else if (path == PlaylistExportController.PATH || path in CacheStatisticsController.PATHS || path == ServerHealthController.PATH || path == PathWatchersController.PATH || path == ScheduledTasksController.PATH || path in UsersController.PATHS || path in UsersController.WEBSITE_PATHS || path == UsersController.WEBSITE_READ_PATH ||
+        } else if (path == MediaFileCommentController.PATH || path == PlaylistExportController.PATH || path in CacheStatisticsController.PATHS || path == ServerHealthController.PATH || path == PathWatchersController.PATH || path == ScheduledTasksController.PATH || path in UsersController.PATHS || path in UsersController.WEBSITE_PATHS || path == UsersController.WEBSITE_READ_PATH ||
             path in DatabaseSettingsController.PATHS || path in PlayerSettingsController.PATHS || path in CredentialsManagementController.PATHS ||
             path == PersonalSettingsController.READ_PATH || path == PersonalSettingsController.SAVE_PATH ||
             path == DLNASettingsController.READ_PATH || path == DLNASettingsController.SAVE_PATH ||

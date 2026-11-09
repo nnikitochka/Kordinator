@@ -7,6 +7,7 @@
     <%@ include file="subsonicWebsiteSettings.jsp" %>
     <%@ include file="subsonicPlaylists.jsp" %>
     <%@ include file="subsonicStars.jsp" %>
+    <script src="<c:url value='/script/media-file-comment.js?v=1'/>"></script>
     <script src="<c:url value='/script/subsonic-rating.js'/>"></script>
     <script src="<c:url value='/script/subsonic-media-directory.js?v=2'/>"></script>
     <script src="<c:url value='/script/subsonic-artist-info.js?v=2'/>"></script>
@@ -250,7 +251,7 @@
 
     function updateComments() {
         $('#comment').text(mediaDir.comment);
-        $('#commentForm textarea').text(mediaDir.comment);
+        $('#commentForm textarea').val(mediaDir.comment || '');
         $('#commentForm input[name="id"]').val(mediaDir.id);
     }
 
@@ -1131,14 +1132,27 @@
 <div id="comment" class="albumComment"></div>
 
 <div id="commentForm" style="display:none">
-    <form method="post" action="setMusicFileInfo.view">
+    <form id="mediaFileCommentForm" method="post" action="<c:url value='/rest/setMediaFileComment'/>">
         <sec:csrfInput />
-        <input type="hidden" name="action" value="comment">
         <input type="hidden" id="commentFormId" name="id" value="">
         <textarea name="comment" rows="6" cols="70"></textarea>
         <input type="submit" value="<fmt:message key='common.save'/>">
     </form>
+    <div id="commentError" role="alert"></div>
 </div>
+<script>
+    bindMediaFileComment(document.getElementById('mediaFileCommentForm'), document.getElementById('commentError'), {
+        url: "<c:url value='/rest/setMediaFileComment'/>", csrfHeader: "${_csrf.headerName}", csrfToken: "${_csrf.token}",
+        onSaved: function (id, comment) {
+            if (String(mediaDir.id) === id) {
+                mediaDir.comment = comment;
+                updateComments();
+                $('#commentForm').hide();
+                $('#comment').show();
+            }
+        }
+    });
+</script>
 
 <div class="tableSpacer"></div>
 

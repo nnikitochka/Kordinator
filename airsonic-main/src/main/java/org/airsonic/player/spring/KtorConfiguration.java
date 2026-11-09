@@ -3,6 +3,7 @@ package org.airsonic.player.spring;
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
 import org.airsonic.player.service.LyricsService;
 import org.airsonic.player.service.TagEditService;
+import org.airsonic.player.controller.rest.tags.MediaFileCommentController;
 import org.airsonic.player.controller.rest.tags.TagEditController;
 import org.airsonic.player.service.CoverArtSearchService;
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController;
@@ -261,6 +262,7 @@ public class KtorConfiguration {
                                 new VideosController(mediaFileDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new LyricsController(lyricsService, jaxbWriter),
                                 new CoverArtActionsController(coverArtSearchService, jaxbWriter),
+                                new MediaFileCommentController(mediaFileService, securityService, jaxbWriter),
                                 new TagEditController(tagEditService, jaxbWriter),
                                 new WebsiteSettingsController(settingsService, jaxbWriter),
                                 new LiveQueueController(playQueueService, jaxbWriter, mediaFileService, playlistService, securityService, playQueueDao, playerService),
@@ -327,6 +329,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(DownloadRestController.PATHS);
         registration.addUrlMappings(CoverArtRestController.PATHS);
         registration.addUrlMappings(CoverArtActionsController.PATHS);
+        registration.addUrlMappings(MediaFileCommentController.PATH);
         registration.addUrlMappings(TagEditController.PATHS);
         registration.addUrlMappings(WebsiteSettingsController.PATHS);
         registration.addUrlMappings(LiveQueueController.PATHS);

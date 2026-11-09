@@ -287,7 +287,6 @@ public class GlobalSecurityConfig {
                         .requestMatchers("/upload*").hasRole("UPLOAD")
                         .requestMatchers("/createShare*").hasRole("SHARE")
                         .requestMatchers("/changeCoverArt*", "/editTags*").hasRole("COVERART")
-                        .requestMatchers("/setMusicFileInfo*").hasRole("COMMENT")
                         .requestMatchers("/**").hasRole("USER")
                         .anyRequest().authenticated())
                 .formLogin(login -> login
