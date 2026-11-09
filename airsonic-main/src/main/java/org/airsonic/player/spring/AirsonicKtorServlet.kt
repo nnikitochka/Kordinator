@@ -21,6 +21,7 @@ import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import org.airsonic.player.controller.rest.stream.StreamRestController
 import org.airsonic.player.controller.JAXBWriter
+import org.airsonic.player.controller.rest.shares.PublicShareController
 import org.airsonic.player.controller.rest.hls.HlsRestController
 import org.airsonic.player.controller.rest.hls.HlsSegmentRestController
 import org.airsonic.player.service.JWTSecurityService
@@ -199,6 +200,7 @@ class AirsonicKtorServlet(
     private val hlsRestController: HlsRestController,
     private val hlsSegmentRestController: HlsSegmentRestController,
     private val streamRestController: StreamRestController,
+    private val publicShareController: PublicShareController,
     private val jaxbWriter: JAXBWriter,
 ) : ServletApplicationEngine() {
     @OptIn(InternalAPI::class)
@@ -306,6 +308,9 @@ class AirsonicKtorServlet(
             }
             val hlsSegment = request.getAttribute(HLS_SEGMENT_REQUEST) as? HlsSegmentRestController.Request
             if (hlsSegment != null) call.attributes.put(HLS_SEGMENT_REQUEST_KEY, hlsSegment)
+            (request.getAttribute(PUBLIC_SHARE_REQUEST) as? PublicShareController.Request)?.let {
+                call.attributes.put(PUBLIC_SHARE_REQUEST_KEY, it)
+            }
             val hlsRequest = request.getAttribute(HLS_REQUEST) as? HlsRestController.Request
             if (hlsRequest != null) call.attributes.put(HLS_REQUEST_KEY, hlsRequest)
             val stream = request.getAttribute(STREAM_REQUEST) as? StreamRestController.Request
@@ -375,6 +380,7 @@ class AirsonicKtorServlet(
             ratingController.routes(this) { call -> call.attributes[RATING_REQUEST_KEY] }
             topSongsController.routes(this) { call -> call.attributes[TOP_SONGS_REQUEST_KEY] }
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
+            publicShareController.routes(this) { call -> call.attributes[PUBLIC_SHARE_REQUEST_KEY] }
             hlsRestController.routes(this) { call -> call.attributes[HLS_REQUEST_KEY] }
             hlsSegmentRestController.routes(this) { call -> call.attributes[HLS_SEGMENT_REQUEST_KEY] }
             streamRestController.routes(this) { call -> call.attributes[STREAM_REQUEST_KEY] }
@@ -405,6 +411,42 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path == PublicShareController.PAGE_PATH || path == PublicShareController.DATA_PATH) {
+            response.setHeader("Cache-Control", "no-store")
+            if (request.method !in setOf("GET", "HEAD")) {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            val name = request.pathInfo?.removePrefix("/") ?: ""
+            if (!name.matches(Regex("[a-zA-Z]+"))) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND)
+                return
+            }
+            val auth = request.userPrincipal as? JWTAuthenticationToken
+            if (auth == null) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                return
+            }
+            val expiration = JWTSecurityService.getExpiration(auth)
+            val publicRequest = PublicShareController.Request(name, playerService.getGuestPlayer(request),
+                NetworkService.getBaseUrl(request), expiration)
+            if (path == PublicShareController.PAGE_PATH) {
+                request.setAttribute("publicSharePreview", publicShareController.preview(publicRequest))
+                request.setAttribute("publicShareDataUrl", publicShareController.dataUrl(name,
+                    NetworkService.getBaseUrl(request), expiration))
+                val context = org.springframework.web.context.support.WebApplicationContextUtils
+                    .getRequiredWebApplicationContext(request.servletContext)
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+                org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
+                request.getRequestDispatcher("/WEB-INF/jsp/externalPlayer.jsp").forward(request, response)
+                return
+            }
+            request.setAttribute(PUBLIC_SHARE_REQUEST, publicRequest)
+        }
         if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view", "/databaseSettings", "/databaseSettings.view", "/dlnaSettings", "/dlnaSettings.view", "/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view")) {
             val user = securityService.getCurrentUser(request)
             val personalPage = path in setOf("/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view")
@@ -1139,6 +1181,8 @@ class AirsonicKtorServlet(
         val STREAM_REQUEST_KEY = AttributeKey<StreamRestController.Request>(STREAM_REQUEST)
         const val HLS_SEGMENT_REQUEST = "org.airsonic.player.hlsSegmentRequest"
         val HLS_SEGMENT_REQUEST_KEY = AttributeKey<HlsSegmentRestController.Request>(HLS_SEGMENT_REQUEST)
+        const val PUBLIC_SHARE_REQUEST = "org.airsonic.player.publicShareRequest"
+        val PUBLIC_SHARE_REQUEST_KEY = AttributeKey<PublicShareController.Request>(PUBLIC_SHARE_REQUEST)
         const val HLS_REQUEST = "org.airsonic.player.hlsRequest"
         val HLS_REQUEST_KEY = AttributeKey<HlsRestController.Request>(HLS_REQUEST)
         const val QUEUE_EXPORT_REQUEST = "org.airsonic.player.queueExportRequest"

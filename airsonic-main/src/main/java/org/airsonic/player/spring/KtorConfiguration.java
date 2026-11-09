@@ -15,6 +15,7 @@ import org.airsonic.player.service.MediaDirectoryService;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.service.MusicIndexStateService;
 import org.airsonic.player.service.hls.HlsPlaylistService;
+import org.airsonic.player.controller.rest.shares.PublicShareController;
 import org.airsonic.player.controller.rest.hls.HlsRestController;
 import org.airsonic.player.controller.rest.hls.HlsSegmentRestController;
 import org.airsonic.player.service.hls.HlsSegmentService;
@@ -165,6 +166,7 @@ public class KtorConfiguration {
             ArtistsController artistsController,
             JAXBWriter jaxbWriter,
             JWTSecurityService jwtSecurityService,
+            org.airsonic.player.service.metadata.MetaDataParserFactory metadataParsers,
             MediaScannerService mediaScannerService,
             MediaFileService mediaFileService,
             ArtistDao artistDao,
@@ -275,7 +277,8 @@ public class KtorConfiguration {
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver,
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService), new AvatarUploadController(settingsService, jaxbWriter),
-                                new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(mediaStreamService), jaxbWriter),
+                                new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(mediaStreamService),
+                                new PublicShareController(shareService, mediaFileService, mediaFolderService, jwtSecurityService, metadataParsers, objectMapper), jaxbWriter),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);
@@ -346,6 +349,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(UploadController.PATH);
         registration.addUrlMappings(PlaylistExportController.PATH);
         registration.addUrlMappings(PlaylistImportController.PATH, "/importPlaylist", "/importPlaylist.view");
+        registration.addUrlMappings("/ext/share/*", "/ext/rest/share/*");
         registration.addUrlMappings(HlsRestController.PATHS);
         registration.addUrlMappings(HlsRestController.WEBSITE_PATHS);
         registration.addUrlMappings("/hls/segment/*", "/ext/hls/segment/*");
