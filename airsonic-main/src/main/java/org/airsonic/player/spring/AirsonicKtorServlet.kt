@@ -45,6 +45,7 @@ import org.airsonic.player.controller.rest.artists.ArtistsRequest
 import org.airsonic.player.controller.rest.genres.GenresController
 import org.airsonic.player.controller.rest.music.folder.MusicFoldersController
 import org.airsonic.player.controller.rest.ping.PingController
+import org.airsonic.player.controller.rest.playlists.PlaylistImportController
 import org.airsonic.player.controller.rest.playlists.PlaylistsController
 import org.airsonic.player.controller.rest.playlists.PlaylistsRequest
 import org.airsonic.player.controller.rest.scan.ScanController
@@ -135,6 +136,7 @@ class AirsonicKtorServlet(
     private val artistInfoController: ArtistInfoController,
     private val albumInfoController: AlbumInfoController,
     private val playlistsController: PlaylistsController,
+    private val playlistImportController: PlaylistImportController,
     private val sharesController: SharesController,
     private val albumsController: AlbumsController,
     private val bookmarksController: BookmarksController,
@@ -308,6 +310,7 @@ class AirsonicKtorServlet(
             artistInfoController.routes(this) { call -> call.attributes[ARTIST_INFO_REQUEST_KEY] }
             albumInfoController.routes(this) { call -> call.attributes[ALBUM_INFO_REQUEST_KEY] }
             playlistsController.routes(this) { call -> call.attributes[PLAYLISTS_REQUEST_KEY] }
+            playlistImportController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             sharesController.routes(this) { call -> call.attributes[SHARES_REQUEST_KEY] }
             albumsController.routes(this) { call -> call.attributes[ALBUMS_REQUEST_KEY] }
             bookmarksController.routes(this) { call -> call.attributes[BOOKMARKS_REQUEST_KEY] }
@@ -380,10 +383,10 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
-        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view", "/databaseSettings", "/databaseSettings.view", "/dlnaSettings", "/dlnaSettings.view", "/top", "/top.view", "/status", "/status.view")) {
+        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view", "/databaseSettings", "/databaseSettings.view", "/dlnaSettings", "/dlnaSettings.view", "/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view")) {
             val user = securityService.getCurrentUser(request)
             val personalPage = path in setOf("/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view")
-            if (path !in setOf("/top", "/top.view", "/status", "/status.view") && !user.isAdminRole && !(personalPage && user.isSettingsRole)) {
+            if (path !in setOf("/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view") && !user.isAdminRole && !(personalPage && user.isSettingsRole)) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
@@ -521,7 +524,7 @@ class AirsonicKtorServlet(
             request.setAttribute(ALBUM_INFO_REQUEST, AlbumInfoRequest(parameters(request), id))
         } else if (path == "/settings" || path == "/settings.view") {
             request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)), Parameters.Empty))
-        } else if (path == AvatarUploadController.PATH || path == DatabaseSettingsController.IMPORT_PATH) {
+        } else if (path == PlaylistImportController.PATH || path == AvatarUploadController.PATH || path == DatabaseSettingsController.IMPORT_PATH) {
             // Multipart bodies belong to Ktor; capture only authentication and query parameters.
             request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)),
                 parseQueryString(request.queryString.orEmpty())))

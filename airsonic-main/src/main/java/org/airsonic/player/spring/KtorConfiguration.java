@@ -78,6 +78,7 @@ import org.airsonic.player.controller.rest.genres.GenresController;
 import org.airsonic.player.controller.rest.music.folder.MusicFoldersController;
 import org.airsonic.player.controller.rest.ping.PingController;
 import org.airsonic.player.controller.rest.playlists.PlaylistsController;
+import org.airsonic.player.controller.rest.playlists.PlaylistImportController;
 import org.airsonic.player.controller.rest.scan.ScanController;
 import org.airsonic.player.controller.rest.shares.SharesController;
 import org.airsonic.player.controller.rest.search.SearchController;
@@ -216,6 +217,7 @@ public class KtorConfiguration {
                                 new AlbumInfoController(mediaFileService, albumDao, lastFmService, jaxbWriter),
                                 new PlaylistsController(playlistService, mediaFileService, securityService, responseMapper, jaxbWriter,
                                         mediaFileDao, mediaFolderService, playerService, localeResolver),
+                                new PlaylistImportController(playlistService, jaxbWriter),
                                 new SharesController(shareService, mediaFileService, mediaFolderService, responseMapper, jaxbWriter),
                                 new AlbumsController(albumDao, mediaFileDao, mediaFileService, mediaFolderService,
                                         ratingService, albumSearchService, responseMapper, jaxbWriter),
@@ -322,6 +324,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(LiveQueueController.PATHS);
         registration.addUrlMappings(AvatarRestController.PATHS);
         registration.addUrlMappings(AvatarUploadController.PATH);
+        registration.addUrlMappings(PlaylistImportController.PATH, "/importPlaylist", "/importPlaylist.view");
         registration.addUrlMappings(HlsRestController.PATHS);
         registration.addUrlMappings(HlsSegmentRestController.PATHS);
         registration.addUrlMappings(StreamRestController.PATHS);
