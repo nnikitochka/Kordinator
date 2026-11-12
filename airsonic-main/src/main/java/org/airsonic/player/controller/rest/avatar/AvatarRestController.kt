@@ -20,7 +20,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 /** Serves the Subsonic avatar endpoint without dispatching to Spring MVC. */
-class AvatarRestController(private val settings: SettingsService) {
+class AvatarRestController(
+    private val settings: SettingsService
+) {
     data class Request(val params: Parameters, val webResource: (String) -> InputStream?)
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
