@@ -95,6 +95,25 @@ public class KtorServletIntegrationTest {
     }
 
     @Test
+    public void playQueuePageDataUsesKtorAndKeepsLegacyPlayerAlias() throws Exception {
+        assertTrue(!applicationContext.containsBean("playQueueController"));
+        HttpResponse<String> settings = get("/rest/playQueueSettings", true);
+        assertEquals(settings.body(), 200, settings.statusCode());
+        JsonNode data = new ObjectMapper().readTree(settings.body());
+        assertTrue(data.path("user").path("streamRole").asBoolean());
+        assertTrue(data.path("visibility").has("trackNumberVisible"));
+        assertTrue(data.path("initialPaginationSize").asInt() > 0);
+        assertTrue(settings.headers().firstValue("cache-control").orElse("").contains("no-store"));
+
+        for (String path : List.of("/rest/playQueuePlayer", "/playQueue/player")) {
+            HttpResponse<String> player = get(path, true);
+            assertEquals(player.body(), 200, player.statusCode());
+            assertEquals("WEB", new ObjectMapper().readTree(player.body()).path("tech").asText());
+        }
+        assertEquals(403, post("/rest/playQueueSettings", "").statusCode());
+    }
+
+    @Test
     public void missingKtorRouteReturnsNotFound() throws Exception {
         HttpResponse<String> response = get("/internal/ktor/missing", true);
 

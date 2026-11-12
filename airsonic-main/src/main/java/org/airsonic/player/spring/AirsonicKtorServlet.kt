@@ -87,6 +87,7 @@ import org.airsonic.player.controller.rest.users.UsersController
 import org.airsonic.player.controller.rest.users.PasswordController
 import org.airsonic.player.controller.rest.users.UsersRequest
 import org.airsonic.player.controller.rest.playqueue.PlayQueueController
+import org.airsonic.player.controller.rest.playqueue.PlayQueuePageController
 import org.airsonic.player.controller.rest.playqueue.PlayQueueRequest
 import org.airsonic.player.controller.rest.indexes.IndexesController
 import org.airsonic.player.controller.rest.indexes.IndexesRequest
@@ -209,6 +210,7 @@ class AirsonicKtorServlet(
     private val videoPlayerRestController: VideoPlayerRestController,
     private val passwordRecoveryController: PasswordRecoveryController,
     private val serverInfoController: ServerInfoController,
+    private val playQueuePageController: PlayQueuePageController,
     private val jaxbWriter: JAXBWriter,
 ) : ServletApplicationEngine() {
     @OptIn(InternalAPI::class)
@@ -319,6 +321,9 @@ class AirsonicKtorServlet(
             (request.getAttribute(SERVER_INFO_REQUEST) as? ServerInfoController.Request)?.let {
                 call.attributes.put(SERVER_INFO_REQUEST_KEY, it)
             }
+            (request.getAttribute(PLAY_QUEUE_PAGE_REQUEST) as? PlayQueuePageController.Request)?.let {
+                call.attributes.put(PLAY_QUEUE_PAGE_REQUEST_KEY, it)
+            }
             (request.getAttribute(RECOVERY_REQUEST) as? PasswordRecoveryController.Request)?.let {
                 call.attributes.put(RECOVERY_REQUEST_KEY, it)
             }
@@ -373,6 +378,7 @@ class AirsonicKtorServlet(
             musicFolderSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             passwordController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             playQueueController.routes(this) { call -> call.attributes[PLAY_QUEUE_REQUEST_KEY] }
+            playQueuePageController.routes(this) { call -> call.attributes[PLAY_QUEUE_PAGE_REQUEST_KEY] }
             indexesController.routes(this) { call -> call.attributes[INDEXES_REQUEST_KEY] }
             songsByGenreController.routes(this) { call -> call.attributes[GENRE_SONGS_REQUEST_KEY] }
             downloadRestController.routes(this, { call -> call.attributes[DOWNLOAD_REQUEST_KEY] },
@@ -435,6 +441,48 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path in PlayQueuePageController.PATHS) {
+            if (request.method !in setOf("GET", "HEAD")) {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            val user = securityService.getCurrentUser(request)
+            val player = if (path in PlayQueuePageController.PLAYER_PATHS) {
+                val rawId = request.getParameter("player")
+                if (rawId != null) {
+                    val id = rawId.toIntOrNull()
+                    if (id == null) {
+                        response.sendError(HttpServletResponse.SC_BAD_REQUEST)
+                        return
+                    }
+                    val selected = playerService.getPlayerById(id)
+                    if (selected == null || selected.username != user.username) {
+                        response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                        return
+                    }
+                }
+                playerService.getPlayer(request, response)
+            } else null
+            request.setAttribute(PLAY_QUEUE_PAGE_REQUEST, PlayQueuePageController.Request(user, player))
+        }
+        if (path in setOf("/playQueue", "/playQueue.view")) {
+            if (request.method !in setOf("GET", "HEAD")) {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            response.setHeader("Cache-Control", "no-store")
+            val context = org.springframework.web.context.support.WebApplicationContextUtils
+                .getRequiredWebApplicationContext(request.servletContext)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
+            request.getRequestDispatcher("/WEB-INF/jsp/playQueue.jsp").forward(request, response)
+            return
+        }
         if (path in ServerInfoController.PATHS || path == ServerInfoController.GETTING_STARTED_PATH) {
             val allowed = if (path == ServerInfoController.GETTING_STARTED_PATH) setOf("GET", "HEAD", "POST") else setOf("GET", "HEAD")
             if (request.method !in allowed) {
@@ -1328,6 +1376,8 @@ class AirsonicKtorServlet(
         val HLS_SEGMENT_REQUEST_KEY = AttributeKey<HlsSegmentRestController.Request>(HLS_SEGMENT_REQUEST)
         const val SERVER_INFO_REQUEST = "org.airsonic.player.serverInfoRequest"
         val SERVER_INFO_REQUEST_KEY = AttributeKey<ServerInfoController.Request>(SERVER_INFO_REQUEST)
+        const val PLAY_QUEUE_PAGE_REQUEST = "org.airsonic.player.playQueuePageRequest"
+        val PLAY_QUEUE_PAGE_REQUEST_KEY = AttributeKey<PlayQueuePageController.Request>(PLAY_QUEUE_PAGE_REQUEST)
         const val RECOVERY_REQUEST = "org.airsonic.player.recoveryRequest"
         val RECOVERY_REQUEST_KEY = AttributeKey<PasswordRecoveryController.Request>(RECOVERY_REQUEST)
         const val VIDEO_PLAYER_REQUEST = "org.airsonic.player.videoPlayerRequest"

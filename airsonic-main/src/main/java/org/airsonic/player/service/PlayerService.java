@@ -74,7 +74,7 @@ public class PlayerService {
             Integer playerId, boolean remoteControlEnabled, boolean isStreamRequest) throws Exception {
 
         Player player = getPlayerById(playerId);
-        boolean websiteSelection = "/playQueue/player".equals(request.getServletPath())
+        boolean websiteSelection = ("/playQueue/player".equals(request.getServletPath()) || "/rest/playQueuePlayer".equals(request.getServletPath()))
                 && request.getParameter("player") == null;
 
         // Find by 'player' request parameter.

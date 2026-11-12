@@ -8,6 +8,7 @@
 <%@ include file="table.jsp" %>
 <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
 <script src="<c:url value='/script/subsonic-live-queue.js'/>?v=3"></script>
+<script src="<c:url value='/script/play-queue-page.js'/>?v=1"></script>
 <script type="text/javascript" src="<c:url value='/script/mediaelement/mediaelement-and-player.min.js'/>"></script>
 <script src="<c:url value='/script/mediaelement/plugins/speed/speed.min.js'/>"></script>
 <script src="<c:url value='/script/mediaelement/plugins/speed/speed-i18n.js'/>"></script>
@@ -90,8 +91,8 @@
         songs: [],
         
         bookmarks: {},
-        autoBookmark: ${model.autoBookmark},
-        audioBookmarkFrequency: ${model.audioBookmarkFrequency},
+        autoBookmark: false,
+        audioBookmarkFrequency: 60,
 
         // Stream URL of the media being played
         currentStreamUrl: null,
@@ -117,6 +118,12 @@
             var ratingOnImage = "<spring:theme code='ratingOnImage'/>";
             var ratingOffImage = "<spring:theme code='ratingOffImage'/>";
             var pq = this;
+            var model = pq.pageSettings;
+            var pageSizes = [10, 20, 50, 100, -1];
+            if (!pageSizes.includes(model.initialPaginationSize)) pageSizes.push(model.initialPaginationSize);
+            var pageSizeLabels = pageSizes.map(function (size) { return size === -1 ? "All" : size; });
+            pq.autoBookmark = model.autoBookmark;
+            pq.audioBookmarkFrequency = model.audioBookmarkFrequency;
 
             pq.musicTable = $("#playQueueMusic").DataTable( {
                 deferRender: true,
@@ -138,9 +145,8 @@
                 order: [],
                 orderFixed: [ 0, 'asc' ],
                 orderMulti: false,
-                pageLength: ${model.initialPaginationSize},
-              <c:set var="paginationaddition" value="${fn:contains(' 10 20 50 100 -1', ' '.concat(model.initialPaginationSize)) ? '' : ', '.concat(model.initialPaginationSize)}" />
-                lengthMenu: [[10, 20, 50, 100, -1 ${paginationaddition}], [10, 20, 50, 100, "All" ${paginationaddition}]],
+                pageLength: model.initialPaginationSize,
+                lengthMenu: [pageSizes, pageSizeLabels],
                 buttons: [
                     {
                       text: "<fmt:message key='main.nowplaying'/>",
@@ -208,8 +214,8 @@
                       className: "fit not-draggable centeralign",
                       defaultContent: "<img class='removeSong' src=\"<spring:theme code='removeImage'/>\" style='height:18px;' alt=\"<fmt:message key='playlist.remove'/>\" title=\"<fmt:message key='playlist.remove'/>\">"
                     },
-                    { data: "trackNumber", className: "detail fit", visible: ${model.visibility.trackNumberVisible}, title: "<fmt:message key='personalsettings.tracknumber'/>" },
-                    { data: "discNumber", className: "detail fit", visible: ${model.visibility.discNumberVisible}, title: "<fmt:message key='personalsettings.discnumber'/>" },
+                    { data: "trackNumber", className: "detail fit", visible: model.visibility.trackNumberVisible, title: "<fmt:message key='personalsettings.tracknumber'/>" },
+                    { data: "discNumber", className: "detail fit", visible: model.visibility.discNumberVisible, title: "<fmt:message key='personalsettings.discnumber'/>" },
                     { data: "title",
                       className: "detail songTitle truncate",
                       title: "<fmt:message key='edittags.songtitle'/>",
@@ -227,7 +233,7 @@
                     },
                     { data: "album",
                       className: "detail truncate",
-                      visible: ${model.visibility.albumVisible},
+                      visible: model.visibility.albumVisible,
                       title: "<fmt:message key='personalsettings.album'/>",
                       render(album, type, row) {
                           if (type == "display" && album != null) {
@@ -238,7 +244,7 @@
                     },
                     { data: "artist",
                       className: "detail truncate",
-                      visible: ${model.visibility.artistVisible},
+                      visible: model.visibility.artistVisible,
                       title: "<fmt:message key='personalsettings.artist'/>",
                       render(artist, type) {
                           if (type == "display" && artist != null) {
@@ -249,7 +255,7 @@
                     },
                     { data: "albumArtist",
                       className: "detail truncate",
-                      visible: ${model.visibility.albumArtistVisible},
+                      visible: model.visibility.albumArtistVisible,
                       title: "<fmt:message key='personalsettings.albumartist'/>",
                       render(artist, type) {
                           if (type == "display" && artist != null) {
@@ -260,7 +266,7 @@
                     },
                     { data: "genre",
                       className: "detail truncate",
-                      visible: ${model.visibility.genreVisible},
+                      visible: model.visibility.genreVisible,
                       title: "<fmt:message key='personalsettings.genre'/>",
                       render(genre, type) {
                           if (type == "display" && genre != null) {
@@ -269,12 +275,12 @@
                           return genre;
                       }
                     },
-                    { data: "year", className: "detail fit rightalign", visible: ${model.visibility.yearVisible}, title: "<fmt:message key='personalsettings.year'/>" },
-                    { data: "format", className: "detail fit rightalign", visible: ${model.visibility.formatVisible}, title: "<fmt:message key='personalsettings.format'/>" },
-                    { data: "fileSize", className: "detail fit rightalign", visible: ${model.visibility.fileSizeVisible}, title: "<fmt:message key='personalsettings.filesize'/>" },
+                    { data: "year", className: "detail fit rightalign", visible: model.visibility.yearVisible, title: "<fmt:message key='personalsettings.year'/>" },
+                    { data: "format", className: "detail fit rightalign", visible: model.visibility.formatVisible, title: "<fmt:message key='personalsettings.format'/>" },
+                    { data: "fileSize", className: "detail fit rightalign", visible: model.visibility.fileSizeVisible, title: "<fmt:message key='personalsettings.filesize'/>" },
                     { data: "duration",
                       className: "detail fit rightalign",
-                      visible: ${model.visibility.durationVisible},
+                      visible: model.visibility.durationVisible,
                       title: "<fmt:message key='personalsettings.duration'/>",
                       render: function(data, type, row) {
                           if (type == "display" && data != null) {
@@ -283,11 +289,11 @@
                           return data;
                       }
                     },
-                    { data: "bitRate", className: "detail fit rightalign", visible: ${model.visibility.bitRateVisible}, title: "<fmt:message key='personalsettings.bitrate'/>" },
-                    { data: "playCount", className: "detail fit rightalign", visible: ${model.visibility.playCountVisible}, title: "<fmt:message key='personalsettings.playcount'/>" },
+                    { data: "bitRate", className: "detail fit rightalign", visible: model.visibility.bitRateVisible, title: "<fmt:message key='personalsettings.bitrate'/>" },
+                    { data: "playCount", className: "detail fit rightalign", visible: model.visibility.playCountVisible, title: "<fmt:message key='personalsettings.playcount'/>" },
 	                { data: "lastPlayed",
 	                  className: "detail fit rightalign",
-	                  visible: ${model.visibility.lastPlayedVisible},
+	                  visible: model.visibility.lastPlayedVisible,
 	                  title: "<fmt:message key='personalsettings.lastplayed'/>",
 	                  render: function(data, type, row) {
 	                      if (data != null) {
@@ -301,7 +307,7 @@
 	                },
 	                { data: "lastScanned",
 	                  className: "detail fit rightalign",
-	                  visible: ${model.visibility.lastScannedVisible},
+	                  visible: model.visibility.lastScannedVisible,
 	                  title: "<fmt:message key='personalsettings.lastscanned'/>",
 	                  render: function(data, type, row) {
 	                      if (data != null) {
@@ -315,7 +321,7 @@
 	                },
 	                { data: "created",
 	                  className: "detail fit rightalign",
-	                  visible: ${model.visibility.createdVisible},
+	                  visible: model.visibility.createdVisible,
 	                  title: "<fmt:message key='personalsettings.created'/>",
 	                  render: function(data, type, row) {
 	                      if (data != null) {
@@ -329,7 +335,7 @@
 	                },
 	                { data: "changed",
 	                  className: "detail fit rightalign",
-	                  visible: ${model.visibility.changedVisible},
+	                  visible: model.visibility.changedVisible,
 	                  title: "<fmt:message key='personalsettings.changed'/>",
 	                  render: function(data, type, row) {
 	                      if (data != null) {
@@ -408,8 +414,8 @@
             window.addEventListener('pagehide', function () {
                 if (pq.stopQueuePolling) pq.stopQueuePolling();
             }, {once: true});
-            <c:if test="${model.autoHide}">pq.initAutoHide();</c:if>
-            pq.onTogglePlayQueue(${!model.autoHide});
+            if (model.autoHide) pq.initAutoHide();
+            pq.onTogglePlayQueue(!model.autoHide);
 
             // load default player
             pq.onPlayerChanged(null);
@@ -417,7 +423,7 @@
 
         onPlayerChanged(playerId) {
             var pq = this;
-            var playerUrl = "<c:url value='/playQueue/player'/>";
+            var playerUrl = "<c:url value='/rest/playQueuePlayer'/>";
             if (playerId) {
                 playerUrl = playerUrl + "?player=" + playerId;
             }
@@ -669,9 +675,7 @@
 
         onClear() {
             var ok = true;
-        <c:if test="${model.partyMode}">
-            ok = confirm("<fmt:message key="playlist.confirmclear"/>");
-        </c:if>
+            if (this.pageSettings.partyMode) ok = confirm("<fmt:message key="playlist.confirmclear"/>");
             if (ok) {
                 this.requestQueue("clear", {});
             }
@@ -757,9 +761,7 @@
             this.updateWindowTitle(song);
             this.showMediaSessionMetadata(song);
 
-          <c:if test="${model.notify}">
-            this.showNotification(song);
-          </c:if>
+            if (this.pageSettings.notify) this.showNotification(song);
         },
 
         onSkip(index, offset, nobookmarks) {
@@ -1156,21 +1158,19 @@
         }
     };
 
-    $(document).ready(() => playQueue.init());
+    $(document).ready(() => initPlayQueuePage({
+        url: "<c:url value='/rest/playQueueSettings'/>", queue: playQueue, document: document
+    }));
 </script>
 
-<table class="music indent hover nowrap stripe compact <c:if test='${!model.visibility.headerVisible}'>hide-table-header</c:if>" id="playQueueMusic" style="cursor:pointer; width: 100%;"></table>
+<p id="playQueuePageError" role="alert" class="warning" hidden><fmt:message key="gettingStarted.error"/></p>
+<table class="music indent hover nowrap stripe compact" id="playQueueMusic" style="cursor:pointer; width: 100%;"></table>
 
 <div class="bgcolor2 playqueue-controlbar">
-  <c:if test="${model.user.settingsRole and model.players.size() > 1}">
-    <div style="padding-right: 5px">
+    <div id="playQueueSelectorContainer" style="padding-right: 5px; display:none">
         <select id="playerSelector" name="playerSelector" onchange="playQueue.onPlayerChanged(options[selectedIndex].value)">
-          <c:forEach items="${model.players}" var="player">
-            <option value="${player.id}">${player.shortDescription}</option>
-          </c:forEach>
         </select>
     </div>
-  </c:if>
 
     <div class="player-tech player-tech-web" style="white-space:nowrap;flex:1 1 300px;">
         <div id="player" style="height:40px">
@@ -1178,12 +1178,10 @@
         </div>
     </div>
 
-  <c:if test="${model.user.streamRole}">
-    <div class="player-tech player-tech-non-web" style="white-space:nowrap;">
+    <div class="player-tech player-tech-non-web" data-play-queue-role="streamRole" style="white-space:nowrap;">
         <img alt="Start" id="audioStart" src="<spring:theme code='castPlayImage'/>" onclick="playQueue.onStart()" style="cursor:pointer">
         <img alt="Stop" id="audioStop" src="<spring:theme code='castPauseImage'/>" onclick="playQueue.onStop()" style="cursor:pointer; display:none">
     </div>
-  </c:if>
 
     <div class="player-tech player-tech-jukebox" style="white-space:nowrap;">
         <img src="<spring:theme code='volumeImage'/>" alt="">
@@ -1239,15 +1237,13 @@
         </span>  |
     </div>
 
-  <c:if test="${model.user.settingsRole}">
-    <div style="white-space:nowrap;">
+    <div data-play-queue-role="settingsRole" style="white-space:nowrap; display:none">
         <span class="header">
             <a href="javascript:playQueue.playerSettingsPage()" class="player-control">
                 <img src="<spring:theme code='settingsImage'/>" alt="Settings" title="Settings" style="cursor:pointer; height:18px">
             </a>
         </span> |
     </div>
-  </c:if>
 
     <div style="white-space:nowrap;">
         <span class="header">
@@ -1257,21 +1253,15 @@
                     <option id="savePlayQueue"><fmt:message key="playlist.saveplayqueue"/></option>
                     <option id="loadPlayQueue"><fmt:message key="playlist.loadplayqueue"/></option>
                     <option id="savePlaylist"><fmt:message key="playlist.save"/></option>
-                  <c:if test="${model.user.downloadRole}">
-                    <option id="downloadPlaylist"><fmt:message key="common.download"/></option>
-                  </c:if>
-                  <c:if test="${model.user.shareRole}">
-                    <option id="sharePlaylist"><fmt:message key="main.more.share"/></option>
-                  </c:if>
+                    <option id="downloadPlaylist" data-play-queue-role="downloadRole" hidden><fmt:message key="common.download"/></option>
+                    <option id="sharePlaylist" data-play-queue-role="shareRole" hidden><fmt:message key="main.more.share"/></option>
                     <option id="sortByTrack"><fmt:message key="playlist.more.sortbytrack"/></option>
                     <option id="sortByAlbum"><fmt:message key="playlist.more.sortbyalbum"/></option>
                     <option id="sortByArtist"><fmt:message key="playlist.more.sortbyartist"/></option>
                 </optgroup>
                 <optgroup label="<fmt:message key='playlist.more.selection'/>">
                     <option id="removeSelected"><fmt:message key="playlist.remove"/></option>
-                  <c:if test="${model.user.downloadRole}">
-                    <option id="download"><fmt:message key="common.download"/></option>
-                  </c:if>
+                    <option id="download" data-play-queue-role="downloadRole" hidden><fmt:message key="common.download"/></option>
                     <option id="appendPlaylist"><fmt:message key="playlist.append"/></option>
                     <option id="star"><fmt:message key="playlist.more.star"/></option>
                     <option id="unstar"><fmt:message key="playlist.more.unstar"/></option>
@@ -1280,14 +1270,12 @@
         </span>
     </div>
 
-  <c:if test="${not model.autoHide}">
-    <div style="white-space:nowrap; text-align:right; padding-left:1.5em; padding-right:1.5em">
+    <div id="playQueueToggle" style="white-space:nowrap; text-align:right; padding-left:1.5em; padding-right:1.5em; display:none">
         <a href="javascript:playQueue.onTogglePlayQueue(!playQueue.isVisible)">
             <img class="playqueue-shown" src="<spring:theme code='playQueueHide'/>" alt="Hide play queue" title="Hide play queue" style="cursor:pointer; height:18px;"/>
             <img class="playqueue-hidden" src="<spring:theme code='playQueueShow'/>" alt="Show play queue" title="Show play queue" style="cursor:pointer; height:18px; display: none;"/>
         </a>
     </div>
-  </c:if>
 
 </div>
 

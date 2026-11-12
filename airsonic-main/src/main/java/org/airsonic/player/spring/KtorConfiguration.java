@@ -60,6 +60,7 @@ import org.airsonic.player.service.DownloadService;
 import org.airsonic.player.service.CoverArtService;
 import org.airsonic.player.service.CoverArtImageService;
 import org.airsonic.player.controller.rest.playqueue.PlayQueueController;
+import org.airsonic.player.controller.rest.playqueue.PlayQueuePageController;
 import org.airsonic.player.dao.PlayQueueDao;
 import org.airsonic.player.service.UserAdministrationService;
 import org.airsonic.player.controller.rest.users.UsersController;
@@ -291,7 +292,7 @@ public class KtorConfiguration {
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService), new AvatarUploadController(settingsService, jaxbWriter),
                                 new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(mediaStreamService),
                                 new PublicShareController(shareService, mediaFileService, mediaFolderService, jwtSecurityService, metadataParsers, objectMapper), new CaptionsRestController(captionService, mediaFolderService, objectMapper),
-                                new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), jaxbWriter),
+                                new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), new PlayQueuePageController(playerService, settingsService, objectMapper), jaxbWriter),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);
@@ -330,6 +331,8 @@ public class KtorConfiguration {
         registration.addUrlMappings(MusicFolderSettingsController.WRITE_PATHS);
         registration.addUrlMappings(PasswordController.PATHS);
         registration.addUrlMappings(PlayQueueController.PATHS);
+        registration.addUrlMappings(PlayQueuePageController.PATHS);
+        registration.addUrlMappings("/playQueue", "/playQueue.view");
         registration.addUrlMappings(IndexesController.PATHS);
         registration.addUrlMappings(SongsByGenreController.PATHS);
         registration.addUrlMappings(TopSongsController.PATHS);
