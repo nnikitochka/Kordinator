@@ -42,6 +42,40 @@ public class ServerInfoIntegrationTest {
     private final ObjectMapper json = new ObjectMapper();
     private final HttpClient client = HttpClient.newHttpClient();
 
+    @Test public void gettingStartedRequiresAdminAndCsrfToChangeGlobalSetting() throws Exception {
+        assertFalse(context.containsBean("gettingStartedController"));
+        security.createUser(new User("getting-started-member", null), "secret", "test");
+        var admin = login("admin", "admin");
+        var member = login("getting-started-member", "secret");
+        settings.setGettingStartedEnabled(true);
+        settings.save();
+        try {
+            for (String page : List.of("/gettingStarted", "/gettingStarted.view?hide")) {
+                var shell = get(admin, page);
+                assertEquals(page + " " + shell.body(), 200, shell.statusCode());
+                assertTrue(shell.body().contains("/airsonic/rest/gettingStarted"));
+                assertTrue(settings.isGettingStartedEnabled());
+            }
+            var data = json.readTree(get(admin, "/rest/gettingStarted").body());
+            assertEquals("root".equals(System.getProperty("user.name")), data.path("runningAsRoot").asBoolean());
+            assertTrue(data.path("canDisable").asBoolean());
+            assertFalse(json.readTree(get(member, "/rest/gettingStarted").body()).path("canDisable").asBoolean());
+            assertEquals(403, send(admin, "/rest/gettingStarted", "POST", "").statusCode());
+            var memberPage = get(member, "/gettingStarted.view").body();
+            var memberToken = Pattern.compile("data-csrf-token=\"([^\"]+)\"").matcher(memberPage);
+            assertTrue(memberToken.find());
+            assertEquals(403, send(member, "/rest/gettingStarted", "POST", "_csrf=" + URLEncoder.encode(memberToken.group(1), StandardCharsets.UTF_8)).statusCode());
+            assertTrue(settings.isGettingStartedEnabled());
+            var token = Pattern.compile("data-csrf-token=\"([^\"]+)\"").matcher(get(admin, "/gettingStarted.view").body());
+            assertTrue(token.find());
+            assertEquals(200, send(admin, "/rest/gettingStarted", "POST", "_csrf=" + URLEncoder.encode(token.group(1), StandardCharsets.UTF_8)).statusCode());
+            assertFalse(settings.isGettingStartedEnabled());
+        } finally {
+            settings.setGettingStartedEnabled(true);
+            settings.save();
+        }
+    }
+
     @Test public void helpUsesKtorAndOnlyAdministratorsCanReadConfiguredServerLog() throws Exception {
         assertFalse(context.containsBean("helpController"));
         when(versions.getLocalVersion()).thenReturn(new Version("11.0"));

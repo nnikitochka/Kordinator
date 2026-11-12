@@ -291,7 +291,7 @@ public class KtorConfiguration {
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService), new AvatarUploadController(settingsService, jaxbWriter),
                                 new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(mediaStreamService),
                                 new PublicShareController(shareService, mediaFileService, mediaFolderService, jwtSecurityService, metadataParsers, objectMapper), new CaptionsRestController(captionService, mediaFolderService, objectMapper),
-                                new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper), jaxbWriter),
+                                new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), jaxbWriter),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);
@@ -365,6 +365,7 @@ public class KtorConfiguration {
         registration.addUrlMappings("/ext/share/*", "/ext/rest/share/*");
         registration.addUrlMappings(CaptionsRestController.PATHS);
         registration.addUrlMappings(ServerInfoController.PATHS);
+        registration.addUrlMappings(ServerInfoController.GETTING_STARTED_PATH, "/gettingStarted", "/gettingStarted.view");
         registration.addUrlMappings("/help", "/help.view");
         registration.addUrlMappings(PasswordRecoveryController.PATH, "/recover", "/recover.view");
         registration.addUrlMappings(VideoPlayerRestController.PATH, "/videoPlayer", "/videoPlayer.view");

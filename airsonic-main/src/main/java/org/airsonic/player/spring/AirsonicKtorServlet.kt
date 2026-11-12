@@ -435,9 +435,10 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
-        if (path in ServerInfoController.PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
+        if (path in ServerInfoController.PATHS || path == ServerInfoController.GETTING_STARTED_PATH) {
+            val allowed = if (path == ServerInfoController.GETTING_STARTED_PATH) setOf("GET", "HEAD", "POST") else setOf("GET", "HEAD")
+            if (request.method !in allowed) {
+                response.setHeader("Allow", allowed.joinToString(", "))
                 response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
                 return
             }
@@ -591,10 +592,10 @@ class AirsonicKtorServlet(
             }
             request.setAttribute(PUBLIC_SHARE_REQUEST, publicRequest)
         }
-        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view", "/databaseSettings", "/databaseSettings.view", "/dlnaSettings", "/dlnaSettings.view", "/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view", "/help", "/help.view")) {
+        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view", "/databaseSettings", "/databaseSettings.view", "/dlnaSettings", "/dlnaSettings.view", "/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view", "/help", "/help.view", "/gettingStarted", "/gettingStarted.view")) {
             val user = securityService.getCurrentUser(request)
             val personalPage = path in setOf("/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view")
-            if (path !in setOf("/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view", "/help", "/help.view") && !user.isAdminRole && !(personalPage && user.isSettingsRole)) {
+            if (path !in setOf("/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view", "/help", "/help.view", "/gettingStarted", "/gettingStarted.view") && !user.isAdminRole && !(personalPage && user.isSettingsRole)) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
@@ -603,7 +604,7 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
                 return
             }
-            if (path in setOf("/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view", "/help", "/help.view")) response.setHeader("Cache-Control", "no-store")
+            if (path in setOf("/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view", "/help", "/help.view", "/gettingStarted", "/gettingStarted.view")) response.setHeader("Cache-Control", "no-store")
             // JSP tags still need the view context while the page loads its data from Ktor REST.
             val context = org.springframework.web.context.support.WebApplicationContextUtils
                 .getRequiredWebApplicationContext(request.servletContext)
