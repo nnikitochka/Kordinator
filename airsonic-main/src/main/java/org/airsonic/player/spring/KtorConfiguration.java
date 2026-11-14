@@ -106,6 +106,7 @@ import org.airsonic.player.controller.rest.scan.ScanController;
 import org.airsonic.player.controller.rest.shares.SharesController;
 import org.airsonic.player.controller.rest.search.SearchController;
 import org.airsonic.player.controller.rest.search.SearchPageController;
+import org.airsonic.player.controller.rest.home.HomePageController;
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsController;
 import org.airsonic.player.controller.rest.SubsonicResponseMapper;
 import org.airsonic.player.dao.AlbumDao;
@@ -289,6 +290,8 @@ public class KtorConfiguration {
                                 new PlaylistPageController(playlistService, securityService, settingsService, localeResolver, objectMapper),
                                 new MainPageController(securityService, settingsService, objectMapper),
                                 new PlaylistsPageController(settingsService, objectMapper),
+                                new HomePageController(settingsService, mediaScannerService, ratingService, securityService,
+                                        mediaFileService, mediaFolderService, albumSearchService, objectMapper),
                                 new UploadStatusController(statusService, jaxbWriter, databaseService),
                                 new StatisticsController(statusService, securityService, jaxbWriter),
                                 new ScheduledTasksController(taskSchedulingService, jaxbWriter),
@@ -315,6 +318,8 @@ public class KtorConfiguration {
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(SearchPageController.DATA_PATH);
         registration.addUrlMappings(SearchPageController.PAGE_PATHS);
+        registration.addUrlMappings(HomePageController.DATA_PATH);
+        registration.addUrlMappings(HomePageController.PAGE_PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);
         registration.addUrlMappings(GenresController.PATHS);
         registration.addUrlMappings(ArtistsController.PATHS);

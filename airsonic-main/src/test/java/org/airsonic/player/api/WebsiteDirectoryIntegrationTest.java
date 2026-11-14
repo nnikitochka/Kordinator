@@ -97,6 +97,24 @@ public class WebsiteDirectoryIntegrationTest {
                     + searchPageData.path("songs").size() > 0);
             JsonNode subsonicSearch = body(send(browser, "/rest/search3?f=json&c=airsonic-web&query=Sixteen%20Horsepower", null, null));
             assertEquals("ok", subsonicSearch.path("status").asText());
+            HttpResponse<String> homePage = send(browser, "/home.view?listType=newest", null, null);
+            assertEquals(homePage.body(), 200, homePage.statusCode());
+            assertTrue(homePage.body().contains("/airsonic/rest/homePage"));
+            assertTrue(homePage.body().contains("/airsonic/rest/getCoverArt"));
+            HttpResponse<String> homeDataResponse = send(browser, "/rest/homePage?listType=newest", null, null);
+            assertEquals(homeDataResponse.body(), 200, homeDataResponse.statusCode());
+            JsonNode homeData = mapper.readTree(homeDataResponse.body());
+            assertEquals("newest", homeData.path("listType").asText());
+            assertEquals(40, homeData.path("listSize").asInt());
+            assertTrue(homeData.path("albums").isArray());
+            assertTrue(homeData.path("albums").size() > 0);
+            for (String listType : List.of("random", "newest", "starred", "highest", "frequent", "recent", "decade", "genre", "alphabetical")) {
+                HttpResponse<String> categoryResponse = send(browser, "/rest/homePage?listType=" + listType, null, null);
+                assertEquals(categoryResponse.body(), 200, categoryResponse.statusCode());
+                JsonNode categoryData = mapper.readTree(categoryResponse.body());
+                assertEquals(listType, categoryData.path("listType").asText());
+                assertTrue(categoryData.path("albums").isArray());
+            }
             JsonNode websitePlayer = mapper.readTree(send(browser, "/playQueue/player", null, null).body());
             assertEquals("WEB", websitePlayer.path("tech").asText());
             String base = "f=json&c=airsonic-web&includeWebsiteDetails=true";
