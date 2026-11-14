@@ -11,6 +11,7 @@ import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.MediaScannerService;
 import org.airsonic.player.service.PlaylistService;
 import org.airsonic.player.service.SecurityService;
+import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.util.HomeRule;
 import org.airsonic.player.util.MusicFolderTestData;
 import org.junit.ClassRule;
@@ -46,6 +47,7 @@ public class PlaylistsIntegrationTest {
     @Autowired private MediaFileDao mediaFiles;
     @Autowired private SecurityService security;
     @Autowired private PlaylistService playlists;
+    @Autowired private SettingsService settings;
     @Autowired private org.airsonic.player.service.PlayerService players;
     @Autowired private org.airsonic.player.service.MediaFileService mediaFileService;
     @Autowired private org.springframework.context.ApplicationContext context;
@@ -156,6 +158,12 @@ public class PlaylistsIntegrationTest {
             assertEquals(302, browser(browser, "/login", "j_username=admin&j_password=admin&_csrf=" + encode(token.group(1)), null).statusCode());
             HttpResponse<String> page = browser(browser, "/playlists.view", null, null);
             assertEquals(page.body(), 200, page.statusCode());
+            assertTrue(page.body().contains("/airsonic/rest/playlistsPageSettings"));
+            assertFalse(page.body().contains("${model."));
+            JsonNode listPageSettings = mapper.readTree(browser(browser, "/rest/playlistsPageSettings", null, null).body());
+            assertEquals("admin", listPageSettings.path("username").asText());
+            assertEquals(settings.getUserSettings("admin").getViewAsList(), listPageSettings.path("viewAsList").asBoolean());
+            assertEquals(settings.getUserSettings("admin").getPaginationSizePlaylist(), listPageSettings.path("initialPaginationSize").asInt());
             token = java.util.regex.Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
             assertTrue(page.body(), token.find());
             String csrf = token.group(1);

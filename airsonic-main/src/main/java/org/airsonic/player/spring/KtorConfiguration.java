@@ -51,6 +51,7 @@ import org.airsonic.player.controller.rest.indexes.LeftPageController;
 import org.airsonic.player.controller.rest.bookmarks.BookmarksPageController;
 import org.airsonic.player.controller.rest.playlists.PlaylistPageController;
 import org.airsonic.player.controller.rest.music.MainPageController;
+import org.airsonic.player.controller.rest.playlists.PlaylistsPageController;
 import org.airsonic.player.controller.rest.upload.UploadStatusController;
 import org.airsonic.player.controller.rest.statistics.StatisticsController;
 import org.airsonic.player.controller.rest.statistics.ScheduledTasksController;
@@ -283,6 +284,7 @@ public class KtorConfiguration {
                                 new BookmarksPageController(settingsService, objectMapper),
                                 new PlaylistPageController(playlistService, securityService, settingsService, localeResolver, objectMapper),
                                 new MainPageController(securityService, settingsService, objectMapper),
+                                new PlaylistsPageController(settingsService, objectMapper),
                                 new UploadStatusController(statusService, jaxbWriter, databaseService),
                                 new StatisticsController(statusService, securityService, jaxbWriter),
                                 new ScheduledTasksController(taskSchedulingService, jaxbWriter),
@@ -391,6 +393,8 @@ public class KtorConfiguration {
         registration.addUrlMappings(PlaylistPageController.PAGE_PATHS);
         registration.addUrlMappings(MainPageController.DATA_PATH);
         registration.addUrlMappings(MainPageController.PAGE_PATHS);
+        registration.addUrlMappings(PlaylistsPageController.DATA_PATH);
+        registration.addUrlMappings(PlaylistsPageController.PAGE_PATHS);
         registration.addUrlMappings("/help", "/help.view");
         registration.addUrlMappings(PasswordRecoveryController.PATH, "/recover", "/recover.view");
         registration.addUrlMappings(VideoPlayerRestController.PATH, "/videoPlayer", "/videoPlayer.view");

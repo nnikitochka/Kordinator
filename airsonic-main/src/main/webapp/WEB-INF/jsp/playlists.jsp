@@ -12,9 +12,31 @@
 
     <script type="text/javascript" language="javascript">
       var playlists = [];
-      var user = "${model.username}";
-      var viewAsList = ${model.viewAsList};
+      var pageSettings;
+      var user;
+      var viewAsList = false;
       var playlistsTable;
+
+      function pageLengthMenu(size) {
+        var lengths = [10, 20, 50, 100, -1];
+        if (lengths.indexOf(size) < 0) lengths.splice(lengths.length - 1, 0, size);
+        return [lengths, lengths.map(function(length) { return length === -1 ? "All" : length; })];
+      }
+
+      function loadPageSettings() {
+        fetch("<c:url value='/rest/playlistsPageSettings'/>", {credentials: "same-origin"})
+          .then(function(response) {
+            if (!response.ok) throw new Error("Playlists page settings unavailable");
+            return response.json();
+          })
+          .then(function(settings) {
+            pageSettings = settings;
+            user = settings.username;
+            viewAsList = settings.viewAsList;
+            init();
+          })
+          .catch(function(error) { console.error(error); });
+      }
 
       function init() {
         playlistsTable = $("#playlistsTable").DataTable( {
@@ -33,9 +55,8 @@
             order: [],
             //orderFixed: [ 0, 'asc' ],
             orderMulti: true,
-            pageLength: ${model.initialPaginationSize},
-          <c:set var="paginationaddition" value="${fn:contains(' 10 20 50 100 -1', ' '.concat(model.initialPaginationSize)) ? '' : ', '.concat(model.initialPaginationSizeFiles)}" />
-            lengthMenu: [[10, 20, 50, 100, -1 ${paginationaddition}], [10, 20, 50, 100, "All" ${paginationaddition}]],
+            pageLength: pageSettings.initialPaginationSize,
+            lengthMenu: pageLengthMenu(pageSettings.initialPaginationSize),
             processing: true,
             autoWidth: true,
             scrollCollapse: true,
@@ -319,7 +340,7 @@
       }
     </script>
 </head>
-<body class="mainframe bgcolor1" onload="init()">
+<body class="mainframe bgcolor1" onload="loadPageSettings()">
 
 <h1 style="padding-bottom: 1em">
     <img src="<spring:theme code='playlistImage'/>" alt="">
