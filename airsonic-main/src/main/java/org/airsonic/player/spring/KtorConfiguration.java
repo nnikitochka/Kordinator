@@ -320,6 +320,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(SearchPageController.PAGE_PATHS);
         registration.addUrlMappings(HomePageController.DATA_PATH);
         registration.addUrlMappings(HomePageController.PAGE_PATHS);
+        registration.addUrlMappings("/lyrics", "/lyrics.view");
         registration.addUrlMappings(MusicFoldersController.PATHS);
         registration.addUrlMappings(GenresController.PATHS);
         registration.addUrlMappings(ArtistsController.PATHS);

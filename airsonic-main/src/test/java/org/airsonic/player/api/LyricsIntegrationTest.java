@@ -92,7 +92,7 @@ public class LyricsIntegrationTest {
     }
 
     @Test public void websiteUsesSessionRestAndEscapesInitialSearchValues() throws Exception {
-        assertFalse(context.containsBean("lyricsWSController"));
+        assertFalse(context.containsBean("lyricsController"));
         HttpClient browser = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
                 .followRedirects(HttpClient.Redirect.NEVER).build();
         HttpResponse<String> loginPage = browser(browser, "/login", null, null);
@@ -107,6 +107,10 @@ public class LyricsIntegrationTest {
         assertTrue(page.body(), page.body().contains("/airsonic/script/subsonic-lyrics.js"));
         assertFalse(page.body().contains("StompClient"));
         assertFalse(page.body().contains("value=\"\"><script>"));
+        HttpResponse<String> plainPath = browser(browser, "/lyrics?artistUtf8Hex=417274697374&songUtf8Hex=5469746c65", null, null);
+        assertEquals(plainPath.body(), 200, plainPath.statusCode());
+        assertTrue(plainPath.body().contains("value=\"Artist\""));
+        assertTrue(plainPath.body().contains("value=\"Title\""));
         token = java.util.regex.Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
         assertTrue(token.find());
         String csrf = token.group(1);

@@ -30,13 +30,13 @@
     <table>
         <tr>
             <td><fmt:message key="lyrics.artist"/></td>
-            <td style="padding-left:0.50em"><input id="artist" type="text" size="40" value="<c:out value='${model.artist}'/>" tabindex="1"/></td>
+            <td style="padding-left:0.50em"><input id="artist" type="text" size="40" value="<c:out value='${param.artist}'/>" tabindex="1"/></td>
             <td style="padding-left:0.75em"><input type="submit" value="<fmt:message key='lyrics.search'/>" style="width:6em"
                                                    tabindex="3"/></td>
         </tr>
         <tr>
             <td><fmt:message key="lyrics.song"/></td>
-            <td style="padding-left:0.50em"><input id="song" type="text" size="40" value="<c:out value='${model.song}'/>" tabindex="2"/></td>
+            <td style="padding-left:0.50em"><input id="song" type="text" size="40" value="<c:out value='${param.song}'/>" tabindex="2"/></td>
             <td style="padding-left:0.75em"><input type="button" value="<fmt:message key='common.close'/>" style="width:6em"
                                                    onclick="self.close()" tabindex="4"/></td>
         </tr>
