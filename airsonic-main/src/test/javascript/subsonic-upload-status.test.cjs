@@ -60,7 +60,8 @@ test('does not overlap requests or update the page after leaving', async () => {
 });
 test('upload page reconciles snapshots without websocket subscription', () => {
     const source = fs.readFileSync(path.join(root, 'WEB-INF/jsp/more.jsp'), 'utf8');
-    assert.match(source, /watchUploads\(updateUploads\)/);
+    const pageScript = fs.readFileSync(path.join(root, 'script/more-page.js'), 'utf8');
+    assert.match(pageScript, /watchUploads\(updateUploads\)/);
     assert.match(source, /if \(!active\[this\.id/);
     assert.doesNotMatch(source, /\/user\/queue\/uploads\/status/);
 });

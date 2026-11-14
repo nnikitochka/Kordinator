@@ -61,8 +61,11 @@ public class FileUploadIntegrationTest {
             byte[] bytes = "Музыка & <track>".getBytes(StandardCharsets.UTF_8);
             String dir = root.resolve("новая папка").toString();
             var html = get(browser, "/more.view"); assertEquals(html.body(), 200, html.statusCode());
-            assertTrue(html.body().contains("/airsonic/rest/upload")); assertTrue(html.body().contains("bindFileUpload("));
+            assertTrue(html.body().contains("/airsonic/rest/upload")); assertTrue(html.body().contains("/airsonic/script/more-page.js"));
             assertFalse(html.body().contains("upload.view"));
+            var pageData = mapper.readTree(get(browser, "/rest/morePageData").body());
+            assertTrue(pageData.path("user").path("uploadRole").asBoolean());
+            assertEquals(root.resolve("Incoming").toString(), pageData.path("uploadDirectory").asText());
             assertEquals(403, upload(client, null, field("dir", dir), file("anonymous.txt", bytes)).statusCode());
             assertError(post(browser, "/rest/upload?f=json", "_csrf=" + encode(csrf)), 0);
             assertEquals(403, upload(browser, null, field("dir", dir), file("test.txt", bytes)).statusCode());

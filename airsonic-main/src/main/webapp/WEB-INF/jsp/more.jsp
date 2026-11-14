@@ -7,6 +7,7 @@
     <%@ include file="subsonicUploadStatus.jsp" %>
     <script src="<c:url value='/script/random-queue.js?v=1'/>"></script>
     <script src="<c:url value='/script/file-upload.js?v=1'/>"></script>
+    <script src="<c:url value='/script/more-page.js?v=1'/>"></script>
     <style type="text/css">
         .progress-bar {width: 350px; height: 10px; border: 1px solid black; display:block;}
         .progress-bar-content {width: 0; height: 10px; background: url("<c:url value="/icons/default_light/progress.png"/>") repeat;}
@@ -77,7 +78,6 @@
             localStorage.setItem("randomPlayQueue", JSON.stringify(data));
         }
 
-        <c:if test="${model.user.uploadRole}">
         function updateUploads(uploads) {
             var active = {};
             uploads.forEach(function (upload) {
@@ -113,18 +113,8 @@
                 progressText.text(percent + "<fmt:message key='more.upload.progress'/>");
             }
         }
-        </c:if>
 
         $(function() {
-            <c:if test="${model.user.uploadRole}">
-            watchUploads(updateUploads);
-            bindFileUpload(document.getElementById('fileUpload'), document.getElementById('uploadResults'), {
-                url: '<c:url value="/rest/upload"/>',
-                csrfHeader: '${_csrf.headerName}', csrfToken: '${_csrf.token}',
-                uploaded: document.getElementById('uploadSuccessTemplate').textContent,
-                extracted: document.getElementById('uploadExtractedTemplate').textContent
-            });
-            </c:if>
             var form = document.getElementById('randomPlayQueue');
             if (form) bindRandomQueue(form, document.getElementById('randomQueueError'), {
                 url: "<c:url value='/rest/createRandomPlayQueue'/>",
@@ -152,12 +142,14 @@
 </head>
 <body class="mainframe bgcolor1">
 
+<div id="morePageData" data-url="<c:url value='/rest/morePageData'/>" data-csrf-header="<c:out value='${_csrf.headerName}'/>" data-csrf-token="<c:out value='${_csrf.token}'/>" hidden></div>
+
 <h1>
     <img src="<spring:theme code='moreImage'/>" alt=""/>
     <span style="vertical-align: middle"><fmt:message key="more.title"/></span>
 </h1>
 
-<c:if test="${model.user.streamRole}">
+<section id="randomQueueSection" hidden>
     <h2>
         <img src="<spring:theme code='shuffleImage'/>" alt=""/>
         <span style="vertical-align: middle"><fmt:message key="more.random.title"/></span>
@@ -184,10 +176,7 @@
                     <select style="width: 100%;" name="year">
                         <option value="any"><fmt:message key="more.random.anyyear"/></option>
 
-                        <c:forEach begin="0" end="${model.currentYear - 2010}" var="yearOffset">
-                            <c:set var="year" value="${model.currentYear - yearOffset}"/>
-                            <option value="${year} ${year}">${year}</option>
-                        </c:forEach>
+                        <option id="randomYearOptions" value="" hidden></option>
 
                         <option value="2010 2015">2010 &ndash; 2015</option>
                         <option value="2005 2010">2005 &ndash; 2010</option>
@@ -206,9 +195,6 @@
                 <td>
                     <select style="width: 100%;" name="genre">
                         <option value="any"><fmt:message key="more.random.anygenre"/></option>
-                        <c:forEach items="${model.genres}" var="genre">
-                            <option value="${genre.name}"><str:truncateNicely upper="20">${genre.name} (${genre.songCount})</str:truncateNicely></option>
-                        </c:forEach>
                     </select>
                 </td>
                 <td><fmt:message key="more.random.albumrating"/></td>
@@ -262,9 +248,6 @@
                 <td>
                     <select style="width: 100%;" name="musicFolderId">
                         <option value="-1"><fmt:message key="more.random.anyfolder"/></option>
-                        <c:forEach items="${model.musicFolders}" var="musicFolder">
-                            <option value="${musicFolder.id}">${musicFolder.name}</option>
-                        </c:forEach>
                     </select>
                 </td>
                 <td><fmt:message key="more.random.playcount"/></td>
@@ -294,7 +277,7 @@
             </tr>
         </table>
     </form>
-</c:if>
+</section>
 
 <a href="https://airsonic.github.io/docs/apps/" target="_blank" rel="noopener noreferrer"><img alt="Apps" src="<c:url value='/icons/default_light/apps.png'/>" style="float: right;margin-left: 3em; margin-right: 3em"/></a>
 
@@ -311,7 +294,7 @@
 </h2>
 <fmt:message key="more.status.text"/>
 
-<c:if test="${model.user.uploadRole}">
+<section id="uploadSection" hidden>
 
     <h2>
         <img src="<spring:theme code='uploadImage'/>" alt=""/>
@@ -326,7 +309,7 @@
             </tr>
             <tr>
                 <td><fmt:message key="more.upload.target"/></td>
-                <td><input type="text" id="dir" name="dir" size="37" value="${fn:escapeXml(model.uploadDirectory)}"/></td>
+                <td><input type="text" id="dir" name="dir" size="37" value=""/></td>
                 <td><input type="submit" value="<fmt:message key='more.upload.ok'/>"/></td>
             </tr>
             <tr>
@@ -343,7 +326,7 @@
     <div id="uploadResults" aria-live="polite"></div>
     <div id="progressBars"></div>
 
-</c:if>
+</section>
 
 <a name="shortcuts"></a>
 <h2>

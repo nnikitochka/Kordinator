@@ -71,6 +71,11 @@ public class RandomQueueIntegrationTest {
             assertTrue(page.contains("/airsonic/rest/createRandomPlayQueue"));
             assertTrue(page.contains("bindRandomQueue("));
             assertFalse(page.contains("action=\"randomPlayQueue.view"));
+            var moreData = mapper.readTree(get(browser, "/rest/morePageData").body());
+            assertTrue(moreData.path("user").path("streamRole").asBoolean());
+            assertTrue(moreData.path("uploadDirectory").isNull());
+            assertEquals(library.get(0).getId().longValue(), moreData.path("musicFolders").get(0).path("id").asLong());
+            assertTrue(moreData.path("currentYear").asInt() >= 2026);
             assertEquals(404, post(browser, "/randomPlayQueue.view", "_csrf=" + encode(token)).statusCode());
             assertEquals(405, get(browser, "/rest/createRandomPlayQueue").statusCode());
             assertEquals("failed", body(get(client, "/rest/createRandomPlayQueue?f=json")).path("status").asText());

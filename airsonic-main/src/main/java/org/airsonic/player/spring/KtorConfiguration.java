@@ -46,6 +46,7 @@ import org.airsonic.player.controller.rest.rating.RatingController;
 import org.airsonic.player.controller.rest.scrobble.ScrobbleController;
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingController;
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingPageController;
+import org.airsonic.player.controller.rest.more.MorePageController;
 import org.airsonic.player.controller.rest.upload.UploadStatusController;
 import org.airsonic.player.controller.rest.statistics.StatisticsController;
 import org.airsonic.player.controller.rest.statistics.ScheduledTasksController;
@@ -273,6 +274,7 @@ public class KtorConfiguration {
                                 new ScrobbleController(mediaFileService, statusService, audioScrobblerService, jaxbWriter),
                                 new NowPlayingController(statusService, responseMapper, jaxbWriter),
                                 new NowPlayingPageController(playerService, statusService, mediaFileService),
+                                new MorePageController(settingsService, mediaFileService, mediaFolderService, objectMapper),
                                 new UploadStatusController(statusService, jaxbWriter, databaseService),
                                 new StatisticsController(statusService, securityService, jaxbWriter),
                                 new ScheduledTasksController(taskSchedulingService, jaxbWriter),
@@ -372,6 +374,8 @@ public class KtorConfiguration {
         registration.addUrlMappings(ServerInfoController.PATHS);
         registration.addUrlMappings(ServerInfoController.GETTING_STARTED_PATH, "/gettingStarted", "/gettingStarted.view");
         registration.addUrlMappings(NowPlayingPageController.PATHS);
+        registration.addUrlMappings(MorePageController.PATH);
+        registration.addUrlMappings(MorePageController.PAGE_PATHS);
         registration.addUrlMappings("/help", "/help.view");
         registration.addUrlMappings(PasswordRecoveryController.PATH, "/recover", "/recover.view");
         registration.addUrlMappings(VideoPlayerRestController.PATH, "/videoPlayer", "/videoPlayer.view");
