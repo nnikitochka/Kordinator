@@ -84,6 +84,19 @@ public class WebsiteDirectoryIntegrationTest {
             token = Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
             assertTrue(token.find());
             String csrf = token.group(1);
+            HttpResponse<String> searchPage = send(browser, "/search.view", "query=Sixteen+Horsepower", csrf);
+            assertEquals(searchPage.body(), 200, searchPage.statusCode());
+            assertTrue(searchPage.body().contains("/airsonic/rest/searchPage"));
+            assertTrue(searchPage.body(), searchPage.body().contains("Sixteen"));
+            JsonNode searchPageData = mapper.readTree(send(browser, "/rest/searchPage?query=Sixteen%20Horsepower", null, null).body());
+            assertTrue(searchPageData.path("streamAllowed").asBoolean());
+            assertTrue(searchPageData.path("artists").isArray());
+            assertTrue(searchPageData.path("albums").isArray());
+            assertTrue(searchPageData.path("songs").isArray());
+            assertTrue(searchPageData.path("artists").size() + searchPageData.path("albums").size()
+                    + searchPageData.path("songs").size() > 0);
+            JsonNode subsonicSearch = body(send(browser, "/rest/search3?f=json&c=airsonic-web&query=Sixteen%20Horsepower", null, null));
+            assertEquals("ok", subsonicSearch.path("status").asText());
             JsonNode websitePlayer = mapper.readTree(send(browser, "/playQueue/player", null, null).body());
             assertEquals("WEB", websitePlayer.path("tech").asText());
             String base = "f=json&c=airsonic-web&includeWebsiteDetails=true";

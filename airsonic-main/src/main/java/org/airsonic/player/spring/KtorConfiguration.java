@@ -105,6 +105,7 @@ import org.airsonic.player.controller.rest.playlists.PlaylistImportController;
 import org.airsonic.player.controller.rest.scan.ScanController;
 import org.airsonic.player.controller.rest.shares.SharesController;
 import org.airsonic.player.controller.rest.search.SearchController;
+import org.airsonic.player.controller.rest.search.SearchPageController;
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsController;
 import org.airsonic.player.controller.rest.SubsonicResponseMapper;
 import org.airsonic.player.dao.AlbumDao;
@@ -239,7 +240,10 @@ public class KtorConfiguration {
     ) {
         ServletRegistrationBean<ServletApplicationEngine> registration =
                 new ServletRegistrationBean<>(
-                        new AirsonicKtorServlet(searchController, musicFoldersController, genresController,
+                        new AirsonicKtorServlet(searchController,
+                                new SearchPageController(albumSearchService, securityService, mediaFolderService, settingsService,
+                                        albumDao, mediaFileService, objectMapper),
+                                musicFoldersController, genresController,
                                 artistsController, new PingController(jaxbWriter), new ScanController(mediaScannerService, jaxbWriter),
                                 new SimilarSongsController(mediaFileService, artistDao, lastFmService,
                                         mediaFolderService, responseMapper, jaxbWriter),
@@ -309,6 +313,8 @@ public class KtorConfiguration {
                                 new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), new PlayQueuePageController(playerService, settingsService, objectMapper), jaxbWriter),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
+        registration.addUrlMappings(SearchPageController.DATA_PATH);
+        registration.addUrlMappings(SearchPageController.PAGE_PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);
         registration.addUrlMappings(GenresController.PATHS);
         registration.addUrlMappings(ArtistsController.PATHS);
