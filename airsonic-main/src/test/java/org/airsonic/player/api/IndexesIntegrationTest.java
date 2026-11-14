@@ -6,7 +6,6 @@ import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.User;
-import org.airsonic.player.controller.LeftController;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.MediaScannerService;
@@ -20,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import java.net.URI;
 import java.net.CookieManager;
@@ -45,7 +43,6 @@ public class IndexesIntegrationTest {
     @Autowired private SettingsService settings;
     @Autowired private MediaFileDao mediaFiles;
     @Autowired private SecurityService security;
-    @MockitoSpyBean private LeftController leftController;
     private final HttpClient client = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -105,7 +102,6 @@ public class IndexesIntegrationTest {
             assertEquals(403, send("", "f=json", true).statusCode());
             assertTrue(body(send("", "f=json&musicFolderId=" + second + "&ifModifiedSince=9223372036854775807", false)).path("indexes").isMissingNode());
             assertEquals(second, settings.getUserSettings("admin").getSelectedMusicFolderId());
-            verifyNoInteractions(leftController);
             websiteSelectsFolder(first);
 
         } finally {
@@ -120,12 +116,25 @@ public class IndexesIntegrationTest {
         HttpResponse<String> login = browser.send(HttpRequest.newBuilder(URI.create(base + "/login")).GET().build(), HttpResponse.BodyHandlers.ofString());
         Matcher token = Pattern.compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"").matcher(login.body());
         assertTrue(token.find());
-        String form = "j_username=admin&j_password=admin&_csrf=" + URLEncoder.encode(token.group(1), StandardCharsets.UTF_8);
+        String loginForm = "j_username=admin&j_password=admin&_csrf=" + URLEncoder.encode(token.group(1), StandardCharsets.UTF_8);
         assertEquals(302, browser.send(HttpRequest.newBuilder(URI.create(base + "/login"))
-                .header("Content-Type", "application/x-www-form-urlencoded").POST(HttpRequest.BodyPublishers.ofString(form)).build(), HttpResponse.BodyHandlers.ofString()).statusCode());
+                .header("Content-Type", "application/x-www-form-urlencoded").POST(HttpRequest.BodyPublishers.ofString(loginForm)).build(), HttpResponse.BodyHandlers.ofString()).statusCode());
         var changed = settings.getUserSettings("admin").getChanged();
-        HttpResponse<String> page = browser.send(HttpRequest.newBuilder(URI.create(base + "/left.view?musicFolderId=" + folderId)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> page = browser.send(HttpRequest.newBuilder(URI.create(base + "/left.view")).GET().build(), HttpResponse.BodyHandlers.ofString());
         assertEquals(page.body(), 200, page.statusCode());
+        assertTrue(page.body().contains("/airsonic/rest/leftPageData"));
+        Matcher csrf = Pattern.compile("data-csrf-token=\\\"([^\\\"]+)\\\"").matcher(page.body());
+        assertTrue(page.body(), csrf.find());
+        JsonNode leftData = mapper.readTree(browser.send(HttpRequest.newBuilder(URI.create(base + "/rest/leftPageData")).GET().build(), HttpResponse.BodyHandlers.ofString()).body());
+        assertTrue(leftData.path("folders").size() > 1);
+        assertFalse(leftData.path("indexes").isEmpty());
+        assertTrue(leftData.has("songs"));
+        assertEquals(changed, settings.getUserSettings("admin").getChanged());
+        String form = "musicFolderId=" + folderId;
+        HttpResponse<String> selection = browser.send(HttpRequest.newBuilder(URI.create(base + "/rest/selectLeftMusicFolder"))
+                .header("Content-Type", "application/x-www-form-urlencoded").header("X-CSRF-TOKEN", csrf.group(1))
+                .POST(HttpRequest.BodyPublishers.ofString(form)).build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(selection.body(), 200, selection.statusCode());
         assertEquals(folderId, settings.getUserSettings("admin").getSelectedMusicFolderId());
         assertEquals(changed, settings.getUserSettings("admin").getChanged());
     }

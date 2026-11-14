@@ -111,6 +111,7 @@ import org.airsonic.player.controller.rest.rating.RatingRequest
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingController
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingPageController
 import org.airsonic.player.controller.rest.more.MorePageController
+import org.airsonic.player.controller.rest.indexes.LeftPageController
 import org.airsonic.player.controller.rest.statistics.ScheduledTasksController
 import org.airsonic.player.controller.rest.statistics.ServerHealthController
 import org.airsonic.player.controller.rest.statistics.PathWatchersController
@@ -180,6 +181,7 @@ class AirsonicKtorServlet(
     private val nowPlayingController: NowPlayingController,
     private val nowPlayingPageController: NowPlayingPageController,
     private val morePageController: MorePageController,
+    private val leftPageController: LeftPageController,
     private val uploadStatusController: UploadStatusController,
     private val statisticsController: StatisticsController,
     private val scheduledTasksController: ScheduledTasksController,
@@ -231,6 +233,10 @@ class AirsonicKtorServlet(
             if (nowPlayingPageRequest != null) call.attributes.put(NOW_PLAYING_PAGE_REQUEST_KEY, nowPlayingPageRequest)
             val morePageRequest = request.getAttribute(MorePageController.REQUEST_ATTRIBUTE) as? MorePageController.Request
             if (morePageRequest != null) call.attributes.put(MORE_PAGE_REQUEST_KEY, morePageRequest)
+            val leftPageRequest = request.getAttribute(LeftPageController.REQUEST_ATTRIBUTE) as? LeftPageController.Request
+            if (leftPageRequest != null) call.attributes.put(LEFT_PAGE_REQUEST_KEY, leftPageRequest)
+            val leftPageSelection = request.getAttribute(LeftPageController.SELECTION_ATTRIBUTE) as? LeftPageController.Selection
+            if (leftPageSelection != null) call.attributes.put(LEFT_PAGE_SELECTION_KEY, leftPageSelection)
             val musicFoldersRequest = request.getAttribute(MUSIC_FOLDERS_REQUEST)
                 as? MusicFoldersController.Request
             if (musicFoldersRequest != null) {
@@ -401,6 +407,7 @@ class AirsonicKtorServlet(
             nowPlayingController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             nowPlayingPageController.routes(this) { call -> call.attributes[NOW_PLAYING_PAGE_REQUEST_KEY] }
             morePageController.routes(this) { call -> call.attributes[MORE_PAGE_REQUEST_KEY] }
+            leftPageController.routes(this, { call -> call.attributes[LEFT_PAGE_REQUEST_KEY] }, { call -> call.attributes[LEFT_PAGE_SELECTION_KEY] })
             scrobbleController.routes(this) { call -> call.attributes[SCROBBLE_REQUEST_KEY] }
             randomSongsController.routes(this) { call -> call.attributes[RANDOM_SONGS_REQUEST_KEY] }
             musicDirectoryController.routes(this) { call -> call.attributes[MUSIC_DIRECTORY_REQUEST_KEY] }
@@ -452,6 +459,39 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path == LeftPageController.DATA_PATH || path == LeftPageController.PAGE_PATH || path == "/left") {
+            if (request.method !in setOf("GET", "HEAD")) {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            val user = securityService.getCurrentUser(request)
+            val player = playerService.getPlayer(request, response)
+            val requestData = LeftPageController.Request(user, player, localeResolver.resolveLocale(request), request.getParameter("refresh") == "true")
+            request.setAttribute(LeftPageController.REQUEST_ATTRIBUTE, requestData)
+            if (path != LeftPageController.DATA_PATH) {
+                response.setHeader("Cache-Control", "no-store")
+                val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+                org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
+                request.getRequestDispatcher("/WEB-INF/jsp/left.jsp").forward(request, response)
+                return
+            }
+        }
+        if (path == LeftPageController.SELECT_PATH) {
+            if (request.method != "POST") {
+                response.setHeader("Allow", "POST")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            val username = securityService.getCurrentUsername(request) ?: run { response.sendError(401); return }
+            val rawId = request.getParameter("musicFolderId")
+            val folderId = if (rawId == null) null else rawId.toIntOrNull() ?: run { response.sendError(400); return }
+            request.setAttribute(LeftPageController.SELECTION_ATTRIBUTE, LeftPageController.Selection(username, folderId))
+        }
         if (path == MorePageController.PATH) {
             if (request.method !in setOf("GET", "HEAD")) {
                 response.setHeader("Allow", "GET, HEAD")
@@ -1461,6 +1501,8 @@ class AirsonicKtorServlet(
         val REST_PARAMETERS_KEY = AttributeKey<Parameters>(REST_PARAMETERS)
         val NOW_PLAYING_PAGE_REQUEST_KEY = AttributeKey<NowPlayingPageController.Request>(NowPlayingPageController.REQUEST_ATTRIBUTE)
         val MORE_PAGE_REQUEST_KEY = AttributeKey<MorePageController.Request>(MorePageController.REQUEST_ATTRIBUTE)
+        val LEFT_PAGE_REQUEST_KEY = AttributeKey<LeftPageController.Request>(LeftPageController.REQUEST_ATTRIBUTE)
+        val LEFT_PAGE_SELECTION_KEY = AttributeKey<LeftPageController.Selection>(LeftPageController.SELECTION_ATTRIBUTE)
         const val SEARCH_REQUEST = "org.airsonic.player.searchRequest"
         val SEARCH_REQUEST_KEY = AttributeKey<SearchController.Request>(SEARCH_REQUEST)
         const val MUSIC_FOLDERS_REQUEST = "org.airsonic.player.musicFoldersRequest"
