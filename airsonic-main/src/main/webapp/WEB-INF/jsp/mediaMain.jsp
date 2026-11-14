@@ -61,11 +61,12 @@
     var subDirsTable = null;
     var subDirsTableData = [];
     var thumbsData = [];
-    var viewAsList = ${model.viewAsList};
+    var pageSettings;
+    var viewAsList = false;
     var topSongs = [];
     var artistTopSongsTable = null;
-    var initialIds = ${model.initialIdsJSON};
-    var initialPaths = ${model.initialPathsJSON};
+    var initialIds = [];
+    var initialPaths = {};
 
     function getMediaDirectory(mediaFileId) {
         getMediaDirectories([mediaFileId]);
@@ -103,9 +104,7 @@
         generateMediaDirThumb();
         refreshViewDependentComponents();
 
-      <c:if test="${model.showArtistInfo}">
-        loadArtistInfo();
-      </c:if>
+        if (pageSettings.showArtistInfo) loadArtistInfo();
 
         // directory star
         updateStarImage();
@@ -138,6 +137,9 @@
         // show only appropriate components
         $(".pagetype-dependent:not(.type-" + mediaDir.contentType + ")").hide();
         $(".pagetype-dependent.type-" + mediaDir.contentType).show();
+        if (!pageSettings.roles.stream || pageSettings.partyMode) $("#streamActions").hide();
+        if (!pageSettings.roles.download || pageSettings.partyMode) $("#downloadAllAction").hide();
+        if (!pageSettings.roles.coverArt || pageSettings.partyMode) $("#coverArtAction").hide();
         $('#subDirsTable_wrapper').show();
 
         if (mediaDir.contentType == 'artist') {
@@ -182,7 +184,7 @@
 
     function generateMediaDirThumb() {
         var urlBase = "<c:url value='/coverArtJsp.view'/>";
-        $.get(urlBase + '?coverArtSize=${model.coverArtSizeLarge}&showZoom=true&showChange=${model.user.coverArtRole}&albumId=' + mediaDir.id, data => {
+        $.get(urlBase + '?coverArtSize=' + pageSettings.coverArtSizeLarge + '&showZoom=true&showChange=' + pageSettings.roles.coverArt + '&albumId=' + mediaDir.id, data => {
             $('#mediaDirThumb').html(data);
         });
     }
@@ -194,7 +196,7 @@
         thumbsData.filter(t => t.entryType != 'VIDEO').forEach((t,i) => {
             //append container first to keep order intact when async callback happens
             $('#thumbs').append('<div class="albumThumb"></div>');
-            $.get(urlBase + '?hideOverflow=true&showLink=true&appearAfter=' + (i * 30) + '&coverArtSize=${model.coverArtSizeMedium}&captionCount=2&caption2=' + (t.year ? t.year : '') + '&caption1=' + encodeURIComponent(t.title) +'&albumId=' + t.id, data => {
+            $.get(urlBase + '?hideOverflow=true&showLink=true&appearAfter=' + (i * 30) + '&coverArtSize=' + pageSettings.coverArtSizeMedium + '&captionCount=2&caption2=' + (t.year ? t.year : '') + '&caption1=' + encodeURIComponent(t.title) +'&albumId=' + t.id, data => {
                 $('#thumbs .albumThumb:nth-child(' + (i + 1) + ')').append(data);
             });
         });
@@ -264,6 +266,43 @@
         $("#subDirsHeader").html("<h2 style='margin: 0'>" + subDirHeading + "</h2>");
     }
 
+    function pageLengthMenu(size) {
+        var lengths = [10, 20, 50, 100, -1];
+        if (lengths.indexOf(size) < 0) lengths.splice(lengths.length - 1, 0, size);
+        return [lengths, lengths.map(function(length) { return length === -1 ? "All" : length; })];
+    }
+
+    function loadMainPage() {
+        fetch("<c:url value='/rest/mainPageSettings'/>" + window.location.search, {credentials: "same-origin"})
+            .then(function(response) {
+                if (!response.ok) throw new Error("Main page settings unavailable");
+                return response.json();
+            })
+            .then(function(settings) {
+                pageSettings = settings;
+                viewAsList = settings.viewAsList;
+                initialIds = settings.initialIds || [];
+                initialPaths = settings.initialPaths || {};
+                applyPagePermissions();
+                init();
+            })
+            .catch(function(error) { console.error(error); });
+    }
+
+    function applyPagePermissions() {
+        var roles = pageSettings.roles;
+        $("#pageActions").toggle(!pageSettings.partyMode);
+        $("#streamActions").toggle(roles.stream && !pageSettings.partyMode);
+        $("#downloadAllAction").toggle(roles.download && !pageSettings.partyMode);
+        $("#downloadOption").prop("hidden", !roles.download);
+        $("#coverArtAction").toggle(roles.coverArt && !pageSettings.partyMode);
+        $("#commentAction").toggle(roles.comment && !pageSettings.partyMode);
+        $("#userRatingContainer").toggle(roles.comment);
+        $("#shareAlbumAction").toggle(roles.share);
+        $("#shareOption").prop("hidden", !roles.share);
+        $("#filesTable").toggleClass("hide-table-header", !pageSettings.visibility.headerVisible);
+    }
+
     function init() {
         $("a.fancy").fancyZoom({
             minBorder: 30
@@ -301,9 +340,8 @@
             order: [],
             //orderFixed: [ 0, 'asc' ],
             orderMulti: true,
-            pageLength: ${model.initialPaginationSizeFiles},
-          <c:set var="paginationaddition" value="${fn:contains(' 10 20 50 100 -1', ' '.concat(model.initialPaginationSizeFiles)) ? '' : ', '.concat(model.initialPaginationSizeFiles)}" />
-            lengthMenu: [[10, 20, 50, 100, -1 ${paginationaddition}], [10, 20, 50, 100, "All" ${paginationaddition}]],
+            pageLength: pageSettings.initialPaginationSizeFiles,
+            lengthMenu: pageLengthMenu(pageSettings.initialPaginationSizeFiles),
             processing: true,
             autoWidth: true,
             scrollCollapse: true,
@@ -335,14 +373,14 @@
                 { data: null,
                   searchable: false,
                   name: "play",
-                  visible: ${model.user.streamRole and not model.partyMode},
+                  visible: pageSettings.roles.stream && !pageSettings.partyMode,
                   className: "fit not-draggable centeralign",
                   defaultContent: "<img class='playSong' src=\"<spring:theme code='playImage'/>\" style='height:18px;' alt=\"<fmt:message key='common.play'/>\" title=\"<fmt:message key='common.play'/>\">"
                 },
                 { data: "entryType",
                   searchable: false,
                   name: "addLast",
-                  visible: ${model.user.streamRole and not model.partyMode},
+                  visible: pageSettings.roles.stream && !pageSettings.partyMode,
                   className: "fit not-draggable centeralign",
                   render: function(entryType, type, row) {
                       if (type == "display" && entryType != "VIDEO" && entryType != "DIRECTORY" && entryType != "ALBUM") {
@@ -354,7 +392,7 @@
                 { data: "entryType",
                   searchable: false,
                   name: "addNext",
-                  visible: ${model.user.streamRole and not model.partyMode},
+                  visible: pageSettings.roles.stream && !pageSettings.partyMode,
                   className: "fit not-draggable centeralign",
                   render: function(entryType, type, row) {
                       if (type == "display" && entryType != "VIDEO" && entryType != "DIRECTORY" && entryType != "ALBUM") {
@@ -369,8 +407,8 @@
                   className: "fit not-draggable songIndex centeralign",
                   defaultContent: "<input type='checkbox'>"
                 },
-                { data: "trackNumber", className: "detail fit", visible: ${model.visibility.trackNumberVisible}, title: "<fmt:message key='personalsettings.tracknumber'/>" },
-                { data: "discNumber", className: "detail fit", visible: ${model.visibility.discNumberVisible}, title: "<fmt:message key='personalsettings.discnumber'/>" },
+                { data: "trackNumber", className: "detail fit", visible: pageSettings.visibility.trackNumberVisible, title: "<fmt:message key='personalsettings.tracknumber'/>" },
+                { data: "discNumber", className: "detail fit", visible: pageSettings.visibility.discNumberVisible, title: "<fmt:message key='personalsettings.discnumber'/>" },
                 { data: "title",
                   className: "detail songTitle truncate",
                   title: "<fmt:message key='edittags.songtitle'/>",
@@ -383,7 +421,7 @@
                 },
                 { data: "album",
                   className: "detail truncate",
-                  visible: ${model.visibility.albumVisible},
+                  visible: pageSettings.visibility.albumVisible,
                   title: "<fmt:message key='personalsettings.album'/>",
                   render: function(album, type, row) {
                       if (type == "display" && album != null) {
@@ -394,7 +432,7 @@
                 },
                 { data: "artist",
                   className: "detail truncate",
-                  visible: ${model.visibility.artistVisible},
+                  visible: pageSettings.visibility.artistVisible,
                   title: "<fmt:message key='personalsettings.artist'/>",
                   render: function(artist, type) {
                       if (type == "display" && artist != null) {
@@ -405,7 +443,7 @@
                 },
                 { data: "albumArtist",
                   className: "detail truncate",
-                  visible: ${model.visibility.albumArtistVisible},
+                  visible: pageSettings.visibility.albumArtistVisible,
                   title: "<fmt:message key='personalsettings.albumartist'/>",
                   render: function(artist, type) {
                       if (type == "display" && artist != null) {
@@ -416,7 +454,7 @@
                 },
                 { data: "genre",
                   className: "detail truncate",
-                  visible: ${model.visibility.genreVisible},
+                  visible: pageSettings.visibility.genreVisible,
                   title: "<fmt:message key='personalsettings.genre'/>",
                   render: function(genre, type) {
                       if (type == "display" && genre != null) {
@@ -425,12 +463,12 @@
                       return genre;
                   }
                 },
-                { data: "year", className: "detail fit rightalign", visible: ${model.visibility.yearVisible}, title: "<fmt:message key='personalsettings.year'/>" },
-                { data: "format", className: "detail fit rightalign", visible: ${model.visibility.formatVisible}, title: "<fmt:message key='personalsettings.format'/>" },
-                { data: "fileSize", className: "detail fit rightalign", visible: ${model.visibility.fileSizeVisible}, title: "<fmt:message key='personalsettings.filesize'/>" },
+                { data: "year", className: "detail fit rightalign", visible: pageSettings.visibility.yearVisible, title: "<fmt:message key='personalsettings.year'/>" },
+                { data: "format", className: "detail fit rightalign", visible: pageSettings.visibility.formatVisible, title: "<fmt:message key='personalsettings.format'/>" },
+                { data: "fileSize", className: "detail fit rightalign", visible: pageSettings.visibility.fileSizeVisible, title: "<fmt:message key='personalsettings.filesize'/>" },
                 { data: "duration",
                   className: "detail fit rightalign",
-                  visible: ${model.visibility.durationVisible},
+                  visible: pageSettings.visibility.durationVisible,
                   title: "<fmt:message key='personalsettings.duration'/>",
                   render: function(data, type, row) {
                       if (type == "display" && data != null) {
@@ -439,11 +477,11 @@
                       return data;
                   }
                 },
-                { data: "bitRate", className: "detail fit rightalign", visible: ${model.visibility.bitRateVisible}, title: "<fmt:message key='personalsettings.bitrate'/>" },
-                { data: "playCount", className: "detail fit rightalign", visible: ${model.visibility.playCountVisible}, title: "<fmt:message key='personalsettings.playcount'/>" },
+                { data: "bitRate", className: "detail fit rightalign", visible: pageSettings.visibility.bitRateVisible, title: "<fmt:message key='personalsettings.bitrate'/>" },
+                { data: "playCount", className: "detail fit rightalign", visible: pageSettings.visibility.playCountVisible, title: "<fmt:message key='personalsettings.playcount'/>" },
                 { data: "lastPlayed",
                   className: "detail fit rightalign",
-                  visible: ${model.visibility.lastPlayedVisible},
+                  visible: pageSettings.visibility.lastPlayedVisible,
                   title: "<fmt:message key='personalsettings.lastplayed'/>",
                   render: function(data, type, row) {
                       if (data != null) {
@@ -457,7 +495,7 @@
                 },
                 { data: "lastScanned",
                   className: "detail fit rightalign",
-                  visible: ${model.visibility.lastScannedVisible},
+                  visible: pageSettings.visibility.lastScannedVisible,
                   title: "<fmt:message key='personalsettings.lastscanned'/>",
                   render: function(data, type, row) {
                       if (data != null) {
@@ -471,7 +509,7 @@
                 },
                 { data: "created",
                   className: "detail fit rightalign",
-                  visible: ${model.visibility.createdVisible},
+                  visible: pageSettings.visibility.createdVisible,
                   title: "<fmt:message key='personalsettings.created'/>",
                   render: function(data, type, row) {
                       if (data != null) {
@@ -485,7 +523,7 @@
                 },
                 { data: "changed",
                   className: "detail fit rightalign",
-                  visible: ${model.visibility.changedVisible},
+                  visible: pageSettings.visibility.changedVisible,
                   title: "<fmt:message key='personalsettings.changed'/>",
                   render: function(data, type, row) {
                       if (data != null) {
@@ -499,7 +537,7 @@
                 },
                 { data: "entryType",
                   className: "detail fit rightalign truncate",
-                  visible: ${model.visibility.entryTypeVisible},
+                  visible: pageSettings.visibility.entryTypeVisible,
                   title: "<fmt:message key='personalsettings.entrytype'/>",
                   render: function(entryType, type, row) {
                       if (type == "display" && entryType != null) {
@@ -546,9 +584,8 @@
             order: [],
             orderFixed: [ 0, 'asc' ],
             orderMulti: false,
-            pageLength: ${model.initialPaginationSizeFolders},
-          <c:set var="paginationaddition" value="${fn:contains(' 10 20 50 100 -1', ' '.concat(model.initialPaginationSizeFolders)) ? '' : ', '.concat(model.initialPaginationSizeFolders)}" />
-            lengthMenu: [[10, 20, 50, 100, -1 ${paginationaddition}], [10, 20, 50, 100, "All" ${paginationaddition}]],
+            pageLength: pageSettings.initialPaginationSizeFolders,
+            lengthMenu: pageLengthMenu(pageSettings.initialPaginationSizeFolders),
             processing: true,
             autoWidth: true,
             scrollCollapse: true,
@@ -567,14 +604,14 @@
                 { data: null,
                   searchable: false,
                   name: "play",
-                  visible: ${model.user.streamRole and not model.partyMode},
+                  visible: pageSettings.roles.stream && !pageSettings.partyMode,
                   className: "fit not-draggable centeralign",
                   defaultContent: "<img class='playSong' src=\"<spring:theme code='playImage'/>\" style='height:18px;' alt=\"<fmt:message key='common.play'/>\" title=\"<fmt:message key='common.play'/>\">"
                 },
                 { data: "entryType",
                   searchable: false,
                   name: "addLast",
-                  visible: ${model.user.streamRole and not model.partyMode},
+                  visible: pageSettings.roles.stream && !pageSettings.partyMode,
                   className: "fit not-draggable centeralign",
                   render: function(entryType, type, row) {
                       if (type == "display") {
@@ -586,7 +623,7 @@
                 { data: "entryType",
                   searchable: false,
                   name: "addNext",
-                  visible: ${model.user.streamRole and not model.partyMode},
+                  visible: pageSettings.roles.stream && !pageSettings.partyMode,
                   className: "fit not-draggable centeralign",
                   render: function(entryType, type, row) {
                       if (type == "display") {
@@ -631,9 +668,8 @@
             order: [],
             orderFixed: [ 0, 'asc' ],
             orderMulti: false,
-            pageLength: ${model.initialPaginationSizeFolders},
-          <c:set var="paginationaddition" value="${fn:contains(' 10 20 50 100 -1', ' '.concat(model.initialPaginationSizeFolders)) ? '' : ', '.concat(model.initialPaginationSizeFolders)}" />
-            lengthMenu: [[10, 20, 50, 100, -1 ${paginationaddition}], [10, 20, 50, 100, "All" ${paginationaddition}]],
+            pageLength: pageSettings.initialPaginationSizeFolders,
+            lengthMenu: pageLengthMenu(pageSettings.initialPaginationSizeFolders),
             processing: true,
             autoWidth: true,
             scrollCollapse: true,
@@ -740,7 +776,6 @@
         }
     }
 
-  <c:if test="${model.showArtistInfo}">
     var artistInfoApi = createArtistInfo({
         url: "<c:url value='/rest/getArtistInfo'/>", csrfHeader: "${_csrf.headerName}", csrfToken: "${_csrf.token}"
     });
@@ -795,7 +830,6 @@
         artistTopSongsTable.ajax.reload().columns.adjust();
 
     }
-  </c:if>
 
     function populateAncestors() {
         var ancestors = $("#ancestors").empty();
@@ -1064,7 +1098,7 @@
     }
 </script>
 </head>
-<body class="mainframe bgcolor1" onload="init();">
+<body class="mainframe bgcolor1" onload="loadMainPage();">
 <div style="float:left">
     <h1>
         <img id="starImage" src="<spring:theme code='ratingOffImage'/>"
@@ -1074,34 +1108,26 @@
 
         <div id="avgRating" style="display: inline-block"></div>
     </h1>
-
-    <c:if test="${not model.partyMode}">
-        <h2>
-            <c:if test="${model.user.streamRole}">
-                <div class="pagetype-dependent type-album type-artist" style="display: inline-block;">
+<h2 id="pageActions" style="display:none">
+<div id="streamActions" class="pagetype-dependent type-album type-artist" style="display:none;">
                     <span class="header"><a href="javascript:playAll()"><fmt:message key="main.playall"/></a></span> |
                     <span class="header"><a href="javascript:playRandom()"><fmt:message key="main.playrandom"/></a></span> |
                     <span class="header"><a href="javascript:addAll()"><fmt:message key="main.addall"/></a></span> |
                 </div>
-            </c:if>
 
-            <c:if test="${model.user.downloadRole}">
-                <div class="pagetype-dependent type-album" style="display: inline-block;">
+<div id="downloadAllAction" class="pagetype-dependent type-album" style="display:none;">
                     <span class="header"><a href="javascript:downloadAll()"><fmt:message key="main.downloadall"/></a></span> |
                 </div>
-            </c:if>
 
-            <c:if test="${model.user.coverArtRole}">
-                <div class="pagetype-dependent type-album" style="display: inline-block;">
+
+                <div id="coverArtAction" class="pagetype-dependent type-album" style="display:none;">
                     <span class="header"><a href="javascript:editTagsPage()"><fmt:message key="main.tags"/></a></span> |
                 </div>
-            </c:if>
 
-            <c:if test="${model.user.commentRole}">
-                <span class="header"><a href="javascript:toggleComment()"><fmt:message key="main.comment"/></a></span> |
-            </c:if>
+<span id="commentAction" class="header" style="display:none"><a href="javascript:toggleComment()"><fmt:message key="main.comment"/></a></span> |
+
         </h2>
-    </c:if>
+
 </div>
 
 <div style="float:right;padding-right:1em">
@@ -1111,14 +1137,11 @@
 <div style="clear:both"></div>
 
 <div class="detail pagetype-dependent type-album">
-    <c:if test="${model.user.commentRole}">
-        <div id="userRating" style="display: inline-block;"></div>
-    </c:if>
+<div id="userRatingContainer" style="display:none"><div id="userRating" style="display: inline-block;"></div></div>
 
-    <c:if test="${model.user.shareRole}">
-        <span class="header"><a href="javascript:shareAlbum()"><img src="<spring:theme code='shareSmallImage'/>" style="height:18px;" alt=""></a>
+<span id="shareAlbumAction" class="header" style="display:none"><a href="javascript:shareAlbum()"><img src="<spring:theme code='shareSmallImage'/>" style="height:18px;" alt=""></a>
             <a href="javascript:shareAlbum()"><fmt:message key="main.sharealbum"/></a> </span> |
-    </c:if>
+
 
         <span class="header external-search"><fmt:message key="top.search"/>: <a href="#" onclick="searchExternally('google')">Google</a> |</span>
         <span class="header external-search"><a href="#" onclick="searchExternally('wikipedia')">Wikipedia</a> |</span>
@@ -1156,19 +1179,17 @@
 
 <div class="tableSpacer"></div>
 
-<table id="filesTable" class="music indent hover nowrap stripe compact <c:if test='${!model.visibility.headerVisible}'>hide-table-header</c:if>" style="width: 100%;">
+<table id="filesTable" class="music indent hover nowrap stripe compact" style="width: 100%;">
 </table>
 
 <select id="moreActions" class="pagetype-dependent type-album type-video" onchange="actionSelected(this.options[selectedIndex].id);" style="margin-bottom:1.0em">
     <option id="top" selected="selected"><fmt:message key="main.more.selection"/></option>
     <option id="selectAll">&nbsp;&nbsp;<fmt:message key="playlist.more.selectall"/></option>
     <option id="selectNone">&nbsp;&nbsp;<fmt:message key="playlist.more.selectnone"/></option>
-    <c:if test="${model.user.downloadRole}">
-        <option id="download">&nbsp;&nbsp;<fmt:message key="common.download"/></option>
-    </c:if>
-    <c:if test="${model.user.shareRole}">
-        <option id="share">&nbsp;&nbsp;<fmt:message key="main.more.share"/></option>
-    </c:if>
+<option id="download" hidden>&nbsp;&nbsp;<fmt:message key="common.download"/></option>
+
+<option id="share" hidden>&nbsp;&nbsp;<fmt:message key="main.more.share"/></option>
+
     <option id="appendPlaylist">&nbsp;&nbsp;<fmt:message key="playlist.append"/></option>
     <option id="star">&nbsp;&nbsp;<fmt:message key="playlist.more.star"/></option>
     <option id="unstar">&nbsp;&nbsp;<fmt:message key="playlist.more.unstar"/></option>

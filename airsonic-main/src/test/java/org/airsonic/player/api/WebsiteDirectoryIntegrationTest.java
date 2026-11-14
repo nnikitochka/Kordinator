@@ -64,7 +64,17 @@ public class WebsiteDirectoryIntegrationTest {
             assertEquals(302, send(browser, "/login", "j_username=web-directory-reader&j_password=secret&_csrf=" + URLEncoder.encode(token.group(1), StandardCharsets.UTF_8), null).statusCode());
             HttpResponse<String> page = send(browser, "/main.view?id=" + album.getId(), null, null);
             assertEquals(page.body(), 200, page.statusCode());
+            assertTrue(page.body().contains("/airsonic/rest/mainPageSettings"));
+            assertFalse(page.body().contains("${model."));
             assertTrue(page.body().contains("/airsonic/script/subsonic-media-directory.js?v=2"));
+            String requestedPath = URLEncoder.encode(library.get(0).getId() + ":" + albumPath, StandardCharsets.UTF_8);
+            JsonNode pageSettings = mapper.readTree(send(browser,
+                    "/rest/mainPageSettings?id=" + album.getId() + "&path=" + requestedPath, null, null).body());
+            assertEquals(album.getId().intValue(), pageSettings.path("initialIds").get(0).asInt());
+            assertEquals(albumPath, pageSettings.path("initialPaths").path(String.valueOf(library.get(0).getId())).get(0).asText());
+            assertTrue(pageSettings.path("roles").path("stream").asBoolean());
+            assertFalse(pageSettings.path("roles").path("download").asBoolean());
+            assertTrue(pageSettings.path("visibility").has("discNumberVisible"));
             HttpResponse<String> script = send(browser, "/script/subsonic-media-directory.js?v=2", null, null);
             assertEquals(script.body(), 200, script.statusCode());
             assertTrue(script.headers().firstValue("cache-control").orElse("").contains("max-age=36000"));
