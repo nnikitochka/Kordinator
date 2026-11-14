@@ -12,6 +12,7 @@ import org.airsonic.player.service.MediaScannerService;
 import org.airsonic.player.service.BookmarkService;
 import org.airsonic.player.util.StringUtil;
 import org.airsonic.player.service.SecurityService;
+import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.util.HomeRule;
 import org.airsonic.player.util.MusicFolderTestData;
 import org.junit.ClassRule;
@@ -46,6 +47,7 @@ public class BookmarksIntegrationTest {
     @Autowired private MediaScannerService scanner;
     @Autowired private MediaFileDao mediaFiles;
     @Autowired private SecurityService security;
+    @Autowired private SettingsService settings;
     @Autowired private BookmarkService bookmarks;
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ObjectMapper mapper = new ObjectMapper();
@@ -89,6 +91,14 @@ public class BookmarksIntegrationTest {
             assertOk(call("createBookmark", "id=" + oldId + "&position=400000&comment=Updated", null));
             assertEquals(400000, bookmarks.getBookmark("admin", id).getPositionMillis());
             assertEquals("Updated", bookmarks.getBookmark("admin", id).getComment());
+            JsonNode pageSettings = mapper.readTree(raw("bookmarksPageSettings", "", null, null, false).body());
+            assertEquals(settings.getUserSettings("admin").getPaginationSizeBookmarks(), pageSettings.path("initialPaginationSize").asInt());
+            String basic = Base64.getEncoder().encodeToString("admin:admin".getBytes(StandardCharsets.UTF_8));
+            HttpResponse<String> page = client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic/bookmarks.view"))
+                    .header("Authorization", "Basic " + basic).GET().build(), HttpResponse.BodyHandlers.ofString());
+            assertEquals(page.body(), 200, page.statusCode());
+            assertTrue(page.body().contains("/airsonic/rest/bookmarksPageSettings"));
+            assertFalse(page.body().contains("${model.initialPaginationSize}"));
             HttpResponse<String> xml = raw("getBookmarks.view", "", null, null, false);
             assertEquals(200, xml.statusCode());
             assertTrue(xml.body(), xml.body().contains("<bookmarks>"));

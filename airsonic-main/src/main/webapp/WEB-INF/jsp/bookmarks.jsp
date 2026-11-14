@@ -16,8 +16,18 @@
         var bookmarksTable;
 
         function init() {
+            fetch('<c:url value="/rest/bookmarksPageSettings"/>', {credentials: 'same-origin', cache: 'no-store'})
+                .then(function (response) { if (!response.ok) throw new Error('settings unavailable'); return response.json(); })
+                .then(function (settings) { initializeBookmarks(settings.initialPaginationSize); })
+                .catch(function () { initializeBookmarks(20); });
+        }
+
+        function initializeBookmarks(initialPaginationSize) {
         	var ratingOnImage = "<spring:theme code='ratingOnImage'/>";
             var ratingOffImage = "<spring:theme code='ratingOffImage'/>";
+            var lengths = [10, 20, 50, 100, -1];
+            if (lengths.indexOf(initialPaginationSize) === -1) lengths.push(initialPaginationSize);
+            var labels = lengths.map(function (length) { return length === -1 ? 'All' : length; });
 
             bookmarksTable = $("#bookmarksTable").DataTable( {
                 deferRender: true,
@@ -34,9 +44,8 @@
                 ordering: true,
                 order: [],
                 orderMulti: true,
-                pageLength: ${model.initialPaginationSize},
-              <c:set var="paginationaddition" value="${fn:contains(' 10 20 50 100 -1', ' '.concat(model.initialPaginationSize)) ? '' : ', '.concat(model.initialPaginationSize)}" />
-                lengthMenu: [[10, 20, 50, 100, -1 ${paginationaddition}], [10, 20, 50, 100, "All" ${paginationaddition}]],
+                pageLength: initialPaginationSize,
+                lengthMenu: [lengths, labels],
                 processing: true,
                 autoWidth: true,
                 scrollCollapse: true,

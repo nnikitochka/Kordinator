@@ -112,6 +112,7 @@ import org.airsonic.player.controller.rest.nowplaying.NowPlayingController
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingPageController
 import org.airsonic.player.controller.rest.more.MorePageController
 import org.airsonic.player.controller.rest.indexes.LeftPageController
+import org.airsonic.player.controller.rest.bookmarks.BookmarksPageController
 import org.airsonic.player.controller.rest.statistics.ScheduledTasksController
 import org.airsonic.player.controller.rest.statistics.ServerHealthController
 import org.airsonic.player.controller.rest.statistics.PathWatchersController
@@ -182,6 +183,7 @@ class AirsonicKtorServlet(
     private val nowPlayingPageController: NowPlayingPageController,
     private val morePageController: MorePageController,
     private val leftPageController: LeftPageController,
+    private val bookmarksPageController: BookmarksPageController,
     private val uploadStatusController: UploadStatusController,
     private val statisticsController: StatisticsController,
     private val scheduledTasksController: ScheduledTasksController,
@@ -237,6 +239,8 @@ class AirsonicKtorServlet(
             if (leftPageRequest != null) call.attributes.put(LEFT_PAGE_REQUEST_KEY, leftPageRequest)
             val leftPageSelection = request.getAttribute(LeftPageController.SELECTION_ATTRIBUTE) as? LeftPageController.Selection
             if (leftPageSelection != null) call.attributes.put(LEFT_PAGE_SELECTION_KEY, leftPageSelection)
+            val bookmarksPageRequest = request.getAttribute(BookmarksPageController.REQUEST_ATTRIBUTE) as? BookmarksPageController.Request
+            if (bookmarksPageRequest != null) call.attributes.put(BOOKMARKS_PAGE_REQUEST_KEY, bookmarksPageRequest)
             val musicFoldersRequest = request.getAttribute(MUSIC_FOLDERS_REQUEST)
                 as? MusicFoldersController.Request
             if (musicFoldersRequest != null) {
@@ -408,6 +412,7 @@ class AirsonicKtorServlet(
             nowPlayingPageController.routes(this) { call -> call.attributes[NOW_PLAYING_PAGE_REQUEST_KEY] }
             morePageController.routes(this) { call -> call.attributes[MORE_PAGE_REQUEST_KEY] }
             leftPageController.routes(this, { call -> call.attributes[LEFT_PAGE_REQUEST_KEY] }, { call -> call.attributes[LEFT_PAGE_SELECTION_KEY] })
+            bookmarksPageController.routes(this) { call -> call.attributes[BOOKMARKS_PAGE_REQUEST_KEY] }
             scrobbleController.routes(this) { call -> call.attributes[SCROBBLE_REQUEST_KEY] }
             randomSongsController.routes(this) { call -> call.attributes[RANDOM_SONGS_REQUEST_KEY] }
             musicDirectoryController.routes(this) { call -> call.attributes[MUSIC_DIRECTORY_REQUEST_KEY] }
@@ -459,6 +464,26 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path == BookmarksPageController.DATA_PATH || path in BookmarksPageController.PAGE_PATHS) {
+            if (request.method !in setOf("GET", "HEAD")) {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            val username = securityService.getCurrentUsername(request) ?: run { response.sendError(401); return }
+            request.setAttribute(BookmarksPageController.REQUEST_ATTRIBUTE, BookmarksPageController.Request(username))
+            if (path in BookmarksPageController.PAGE_PATHS) {
+                response.setHeader("Cache-Control", "no-store")
+                val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+                org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
+                request.getRequestDispatcher("/WEB-INF/jsp/bookmarks.jsp").forward(request, response)
+                return
+            }
+        }
         if (path == LeftPageController.DATA_PATH || path == LeftPageController.PAGE_PATH || path == "/left") {
             if (request.method !in setOf("GET", "HEAD")) {
                 response.setHeader("Allow", "GET, HEAD")
@@ -1503,6 +1528,7 @@ class AirsonicKtorServlet(
         val MORE_PAGE_REQUEST_KEY = AttributeKey<MorePageController.Request>(MorePageController.REQUEST_ATTRIBUTE)
         val LEFT_PAGE_REQUEST_KEY = AttributeKey<LeftPageController.Request>(LeftPageController.REQUEST_ATTRIBUTE)
         val LEFT_PAGE_SELECTION_KEY = AttributeKey<LeftPageController.Selection>(LeftPageController.SELECTION_ATTRIBUTE)
+        val BOOKMARKS_PAGE_REQUEST_KEY = AttributeKey<BookmarksPageController.Request>(BookmarksPageController.REQUEST_ATTRIBUTE)
         const val SEARCH_REQUEST = "org.airsonic.player.searchRequest"
         val SEARCH_REQUEST_KEY = AttributeKey<SearchController.Request>(SEARCH_REQUEST)
         const val MUSIC_FOLDERS_REQUEST = "org.airsonic.player.musicFoldersRequest"
