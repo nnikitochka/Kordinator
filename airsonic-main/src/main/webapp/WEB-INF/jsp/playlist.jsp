@@ -9,8 +9,42 @@
     <%@ include file="table.jsp" %>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
     <script type="text/javascript" language="javascript">
-        var playlistId = ${model.playlist.id};
+        var playlistId;
+        var playlistPageSettings;
         var songs = [];
+
+        function playlistLengthMenu() {
+            var sizes = [10, 20, 50, 100, -1];
+            var configured = playlistPageSettings.initialPaginationSize;
+            if (sizes.indexOf(configured) < 0) sizes.splice(sizes.length - 1, 0, configured);
+            return [sizes, sizes.map(function(size) { return size === -1 ? "All" : size; })];
+        }
+
+        function loadPlaylistPage() {
+            var requestedId = new URLSearchParams(window.location.search).get("id");
+            fetch("<c:url value='/rest/playlistPageSettings'/>?id=" + encodeURIComponent(requestedId || ""), {credentials: "same-origin"})
+                .then(function(response) {
+                    if (!response.ok) throw new Error("Playlist page settings unavailable");
+                    return response.json();
+                })
+                .then(function(settings) {
+                    playlistPageSettings = settings;
+                    playlistId = settings.playlistId;
+                    document.getElementById("createdBy").textContent = settings.createdLabel;
+                    document.getElementById("downloadAction").style.display = settings.downloadAllowed ? "" : "none";
+                    document.getElementById("shareAction").style.display = settings.shareAllowed ? "" : "none";
+                    ["editAction", "deleteAction"].forEach(function(id) {
+                        document.getElementById(id).style.display = settings.editAllowed ? "" : "none";
+                    });
+                    document.getElementById("moreactions").style.display = settings.editAllowed ? "" : "none";
+                    document.getElementById("playlistMusic").classList.toggle("hide-table-header", !settings.visibility.headerVisible);
+                    init();
+                })
+                .catch(function(error) {
+                    console.error(error);
+                    window.location.assign("notFound");
+                });
+        }
 
         function init() {
             var ratingOnImage = "<spring:theme code='ratingOnImage'/>";
@@ -32,9 +66,8 @@
                 order: [],
                 orderFixed: [ 0, 'asc' ],
                 orderMulti: false,
-                pageLength: ${model.initialPaginationSize},
-              <c:set var="paginationaddition" value="${fn:contains(' 10 20 50 100 -1', ' '.concat(model.initialPaginationSize)) ? '' : ', '.concat(model.initialPaginationSize)}" />
-                lengthMenu: [[10, 20, 50, 100, -1 ${paginationaddition}], [10, 20, 50, 100, "All" ${paginationaddition}]],
+                pageLength: playlistPageSettings.initialPaginationSize,
+                lengthMenu: playlistLengthMenu(),
                 processing: true,
                 autoWidth: true,
                 scrollCollapse: true,
@@ -42,12 +75,10 @@
                 style: "multi",
                     selector: ".playlistSongIndex"
                 },
-              <c:if test="${model.editAllowed}">
-                rowReorder: {
+                rowReorder: playlistPageSettings.editAllowed ? {
                     dataSrc: "seq",
                     selector: "td:not(.not-draggable)"
-                },
-              </c:if>
+                } : false,
                 language: {
                     emptyTable: "<fmt:message key='playlist2.empty'/>"
                 },
@@ -136,8 +167,8 @@
                           return present ? "available" : "missing";
                       }
                     },
-                    { data: "trackNumber", className: "detail fit", visible: ${model.visibility.trackNumberVisible}, title: "<fmt:message key='personalsettings.tracknumber'/>" },
-                    { data: "discNumber", className: "detail fit", visible: ${model.visibility.discNumberVisible}, title: "<fmt:message key='personalsettings.discnumber'/>" },
+                    { data: "trackNumber", className: "detail fit", visible: playlistPageSettings.visibility.trackNumberVisible, title: "<fmt:message key='personalsettings.tracknumber'/>" },
+                    { data: "discNumber", className: "detail fit", visible: playlistPageSettings.visibility.discNumberVisible, title: "<fmt:message key='personalsettings.discnumber'/>" },
                     { data: "title",
                       className: "detail songTitle truncate",
                       title: "<fmt:message key='edittags.songtitle'/>",
@@ -150,7 +181,7 @@
                     },
                     { data: "album",
                       className: "detail truncate",
-                      visible: ${model.visibility.albumVisible},
+                      visible: playlistPageSettings.visibility.albumVisible,
                       title: "<fmt:message key='personalsettings.album'/>",
                       render: function(album, type, row) {
                           if (type == "display" && album != null) {
@@ -161,7 +192,7 @@
                     },
                     { data: "artist",
                       className: "detail truncate",
-                      visible: ${model.visibility.artistVisible},
+                      visible: playlistPageSettings.visibility.artistVisible,
                       title: "<fmt:message key='personalsettings.artist'/>",
                       render: function(artist, type, row) {
                           if (type == "display" && artist != null) {
@@ -172,7 +203,7 @@
                     },
                     { data: "albumArtist",
                       className: "detail truncate",
-                      visible: ${model.visibility.albumArtistVisible},
+                      visible: playlistPageSettings.visibility.albumArtistVisible,
                       title: "<fmt:message key='personalsettings.albumartist'/>",
                       render: function(artist, type, row) {
                           if (type == "display" && artist != null) {
@@ -183,7 +214,7 @@
                     },
                     { data: "genre",
                       className: "detail truncate",
-                      visible: ${model.visibility.genreVisible},
+                      visible: playlistPageSettings.visibility.genreVisible,
                       title: "<fmt:message key='personalsettings.genre'/>",
                       render(genre, type) {
                           if (type == "display" && genre != null) {
@@ -192,12 +223,12 @@
                           return genre;
                       }
                     },
-                    { data: "year", className: "detail fit rightalign", visible: ${model.visibility.yearVisible}, title: "<fmt:message key='personalsettings.year'/>" },
-                    { data: "format", className: "detail fit rightalign", visible: ${model.visibility.formatVisible}, title: "<fmt:message key='personalsettings.format'/>" },
-                    { data: "fileSize", className: "detail fit rightalign", visible: ${model.visibility.fileSizeVisible}, title: "<fmt:message key='personalsettings.filesize'/>" },
+                    { data: "year", className: "detail fit rightalign", visible: playlistPageSettings.visibility.yearVisible, title: "<fmt:message key='personalsettings.year'/>" },
+                    { data: "format", className: "detail fit rightalign", visible: playlistPageSettings.visibility.formatVisible, title: "<fmt:message key='personalsettings.format'/>" },
+                    { data: "fileSize", className: "detail fit rightalign", visible: playlistPageSettings.visibility.fileSizeVisible, title: "<fmt:message key='personalsettings.filesize'/>" },
                     { data: "duration",
                       className: "detail fit rightalign",
-                      visible: ${model.visibility.durationVisible},
+                      visible: playlistPageSettings.visibility.durationVisible,
                       title: "<fmt:message key='personalsettings.duration'/>",
                       render: function(data, type, row) {
                           if (type == "display" && data != null) {
@@ -206,11 +237,11 @@
                           return data;
                       }
                     },
-                    { data: "bitRate", className: "detail fit rightalign", visible: ${model.visibility.bitRateVisible}, title: "<fmt:message key='personalsettings.bitrate'/>" },
-                    { data: "playCount", className: "detail fit rightalign", visible: ${model.visibility.playCountVisible}, title: "<fmt:message key='personalsettings.playcount'/>" },
+                    { data: "bitRate", className: "detail fit rightalign", visible: playlistPageSettings.visibility.bitRateVisible, title: "<fmt:message key='personalsettings.bitrate'/>" },
+                    { data: "playCount", className: "detail fit rightalign", visible: playlistPageSettings.visibility.playCountVisible, title: "<fmt:message key='personalsettings.playcount'/>" },
 	                { data: "lastPlayed",
 	                  className: "detail fit rightalign",
-	                  visible: ${model.visibility.lastPlayedVisible},
+	                  visible: playlistPageSettings.visibility.lastPlayedVisible,
 	                  title: "<fmt:message key='personalsettings.lastplayed'/>",
 	                  render: function(data, type, row) {
 	                      if (data != null) {
@@ -224,7 +255,7 @@
 	                },
 	                { data: "lastScanned",
 	                  className: "detail fit rightalign",
-	                  visible: ${model.visibility.lastScannedVisible},
+	                  visible: playlistPageSettings.visibility.lastScannedVisible,
 	                  title: "<fmt:message key='personalsettings.lastscanned'/>",
 	                  render: function(data, type, row) {
 	                      if (data != null) {
@@ -238,7 +269,7 @@
 	                },
 	                { data: "created",
 	                  className: "detail fit rightalign",
-	                  visible: ${model.visibility.createdVisible},
+	                  visible: playlistPageSettings.visibility.createdVisible,
 	                  title: "<fmt:message key='personalsettings.created'/>",
 	                  render: function(data, type, row) {
 	                      if (data != null) {
@@ -252,7 +283,7 @@
 	                },
 	                { data: "changed",
 	                  className: "detail fit rightalign",
-	                  visible: ${model.visibility.changedVisible},
+	                  visible: playlistPageSettings.visibility.changedVisible,
 	                  title: "<fmt:message key='personalsettings.changed'/>",
 	                  render: function(data, type, row) {
 	                      if (data != null) {
@@ -267,7 +298,7 @@
                     { data: null,
                       searchable: false,
                       name: "remove",
-                      visible: ${model.editAllowed},
+                      visible: playlistPageSettings.editAllowed,
                       className: "fit not-draggable centeralign",
                       defaultContent: "<img class='removeSong' src=\"<spring:theme code='removeImage'/>\" style='height:18px;' alt=\"<fmt:message key='playlist.remove'/>\" title=\"<fmt:message key='playlist.remove'/>\">"
                     }
@@ -303,43 +334,43 @@
                 updatedPlaylistEntriesCallback(entries);
             }, deletedPlaylistCallback);
 
-          <c:if test="${model.editAllowed}">
-            $("#playlistMusic tbody").on( "click", ".removeSong", function () {
-                onRemove([playlistMusicTable.row( $(this).parents('tr') ).index()]);
-            } );
-            playlistMusicTable.on( "row-reordered", function (e, diff, edit) {
-                if (diff.length > 0) {
-                    playlistMusicTable.one( "draw", function () {
-                        onRearrange(playlistMusicTable.rows().indexes().toArray());
-                    });
-                }
-            });
-
-            $("#dialog-edit").dialog({resizable: true, width:400, autoOpen: false,
-                buttons: {
-                    "<fmt:message key="common.save"/>": function() {
-                        $(this).dialog("close");
-                        var name = $("#newName").val();
-                        var comment = $("#newComment").val();
-                        var shared = $("#newShared").is(":checked");
-                        playlistApi.update(playlistId, name, comment, shared, updatePlaylistEntries);
-                    },
-                    "<fmt:message key="common.cancel"/>": function() {
-                        $(this).dialog("close");
+            if (playlistPageSettings.editAllowed) {
+                $("#playlistMusic tbody").on( "click", ".removeSong", function () {
+                    onRemove([playlistMusicTable.row( $(this).parents('tr') ).index()]);
+                } );
+                playlistMusicTable.on( "row-reordered", function (e, diff, edit) {
+                    if (diff.length > 0) {
+                        playlistMusicTable.one( "draw", function () {
+                            onRearrange(playlistMusicTable.rows().indexes().toArray());
+                        });
                     }
-                }});
+                });
 
-            $("#dialog-delete").dialog({resizable: false, height: 170, autoOpen: false,
-                buttons: {
-                    "<fmt:message key="common.delete"/>": function() {
-                        $(this).dialog("close");
-                        playlistApi.delete(playlistId, function () { deletedPlaylistCallback(playlistId); });
-                    },
-                    "<fmt:message key="common.cancel"/>": function() {
-                        $(this).dialog("close");
-                    } 
-                }});
-          </c:if>
+                $("#dialog-edit").dialog({resizable: true, width:400, autoOpen: false,
+                    buttons: {
+                        "<fmt:message key="common.save"/>": function() {
+                            $(this).dialog("close");
+                            var name = $("#newName").val();
+                            var comment = $("#newComment").val();
+                            var shared = $("#newShared").is(":checked");
+                            playlistApi.update(playlistId, name, comment, shared, updatePlaylistEntries);
+                        },
+                        "<fmt:message key="common.cancel"/>": function() {
+                            $(this).dialog("close");
+                        }
+                    }});
+
+                $("#dialog-delete").dialog({resizable: false, height: 170, autoOpen: false,
+                    buttons: {
+                        "<fmt:message key="common.delete"/>": function() {
+                            $(this).dialog("close");
+                            playlistApi.delete(playlistId, function () { deletedPlaylistCallback(playlistId); });
+                        },
+                        "<fmt:message key="common.cancel"/>": function() {
+                            $(this).dialog("close");
+                        }
+                    }});
+            }
         }
 
         function updatePlaylistEntries() {
@@ -406,7 +437,7 @@
                 playlistMusicTable.rows().invalidate();
             });
         }
-      <c:if test="${model.editAllowed}">
+
         function onRemove(indexes) {
             playlistApi.remove(playlistId, indexes.map(i => songs[i].playlistIndex), updatePlaylistEntries);
         }
@@ -427,7 +458,7 @@
               this.onRemove(playlistMusicTable.rows({ selected: true }).indexes().toArray());
           }
         }
-      </c:if>
+
 
         function selectAll(b) {
             if (b) {
@@ -461,11 +492,11 @@
     </style>
 
 </head>
-<body class="mainframe bgcolor1" onload="init()">
+<body class="mainframe bgcolor1" onload="loadPlaylistPage()">
 
 <div style="float:left;margin-right:1.5em;margin-bottom:1.5em">
 <c:import url="coverArt.jsp">
-    <c:param name="playlistId" value="${model.playlist.id}"/>
+    <c:param name="playlistId" value="${param.id}"/>
     <c:param name="coverArtSize" value="160"/>
 </c:import>
 </div>
@@ -474,19 +505,19 @@
 <h2>
     <span class="header"><a href="javascript:void(0)" onclick="onPlayAll();"><fmt:message key="common.play"/></a></span>
         | <span class="header"><a href="javascript:void(0)" onclick="onAddAll();"><fmt:message key="main.addall"/></a></span>
-    <c:if test="${model.user.downloadRole}">
-        <c:url value="/rest/downloadMedia" var="downloadUrl"><c:param name="playlist" value="${model.playlist.id}"/></c:url>
-        | <span class="header"><a href="${downloadUrl}"><fmt:message key="common.download"/></a></span>
-    </c:if>
-    <c:if test="${model.user.shareRole}">
-        <c:url value="createShare.view" var="shareUrl"><c:param name="playlist" value="${model.playlist.id}"/></c:url>
-        | <span class="header"><a href="${shareUrl}"><fmt:message key="share.title"/></a></span>
-    </c:if>
-    <c:if test="${model.editAllowed}">
-        | <span class="header"><a href="javascript:void(0)" onclick="onEditPlaylist();"><fmt:message key="common.edit"/></a></span>
-        | <span class="header"><a href="javascript:void(0)" onclick="onDeletePlaylist();"><fmt:message key="common.delete"/></a></span>
-    </c:if>
-    <c:url value="/rest/exportPlaylist" var="exportUrl"><c:param name="id" value="${model.playlist.id}"/></c:url>
+
+        <c:url value="/rest/downloadMedia" var="downloadUrl"><c:param name="playlist" value="${param.id}"/></c:url>
+        | <span id="downloadAction" class="header" style="display:none"><a href="${downloadUrl}"><fmt:message key="common.download"/></a></span>
+
+
+        <c:url value="createShare.view" var="shareUrl"><c:param name="playlist" value="${param.id}"/></c:url>
+        | <span id="shareAction" class="header" style="display:none"><a href="${shareUrl}"><fmt:message key="share.title"/></a></span>
+
+
+        | <span id="editAction" class="header" style="display:none"><a href="javascript:void(0)" onclick="onEditPlaylist();"><fmt:message key="common.edit"/></a></span>
+        | <span id="deleteAction" class="header" style="display:none"><a href="javascript:void(0)" onclick="onDeletePlaylist();"><fmt:message key="common.delete"/></a></span>
+
+    <c:url value="/rest/exportPlaylist" var="exportUrl"><c:param name="id" value="${param.id}"/></c:url>
     | <span class="header"><a href="${exportUrl}"><fmt:message key="playlist2.export"/></a></span>
 
 </h2>
@@ -496,13 +527,7 @@
 <div class="detail" style="padding-top:0.2em">
     <span id="songCount"></span> <fmt:message key="playlist2.songs"/> &ndash; <span id="duration"></span>
 </div>
-<div class="detail" style="padding-top:0.2em">
-    <fmt:message key="playlist2.created" var="created">
-        <fmt:param>${model.playlist.username}</fmt:param>
-        <fmt:param><javatime:format style="L-" value="${model.playlist.created}"/></fmt:param>
-    </fmt:message>
-    ${fn:escapeXml(created)}.
-</div>
+<div class="detail" style="padding-top:0.2em"><span id="createdBy"></span>.</div>
 <div class="detail" style="padding-top:0.2em">
     <span id="lastupdated"></span>.
 </div>
@@ -512,11 +537,11 @@
 
 <div style="height:0.7em;clear:both"></div>
 
-<table class="music indent hover nowrap stripe compact <c:if test='${!model.visibility.headerVisible}'>hide-table-header</c:if>" id="playlistMusic" style="cursor: pointer; width: 100%;">
+<table class="music indent hover nowrap stripe compact" id="playlistMusic" style="cursor: pointer; width: 100%;">
 </table>
 
-<c:if test="${model.editAllowed}">
-<div id="moreactions" style="white-space:nowrap;">
+
+<div id="moreactions" style="white-space:nowrap;display:none;">
     <span class="header">
         <select id="moreActions" onchange="actionSelected(options[selectedIndex].id)">
             <option id="top" selected="selected"><fmt:message key="playlist.more"/></option>
@@ -544,6 +569,6 @@
         <label for="newShared"><fmt:message key="playlist2.public"/></label>
     </form>
 </div>
-</c:if>
+
 
 </body></html>

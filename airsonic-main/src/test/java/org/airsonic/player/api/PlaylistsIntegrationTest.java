@@ -227,12 +227,20 @@ public class PlaylistsIntegrationTest {
             assertError(call("createPlaylist", "source=playQueue&playerId=" + player.getId(), reader), 50);
             assertError(call("createPlaylist", "source=playQueue&playerId=2147483647", null), 70);
             assertError(call("createPlaylist", "source=bad", null), 0);
+            JsonNode pageSettings = mapper.readTree(browser(browser, "/rest/playlistPageSettings?id=" + id, null, null).body());
+            assertEquals(id, pageSettings.path("playlistId").asInt());
+            assertTrue(pageSettings.path("createdLabel").asText().contains("admin"));
+            assertTrue(pageSettings.path("visibility").has("trackNumberVisible"));
             for (String path : List.of("/left.view", "/playlists.view", "/playlist.view?id=" + id,
                     "/main.view?id=" + album.getId(), "/playQueue.view", "/starred.view")) {
                 HttpResponse<String> rendered = browser(browser, path, null, null);
                 assertEquals(rendered.body(), 200, rendered.statusCode());
                 assertTrue(path, rendered.body().contains("/airsonic/script/subsonic-playlists.js"));
                 assertFalse(path, rendered.body().contains("/app/playlists/"));
+                if (path.startsWith("/playlist.view")) {
+                    assertTrue(rendered.body().contains("/airsonic/rest/playlistPageSettings"));
+                    assertFalse(rendered.body().contains("${model."));
+                }
             }
             assertOk(browser(browser, "/rest/deletePlaylist", form + "&id=" + id, csrf));
             assertError(call("getPlaylist", "id=" + id, null), 70);
