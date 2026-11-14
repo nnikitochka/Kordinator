@@ -109,6 +109,7 @@ import org.airsonic.player.controller.rest.lyrics.LyricsController
 import org.airsonic.player.controller.rest.rating.RatingController
 import org.airsonic.player.controller.rest.rating.RatingRequest
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingController
+import org.airsonic.player.controller.rest.nowplaying.NowPlayingPageController
 import org.airsonic.player.controller.rest.statistics.ScheduledTasksController
 import org.airsonic.player.controller.rest.statistics.ServerHealthController
 import org.airsonic.player.controller.rest.statistics.PathWatchersController
@@ -176,6 +177,7 @@ class AirsonicKtorServlet(
     private val randomSongsController: RandomSongsController,
     private val scrobbleController: ScrobbleController,
     private val nowPlayingController: NowPlayingController,
+    private val nowPlayingPageController: NowPlayingPageController,
     private val uploadStatusController: UploadStatusController,
     private val statisticsController: StatisticsController,
     private val scheduledTasksController: ScheduledTasksController,
@@ -222,6 +224,9 @@ class AirsonicKtorServlet(
             if (searchRequest != null) {
                 call.attributes.put(SEARCH_REQUEST_KEY, searchRequest)
             }
+            val nowPlayingPageRequest = request.getAttribute(NowPlayingPageController.REQUEST_ATTRIBUTE)
+                as? NowPlayingPageController.Request
+            if (nowPlayingPageRequest != null) call.attributes.put(NOW_PLAYING_PAGE_REQUEST_KEY, nowPlayingPageRequest)
             val musicFoldersRequest = request.getAttribute(MUSIC_FOLDERS_REQUEST)
                 as? MusicFoldersController.Request
             if (musicFoldersRequest != null) {
@@ -390,6 +395,7 @@ class AirsonicKtorServlet(
             serverHealthController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             cacheStatisticsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             nowPlayingController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
+            nowPlayingPageController.routes(this) { call -> call.attributes[NOW_PLAYING_PAGE_REQUEST_KEY] }
             scrobbleController.routes(this) { call -> call.attributes[SCROBBLE_REQUEST_KEY] }
             randomSongsController.routes(this) { call -> call.attributes[RANDOM_SONGS_REQUEST_KEY] }
             musicDirectoryController.routes(this) { call -> call.attributes[MUSIC_DIRECTORY_REQUEST_KEY] }
@@ -441,6 +447,14 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path in NowPlayingPageController.PATHS) {
+            if (request.method !in setOf("GET", "HEAD")) {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            request.setAttribute(NowPlayingPageController.REQUEST_ATTRIBUTE, nowPlayingPageController.request(request, response))
+        }
         if (path in PlayQueuePageController.PATHS) {
             if (request.method !in setOf("GET", "HEAD")) {
                 response.setHeader("Allow", "GET, HEAD")
@@ -1408,6 +1422,7 @@ class AirsonicKtorServlet(
         val COVER_ACTIONS_REQUEST_KEY = AttributeKey<CoverArtActionsController.Request>(COVER_ACTIONS_REQUEST)
         const val REST_PARAMETERS = "org.airsonic.player.restParameters"
         val REST_PARAMETERS_KEY = AttributeKey<Parameters>(REST_PARAMETERS)
+        val NOW_PLAYING_PAGE_REQUEST_KEY = AttributeKey<NowPlayingPageController.Request>(NowPlayingPageController.REQUEST_ATTRIBUTE)
         const val SEARCH_REQUEST = "org.airsonic.player.searchRequest"
         val SEARCH_REQUEST_KEY = AttributeKey<SearchController.Request>(SEARCH_REQUEST)
         const val MUSIC_FOLDERS_REQUEST = "org.airsonic.player.musicFoldersRequest"

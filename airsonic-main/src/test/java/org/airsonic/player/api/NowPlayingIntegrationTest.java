@@ -98,6 +98,11 @@ public class NowPlayingIntegrationTest {
             assertTrue(token.find());
             String encoded = java.net.URLEncoder.encode(token.group(1), java.nio.charset.StandardCharsets.UTF_8);
             assertEquals(302, browser(browser, "/login", "j_username=admin&j_password=admin&_csrf=" + encoded, null).statusCode());
+            for (String path : List.of("/nowPlaying", "/nowPlaying.view")) {
+                HttpResponse<String> navigation = browser(browser, path, null, null);
+                assertEquals(navigation.body(), 302, navigation.statusCode());
+                assertEquals("home.view", navigation.headers().firstValue("location").orElse(null));
+            }
             HttpResponse<String> page = browser(browser, "/right.view", null, null);
             assertEquals(page.body(), 200, page.statusCode());
             assertTrue(page.body().contains("/airsonic/script/subsonic-now-playing.js"));
