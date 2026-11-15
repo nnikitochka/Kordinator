@@ -17,6 +17,7 @@ import org.airsonic.player.service.MediaScannerService;
 import org.airsonic.player.service.BookmarkService;
 import org.airsonic.player.util.StringUtil;
 import org.airsonic.player.service.SecurityService;
+import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.util.HomeRule;
 import org.airsonic.player.util.MusicFolderTestData;
 import org.junit.ClassRule;
@@ -25,6 +26,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -32,11 +34,15 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.Assert.*;
 
@@ -51,6 +57,8 @@ public class StarredIntegrationTest {
     @Autowired private MediaScannerService scanner;
     @Autowired private MediaFileDao mediaFiles;
     @Autowired private SecurityService security;
+    @Autowired private SettingsService settings;
+    @Autowired private ApplicationContext context;
     @Autowired private ArtistDao artists;
     @Autowired private AlbumDao albums;
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -83,6 +91,20 @@ public class StarredIntegrationTest {
             }
             String all = "id=" + directory.getId() + "&id=" + albumDir.getId() + "&id=" + songId + "&albumId=" + albumId + "&artistId=" + artistId;
             assertOk(post("star.view", all, null));
+            HttpResponse<String> pageDataResponse = raw("starredPage", "", null, null, false);
+            assertEquals(pageDataResponse.body(), 200, pageDataResponse.statusCode());
+            JsonNode pageData = mapper.readTree(pageDataResponse.body());
+            assertId(pageData.path("artists"), directory.getId());
+            assertId(pageData.path("albums"), albumDir.getId());
+            assertId(pageData.path("songs"), songId);
+            assertTrue(pageData.path("videos").isArray());
+            assertFalse(pageData.path("artists").get(0).path("name").asText().isBlank());
+            assertFalse(pageData.path("albums").get(0).path("name").asText().isBlank());
+            assertFalse(pageData.path("songs").get(0).path("title").asText().isBlank());
+            assertTrue(pageData.path("streamAllowed").asBoolean());
+            assertTrue(pageData.path("coverArtSize").asInt() > 0);
+            assertFalse(pageData.has("user"));
+            assertFalse(pageData.has("player"));
             JsonNode old = body(call("getStarred", "musicFolderId=" + library.get(0).getId(), null)).path("starred");
             assertId(old.path("artist"), directory.getId());
             assertId(old.path("album"), albumDir.getId());
@@ -93,7 +115,20 @@ public class StarredIntegrationTest {
             assertId(id3.path("song"), songId);
             assertEquals(0, body(call("getStarred2", "", reader)).path("starred2").path("song").size());
             assertOk(call("star", "id=" + songId, reader));
+            var readerSettings = settings.getUserSettings("starred-reader");
+            readerSettings.setPartyModeEnabled(true);
+            settings.updateUserSettings(readerSettings);
+            JsonNode readerPage = mapper.readTree(raw("starredPage", "", reader, null, false).body());
+            assertEquals(0, readerPage.path("artists").size());
+            assertEquals(0, readerPage.path("albums").size());
+            assertId(readerPage.path("songs"), songId);
+            assertTrue(readerPage.path("partyModeEnabled").asBoolean());
             assertOk(call("unstar", all, null));
+            JsonNode emptyPage = mapper.readTree(raw("starredPage", "", null, null, false).body());
+            assertEquals(0, emptyPage.path("artists").size());
+            assertEquals(0, emptyPage.path("albums").size());
+            assertEquals(0, emptyPage.path("songs").size());
+            assertEquals(0, emptyPage.path("videos").size());
             assertEquals(0, body(call("getStarred2", "", null)).path("starred2").path("song").size());
             assertId(body(call("getStarred2", "", reader)).path("starred2").path("song"), songId);
             assertOk(call("star", "id=" + songId + "&id=bad&albumId=" + albumId, null));
@@ -110,6 +145,18 @@ public class StarredIntegrationTest {
             assertTrue(jsonp.body(), jsonp.body().startsWith("client.starred("));
             assertEquals(403, post("star", "id=" + songId, null).statusCode());
             assertOk(post("unstar.view", "id=" + songId + "&albumId=" + albumId, null));
+            HttpClient browser = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL)).build();
+            String loginBody = browser(browser, "/login", null, null).body();
+            Matcher csrf = Pattern.compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"").matcher(loginBody);
+            assertTrue(loginBody, csrf.find());
+            assertEquals(302, browser(browser, "/login", "j_username=admin&j_password=admin&_csrf=" + enc(csrf.group(1)), null).statusCode());
+            for (String path : List.of("/starred", "/starred.view")) {
+                HttpResponse<String> page = browser(browser, path, null, null);
+                assertEquals(page.body(), 200, page.statusCode());
+                assertTrue(page.body().contains("/airsonic/rest/starredPage"));
+                assertFalse(page.body().contains("${model."));
+            }
+            assertFalse(context.containsBean("starredController"));
         } finally {
             ScanningTestUtils.after(cleanup, folders);
             folders.expunge();
@@ -124,6 +171,13 @@ public class StarredIntegrationTest {
     private HttpResponse<String> call(String endpoint, String query, String basic) throws Exception {
         return raw(endpoint, "f=json&" + query, basic, null, false);
     }
+    private HttpResponse<String> browser(HttpClient browser, String path, String form, String csrf) throws Exception {
+        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic" + path));
+        if (csrf != null) request.header("X-CSRF-TOKEN", csrf);
+        if (form != null) request.header("Content-Type", "application/x-www-form-urlencoded").POST(HttpRequest.BodyPublishers.ofString(form));
+        return browser.send(request.build(), HttpResponse.BodyHandlers.ofString());
+    }
+    private String enc(String value) { return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8); }
     private HttpResponse<String> post(String endpoint, String query, String basic) throws Exception {
         return raw(endpoint, "f=json&" + query, basic, null, true);
     }

@@ -33,6 +33,7 @@ import com.auth0.jwt.interfaces.DecodedJWT
 import org.springframework.web.util.UriComponentsBuilder
 import org.springframework.security.core.Authentication
 import org.airsonic.player.controller.rest.starred.StarredController
+import org.airsonic.player.controller.rest.starred.StarredPageController
 import org.airsonic.player.controller.rest.starred.StarredRequest
 import org.airsonic.player.controller.rest.jukebox.JukeboxController
 import org.airsonic.player.controller.rest.jukebox.JukeboxRequest
@@ -168,6 +169,7 @@ class AirsonicKtorServlet(
     private val albumsController: AlbumsController,
     private val bookmarksController: BookmarksController,
     private val starredController: StarredController,
+    private val starredPageController: StarredPageController,
     private val jukeboxController: JukeboxController,
     private val usersController: UsersController,
     private val dlnaSettingsController: DLNASettingsController,
@@ -325,6 +327,8 @@ class AirsonicKtorServlet(
             if (starredRequest != null) {
                 call.attributes.put(STARRED_REQUEST_KEY, starredRequest)
             }
+            val starredPageRequest = request.getAttribute(StarredPageController.REQUEST_ATTRIBUTE) as? StarredPageController.Request
+            if (starredPageRequest != null) call.attributes.put(STARRED_PAGE_REQUEST_KEY, starredPageRequest)
             val bookmarksRequest = request.getAttribute(BOOKMARKS_REQUEST) as? BookmarksRequest
             if (bookmarksRequest != null) {
                 call.attributes.put(BOOKMARKS_REQUEST_KEY, bookmarksRequest)
@@ -411,6 +415,7 @@ class AirsonicKtorServlet(
             albumsController.routes(this) { call -> call.attributes[ALBUMS_REQUEST_KEY] }
             bookmarksController.routes(this) { call -> call.attributes[BOOKMARKS_REQUEST_KEY] }
             starredController.routes(this) { call -> call.attributes[STARRED_REQUEST_KEY] }
+            starredPageController.routes(this) { call -> call.attributes[STARRED_PAGE_REQUEST_KEY] }
             usersController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             avatarUploadController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             dlnaSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
@@ -496,6 +501,26 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path in StarredPageController.PAGE_PATHS) {
+            if (request.method !in setOf("GET", "HEAD")) {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            if (securityService.getCurrentUsername(request) == null) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                return
+            }
+            response.setHeader("Cache-Control", "no-store")
+            val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
+            request.getRequestDispatcher("/WEB-INF/jsp/starred.jsp").forward(request, response)
+            return
+        }
         if (path in TagEditorPageController.PAGE_PATHS) {
             if (request.method !in setOf("GET", "HEAD")) {
                 response.setHeader("Allow", "GET, HEAD")
@@ -1175,6 +1200,10 @@ class AirsonicKtorServlet(
             val username = if (listing) requireNotNull(securityService.getCurrentUsername(request))
                 else requireNotNull(securityService.getCurrentUser(request)).username
             request.setAttribute(STARRED_REQUEST, StarredRequest(username, parameters(request), player))
+        } else if (path == StarredPageController.DATA_PATH) {
+            val username = requireNotNull(securityService.getCurrentUsername(request))
+            request.setAttribute(StarredPageController.REQUEST_ATTRIBUTE,
+                StarredPageController.Request(username, playerService.getPlayer(request, response)))
         } else if (path == DownloadRestController.WEBSITE_PATH && request.method in setOf("GET", "HEAD")) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             val explicit = request.getParameter("player")
@@ -1810,6 +1839,7 @@ class AirsonicKtorServlet(
         val JUKEBOX_REQUEST_KEY = AttributeKey<JukeboxRequest>(JUKEBOX_REQUEST)
         const val STARRED_REQUEST = "org.airsonic.player.starredRequest"
         val STARRED_REQUEST_KEY = AttributeKey<StarredRequest>(STARRED_REQUEST)
+        val STARRED_PAGE_REQUEST_KEY = AttributeKey<StarredPageController.Request>(StarredPageController.REQUEST_ATTRIBUTE)
         const val BOOKMARKS_REQUEST = "org.airsonic.player.bookmarksRequest"
         val BOOKMARKS_REQUEST_KEY = AttributeKey<BookmarksRequest>(BOOKMARKS_REQUEST)
         const val ALBUMS_REQUEST = "org.airsonic.player.albumsRequest"

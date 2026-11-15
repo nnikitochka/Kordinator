@@ -6,178 +6,218 @@
     <%@ include file="jquery.jsp" %>
     <%@ include file="subsonicPlaylists.jsp" %>
     <%@ include file="subsonicStars.jsp" %>
-    <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
-    <script type="text/javascript" language="javascript">
+    <script type="text/javascript" src="<c:url value='/script/utils.js'/>" defer></script>
+    <script type="text/javascript">
+        var starredDataUrl = "<c:url value='/rest/starredPage'/>";
+        var starredConfig;
 
-        function toggleStar(mediaFileId, imageId) {
-            if ($(imageId).attr("src").indexOf("<spring:theme code="ratingOnImage"/>") != -1) {
-                setMediaFilesStarred([mediaFileId], false, function () {
-                    $(imageId).attr("src", "<spring:theme code="ratingOffImage"/>");
+        function textCell(row, value, className) {
+            var cell = document.createElement("td");
+            if (className) cell.className = className;
+            cell.textContent = value == null ? "" : value;
+            row.appendChild(cell);
+            return cell;
+        }
+        function actionCell(row, item, kind, data) {
+            function action(action) {
+                var cell = document.createElement("td"); cell.className = "fit"; row.appendChild(cell); action(cell);
+            }
+            var starred = kind !== "album";
+            if (starred) {
+                action(function(cell) {
+                    var star = document.createElement("img");
+                    star.src = item.starredDate ? starredConfig.starOn : starredConfig.starOff;
+                    star.alt = "";
+                    star.title = item.starredDate ? starredConfig.unstar : starredConfig.star;
+                    star.style.cssText = "cursor:pointer;height:18px";
+                    star.addEventListener("click", function() {
+                        setMediaFilesStarred([item.id], !item.starredDate, function() {
+                            item.starredDate = item.starredDate ? null : new Date().toISOString();
+                            star.src = item.starredDate ? starredConfig.starOn : starredConfig.starOff;
+                            star.title = item.starredDate ? starredConfig.unstar : starredConfig.star;
+                        });
+                    });
+                    cell.appendChild(star);
                 });
             }
-            else if ($(imageId).attr("src").indexOf("<spring:theme code="ratingOffImage"/>") != -1) {
-                setMediaFilesStarred([mediaFileId], true, function () {
-                    $(imageId).attr("src", "<spring:theme code="ratingOnImage"/>");
+            var canPlay = data.streamAllowed && !data.partyModeEnabled;
+            if (kind === "video" && canPlay) {
+                action(function(cell) {
+                    if (data.webPlayer) {
+                        var playLink = document.createElement("a");
+                        playLink.href = "videoPlayer.view?id=" + encodeURIComponent(item.id);
+                        playLink.target = "main";
+                        appendIcon(playLink, starredConfig.playIcon, starredConfig.play);
+                        cell.appendChild(playLink);
+                    } else {
+                        appendAction(cell, starredConfig.playIcon, starredConfig.play, function() { top.playQueue.onPlay(item.id); });
+                    }
+                });
+            } else if (kind !== "video" && canPlay) {
+                action(function(cell) { appendAction(cell, starredConfig.playIcon, starredConfig.play, function() { top.playQueue.onPlay(item.id); }); });
+            }
+            var canAdd = data.streamAllowed && !data.partyModeEnabled && kind !== "video";
+            if (kind === "artist") canAdd = data.streamAllowed && (!data.partyModeEnabled || !item.directory);
+            if (canAdd) {
+                action(function(cell) { appendAction(cell, starredConfig.addIcon, starredConfig.addLast, function() {
+                        top.playQueue.onAdd(item.id);
+                        $().toastmessage("showSuccessToast", starredConfig.addLastToast);
+                    });
+                });
+                action(function(cell) { appendAction(cell, starredConfig.addNextIcon, starredConfig.addNext, function() {
+                        top.playQueue.onAddNext(item.id);
+                        $().toastmessage("showSuccessToast", starredConfig.addNextToast);
+                    });
                 });
             }
         }
-
+        function appendIcon(parent, src, title) {
+            var icon = document.createElement("img");
+            icon.src = src; icon.alt = title; icon.title = title;
+            icon.style.cssText = "height:18px";
+            parent.appendChild(icon);
+        }
+        function appendAction(parent, src, title, action) {
+            var icon = document.createElement("img");
+            icon.src = src; icon.alt = title; icon.title = title;
+            icon.style.cssText = "cursor:pointer;height:18px";
+            icon.addEventListener("click", action);
+            parent.appendChild(icon);
+        }
+        function addArtist(item, data, body) {
+            var row = document.createElement("tr");
+            actionCell(row, item, "artist", data);
+            var cell = textCell(row, "", "truncate");
+            var link = document.createElement("a");
+            link.href = "main.view?id=" + encodeURIComponent(item.id);
+            link.textContent = item.name || "";
+            cell.appendChild(link);
+            body.appendChild(row);
+        }
+        function addSong(item, data, body) {
+            var row = document.createElement("tr");
+            actionCell(row, item, "song", data);
+            textCell(row, item.title, "truncate");
+            var albumCell = textCell(row, "", "truncate");
+            var album = document.createElement("a");
+            if (item.parentId != null) album.href = "main.view?id=" + encodeURIComponent(item.parentId);
+            var albumLabel = document.createElement("span");
+            albumLabel.className = "detail"; albumLabel.textContent = item.album || "";
+            album.appendChild(albumLabel); albumCell.appendChild(album);
+            var artist = document.createElement("span");
+            artist.className = "detail"; artist.textContent = item.artist || "";
+            textCell(row, "", "truncate").appendChild(artist);
+            body.appendChild(row);
+        }
+        function addVideo(item, data, body) {
+            var row = document.createElement("tr");
+            actionCell(row, item, "video", data);
+            var cell = textCell(row, "", "truncate");
+            var link = document.createElement("a");
+            link.href = "videoPlayer.view?id=" + encodeURIComponent(item.id);
+            link.textContent = item.name || "";
+            cell.appendChild(link);
+            body.appendChild(row);
+        }
+        function addAlbum(item, data, container, index) {
+            var card = document.createElement("div");
+            card.className = "albumThumb";
+            var imageLink = document.createElement("a");
+            imageLink.href = "main.view?id=" + encodeURIComponent(item.id);
+            imageLink.title = item.name || "";
+            var image = document.createElement("img");
+            image.src = "coverArt.view?id=" + encodeURIComponent(item.id) + "&size=" + encodeURIComponent(data.coverArtSize);
+            image.alt = item.name || "";
+            image.style.cssText = "width:" + data.coverArtSize + "px;height:" + data.coverArtSize + "px";
+            imageLink.appendChild(image); card.appendChild(imageLink);
+            var coverActions = document.createElement("div"); coverActions.className = "forward";
+            appendAction(coverActions, starredConfig.playIcon, starredConfig.play, function() { top.playQueue.onPlay(item.id); });
+            appendAction(coverActions, starredConfig.addIcon, starredConfig.addLast, function() { top.playQueue.onAdd(item.id); });
+            card.appendChild(coverActions);
+            var caption = document.createElement("div"); caption.className = "caption1";
+            caption.style.width = (data.coverArtSize - 16) + "px";
+            var title = document.createElement("a"); title.href = imageLink.href; title.textContent = item.name || starredConfig.unknown;
+            caption.appendChild(title); card.appendChild(caption);
+            var artist = document.createElement("div"); artist.className = "caption2";
+            artist.style.width = (data.coverArtSize - 16) + "px"; artist.textContent = item.artist || "";
+            card.appendChild(artist);
+            container.appendChild(card);
+        }
+        function renderStarred(data) {
+            var artists = data.artists || [], albums = data.albums || [], songs = data.songs || [], videos = data.videos || [];
+            document.getElementById("loading").hidden = true;
+            document.getElementById("empty").hidden = artists.length + albums.length + songs.length + videos.length > 0;
+            var albumContainer = document.getElementById("albums");
+            if (albums.length) {
+                document.getElementById("albumHeading").hidden = false;
+                albums.forEach(function(item, i) { addAlbum(item, data, albumContainer, i); });
+            }
+            var artistBody = document.getElementById("artistRows");
+            artists.forEach(function(item) { addArtist(item, data, artistBody); });
+            document.getElementById("artistHeading").hidden = artists.length === 0;
+            document.getElementById("artistTable").hidden = artists.length === 0;
+            var songBody = document.getElementById("songRows");
+            songs.forEach(function(item) { addSong(item, data, songBody); });
+            document.getElementById("songHeading").hidden = songs.length === 0;
+            document.getElementById("songTable").hidden = songs.length === 0;
+            document.getElementById("songActions").hidden = songs.length === 0;
+            document.getElementById("videoRows").replaceChildren();
+            videos.forEach(function(item) { addVideo(item, data, document.getElementById("videoRows")); });
+            document.getElementById("videoHeading").hidden = videos.length === 0;
+            document.getElementById("videoTable").hidden = videos.length === 0;
+        }
         function onSavePlaylist() {
-            playlistApi.create("starred", null, function (playlistId) {
-                top.main.location.href = "playlist.view?id=" + playlistId;
-                $().toastmessage("showSuccessToast", "<fmt:message key='playlist.toast.saveasplaylist'/>");
+            playlistApi.create("starred", null, function(playlistId) {
+                top.main.location.href = "playlist.view?id=" + encodeURIComponent(playlistId);
+                $().toastmessage("showSuccessToast", starredConfig.savePlaylistToast);
             });
         }
-
-        function init() {}
-
-        function onPlayAll() {
-            top.playQueue.onPlayStarred();
+        function onPlayAll() { top.playQueue.onPlayStarred(); }
+        function init() {
+            starredConfig = document.getElementById("starredConfig").dataset;
+            fetch(starredDataUrl, {credentials: "same-origin", headers: {"Accept": "application/json"}})
+                .then(function(response) { if (!response.ok) throw new Error("Request failed (" + response.status + ")"); return response.json(); })
+                .then(renderStarred)
+                .catch(function(error) {
+                    document.getElementById("loading").hidden = true;
+                    var target = document.getElementById("errors"); target.hidden = false;
+                    target.textContent = starredConfig.loadError + ": " + error.message;
+                });
         }
-
     </script>
 </head>
 <body class="mainframe bgcolor1" onload="init()">
-
+<div id="starredConfig" hidden
+     data-star-on="<spring:theme code='ratingOnImage'/>" data-star-off="<spring:theme code='ratingOffImage'/>"
+     data-play-icon="<spring:theme code='playImage'/>" data-add-icon="<spring:theme code='addImage'/>"
+     data-add-next-icon="<spring:theme code='addNextImage'/>" data-play="<fmt:message key='common.play'/>"
+     data-star="<fmt:message key='playlist.more.star'/>" data-unstar="<fmt:message key='playlist.more.unstar'/>"
+     data-add-last="<fmt:message key='main.addlast'/>" data-add-next="<fmt:message key='main.addnext'/>"
+     data-add-last-toast="<fmt:message key='main.addlast.toast'/>" data-add-next-toast="<fmt:message key='main.addnext.toast'/>"
+     data-save-playlist-toast="<fmt:message key='playlist.toast.saveasplaylist'/>" data-unknown="<fmt:message key='common.unknown'/>"
+     data-load-error="<fmt:message key='starred.error'/>"></div>
 <h1>
-    <img src="<spring:theme code='starredImage'/>" alt="">
+    <img src="<spring:theme code='starredImage'/>">
     <span style="vertical-align: middle"><fmt:message key="starred.title"/></span>
 </h1>
+<p id="loading"><em>Loading...</em></p>
+<p class="warning" id="errors" hidden></p>
+<p id="empty" style="padding-top:1em" hidden><em><fmt:message key="starred.empty"/></em></p>
 
-<c:if test="${empty model.artists and empty model.albums and empty model.songs}">
-    <p style="padding-top: 1em"><em><fmt:message key="starred.empty"/></em></p>
-</c:if>
+<h2 id="albumHeading" hidden><fmt:message key="search.hits.albums"/></h2>
+<div id="albums" style="padding-top:0.5em"></div>
 
-<c:if test="${not empty model.albums}">
-    <h2><fmt:message key="search.hits.albums"/></h2>
+<h2 id="artistHeading" hidden><fmt:message key="search.hits.artists"/></h2>
+<table class="music indent" id="artistTable" hidden><tbody id="artistRows"></tbody></table>
 
-<div style="padding-top:0.5em">
-    <c:forEach items="${model.albums}" var="album" varStatus="loopStatus">
-
-        <c:set var="albumTitle">
-            <c:choose>
-                <c:when test="${empty album.name}">
-                    <fmt:message key="common.unknown"/>
-                </c:when>
-                <c:otherwise>
-                    ${fn:escapeXml(album.name)}
-                </c:otherwise>
-            </c:choose>
-        </c:set>
-
-        <div class="albumThumb">
-            <c:import url="coverArt.jsp">
-                <c:param name="albumId" value="${album.id}"/>
-                <c:param name="caption1" value="${albumTitle}"/>
-                <c:param name="caption2" value="${fn:escapeXml(album.artist)}"/>
-                <c:param name="captionCount" value="2"/>
-                <c:param name="coverArtSize" value="${model.coverArtSize}"/>
-                <c:param name="showLink" value="true"/>
-                <c:param name="appearAfter" value="${loopStatus.count * 30}"/>
-                <c:param name="hideOverflow" value="true"/>
-            </c:import>
-        </div>
-    </c:forEach>
-    </c:if>
+<h2 id="songHeading" hidden><fmt:message key="search.hits.songs"/></h2>
+<table class="music indent" id="songTable" hidden><tbody id="songRows"></tbody></table>
+<div id="songActions" hidden>
+    <div class="forward" style="float:left;padding-right:1.5em"><a href="#" onclick="onSavePlaylist();return false"><fmt:message key="playlist.save"/></a></div>
+    <div class="forward" style="float:left"><a href="#" onclick="onPlayAll();return false"><fmt:message key="main.playall"/></a></div>
+    <div style="clear:both"></div>
 </div>
 
-<c:if test="${not empty model.artists}">
-    <h2><fmt:message key="search.hits.artists"/></h2>
-    <table class="music indent">
-        <c:forEach items="${model.artists}" var="artist">
-
-            <c:url value="/main.view" var="mainUrl">
-                <c:param name="id" value="${artist.id}"/>
-            </c:url>
-
-            <tr>
-                <c:import url="playButtons.jsp">
-                    <c:param name="id" value="${artist.id}"/>
-                    <c:param name="playEnabled" value="${model.user.streamRole and not model.partyModeEnabled}"/>
-                    <c:param name="addEnabled" value="${model.user.streamRole and (not model.partyModeEnabled or not artist.directory)}"/>
-                    <c:param name="starEnabled" value="true"/>
-                    <c:param name="starred" value="${not empty artist.starredDate}"/>
-                    <c:param name="asTable" value="true"/>
-                </c:import>
-                <td class="truncate">
-                    <a href="${mainUrl}">${fn:escapeXml(artist.name)}</a>
-                </td>
-            </tr>
-        </c:forEach>
-    </table>
-</c:if>
-
-<c:if test="${not empty model.songs}">
-    <h2><fmt:message key="search.hits.songs"/></h2>
-    <table class="music indent">
-        <c:forEach items="${model.songs}" var="song">
-
-            <sub:url value="/main.view" var="mainUrl">
-                <sub:param name="path" value="${song.parentPath}"/>
-            </sub:url>
-
-            <tr>
-                <c:import url="playButtons.jsp">
-                    <c:param name="id" value="${song.id}"/>
-                    <c:param name="playEnabled" value="${model.user.streamRole and not model.partyModeEnabled}"/>
-                    <c:param name="addEnabled" value="${model.user.streamRole and not model.partyModeEnabled}"/>
-                    <c:param name="starEnabled" value="true"/>
-                    <c:param name="starred" value="${not empty song.starredDate}"/>
-                    <c:param name="video" value="false"/>
-                    <c:param name="asTable" value="true"/>
-                </c:import>
-
-                <td class="truncate">
-                        ${fn:escapeXml(song.title)}
-                </td>
-
-                <td class="truncate">
-                    <a href="${mainUrl}"><span class="detail">${fn:escapeXml(song.albumName)}</span></a>
-                </td>
-
-                <td class="truncate">
-                    <span class="detail">${fn:escapeXml(song.artist)}</span>
-                </td>
-            </tr>
-
-        </c:forEach>
-    </table>
-
-    <div class="forward" style="float:left;padding-right:1.5em">
-        <a href="#" onclick="onSavePlaylist()"><fmt:message key="playlist.save"/></a>
-    </div>
-    <div class="forward" style="float: left">
-        <a href="#" onclick="onPlayAll()"><fmt:message key="main.playall"/></a>
-    </div>
-    <div style="clear: both"></div>
-
-</c:if>
-
-<c:if test="${not empty model.videos}">
-    <h2><fmt:message key="search.hits.videos"/></h2>
-    <table class="music indent">
-        <c:forEach items="${model.videos}" var="video">
-
-            <c:url value="/videoPlayer.view" var="videoUrl">
-                <c:param name="id" value="${video.id}"/>
-            </c:url>
-
-            <tr>
-                <c:import url="playButtons.jsp">
-                    <c:param name="id" value="${video.id}"/>
-                    <c:param name="playEnabled" value="${model.user.streamRole and not model.partyModeEnabled}"/>
-                    <c:param name="addEnabled" value="${model.user.streamRole and not model.partyModeEnabled}"/>
-                    <c:param name="starEnabled" value="true"/>
-                    <c:param name="starred" value="${not empty video.starredDate}"/>
-                    <c:param name="video" value="${model.player.web}"/>
-                    <c:param name="asTable" value="true"/>
-                </c:import>
-                <td class="truncate">
-                    <a href="${videoUrl}">${fn:escapeXml(video.name)}</a>
-                </td>
-            </tr>
-        </c:forEach>
-    </table>
-</c:if>
-
+<h2 id="videoHeading" hidden><fmt:message key="search.hits.videos"/></h2>
+<table class="music indent" id="videoTable" hidden><tbody id="videoRows"></tbody></table>
 </body></html>

@@ -90,6 +90,7 @@ import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.controller.rest.jukebox.JukeboxController;
 import org.airsonic.player.controller.rest.starred.StarredController;
+import org.airsonic.player.controller.rest.starred.StarredPageController;
 import org.airsonic.player.controller.rest.bookmarks.BookmarksController;
 import org.airsonic.player.controller.rest.albums.AlbumsController;
 import org.airsonic.player.controller.rest.info.album.AlbumInfoController;
@@ -265,6 +266,7 @@ public class KtorConfiguration {
                                         ratingService, albumSearchService, responseMapper, jaxbWriter),
                                 new BookmarksController(bookmarkService, mediaFileService, responseMapper, jaxbWriter),
                                 new StarredController(mediaFileDao, albumDao, artistDao, mediaFolderService, responseMapper, jaxbWriter),
+                                new StarredPageController(mediaFileDao, mediaFileService, mediaFolderService, securityService, settingsService, objectMapper),
                                 new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),
                                 new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, transcodingService, jaxbWriter),
                                 new DLNASettingsController(settingsService, upnpService, jaxbWriter),
@@ -340,6 +342,8 @@ public class KtorConfiguration {
         registration.addUrlMappings(AlbumsController.PATHS);
         registration.addUrlMappings(BookmarksController.PATHS);
         registration.addUrlMappings(StarredController.PATHS);
+        registration.addUrlMappings(StarredPageController.DATA_PATH);
+        registration.addUrlMappings(StarredPageController.PAGE_PATHS);
         registration.addUrlMappings(JukeboxController.PATHS);
         registration.addUrlMappings(UsersController.PATHS);
         registration.addUrlMappings(UsersController.WEBSITE_PATHS);
