@@ -4,7 +4,7 @@
 
 ## 1. Результат, который нужен
 
-Встроенный сайт и внешние приложения получают данные и выполняют действия через Ktor REST. Старые Spring MVC-контроллеры удалены после переноса их сценариев. Стандартные контракты Subsonic/OpenSubsonic сохранены, включая совместимые заглушки удалённого функционала. Адреса страниц и изображений, необходимые сайту и внешним ссылкам, обслуживаются Ktor напрямую или совместимым обработчиком на Ktor.
+Встроенный сайт и внешние приложения получают данные и выполняют действия через Ktor REST. Старые Spring MVC-контроллеры удалены после переноса их сценариев. Стандартные контракты Subsonic/OpenSubsonic сохранены для поддерживаемых функций; устаревшие podcast-заглушки из удалённого пакета `removal` больше не обслуживаются. Адреса страниц и изображений, необходимые сайту и внешним ссылкам, обслуживаются Ktor напрямую или совместимым обработчиком на Ktor.
 
 Переходный JSP допускается как оболочка/шаблон. Он не должен зависеть от Spring MVC-контроллера, формирующего бизнес-данные. Для маленьких шаблонных страниц не создавать REST endpoint, который лишь возвращает переданные клиентом параметры. Настройки и медиаданные получать из существующего REST; новые маршруты добавлять только для недостающих данных.
 
@@ -27,7 +27,7 @@
 
 ## 3. Проверенный остаток и порядок
 
-В исходниках найдено 15 прикладных Spring MVC-контроллеров: 14 в `org.airsonic.player.controller` и один в `org.airsonic.player.removal`. По решению владельца проекта, весь код из `org.airsonic.player.removal` исключён из работ как устаревший и неподдерживаемый; в объём этого плана входят только 14 контроллеров вне `removal`.
+Исходная инвентаризация насчитывала 15 прикладных Spring MVC-контроллеров: 14 в `org.airsonic.player.controller` и один в `org.airsonic.player.removal`. После выполнения плана и удаления устаревшего пакета `org.airsonic.player.removal` число прикладных Spring MVC-контроллеров в исходниках равно 0.
 
 Порядок этапов ниже сохраняет исходную инвентаризацию; завершённые этапы и их коммиты отмечаются в таблице. Названия новых REST-маршрутов — предложения; перед реализацией сверять с существующими соглашениями и избегать дублирования.
 
@@ -44,7 +44,7 @@
 | 9 | `cover/CoverArtController.java` | `/coverArt`, `/ext/coverArt` | Старые адреса изображений, публичные подписанные ссылки, кеширование; `/rest/getCoverArt` уже Ktor | Выполнен; `CoverArtRestIntegrationTest`, `PublicShareIntegrationTest`, `CoverArtImageServiceTest` прошли; отдельный коммит `Move cover art legacy routes to Ktor` |
 | 10 | `AvatarController.kt` | `/avatar` | Старые адреса аватаров и варианты выбора изображения; `/rest/getAvatar` уже Ktor | Выполнен; `AvatarRestIntegrationTest` и `AvatarUploadIntegrationTest` прошли; отдельный коммит `Move avatar routes to Ktor` |
 | 11 | `ProxyController.kt` | `/proxy` | Совместимый HTTP proxy с журналированием обращений | Выполнен; чистый `ProxyControllerTest` прошёл (6 тестов); отдельный коммит `Move proxy endpoint to Ktor` |
-| 12 | `removal/PodcastRemovalController.java` | 8 путей `/rest/*` | Код на удаление, больше не поддерживается; владелец проекта исключил весь `removal` из работ | Исключён; не изменять и не переносить |
+| 12 | `removal/PodcastRemovalController.java` | 8 путей `/rest/*` | Удалены вместе с устаревшим пакетом `removal` | Удалён вместе с `PodcastExportOPML`; пути больше не зарегистрированы |
 | 13 | `LoginController.kt` | `/login` | GET-страница входа, сообщения и старый redirect-сценарий; POST обрабатывает security filter | Выполнен; `LoginPageIntegrationTest` (3/3) и чистый `KtorServletIntegrationTest` (13/13) прошли; отдельный коммит `Move login page to Ktor` |
 | 14 | `AccessDeniedController.kt` | `/accessDenied` | Страница отказа и нужное журналирование | Выполнен; `5fa7662`, HTTP и role-based 403 проверены |
 | 15 | `NotFoundController.kt` | `/notFound` | Страница отсутствующего ресурса | Выполнен; `d18deda`, HTTP и media-directory контракт проверены |
@@ -144,9 +144,9 @@
 - Проверки на локальном HTTP fixture: байты успешного ответа, upstream 404/500 без передачи его error body, отсутствие url, connection failure, действующая авторизация, оба пути и журналирование без секретов. Перенести `ProxyControllerTest` на сервис/Ktor HTTP, не обращаться к внешнему интернету.
 - Готово: `/proxy` и `/proxy.view` зарегистрированы в Ktor с GET/HEAD; outbound GET вынесен в `ProxyService`, сохраняет 15-секундные connect/socket timeouts и потоковую передачу тела только при upstream 200. Для остальных upstream статусов возвращается тот же статус без upstream body; исключения соединения идут через стандартную обработку HTTP 500. Чистый `ProxyControllerTest` прошёл: локальные проверки 200/404/500, connection refusal, отсутствующего `url`, авторизации, обоих путей, HEAD и журналирования без URL/секретов.
 
-### 12. PodcastRemovalController — исключён из объёма
+### 12. PodcastRemovalController — удалён
 
-Владелец проекта указал, что всё содержимое `org.airsonic.player.removal` является кодом на удаление и больше не поддерживается. Не изменять, не переносить и не добавлять тесты для этого пакета. Его дальнейшее удаление/обработка вне текущего плана миграции контроллеров.
+Устаревший `org.airsonic.player.removal` удалён целиком: вместе с `PodcastRemovalController` удалён `PodcastExportOPML`. Восемь прежних endpoint-ов контроллера больше не зарегистрированы; поиск совпадающих Ktor-маршрутов не выявил. `KtorServletIntegrationTest` проверяет, что все восемь адресов отвечают общим HTTP 404 без редиректа на вход.
 
 ### 13. LoginController
 
@@ -175,7 +175,7 @@
 
 ### 16. Завершающий аудит инфраструктуры
 
-Аудит выполнен 16 ноября 2026 года; подробный перечень потребителей и следующий объём работ: [MVC_INFRASTRUCTURE_AUDIT.md](MVC_INFRASTRUCTURE_AUDIT.md). Прикладных Spring MVC-контроллеров вне исключённого `removal` больше нет. Инфраструктура ниже сохраняет потребителей: suffix adapter для `removal`, Boot `/error`, статика, JSP/theme/JSTL и servlet filters. Удалять эти компоненты сейчас оснований нет. Исправлена отсутствующая настройка MessageSource только в тестовом properties; production basename уже был задан. Общий JS-прогон: 29/29 файлов прошли. HTTP-регрессия: 34/34 теста в 14 классах, без пропусков; Maven BUILD SUCCESS с включённым PMD. Checkstyle отключён после подтверждённого падения его parser на существующем switch в PlayQueue.java:430. Перечень классов и воспроизведение записаны в отчёте. Текущий план переноса 14 прикладных контроллеров и аудита выполнен; удаление оставшихся Spring/JSP/servlet зависимостей является отдельным следующим этапом.
+Аудит выполнен 16 ноября 2026 года; подробный перечень потребителей и следующий объём работ: [MVC_INFRASTRUCTURE_AUDIT.md](MVC_INFRASTRUCTURE_AUDIT.md). После удаления пакета `removal` прикладных Spring MVC-контроллеров в исходниках нет (0). Инфраструктура ниже остаётся для suffix-совместимости и неизвестных адресов, Boot `/error`, статики, JSP/theme/JSTL и servlet filters. Удалять эти компоненты сейчас оснований нет. Исправлена отсутствующая настройка MessageSource только в тестовом properties; production basename уже был задан. Общий JS-прогон: 29/29 файлов прошли. HTTP-регрессия: 34/34 теста в 14 классах, без пропусков; Maven BUILD SUCCESS с включённым PMD. Checkstyle отключён после подтверждённого падения его parser на существующем switch в PlayQueue.java:430. Перечень классов и воспроизведение записаны в отчёте. Текущий план переноса 14 прикладных контроллеров и аудита выполнен; удаление оставшихся Spring/JSP/servlet зависимостей является отдельным следующим этапом.
 
 - Повторить поиск по всему приложению, включая пакеты вне `controller`: `@Controller`, `@RestController`, mappings, `HttpRequestHandler`, программные mappings и вызовы удалённых классов. Отдельно учитывать framework-контроллеры Boot (`/error` и др.).
 - Проверить каждый необходимый старый адрес с суффиксом и без, методы, servlet mapping, FORWARD/INCLUDE/ERROR, context path и static resources. Прямые Ktor-пути не должны зависеть от MVC suffix-forward.
@@ -186,13 +186,13 @@
 
 ### 17. Статика и общие HTTP-ошибки — последующий этап
 
-По поручению владельца после завершения исходного плана: перевести публичные ресурсы webapp на прямые Ktor routes и заменить Boot MVC error rendering. Сохранить GET/HEAD, MIME, байты, Last-Modified/If-Modified-Since, одиночные Range/If-Range, исходные статусы ошибок и HTML/JSON negotiation. Проверить реальные servlet ERROR dispatch, в том числе после POST, контекст `/airsonic`, экранирование HTML и настройки `server.error.*`. Не перехватывать весь `/`, сохранять отдельные контракты Subsonic/media и исключённый `removal`.
+По поручению владельца после завершения исходного плана: перевести публичные ресурсы webapp на прямые Ktor routes и заменить Boot MVC error rendering. Сохранить GET/HEAD, MIME, байты, Last-Modified/If-Modified-Since, одиночные Range/If-Range, исходные статусы ошибок и HTML/JSON negotiation. Проверить реальные servlet ERROR dispatch, в том числе после POST, контекст `/airsonic`, экранирование HTML и настройки `server.error.*`. Не перехватывать весь `/`, сохранять отдельные контракты Subsonic/media.
 
 Выполнено: удалены явный JSP ViewResolver и больше не используемая `error.jsp`, отключены MVC resource mappings и ErrorMvcAutoConfiguration. Корень контекста обслуживает точный пустой servlet mapping, без перехвата остальных MVC-адресов. Для ERROR/FORWARD с error attributes adapter выбирает штатный blocking Ktor engine, чтобы контейнер не завершал response до записи. Выбор внешней security chain `/ext/**` переведён на explicit Ant matcher полного пути: MVC fallback после отключения ресурсов терял prefix servlet mappings, что выявили signed share/HLS тесты. JWT и роли не менялись.
 
 Проверки: финальный запуск 34/34 HTTP-теста, затем целевой 9/9 после последней правки HEAD+Range; остальные 9 сценариев расширенного прогона прошли ранее (43 разных HTTP-сценария всего). Все 29 JS-файлов и PMD прошли. Checkstyle отключён из-за существующей ошибки parser на PlayQueue.java:430. Подробные классы, покрытия и воспроизведение: [MVC_INFRASTRUCTURE_AUDIT.md](MVC_INFRASTRUCTURE_AUDIT.md). Firefox и отдельный внешний WAR-контейнер не запускались; FORWARD проверен test servlet.
 
-DispatcherServlet, suffix adapter и LoggingExceptionResolver сохраняются для исключённых MVC-потребителей и неизвестных адресов до error dispatch; JSP locale/theme/security/filter инфраструктура остаётся. Весь `removal` не изменялся. Следующая самостоятельная работа — servlet-фильтры/безопасность либо отказ от Spring-тегов в JSP.
+DispatcherServlet, suffix adapter и LoggingExceptionResolver остаются для неизвестных адресов до error dispatch; JSP locale/theme/security/filter инфраструктура остаётся. Пакет `removal` впоследствии удалён, его stub-маршруты больше не обслуживаются. Следующая самостоятельная работа — servlet-фильтры/безопасность либо отказ от Spring-тегов в JSP.
 
 ## 5. Тестовая стратегия и критерии завершения
 
@@ -221,4 +221,4 @@ rg -n 'getBean\(|getRequestDispatcher|\.forward\(|\.include\(' airsonic-main/src
 git status --short
 ```
 
-Инвентаризация также обнаруживает `org.airsonic.player.removal.PodcastRemovalController`; этот пакет намеренно исключён владельцем проекта и не является частью текущего плана. Не ограничивать поиск верхним уровнем `controller` и расширением `.java`: основная часть остатка написана на Kotlin.
+Исходная инвентаризация также обнаруживала `org.airsonic.player.removal.PodcastRemovalController`; пакет удалён после завершения миграции. Повторный поиск по всему source tree должен показывать 0 прикладных MVC-контроллеров. Не ограничивать поиск верхним уровнем `controller` и расширением `.java`: основная часть остатка написана на Kotlin.

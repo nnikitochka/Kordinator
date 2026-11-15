@@ -175,6 +175,15 @@ public class KtorServletIntegrationTest {
         assertTrue(missingRest.body(), !missingRest.body().contains("musicFolderSettings.view"));
         assertTrue(!missingRest.headers().firstValue("location").isPresent());
 
+        for (String endpoint : List.of("getPodcasts", "getNewestPodcasts", "refreshPodcasts",
+                "createPodcastChannel", "deletePodcastChannel", "deletePodcastEpisode",
+                "downloadPodcastEpisode", "exportPodcasts/opml")) {
+            HttpResponse<String> removedPodcastEndpoint = get(
+                    "/rest/" + endpoint + "?" + credentials() + "&f=json", false);
+            assertEquals(endpoint, 404, removedPodcastEndpoint.statusCode());
+            assertTrue(endpoint, !removedPodcastEndpoint.headers().firstValue("location").isPresent());
+        }
+
         HttpResponse<byte[]> missingCoverArt = getBytes("/rest/getCoverArt?" + credentials() + "&id=2147483647");
         assertEquals(200, missingCoverArt.statusCode());
         assertTrue(missingCoverArt.headers().firstValue("content-type").orElseThrow().startsWith("image/"));

@@ -4,24 +4,24 @@
 
 ## Прикладные обработчики
 
-Поиск `@Controller`, `@RestController`, аннотаций mappings, `HttpRequestHandler`, `HandlerMapping`, `addViewController` и `RouterFunction` по всему `airsonic-main/src/main/java` не обнаружил прикладных MVC-контроллеров вне `org.airsonic.player.removal`. Все 14 контроллеров текущего плана удалены. Ktor регистрируется отдельным servlet `ktor`; точные пути и семейства `/rest/*`, `/ext/*` перечислены в `KtorConfiguration`. JSP передаются через `RequestDispatcher.forward` из servlet adapter; Spring-контроллер для этого не вызывается.
+Поиск `@Controller`, `@RestController`, аннотаций mappings, `HttpRequestHandler`, `HandlerMapping`, `addViewController` и `RouterFunction` по всему `airsonic-main/src/main/java` не обнаруживает прикладных MVC-контроллеров: их число теперь равно 0. Все 14 контроллеров текущего плана и устаревший пакет `org.airsonic.player.removal` удалены. Ktor регистрируется отдельным servlet `ktor`; точные пути и семейства `/rest/*`, `/ext/*` перечислены в `KtorConfiguration`. JSP передаются через `RequestDispatcher.forward` из servlet adapter; Spring-контроллер для этого не вызывается.
 
-Единственный оставшийся исходный `@Controller` — `removal/PodcastRemovalController`. Пакет исключён владельцем проекта из работ. Его исходники и поведение не менялись.
+`org.airsonic.player.removal` удалён целиком: `PodcastRemovalController` и `PodcastExportOPML`. Его восемь прежних адресов `/rest/getPodcasts`, `/rest/getNewestPodcasts`, `/rest/refreshPodcasts`, `/rest/createPodcastChannel`, `/rest/deletePodcastChannel`, `/rest/deletePodcastEpisode`, `/rest/downloadPodcastEpisode` и `/rest/exportPodcasts/opml` больше не зарегистрированы; совпадающих маршрутов в Ktor не найдено. `KtorServletIntegrationTest` проверяет для всех восьми ответ HTTP 404 без редиректа.
 
 ## Что ещё требует Spring MVC и servlet-контейнер
 
 | Компонент | Потребитель и решение |
 |---|---|
-| `LegacyViewSuffixHandlerMapping` | Остаётся: обеспечивает suffix-совместимость оставшихся MVC-заглушек из `removal`. Перенесённые адреса зарегистрированы прямо в Ktor, включая необходимые `.view`. Неизвестные `.view` по-прежнему заканчиваются 404. |
-| `DispatcherServlet`, MVC resource handlers | MVC resource mappings отключены; статика и `/error` перенесены в Ktor. DispatcherServlet остаётся для исключённого `removal` и разрешения неизвестных адресов до servlet error dispatch. `spring-boot-starter-web` пока сохраняется. |
+| `LegacyViewSuffixHandlerMapping` | Остаётся для совместимости `.view` адресов, перенесённых в Ktor, и разрешения неизвестных адресов до error dispatch. Удалённый пакет `removal` больше не является его потребителем. |
+| `DispatcherServlet`, MVC resource handlers | MVC resource mappings отключены; статика и `/error` перенесены в Ktor. DispatcherServlet остаётся для разрешения неизвестных адресов до servlet error dispatch. `spring-boot-starter-web` пока сохраняется. |
 | `jspViewResolver` / `JstlView` | Явный JSP ViewResolver, prefix/suffix properties и `error.jsp` удалены. Ktor отдаёт ошибку без JSP; остальные страницы используют прямой JSP forward. Boot может создавать свой неиспользуемый default resolver — это не объявляется полным отключением MVC. |
-| `LoggingExceptionResolver` | Остаётся для исключений оставшегося MVC. Ktor-запросы не делегируются ему; удалить его сейчас означало бы изменить журналирование исключённого из работ кода. |
+| `LoggingExceptionResolver` | Остаётся для исключений MVC при разрешении неизвестных адресов. Ktor-запросы не делегируются ему. |
 | LocaleResolver, MessageSource, theme resolver/source, Spring tags, JSTL | Остаются: JSP используют `spring:theme`, `fmt:message`, security tags и custom tags. Servlet adapter выставляет locale/theme/context перед JSP forward. |
 | `ServletConfiguration` | Остаётся: содержит также bootstrap, encoding, REST, cache/header и metrics filters, а также validator. Нельзя удалить класс целиком вместе с MVC. |
 | Spring Security, DI, транзакции | Сохраняются за пределами объёма миграции контроллеров. Авторизация и CSRF выполняются до Ktor servlet; POST login/logout обслуживает security chain. |
 | Tomcat/Jasper, Servlet API | Сохраняются для Ktor servlet engine, JSP и filters. Перенос на самостоятельный Ktor engine требует отдельной работы. |
 
-Точный servlet mapping выбирается контейнером раньше MVC HandlerMapping. Ktor aliases поэтому не требуют suffix-forward. JSP выполняет servlet forward. Для общих ошибок теперь зарегистрирован ErrorPageRegistrar, направляющий контейнер на Ktor error endpoint; ErrorMvcAutoConfiguration исключён, BasicErrorController не создаётся. Фильтры и security chain продолжают использовать действующую конфигурацию dispatcher types. Контракты INCLUDE в исключённом `removal` не изменялись и отдельно не тестировались.
+Точный servlet mapping выбирается контейнером раньше MVC HandlerMapping. Ktor aliases поэтому не требуют suffix-forward. JSP выполняет servlet forward. Для общих ошибок теперь зарегистрирован ErrorPageRegistrar, направляющий контейнер на Ktor error endpoint; ErrorMvcAutoConfiguration исключён, BasicErrorController не создаётся. Фильтры и security chain продолжают использовать действующую конфигурацию dispatcher types. Удалённый `removal` больше не имеет INCLUDE-контрактов.
 
 ## Последующий перенос статики и ошибок
 
@@ -59,8 +59,8 @@
 ## Следующий объём работ
 
 1. Заменить JSP и Spring tags клиентским интерфейсом, сохранив данные и действия в Ktor REST.
-2. Статика и общие HTTP-ошибки перенесены в Ktor; явная MVC ViewResolver/resource/error infrastructure удалена или отключена. Далее проверить возможность убрать оставшийся DispatcherServlet после решения по `removal` и переноса обработки неизвестных адресов.
-3. Решение об окончательном удалении `removal` принимает владелец проекта; до него suffix adapter и MVC-заглушки сохраняются.
+2. Статика и общие HTTP-ошибки перенесены в Ktor; явная MVC ViewResolver/resource/error infrastructure удалена или отключена. Далее проверить возможность убрать оставшийся DispatcherServlet после отдельной оценки обработки неизвестных адресов.
+3. Пакет `removal` удалён; его stub-маршруты больше не зарегистрированы. `LegacyViewSuffixHandlerMapping` и DispatcherServlet пока остаются как общая инфраструктура неизвестных адресов и suffix-совместимости.
 4. Отдельно перенести authentication/session/CSRF и servlet filters, если требуется самостоятельный Ktor engine.
 5. После этого отключать servlet engine и Spring MVC зависимости; DI и транзакции рассматривать отдельно.
 
