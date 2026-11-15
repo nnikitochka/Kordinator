@@ -5,6 +5,7 @@ import org.airsonic.player.service.LyricsService;
 import org.airsonic.player.service.TagEditService;
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController;
 import org.airsonic.player.controller.rest.tags.TagEditController;
+import org.airsonic.player.controller.rest.tags.TagEditorPageController;
 import org.airsonic.player.service.CoverArtSearchService;
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController;
 import org.airsonic.player.controller.rest.settings.WebsiteSettingsController;
@@ -306,6 +307,7 @@ public class KtorConfiguration {
                                 new CoverArtActionsController(coverArtSearchService, jaxbWriter),
                                 new MediaFileCommentController(mediaFileService, securityService, jaxbWriter),
                                 new TagEditController(tagEditService, jaxbWriter),
+                                new TagEditorPageController(mediaFileService, mediaFolderService, securityService, objectMapper),
                                 new WebsiteSettingsController(settingsService, jaxbWriter),
                                 new LiveQueueController(playQueueService, jaxbWriter, mediaFileService, playlistService, securityService, playQueueDao, playerService),
                                 new RatingController(mediaFileService, ratingService, jaxbWriter),
@@ -385,6 +387,8 @@ public class KtorConfiguration {
         registration.addUrlMappings(CoverArtActionsController.PATHS);
         registration.addUrlMappings(MediaFileCommentController.PATH);
         registration.addUrlMappings(TagEditController.PATHS);
+        registration.addUrlMappings(TagEditorPageController.PATH);
+        registration.addUrlMappings(TagEditorPageController.PAGE_PATHS);
         registration.addUrlMappings(WebsiteSettingsController.PATHS);
         registration.addUrlMappings(LiveQueueController.PATHS);
         registration.addUrlMappings(RandomQueueController.PATH);

@@ -72,6 +72,7 @@ import io.ktor.http.parseQueryString
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController
 import org.airsonic.player.controller.rest.tags.TagEditController
+import org.airsonic.player.controller.rest.tags.TagEditorPageController
 import org.airsonic.player.controller.rest.settings.WebsiteSettingsController
 import org.airsonic.player.controller.rest.livequeue.LiveQueueExportController
 import org.airsonic.player.controller.rest.livequeue.RandomQueueController
@@ -208,6 +209,7 @@ class AirsonicKtorServlet(
     private val coverArtActionsController: CoverArtActionsController,
     private val mediaFileCommentController: MediaFileCommentController,
     private val tagEditController: TagEditController,
+    private val tagEditorPageController: TagEditorPageController,
     private val websiteSettingsController: WebsiteSettingsController,
     private val liveQueueController: LiveQueueController,
     private val ratingController: RatingController,
@@ -351,6 +353,8 @@ class AirsonicKtorServlet(
             if (avatar != null) call.attributes.put(AVATAR_REQUEST_KEY, avatar)
             val tagEdit = request.getAttribute(TAG_EDIT_REQUEST) as? TagEditController.Request
             if (tagEdit != null) call.attributes.put(TAG_EDIT_REQUEST_KEY, tagEdit)
+            val tagEditorPage = request.getAttribute(TagEditorPageController.REQUEST_ATTRIBUTE) as? TagEditorPageController.Request
+            if (tagEditorPage != null) call.attributes.put(TAG_EDITOR_PAGE_REQUEST_KEY, tagEditorPage)
             val coverActions = request.getAttribute(COVER_ACTIONS_REQUEST) as? CoverArtActionsController.Request
             if (coverActions != null) call.attributes.put(COVER_ACTIONS_REQUEST_KEY, coverActions)
             val parameters = request.getAttribute(REST_PARAMETERS) as? Parameters
@@ -449,6 +453,7 @@ class AirsonicKtorServlet(
             liveQueueController.routes(this) { call -> call.attributes[LIVE_QUEUE_REQUEST_KEY] }
             websiteSettingsController.routes(this) { call -> call.attributes[WEBSITE_SETTINGS_REQUEST_KEY] }
             tagEditController.routes(this) { call -> call.attributes[TAG_EDIT_REQUEST_KEY] }
+            tagEditorPageController.routes(this) { call -> call.attributes[TAG_EDITOR_PAGE_REQUEST_KEY] }
             coverArtRestController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             avatarRestController.routes(this) { call -> call.attributes[AVATAR_REQUEST_KEY] }
             coverArtActionsController.routes(this) { call -> call.attributes[COVER_ACTIONS_REQUEST_KEY] }
@@ -491,6 +496,26 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path in TagEditorPageController.PAGE_PATHS) {
+            if (request.method !in setOf("GET", "HEAD")) {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            if (securityService.getCurrentUsername(request) == null) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                return
+            }
+            response.setHeader("Cache-Control", "no-store")
+            val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
+            request.getRequestDispatcher("/WEB-INF/jsp/editTags.jsp").forward(request, response)
+            return
+        }
         if (path == "/changeCoverArt" || path == "/changeCoverArt.view") {
             if (request.method !in setOf("GET", "HEAD")) {
                 response.setHeader("Allow", "GET, HEAD")
@@ -1641,6 +1666,10 @@ class AirsonicKtorServlet(
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(TAG_EDIT_REQUEST, TagEditController.Request(
                 user.username, user.isAdminRole || user.isCoverArtRole, parameters(request)))
+        } else if (path == TagEditorPageController.PATH) {
+            val user = requireNotNull(securityService.getCurrentUser(request))
+            request.setAttribute(TagEditorPageController.REQUEST_ATTRIBUTE, TagEditorPageController.Request(
+                user.username, request.getParameter("id")?.toIntOrNull(), user.isAdminRole || user.isCoverArtRole))
         } else if (path in CoverArtActionsController.PATHS) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(COVER_ACTIONS_REQUEST, CoverArtActionsController.Request(
@@ -1724,6 +1753,7 @@ class AirsonicKtorServlet(
         val AVATAR_REQUEST_KEY = AttributeKey<AvatarRestController.Request>(AVATAR_REQUEST)
         const val TAG_EDIT_REQUEST = "org.airsonic.player.tagEditRequest"
         val TAG_EDIT_REQUEST_KEY = AttributeKey<TagEditController.Request>(TAG_EDIT_REQUEST)
+        val TAG_EDITOR_PAGE_REQUEST_KEY = AttributeKey<TagEditorPageController.Request>(TagEditorPageController.REQUEST_ATTRIBUTE)
         const val COVER_ACTIONS_REQUEST = "org.airsonic.player.coverActionsRequest"
         val COVER_ACTIONS_REQUEST_KEY = AttributeKey<CoverArtActionsController.Request>(COVER_ACTIONS_REQUEST)
         const val REST_PARAMETERS = "org.airsonic.player.restParameters"

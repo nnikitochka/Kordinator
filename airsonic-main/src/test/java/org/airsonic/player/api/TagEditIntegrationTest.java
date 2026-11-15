@@ -88,7 +88,26 @@ public class TagEditIntegrationTest {
             HttpResponse<String> page = send(browser, "/editTags?id=" + album.getId(), null, null);
             assertEquals(page.body(), 200, page.statusCode());
             assertTrue(page.body().contains("/airsonic/script/subsonic-tag-edit.js"));
+            assertTrue(page.body().contains("/airsonic/rest/tagEditor"));
+            assertFalse(context.containsBean("editTagsController"));
             assertFalse(page.body().contains("/app/tags/edit"));
+            HttpResponse<String> editorData = send(browser, "/rest/tagEditor?id=" + album.getId(), null, null);
+            assertEquals(editorData.body(), 200, editorData.statusCode());
+            JsonNode editorJson = mapper.readTree(editorData.body());
+            assertEquals(album.getId().intValue(), editorJson.path("id").asInt());
+            assertEquals(song.getArtist(), editorJson.path("defaultArtist").asText());
+            assertEquals(song.getAlbumName(), editorJson.path("defaultAlbum").asText());
+            assertEquals(song.getId().intValue(), editorJson.path("songs").get(0).path("id").asInt());
+            assertEquals("song", editorJson.path("songs").get(0).path("fileName").asText());
+            assertEquals(1, editorJson.path("songs").get(0).path("suggestedTrack").asInt());
+            assertFalse(editorJson.path("allGenres").isEmpty());
+            assertEquals(400, send(browser, "/rest/tagEditor?id=not-a-number", null, null).statusCode());
+            assertEquals(400, send(browser, "/rest/tagEditor?id=" + song.getId(), null, null).statusCode());
+            HttpClient deniedBrowser = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
+                    .followRedirects(HttpClient.Redirect.NEVER).build();
+            String deniedLoginToken = Pattern.compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"").matcher(send(deniedBrowser, "/login", null, null).body()).results().findFirst().orElseThrow().group(1);
+            assertEquals(302, send(deniedBrowser, "/login", "j_username=tag-denied&j_password=secret&_csrf=" + enc(deniedLoginToken), null).statusCode());
+            assertEquals(403, send(deniedBrowser, "/rest/tagEditor?id=" + album.getId(), null, null).statusCode());
             token = Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
             assertTrue(token.find());
             String csrf = token.group(1);
