@@ -7,6 +7,7 @@
     <%@ include file="subsonicWebsiteSettings.jsp" %>
     <%@ include file="subsonicPlaylists.jsp" %>
     <%@ include file="subsonicStars.jsp" %>
+    <script src="<c:url value='/script/cover-art-renderer.js?v=1'/>"></script>
     <script src="<c:url value='/script/media-file-comment.js?v=1'/>"></script>
     <script src="<c:url value='/script/subsonic-rating.js'/>"></script>
     <script src="<c:url value='/script/subsonic-media-directory.js?v=2'/>"></script>
@@ -183,22 +184,31 @@
     }
 
     function generateMediaDirThumb() {
-        var urlBase = "<c:url value='/coverArtJsp.view'/>";
-        $.get(urlBase + '?coverArtSize=' + pageSettings.coverArtSizeLarge + '&showZoom=true&showChange=' + pageSettings.roles.coverArt + '&albumId=' + mediaDir.id, data => {
-            $('#mediaDirThumb').html(data);
-        });
+        $('#mediaDirThumb').empty().append(coverArtRenderer.render({
+            albumId: mediaDir.id,
+            size: pageSettings.coverArtSizeLarge,
+            showZoom: true,
+            showChange: pageSettings.roles.coverArt,
+            caption1: mediaDir.title || ''
+        }));
     }
 
     function generateThumbs() {
-        var urlBase = "<c:url value='/coverArtJsp.view'/>";
         $('#thumbs').html('');
 
         thumbsData.filter(t => t.entryType != 'VIDEO').forEach((t,i) => {
-            //append container first to keep order intact when async callback happens
-            $('#thumbs').append('<div class="albumThumb"></div>');
-            $.get(urlBase + '?hideOverflow=true&showLink=true&appearAfter=' + (i * 30) + '&coverArtSize=' + pageSettings.coverArtSizeMedium + '&captionCount=2&caption2=' + (t.year ? t.year : '') + '&caption1=' + encodeURIComponent(t.title) +'&albumId=' + t.id, data => {
-                $('#thumbs .albumThumb:nth-child(' + (i + 1) + ')').append(data);
-            });
+            var tile = $('<div class="albumThumb"></div>');
+            tile.append(coverArtRenderer.render({
+                albumId: t.id,
+                size: pageSettings.coverArtSizeMedium,
+                hideOverflow: true,
+                showLink: true,
+                appearAfter: i * 30,
+                captionCount: 2,
+                caption1: t.title,
+                caption2: t.year || ''
+            }));
+            $('#thumbs').append(tile);
         });
 
         var videoUrlBase = "<c:url value='/videoPlayer.view'/>";
@@ -1099,6 +1109,7 @@
 </script>
 </head>
 <body class="mainframe bgcolor1" onload="loadMainPage();">
+<%@ include file="coverArtRendererConfig.jsp" %>
 <div style="float:left">
     <h1>
         <img id="starImage" src="<spring:theme code='ratingOffImage'/>"

@@ -7,6 +7,7 @@
     <%@ include file="subsonicPlaylists.jsp" %>
     <%@ include file="subsonicStars.jsp" %>
     <%@ include file="table.jsp" %>
+    <script src="<c:url value='/script/cover-art-renderer.js?v=1'/>"></script>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
     <script type="text/javascript" language="javascript">
         var playlistId;
@@ -389,6 +390,8 @@
 
         function updatedPlaylistCallback(playlist) {
             if (playlistId == playlist.id) {
+                var cover = document.getElementById("playlistCoverArt");
+                cover.replaceChildren(coverArtRenderer.render({playlistId: playlist.id, size: 160}));
                 $("#name").text(playlist.name);
                 $("#songCount").text(playlist.fileCount);
                 $("#duration").text(formatDuration(Math.round(playlist.duration)));
@@ -493,12 +496,10 @@
 
 </head>
 <body class="mainframe bgcolor1" onload="loadPlaylistPage()">
+<%@ include file="coverArtRendererConfig.jsp" %>
 
 <div style="float:left;margin-right:1.5em;margin-bottom:1.5em">
-<c:import url="coverArt.jsp">
-    <c:param name="playlistId" value="${param.id}"/>
-    <c:param name="coverArtSize" value="160"/>
-</c:import>
+    <div id="playlistCoverArt" class="albumThumb"></div>
 </div>
 
 <h1><a href="playlists.view"><fmt:message key="left.playlists"/></a> &raquo; <span id="name"></span></h1>

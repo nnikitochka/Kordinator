@@ -8,6 +8,7 @@
     <%@ include file="subsonicWebsiteSettings.jsp" %>
     <%@ include file="subsonicPlaylists.jsp" %>
     <%@ include file="table.jsp" %>
+    <script src="<c:url value='/script/cover-art-renderer.js?v=1'/>"></script>
     <script type="text/javascript" src="<c:url value='/script/utils.js'/>"></script>
 
     <script type="text/javascript" language="javascript">
@@ -298,13 +299,20 @@
       }
       function generateThumb(playlist, delay) {
         $('#noplaylists').hide();
-        var urlBase = "<c:url value='/coverArtJsp.view'/>";
-        //append container first to keep order intact when async callback happens
-        $('#thumbs').append('<div class="albumThumb" id="playlistThumb-' + playlist.id + '"></div>');
-        var delayString = delay ? ("&appearAfter=" + delay) : "";
-        $.get(urlBase + '?hideOverflow=true&showLink=true' + delayString + '&coverArtSize=160&captionCount=2&caption2=' + encodeURIComponent(playlist.fileCount + ' <fmt:message key="playlist2.songs"/> &ndash; ' + playlist.duration) + '&caption1=' + encodeURIComponent(playlist.name) +'&playlistId=' + playlist.id, data => {
-            $('#playlistThumb-' + playlist.id).append(data);
-        });
+        var placeholder = document.createElement('div');
+        placeholder.className = 'albumThumb';
+        placeholder.id = 'playlistThumb-' + playlist.id;
+        placeholder.appendChild(coverArtRenderer.render({
+            playlistId: playlist.id,
+            size: 160,
+            hideOverflow: true,
+            showLink: true,
+            appearAfter: delay,
+            captionCount: 2,
+            caption1: playlist.name,
+            caption2: playlist.fileCount + ' ' + coverArtRenderer.config.playlistSongsLabel + ' – ' + playlist.duration
+        }));
+        $('#thumbs').append(placeholder);
       }
       function removeThumb(playlistId) {
         $('#playlistThumb-' + playlistId).remove();
@@ -341,6 +349,7 @@
     </script>
 </head>
 <body class="mainframe bgcolor1" onload="loadPageSettings()">
+<%@ include file="coverArtRendererConfig.jsp" %>
 
 <h1 style="padding-bottom: 1em">
     <img src="<spring:theme code='playlistImage'/>" alt="">

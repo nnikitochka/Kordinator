@@ -73,8 +73,12 @@ public class WebsiteSettingsIntegrationTest {
             HttpResponse<String> rendered = send(browser, path, null, null);
             assertEquals(rendered.body(), 200, rendered.statusCode());
             assertTrue(rendered.body().contains("/airsonic/script/subsonic-website-settings.js"));
+            assertTrue(rendered.body().contains("/airsonic/script/cover-art-renderer.js?v=1"));
+            assertTrue(rendered.body().contains("id=\"coverArtRendererConfig\""));
+            assertFalse(rendered.body().contains("coverArtJsp.view"));
             assertFalse(rendered.body().contains("/app/settings/"));
         }
+        assertFalse(context.containsBean("coverArtJspController"));
         token = Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
         assertTrue(token.find());
         String csrf = token.group(1);

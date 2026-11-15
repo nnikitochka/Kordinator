@@ -39,7 +39,7 @@
 | 4 | `StarredController.kt` | `/starred` | Четыре раздела избранного, даты и настройки отображения | Выполнен; `StarredIntegrationTest` прошёл; отдельный коммит `Move starred page to Ktor REST` |
 | 5 | `RightController.kt` | `/right` | Настройки правой панели и уведомление о версии; polling уже есть | Выполнен; `RightPageIntegrationTest` прошёл; `Move right panel data to Ktor REST` |
 | 6 | `IndexController.kt` | `/index` | Настройки оболочки сайта и первоначальная навигация/iframe | Выполнен; `IndexPageIntegrationTest`, `KtorServletIntegrationTest`, `WebsiteSettingsIntegrationTest` прошли; `Move index shell to Ktor REST` |
-| 7 | `cover/CoverArtJspController.kt` | `/coverArtJsp` | HTML-фрагмент обложки, который запрашивают main/playlists | Не начат |
+| 7 | `cover/CoverArtJspController.kt` | `/coverArtJsp` | HTML-фрагмент обложки, который запрашивают main/playlists/playlist | Выполнен |
 | 8 | `RatingJspController.kt` | `/ratingJsp` | HTML-фрагмент рейтинга и readonly/editable режимы | Не начат |
 | 9 | `cover/CoverArtController.java` | `/coverArt`, `/ext/coverArt` | Старые адреса изображений, публичные подписанные ссылки, кеширование; `/rest/getCoverArt` уже Ktor | Не начат |
 | 10 | `AvatarController.kt` | `/avatar` | Старые адреса аватаров и варианты выбора изображения; `/rest/getAvatar` уже Ktor | Не начат |
@@ -103,13 +103,12 @@
 - Проверки: чистая сборка и `IndexPageIntegrationTest`, `KtorServletIntegrationTest`, `WebsiteSettingsIntegrationTest` прошли (15 интеграционных тестов); `index-page.test.cjs` проверил локальные и отклоняемые URL; inline JS прошёл `node --check`. Checkstyle и PMD пропущены; Firefox не запускался.
 - Готово: оболочка сайта и её пользовательские настройки обслуживаются Ktor; старый `IndexController` удалён. Коммит `Move index shell to Ktor REST`.
 
-### 7. CoverArtJspController
+### 7. CoverArtJspController — выполнен
 
-- `mediaMain.jsp` и `playlists.jsp` реально запрашивают `/coverArtJsp.view`. Класс пока нельзя удалить как неиспользуемый.
-- Предпочтительный результат: общий клиентский рендерер обложки по REST-данным, используемый этими страницами. Сохранить album/playlist id, размеры, подписи, переход/zoom, play/add, режим overflow.
-- Если старый маршрут ещё нужен обнаруженным потребителям, оставить совместимый HTML-обработчик на Ktor до удаления всех вызовов. Не называть HTML endpoint REST API; новые клиентские данные и действия идут через REST.
-- Проверки: альбом и плейлист, captions с кавычками/HTML, пустая обложка, overlay-действия с правильным id, zoom/change, оба текущих потребителя. Не смешивать этот этап с удалением бинарного CoverArtController.
-- Готово: старый Spring bean удалён; все обнаруженные запросы HTML-фрагмента либо заменены клиентским рендерером, либо обслуживаются Ktor.
+- `mediaMain.jsp`, `playlists.jsp` и `playlist.jsp` используют общий `cover-art-renderer.js` и данные, уже полученные через REST; запросы к `/coverArtJsp.view` и импорт `coverArt.jsp` удалены. Сохранены размеры, подписи, overflow, album/playlist navigation, zoom/change и play/add действия.
+- Текст подписей выводится через `textContent`; все значения параметров URL кодируются. Старый Spring controller и неиспользуемый JSP fragment удалены. Бинарные `/coverArt.view` и стандартный REST cover art не менялись.
+- Проверки: `cover-art-renderer.test.cjs` прошёл (4 сценария: URL, album/playlist, HTML в подписи, размер/overflow, queue actions); `WebsiteSettingsIntegrationTest` и `PlaylistsIntegrationTest` прошли на чистой сборке (3 HTTP-интеграционных теста). Они проверяют все три страницы и отсутствие Spring bean/старого импорта. Checkstyle и PMD пропущены параметрами Maven; Firefox не запускался.
+- Готово: старый Spring bean удалён, оба потребителя строят обложки через общий клиентский рендерер.
 
 ### 8. RatingJspController
 

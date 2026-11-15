@@ -247,6 +247,10 @@ public class PlaylistsIntegrationTest {
                 assertFalse(path, rendered.body().contains("/app/playlists/"));
                 if (path.startsWith("/playlist.view")) {
                     assertTrue(rendered.body().contains("/airsonic/rest/playlistPageSettings"));
+                    assertTrue(rendered.body().contains("/airsonic/script/cover-art-renderer.js?v=1"));
+                    assertTrue(rendered.body().contains("id=\"playlistCoverArt\""));
+                    assertFalse(rendered.body().contains("coverArt.jsp"));
+                    assertFalse(context.containsBean("coverArtJspController"));
                     assertFalse(rendered.body().contains("${model."));
                 }
             }
