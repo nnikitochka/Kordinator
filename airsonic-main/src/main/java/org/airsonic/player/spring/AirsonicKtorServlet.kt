@@ -68,6 +68,7 @@ import org.airsonic.player.controller.rest.music.similar.SimilarSongsRequest
 import org.airsonic.player.service.MediaStreamService
 import org.airsonic.player.service.CoverArtImageService
 import org.airsonic.player.controller.rest.avatar.AvatarRestController
+import org.airsonic.player.controller.rest.proxy.ProxyRestController
 import org.airsonic.player.controller.rest.avatar.AvatarUploadController
 import io.ktor.http.parseQueryString
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController
@@ -241,6 +242,8 @@ class AirsonicKtorServlet(
     private val playQueuePageController: PlayQueuePageController,
     private val jaxbWriter: JAXBWriter,
 ) : ServletApplicationEngine() {
+    private val proxyRestController = ProxyRestController()
+
     @OptIn(InternalAPI::class)
     override fun init() {
         super.init()
@@ -399,6 +402,7 @@ class AirsonicKtorServlet(
             if (stream != null) call.attributes.put(STREAM_REQUEST_KEY, stream)
         }
         application.routing {
+            proxyRestController.routes(this)
             for (path in listOf("/settings", "/settings.view")) {
                 get(path) { redirectSettings(call) }
                 head(path) { redirectSettings(call) }

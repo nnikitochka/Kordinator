@@ -34,6 +34,7 @@ import org.airsonic.player.service.TranscodingService;
 import org.airsonic.player.dao.PlayerDaoPlayQueueFactory;
 import org.airsonic.player.controller.rest.cover.CoverArtRestController;
 import org.airsonic.player.controller.rest.avatar.AvatarRestController;
+import org.airsonic.player.controller.rest.proxy.ProxyRestController;
 import org.airsonic.player.controller.rest.avatar.AvatarUploadController;
 import org.airsonic.player.controller.rest.indexes.IndexesController;
 import org.airsonic.player.controller.rest.music.genre.SongsByGenreController;
@@ -406,6 +407,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(LiveQueueExportController.PATH);
         registration.addUrlMappings(AvatarRestController.PATHS);
         registration.addUrlMappings(AvatarRestController.LEGACY_PATHS);
+        registration.addUrlMappings(ProxyRestController.PATHS);
         registration.addUrlMappings(AvatarUploadController.PATH);
         registration.addUrlMappings(UploadController.PATH);
         registration.addUrlMappings(PlaylistExportController.PATH);

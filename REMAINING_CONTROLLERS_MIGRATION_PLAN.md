@@ -43,7 +43,7 @@
 | 8 | `RatingJspController.kt` | `/ratingJsp` | HTML-фрагмент рейтинга и readonly/editable режимы | Выполнен |
 | 9 | `cover/CoverArtController.java` | `/coverArt`, `/ext/coverArt` | Старые адреса изображений, публичные подписанные ссылки, кеширование; `/rest/getCoverArt` уже Ktor | Выполнен; `CoverArtRestIntegrationTest`, `PublicShareIntegrationTest`, `CoverArtImageServiceTest` прошли; отдельный коммит `Move cover art legacy routes to Ktor` |
 | 10 | `AvatarController.kt` | `/avatar` | Старые адреса аватаров и варианты выбора изображения; `/rest/getAvatar` уже Ktor | Выполнен; `AvatarRestIntegrationTest` и `AvatarUploadIntegrationTest` прошли; отдельный коммит `Move avatar routes to Ktor` |
-| 11 | `ProxyController.kt` | `/proxy` | Совместимый HTTP proxy с журналированием обращений | Не начат |
+| 11 | `ProxyController.kt` | `/proxy` | Совместимый HTTP proxy с журналированием обращений | Выполнен; чистый `ProxyControllerTest` прошёл (6 тестов); отдельный коммит `Move proxy endpoint to Ktor` |
 | 12 | `removal/PodcastRemovalController.java` | 8 путей `/rest/*`, см. этап | Совместимые пустые ответы, отказы и OPML удалённых подкастов | Не начат |
 | 13 | `LoginController.kt` | `/login` | GET-страница входа, сообщения и старый redirect-сценарий; POST обрабатывает security filter | Не начат |
 | 14 | `AccessDeniedController.kt` | `/accessDenied` | Страница отказа и нужное журналирование | Не начат |
@@ -140,8 +140,8 @@
 - Сохранить `/proxy` и `/proxy.view` как совместимый Ktor endpoint. Его удаление без отдельного решения не входит в план: существующее журналирование введено для оценки неизвестных старых клиентов.
 - Вынести HTTP-загрузку в сервис, сохранить обязательный `url`, поток байтов, timeout и наблюдаемую обработку ошибок upstream/redirect. Конкретные сетевые/timeout исключения охарактеризовать до переноса.
 - Сохранить запись о каждом вызове, включая некорректный, без url, query, токенов и credentials в логах. Не менять политику допустимых upstream-адресов молча в рамках миграции; ограничения, если нужны, оформить отдельно.
-- Проверки на локальном HTTP fixture: байты успешного ответа, upstream 404/500, отсутствие url, timeout/обрыв, действующая авторизация, оба пути и журналирование без секретов. Перенести `ProxyControllerTest` на сервис/Ktor HTTP, не обращаться к внешнему интернету.
-- Готово: совместимый proxy работает на Ktor; Spring-класс удалён, неизвестные клиенты не теряют адрес.
+- Проверки на локальном HTTP fixture: байты успешного ответа, upstream 404/500 без передачи его error body, отсутствие url, connection failure, действующая авторизация, оба пути и журналирование без секретов. Перенести `ProxyControllerTest` на сервис/Ktor HTTP, не обращаться к внешнему интернету.
+- Готово: `/proxy` и `/proxy.view` зарегистрированы в Ktor с GET/HEAD; outbound GET вынесен в `ProxyService`, сохраняет 15-секундные connect/socket timeouts и потоковую передачу тела только при upstream 200. Для остальных upstream статусов возвращается тот же статус без upstream body; исключения соединения идут через стандартную обработку HTTP 500. Чистый `ProxyControllerTest` прошёл: локальные проверки 200/404/500, connection refusal, отсутствующего `url`, авторизации, обоих путей, HEAD и журналирования без URL/секретов.
 
 ### 12. PodcastRemovalController
 
