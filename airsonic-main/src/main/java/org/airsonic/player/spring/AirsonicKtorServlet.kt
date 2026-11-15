@@ -69,6 +69,7 @@ import org.airsonic.player.service.MediaStreamService
 import org.airsonic.player.service.CoverArtImageService
 import org.airsonic.player.controller.rest.avatar.AvatarRestController
 import org.airsonic.player.controller.rest.proxy.ProxyRestController
+import org.airsonic.player.controller.rest.login.LoginPageController
 import org.airsonic.player.controller.rest.avatar.AvatarUploadController
 import io.ktor.http.parseQueryString
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController
@@ -240,6 +241,7 @@ class AirsonicKtorServlet(
     private val passwordRecoveryController: PasswordRecoveryController,
     private val serverInfoController: ServerInfoController,
     private val playQueuePageController: PlayQueuePageController,
+    private val loginPageController: LoginPageController,
     private val jaxbWriter: JAXBWriter,
 ) : ServletApplicationEngine() {
     private val proxyRestController = ProxyRestController()
@@ -515,6 +517,26 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path in LoginPageController.PATHS) {
+            if (request.method !in setOf("GET", "HEAD")) {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            loginPageController.legacyRedirect(request)?.let {
+                response.sendRedirect(response.encodeRedirectURL(it))
+                return
+            }
+            request.setAttribute("model", loginPageController.jspModel(request))
+            val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
+            request.getRequestDispatcher("/WEB-INF/jsp/login.jsp").forward(request, response)
+            return
+        }
         if (path in IndexPageController.PAGE_PATHS) {
             if (request.method !in setOf("GET", "HEAD")) {
                 response.setHeader("Allow", "GET, HEAD")

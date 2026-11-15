@@ -45,7 +45,7 @@
 | 10 | `AvatarController.kt` | `/avatar` | Старые адреса аватаров и варианты выбора изображения; `/rest/getAvatar` уже Ktor | Выполнен; `AvatarRestIntegrationTest` и `AvatarUploadIntegrationTest` прошли; отдельный коммит `Move avatar routes to Ktor` |
 | 11 | `ProxyController.kt` | `/proxy` | Совместимый HTTP proxy с журналированием обращений | Выполнен; чистый `ProxyControllerTest` прошёл (6 тестов); отдельный коммит `Move proxy endpoint to Ktor` |
 | 12 | `removal/PodcastRemovalController.java` | 8 путей `/rest/*` | Код на удаление, больше не поддерживается; владелец проекта исключил весь `removal` из работ | Исключён; не изменять и не переносить |
-| 13 | `LoginController.kt` | `/login` | GET-страница входа, сообщения и старый redirect-сценарий; POST обрабатывает security filter | Не начат |
+| 13 | `LoginController.kt` | `/login` | GET-страница входа, сообщения и старый redirect-сценарий; POST обрабатывает security filter | Выполнен; `LoginPageIntegrationTest` (3/3) и чистый `KtorServletIntegrationTest` (13/13) прошли; отдельный коммит `Move login page to Ktor` |
 | 14 | `AccessDeniedController.kt` | `/accessDenied` | Страница отказа и нужное журналирование | Не начат |
 | 15 | `NotFoundController.kt` | `/notFound` | Страница отсутствующего ресурса | Не начат |
 | 16 | Инфраструктура MVC | Суффиксы, JSP, статика, ошибки | Финальный аудит после переноса 14 контроллеров в объёме; не отдельный исходный контроллер | Не начат |
@@ -151,9 +151,9 @@
 
 - Разделить перенос GET-представления и механизм аутентификации. GET `/login` обслуживает Ktor; POST `/login`, logout, remember-me, session fixation и CSRF продолжают проходить существующую security filter chain. Полная миграция Spring Security не является частью этого этапа.
 - Сохранить brand, loginMessage, logout/error-состояния, предупреждение о стандартном admin. Начальные публичные данные отдавать минимально; если нужен REST, публичность разрешать только конкретному маршруту, не всему `/rest/**`.
-- Исследовать legacy-параметры `user`/`password` и redirect к `j_username`/`j_password`: воспроизводить фактическую цепочку, не считать GET аутентификацией. Не логировать секреты. Любое изменение этого поведения описать отдельно.
+- Сохранить legacy-параметры `user`/`password` и redirect к query-ключам `username`/`password`, которые фактически используются константами Spring в старом контроллере (это не настроенные для form-login `j_username`/`j_password`). Сохранить и старое root-relative расположение `/login` без контекстного префикса. GET сам по себе не аутентифицирует пользователя. Не логировать секреты.
 - Проверки: анонимный GET страницы, токен CSRF в форме, успешный/ошибочный POST с session cookies, отсутствие CSRF, logout, remember-me по фактической конфигурации, переход на `/index`, контекст приложения и сохранение данных формы. Использовать/расширить HTTP login helper из существующих интеграционных тестов.
-- Готово: LoginController удалён, вход/выход и его сообщения работают через сохранённую security chain и Ktor-страницу.
+- Готово: GET `/login` и защищённый legacy `/login.view` обслуживаются Ktor servlet adapter, который передаёт login model в JSP с прежними Spring theme/locale/JSTL атрибутами. POST `/login`, CSRF, logout и remember-me остаются в неизменённой security chain. Проверены страница/CSRF/CORS, legacy `user/password` redirect, успешный/ошибочный вход, remember-me, logout и доступ к `.view`. `LoginPageIntegrationTest` (3/3) и чистый `KtorServletIntegrationTest` (13/13) прошли. Наблюдаемое поведение текущей security chain: POST `/logout` возвращает 204 и очищает сессию/remember-me, хотя конфигурация задаёт `logoutSuccessUrl("/login?logout")`; после logout `/index` возвращает 401. Конфигурацию security в этом этапе не меняли. Отдельный старый `CORSTest` через MockMvc по-прежнему получает 404 на `/rest/getLicense`, обслуживаемом Ktor; CORS логина проверен новым HTTP-тестом с `Origin`.
 
 ### 14. AccessDeniedController
 

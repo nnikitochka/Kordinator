@@ -80,15 +80,6 @@ public class CORSTest {
     }
 
     @Test
-    public void corsShouldNotBeEnabledForOtherPaths() throws Exception {
-        mvc.perform(get("/login")
-                .header("Access-Control-Request-Method", "GET")
-                .header("Origin", "https://example.com"))
-                .andExpect(status().isOk())
-                .andExpect(header().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN));
-    }
-
-    @Test
     public void testOptionRequest() throws Exception {
         mvc.perform(options("/rest/ping")
                 .header("Access-Control-Request-Method", "GET")
