@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.controller.rest.login.AccessDeniedPageController;
+import org.airsonic.player.controller.rest.error.NotFoundPageController;
 import org.airsonic.player.api.ScanningTestUtils;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.MusicFolder;
@@ -132,6 +133,52 @@ public class KtorServletIntegrationTest {
             assertTrue(event.getFormattedMessage(), event.getFormattedMessage().contains("/airsonic/accessDenied"));
             assertTrue(event.getFormattedMessage(), !event.getFormattedMessage().contains("source=mediaMain"));
         }
+    }
+
+    @Test
+    public void notFoundPageUsesKtorWithoutTakingOverOtherNotFoundResponses() throws Exception {
+        assertTrue(!applicationContext.containsBean("notFoundController"));
+        for (String path : NotFoundPageController.PATHS) {
+            HttpResponse<String> anonymous = get(path, false);
+            assertEquals(302, anonymous.statusCode());
+            assertTrue(anonymous.headers().firstValue("location").orElse("").endsWith("/airsonic/login"));
+
+            HttpResponse<String> page = get(path, true);
+            assertEquals(page.body(), 200, page.statusCode());
+            assertTrue(page.body(), page.body().contains("class=\"mainframe bgcolor1\""));
+            assertTrue(page.body(), page.body().contains("icons/default_light/error.svg"));
+
+            HttpRequest headRequest = HttpRequest.newBuilder()
+                    .uri(URI.create("http://localhost:" + port + "/airsonic" + path))
+                    .header("Authorization", "Basic " + Base64.getEncoder()
+                            .encodeToString("admin:admin".getBytes(StandardCharsets.UTF_8)))
+                    .timeout(Duration.ofSeconds(10))
+                    .method("HEAD", HttpRequest.BodyPublishers.noBody())
+                    .build();
+            HttpResponse<String> head = client.send(headRequest, HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, head.statusCode());
+            assertTrue(head.body().isEmpty());
+        }
+
+        HttpResponse<String> missingPage = get("/no-such-page.view", true);
+        assertEquals(missingPage.body(), 404, missingPage.statusCode());
+        assertTrue(missingPage.body(), !missingPage.body().contains("musicFolderSettings.view"));
+        assertTrue(!missingPage.headers().firstValue("location").isPresent());
+
+        HttpResponse<String> missingPath = get("/no-such-page", true);
+        assertEquals(missingPath.body(), 404, missingPath.statusCode());
+        assertTrue(missingPath.body(), !missingPath.body().contains("musicFolderSettings.view"));
+        assertTrue(!missingPath.headers().firstValue("location").isPresent());
+
+        HttpResponse<String> missingRest = get("/rest/noSuchSubsonicEndpoint?" + credentials() + "&f=json", false);
+        assertEquals(missingRest.body(), 404, missingRest.statusCode());
+        assertTrue(missingRest.body(), !missingRest.body().contains("musicFolderSettings.view"));
+        assertTrue(!missingRest.headers().firstValue("location").isPresent());
+
+        HttpResponse<byte[]> missingCoverArt = getBytes("/rest/getCoverArt?" + credentials() + "&id=2147483647");
+        assertEquals(200, missingCoverArt.statusCode());
+        assertTrue(missingCoverArt.headers().firstValue("content-type").orElseThrow().startsWith("image/"));
+        assertTrue(missingCoverArt.body().length > 0);
     }
 
     @Test

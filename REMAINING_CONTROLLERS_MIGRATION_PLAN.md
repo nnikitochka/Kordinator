@@ -166,9 +166,11 @@
 
 ### 15. NotFoundController
 
-- Перенести `/notFound[.view]` как Ktor-страницу. Сначала выяснить, какие реальные not-found цепочки вызывают её; не считать её обработчиком всех 404 по имени класса.
-- Проверки: прямой URL, неизвестный URL страницы, неизвестный REST endpoint и отсутствующее изображение. Зафиксировать исходные статусы и не превращать API-ошибки в HTML/HTTP 200.
-- Готово: представление и найденные вызовы не требуют Spring-класса.
+- Перенесено: Ktor servlet adapter обслуживает только `/notFound` и `/notFound.view` прямым forward в JSP с прежним locale/theme context; общий error handling не менялся. Удалён Spring `NotFoundController`.
+- Найденные вызовы: `mediaMain.jsp` направляет сюда браузер при Subsonic `websiteDirectory.contentType=notFound`; `playlist.jsp` использует страницу при ошибке загрузки плейлиста. Это обычное представление с HTTP 200, а не обработчик всех HTTP 404.
+- Проверки: чистый `KtorServletIntegrationTest` прошёл (15/15), включая оба alias GET/HEAD, авторизацию анонимного пользователя, unknown `.view`, неизвестный обычный URL, неизвестный REST endpoint и fallback отсутствующей обложки (200 `image/*`, непустое тело). После добавления анонимного доступа точечный rerun метода прошёл (1/1). `WebsiteDirectoryIntegrationTest` прошёл (1/1), включая `contentType=notFound` для отсутствующей медиадиректории. Неизвестные page/REST URL сохраняют HTTP 404 без redirect; NotFound JSP на них не подменяется.
+- Отдельно: как и на странице AccessDenied, тестовый JSP context не проверяет локализованный текст (`fmt:message` может вывести `???key???`); оставлено для общей проверки JSP locale wiring.
+- Готово: страница и реальные вызовы не зависят от Spring controller, остальные 404 и REST/media responses сохраняют свои контракты.
 
 ### 16. Завершающий аудит инфраструктуры
 

@@ -37,6 +37,7 @@ import org.airsonic.player.controller.rest.avatar.AvatarRestController;
 import org.airsonic.player.controller.rest.proxy.ProxyRestController;
 import org.airsonic.player.controller.rest.login.LoginPageController;
 import org.airsonic.player.controller.rest.login.AccessDeniedPageController;
+import org.airsonic.player.controller.rest.error.NotFoundPageController;
 import org.airsonic.player.controller.rest.avatar.AvatarUploadController;
 import org.airsonic.player.controller.rest.indexes.IndexesController;
 import org.airsonic.player.controller.rest.music.genre.SongsByGenreController;
@@ -437,6 +438,7 @@ public class KtorConfiguration {
         registration.addUrlMappings("/help", "/help.view");
         registration.addUrlMappings(LoginPageController.PATHS);
         registration.addUrlMappings(AccessDeniedPageController.PATHS);
+        registration.addUrlMappings(NotFoundPageController.PATHS);
         registration.addUrlMappings(PasswordRecoveryController.PATH, "/recover", "/recover.view");
         registration.addUrlMappings(VideoPlayerRestController.PATH, "/videoPlayer", "/videoPlayer.view");
         registration.addUrlMappings(HlsRestController.PATHS);
