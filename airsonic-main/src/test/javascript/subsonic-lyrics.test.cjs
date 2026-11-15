@@ -139,7 +139,9 @@ test('popup initializes search from input values without WebSocket or inline sea
     assert.equal(source.includes('StompClient'), false);
     assert.equal(source.includes('websocket.jsp'), false);
     assert.equal(source.includes('white-space: pre-wrap'), true);
-    assert.equal(source.includes("value=\"<c:out value='${model.artist}'/>\""), true);
+    assert.equal(source.includes("value=\"<c:out value='${param.artist}'/>\""), true);
+    assert.equal(source.includes("value=\"<c:out value='${param.song}'/>\""), true);
+    assert.equal(source.includes("${model.artist}"), false);
     const context = {getLyrics: (artist, song) => { context.result = [artist, song]; },
         $: id => ({val: () => id === '#artist' ? "O'Brien" : '<Song>'})};
     const search = source.match(/function search\(\) \{[\s\S]*?\n        \}/)[0];

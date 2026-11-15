@@ -99,27 +99,43 @@ function pageFunction(page, signature) {
 }
 
 // The video page's REST rendering and star actions are covered in video-player.test.cjs.
-for (const page of ['starred']) {
-    test(`${page}: star image changes only on successful REST completion`, () => {
-        let image = 'ratingOffImage', request;
-        const context = {
-            $: () => ({attr: (key, value) => value === undefined ? image : (image = value)}),
-            setMediaFilesStarred: (ids, status, callback) => { request = {ids, status, callback}; }
-        };
-        vm.runInNewContext(pageFunction(page, 'function toggleStar('), context);
-        context.toggleStar(42, '#starImage');
-        assert.equal(image, 'ratingOffImage');
-        assert.equal(request.ids[0], 42);
-        assert.equal(request.status, true);
-        request.callback();
-        assert.equal(image, 'ratingOnImage');
-        context.toggleStar(42, '#starImage');
-        assert.equal(image, 'ratingOnImage');
-        assert.equal(request.status, false);
-        request.callback();
-        assert.equal(image, 'ratingOffImage');
-    });
-}
+test('starred page image and label change only after REST success', () => {
+    let request;
+    const context = {
+        starredConfig: {starOn: 'starOn', starOff: 'starOff', star: 'star', unstar: 'unstar'},
+        document: {
+            createElement: () => ({
+                children: [], style: {},
+                appendChild(child) { this.children.push(child); },
+                addEventListener(event, callback) { this.click = callback; }
+            })
+        },
+        setMediaFilesStarred: (ids, status, callback) => { request = {ids, status, callback}; }
+    };
+    vm.runInNewContext(pageFunction('starred', 'function actionCell('), context);
+    const row = {cells: [], appendChild(cell) { this.cells.push(cell); }};
+    const item = {id: 42, starredDate: null};
+    context.actionCell(row, item, 'song', {streamAllowed: false, partyModeEnabled: false});
+
+    const image = row.cells[0].children[0];
+    assert.equal(image.src, 'starOff');
+    image.click();
+    assert.deepEqual(Array.from(request.ids), [42]);
+    assert.equal(request.status, true);
+    assert.equal(item.starredDate, null);
+    assert.equal(image.src, 'starOff');
+    request.callback();
+    assert.notEqual(item.starredDate, null);
+    assert.equal(image.src, 'starOn');
+    assert.equal(image.title, 'unstar');
+
+    image.click();
+    assert.equal(request.status, false);
+    request.callback();
+    assert.equal(item.starredDate, null);
+    assert.equal(image.src, 'starOff');
+    assert.equal(image.title, 'star');
+});
 
 for (const page of ['playlist', 'bookmarks']) {
     test(`${page}: row data changes only on successful REST completion`, () => {

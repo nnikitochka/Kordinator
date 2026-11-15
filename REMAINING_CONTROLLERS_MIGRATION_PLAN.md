@@ -46,9 +46,9 @@
 | 11 | `ProxyController.kt` | `/proxy` | Совместимый HTTP proxy с журналированием обращений | Выполнен; чистый `ProxyControllerTest` прошёл (6 тестов); отдельный коммит `Move proxy endpoint to Ktor` |
 | 12 | `removal/PodcastRemovalController.java` | 8 путей `/rest/*` | Код на удаление, больше не поддерживается; владелец проекта исключил весь `removal` из работ | Исключён; не изменять и не переносить |
 | 13 | `LoginController.kt` | `/login` | GET-страница входа, сообщения и старый redirect-сценарий; POST обрабатывает security filter | Выполнен; `LoginPageIntegrationTest` (3/3) и чистый `KtorServletIntegrationTest` (13/13) прошли; отдельный коммит `Move login page to Ktor` |
-| 14 | `AccessDeniedController.kt` | `/accessDenied` | Страница отказа и нужное журналирование | Не начат |
-| 15 | `NotFoundController.kt` | `/notFound` | Страница отсутствующего ресурса | Не начат |
-| 16 | Инфраструктура MVC | Суффиксы, JSP, статика, ошибки | Финальный аудит после переноса 14 контроллеров в объёме; не отдельный исходный контроллер | Не начат |
+| 14 | `AccessDeniedController.kt` | `/accessDenied` | Страница отказа и нужное журналирование | Выполнен; `5fa7662`, HTTP и role-based 403 проверены |
+| 15 | `NotFoundController.kt` | `/notFound` | Страница отсутствующего ресурса | Выполнен; `d18deda`, HTTP и media-directory контракт проверены |
+| 16 | Инфраструктура MVC | Суффиксы, JSP, статика, ошибки | Финальный аудит после переноса 14 контроллеров в объёме; не отдельный исходный контроллер | Выполнен; 34 HTTP-теста, 29 JS-файлов, PMD прошли; Checkstyle parser требует обновления |
 
 Для всех существующих адресов отдельно проверить вариант `.view`: сейчас совместимость часто обеспечивает `LegacyViewSuffixHandlerMapping`, поэтому нельзя считать его работу автоматической после удаления MVC.
 
@@ -161,7 +161,7 @@
 - Отличать прямой запрос страницы от error/forward dispatch: реальный отказ в API должен сохранять своё тело и HTTP-статус, не превращаться в успешный HTML.
 - Проверки: доступ анонимного пользователя по действующей конфигурации, прямой запрос и реальный отказ роли, контекст `/airsonic`, отсутствие redirect loop; 403/Subsonic ошибки остаются корректными.
 - Проверки: `KtorServletIntegrationTest` прошёл (14/14): прямые оба URL, анонимный доступ при context path `/airsonic`, HTML/theme render, HEAD без тела, отсутствие Spring bean, четыре записи лога для GET/HEAD без query string. `SettingsEntryIntegrationTest` прошёл (1/1), включая HTTP 403 для пользователя без нужной роли; Spring Security chain и REST-ошибки не изменены.
-- Осталось отдельно проверить локализацию JSP в тестовом окружении: там выводятся `???accessDenied.title???`/`???accessDenied.text???`, хотя JSP и тема рендерятся.
+- Локализация проверена на этапе 16: причиной `???accessDenied.title???` оказался отсутствующий basename в тестовой конфигурации; исправлено и проверено HTTP на английском/русском.
 - Готово: страница обслуживается без Spring-контроллера, прямые запросы проверены, отказ по роли по-прежнему возвращает 403.
 
 ### 15. NotFoundController
@@ -169,10 +169,12 @@
 - Перенесено: Ktor servlet adapter обслуживает только `/notFound` и `/notFound.view` прямым forward в JSP с прежним locale/theme context; общий error handling не менялся. Удалён Spring `NotFoundController`.
 - Найденные вызовы: `mediaMain.jsp` направляет сюда браузер при Subsonic `websiteDirectory.contentType=notFound`; `playlist.jsp` использует страницу при ошибке загрузки плейлиста. Это обычное представление с HTTP 200, а не обработчик всех HTTP 404.
 - Проверки: чистый `KtorServletIntegrationTest` прошёл (15/15), включая оба alias GET/HEAD, авторизацию анонимного пользователя, unknown `.view`, неизвестный обычный URL, неизвестный REST endpoint и fallback отсутствующей обложки (200 `image/*`, непустое тело). После добавления анонимного доступа точечный rerun метода прошёл (1/1). `WebsiteDirectoryIntegrationTest` прошёл (1/1), включая `contentType=notFound` для отсутствующей медиадиректории. Неизвестные page/REST URL сохраняют HTTP 404 без redirect; NotFound JSP на них не подменяется.
-- Отдельно: как и на странице AccessDenied, тестовый JSP context не проверяет локализованный текст (`fmt:message` может вывести `???key???`); оставлено для общей проверки JSP locale wiring.
+- Тестовая конфигурация MessageSource исправлена на этапе 16; JSP locale wiring отдельно проверен HTTP на английском/русском.
 - Готово: страница и реальные вызовы не зависят от Spring controller, остальные 404 и REST/media responses сохраняют свои контракты.
 
 ### 16. Завершающий аудит инфраструктуры
+
+Аудит выполнен 16 ноября 2026 года; подробный перечень потребителей и следующий объём работ: [MVC_INFRASTRUCTURE_AUDIT.md](MVC_INFRASTRUCTURE_AUDIT.md). Прикладных Spring MVC-контроллеров вне исключённого `removal` больше нет. Инфраструктура ниже сохраняет потребителей: suffix adapter для `removal`, Boot `/error`, статика, JSP/theme/JSTL и servlet filters. Удалять эти компоненты сейчас оснований нет. Исправлена отсутствующая настройка MessageSource только в тестовом properties; production basename уже был задан. Общий JS-прогон: 29/29 файлов прошли. HTTP-регрессия: 34/34 теста в 14 классах, без пропусков; Maven BUILD SUCCESS с включённым PMD. Checkstyle отключён после подтверждённого падения его parser на существующем switch в PlayQueue.java:430. Перечень классов и воспроизведение записаны в отчёте. Текущий план переноса 14 прикладных контроллеров и аудита выполнен; удаление оставшихся Spring/JSP/servlet зависимостей является отдельным следующим этапом.
 
 - Повторить поиск по всему приложению, включая пакеты вне `controller`: `@Controller`, `@RestController`, mappings, `HttpRequestHandler`, программные mappings и вызовы удалённых классов. Отдельно учитывать framework-контроллеры Boot (`/error` и др.).
 - Проверить каждый необходимый старый адрес с суффиксом и без, методы, servlet mapping, FORWARD/INCLUDE/ERROR, context path и static resources. Прямые Ktor-пути не должны зависеть от MVC suffix-forward.
