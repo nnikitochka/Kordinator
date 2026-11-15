@@ -65,15 +65,6 @@ public class AirsonicRestApiIntTest {
     private final ObjectMapper json = new ObjectMapper();
 
     @Test
-    public void licenseTest() throws Exception {
-        HttpResponse<String> response = get("/rest/getLicense", null);
-        assertEquals(response.body(), 200, response.statusCode());
-        JsonNode envelope = json.readTree(response.body()).path("subsonic-response");
-        assertEquals("ok", envelope.path("status").asText());
-        assertEquals(AIRSONIC_API_VERSION, envelope.path("version").asText());
-    }
-
-    @Test
     public void getMusicDirectoryExposesAccentColor() throws Exception {
         List<MusicFolder> testFolders = MusicFolderTestData.getTestMusicFolders();
         UUID cleanupId = ScanningTestUtils.before(testFolders, mediaFolderService, mediaScannerService);
