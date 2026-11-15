@@ -337,11 +337,17 @@ def run_cycle(war: Path, home: Path, xdg_home: Path, cycle: int,
 
             anon_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
             started = time.monotonic()
-            index_code, _, index_headers = fetch(anon_opener, f"{base}/index")
+            index_code, _, index_headers = fetch(
+                anon_opener, f"{base}/index", headers={"Accept": "text/html"}
+            )
             location = index_headers.get("Location", "")
             parsed_location = urllib.parse.urlsplit(location)
             if index_code != 302 or not parsed_location.path.startswith("/airsonic/login"):
-                raise SmokeFailure("Anonymous /index did not redirect to the /airsonic login page")
+                raise SmokeFailure(
+                    "Anonymous /index returned HTTP "
+                    f"{index_code} with redirect path {parsed_location.path or '(none)'}; "
+                    "expected HTTP 302 to /airsonic/login"
+                )
             cycle_result["checks"]["anonymous_index"] = {
                 "status_code": index_code,
                 "seconds": round(time.monotonic() - started, 3),

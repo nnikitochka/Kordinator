@@ -42,16 +42,14 @@ node --test airsonic-main/src/test/javascript/*.test.cjs
 | Тесты | Наблюдение | Следующее действие |
 |---|---|---|
 | `MediaScannerServiceUnitTest.neverScanned` | Старый Mockito `@InjectMocks` не передавал новый обязательный `scannerParallelism` параметр конструктора. Исправлена только тестовая fixture: явный constructor и mock-зависимости. | Отдельный повторный unit run прошёл: вместе с `CredentialCompatibilityBaselineTest` всего 3/3. |
-| `CORSTest.corsHeadersShouldBeAddedToSuccessResponses` | Тест ожидал `GET /rest/getLicense`, но маршрута нет, HTTP 404. | Переписан на настоящий HTTP к `/rest/ping`, сохранив проверки success/error/preflight и добавив CORS header assertion. Повторный HTTP run заблокирован ограничением автоматического review. |
+| `CORSTest.corsHeadersShouldBeAddedToSuccessResponses` | Тест ожидал `GET /rest/getLicense`, но маршрута нет, HTTP 404. | Переписан на настоящий HTTP к `/rest/ping`, сохранив проверки success/error/preflight и добавив CORS header assertion. Повторный HTTP run: 3/3 прошли. |
 | `AirsonicRestApiIntTest.licenseTest` | Тот же старый отсутствующий `/rest/getLicense`, HTTP 404. | Старое ожидание сохранено как открытая Subsonic compatibility проблема; маршрут не добавлялся. |
-| `AirsonicRestApiIntTest.getMusicDirectoryExposesAccentColor` | MockMvc отправлял запрос в Ktor servlet и получал 404 вместо проверки каталога. | Переведён на embedded localhost HTTP; все прежние проверки accent color сохранены. Повторный HTTP run заблокирован. |
+| `AirsonicRestApiIntTest.getMusicDirectoryExposesAccentColor` | MockMvc отправлял запрос в Ktor servlet и получал 404 вместо проверки каталога. | Переведён на embedded localhost HTTP; все прежние проверки accent color сохранены. Повторный HTTP run прошёл. |
 | `TopSongsIntegrationTest.preservesTopSongsContract`, `SimilarSongsIntegrationTest.preservesBothClientContracts` | Успешный REST body, но ожидаемый заголовок `Set-Cookie` отсутствует. | Assert-ы оставлены нетронутыми: сначала нужно определить ожидаемый cookie contract. |
 
-Первые два падения / ошибка из шести исправлены на уровне harness, но соответствующие реальные HTTP-тесты ещё требуют повторного запуска. Две cookie-проверки и один `/rest/getLicense` контракт остаются открытыми.
+Повторный запуск изменённых fixtures и HTTP-тестов: **8 тестов всего, 7 прошли и 1 упал**. Прошли `MediaScannerServiceUnitTest` (1), `CredentialCompatibilityBaselineTest` (2), `CORSTest` (3) и directory assertion из `AirsonicRestApiIntTest` (1). Единственное падение — прежнее ожидание `AirsonicRestApiIntTest.licenseTest`: `/rest/getLicense` отвечает 404. Две `Set-Cookie` проверки и этот отсутствующий endpoint остаются открытыми.
 
-Отдельно прошли все **29/29** JS файлов; credential corpus **2/2** и исправленный unit fixture **1/1** прошли Maven целевым запуском. Checkstyle отдельно проверен и падает на существующем `PlayQueue.java:430:20`; PMD включён и прошёл. Сборка исполняемого WAR (`mvn ... -DskipTests package`) прошла, размер 110 MB, SHA-256 `3d310a51a802335e25de0196f5d5d88ccf36677deaa3ce2c46653e7ff63fba5c`. `packaged_smoke.py` не запускался.
-
-Повторный HTTP прогон исправленных fixtures потребовал запуска Tomcat на localhost. Auto-review отклонил этот запуск, сообщив о достигнутом лимите использования; до истечения лимита действие не исполнялось и повторять его обходными способами нельзя. Незатронутые сборка и offline/unit проверки выполнены. Отчёт полных исходных XML результатов: [test-results-initial.json](test-results-initial.json).
+Отдельно прошли все **29/29** JS файлов. Checkstyle отдельно проверен и падает на существующем `PlayQueue.java:430:20`; PMD включён и прошёл. Сборка исполняемого WAR (`mvn ... -DskipTests package`) прошла, размер 110 MB, SHA-256 `3d310a51a802335e25de0196f5d5d88ccf36677deaa3ce2c46653e7ff63fba5c`. Отчёт исходных полных XML результатов сохранён в [test-results-initial.json](test-results-initial.json).
 
 ### Credentials
 
@@ -69,7 +67,7 @@ node --test airsonic-main/src/test/javascript/*.test.cjs
 
 ### Исполняемый WAR
 
-[packaged_smoke.py](packaged_smoke.py) запускает настоящий WAR отдельным JVM-процессом на `127.0.0.1`, port 0 и context `/airsonic`. Используются отдельный временный home и файловая HSQLDB с явно заданным JDBC URL. Переменные окружения приложения и JVM options извне не наследуются. Проверяются XML/JSON ping, точные байты статического JS, redirect анонимного пользователя, форма входа, 404, SIGTERM/освобождение порта и повторный запуск той же БД. В отчёте SHA-256 WAR отделён от HEAD checkout. Скрипт подготовлен и прошёл проверку синтаксиса, но не запускался: его HTTP-проверкам требуется повторное разрешение localhost запуска, сейчас заблокированное auto-review лимитом.
+[packaged_smoke.py](packaged_smoke.py) запускает настоящий WAR отдельным JVM-процессом на `127.0.0.1`, port 0 и context `/airsonic`. Используются отдельный временный home и файловая HSQLDB с явно заданным JDBC URL. Переменные окружения приложения и JVM options извне не наследуются. Проверяются XML/JSON ping, точные байты статического JS, redirect анонимного пользователя на login (с `Accept: text/html`), форма входа, authenticated 404, SIGTERM/освобождение порта и повторный запуск той же БД. Smoke прошёл оба запуска. Первый цикл подтвердил XML/JSON `ping` (200), статический JS (200 и совпадение байтов), `/index` (302 на `/airsonic/login`), `/login` (200), неизвестный authenticated resource (404); SIGTERM завершил процесс с кодом 143, порт освободился. Второй запуск на той же временной БД подтвердил XML `ping` (200), затем также завершился с освобождением порта. SHA-256 WAR `3d310a51a802335e25de0196f5d5d88ccf36677deaa3ce2c46653e7ff63fba5c`; в JAR metadata не было Git revision, поэтому отчет привязывает бинарник его digest и отдельно записывает checkout HEAD `e2d8312e5a6449adba8e20c1c4ddd0403516a2b6`.
 
 ```bash
 # После успешно проверенных тестов; package без их повторения.
