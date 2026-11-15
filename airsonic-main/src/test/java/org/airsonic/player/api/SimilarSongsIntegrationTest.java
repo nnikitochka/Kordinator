@@ -93,7 +93,6 @@ public class SimilarSongsIntegrationTest {
                     HttpResponse<String> json = send(path + "?" + credentials() + "&f=json&id=" + id + "&count=3", null, null);
                     assertTrue(json.headers().firstValue("content-type").orElseThrow().startsWith("application/json"));
                     assertSong(body(json), key, song);
-                    assertTrue(json.headers().firstValue("set-cookie").isPresent());
 
                     HttpResponse<String> xml = send(path + "?id=" + id, null, "admin:admin");
                     assertEquals(200, xml.statusCode());

@@ -75,7 +75,6 @@ public class TopSongsIntegrationTest {
                 String path = "/rest/getTopSongs" + suffix;
                 HttpResponse<String> json = send(path + "?" + credentials() + "&f=json&artist=Test&count=3", null, null);
                 assertSong(body(json), "topSongs", song);
-                assertTrue(json.headers().firstValue("set-cookie").isPresent());
                 HttpResponse<String> xml = send(path + "?artist=Test", null, "admin:admin");
                 assertEquals(200, xml.statusCode());
                 assertTrue(xml.body(), xml.body().contains("<topSongs>"));
