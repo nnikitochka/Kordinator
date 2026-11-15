@@ -42,7 +42,7 @@
 | 7 | `cover/CoverArtJspController.kt` | `/coverArtJsp` | HTML-фрагмент обложки, который запрашивают main/playlists/playlist | Выполнен |
 | 8 | `RatingJspController.kt` | `/ratingJsp` | HTML-фрагмент рейтинга и readonly/editable режимы | Выполнен |
 | 9 | `cover/CoverArtController.java` | `/coverArt`, `/ext/coverArt` | Старые адреса изображений, публичные подписанные ссылки, кеширование; `/rest/getCoverArt` уже Ktor | Выполнен; `CoverArtRestIntegrationTest`, `PublicShareIntegrationTest`, `CoverArtImageServiceTest` прошли; отдельный коммит `Move cover art legacy routes to Ktor` |
-| 10 | `AvatarController.kt` | `/avatar` | Старые адреса аватаров и варианты выбора изображения; `/rest/getAvatar` уже Ktor | Не начат |
+| 10 | `AvatarController.kt` | `/avatar` | Старые адреса аватаров и варианты выбора изображения; `/rest/getAvatar` уже Ktor | Выполнен; `AvatarRestIntegrationTest` и `AvatarUploadIntegrationTest` прошли; отдельный коммит `Move avatar routes to Ktor` |
 | 11 | `ProxyController.kt` | `/proxy` | Совместимый HTTP proxy с журналированием обращений | Не начат |
 | 12 | `removal/PodcastRemovalController.java` | 8 путей `/rest/*`, см. этап | Совместимые пустые ответы, отказы и OPML удалённых подкастов | Не начат |
 | 13 | `LoginController.kt` | `/login` | GET-страница входа, сообщения и старый redirect-сценарий; POST обрабатывает security filter | Не начат |
@@ -133,7 +133,7 @@
 - Сохранить приоритет system id, выбор по username, CUSTOM/NONE/system, `forceCustom`, classpath/webapp/file-ресурсы, MIME и отсутствие картинки.
 - Проверить действующие правила доступа и кеширования старых адресов, изменение аватара/настроек пользователя, HEAD/условные запросы. Не расширять публичный доступ ради картинок.
 - Проверки: все схемы, принудительный custom, неверный id/forceCustom, отсутствующий файл, обновление custom после загрузки; отдельная регрессия стандартного `/rest/getAvatar`. База: `AvatarRestIntegrationTest`, `AvatarUploadIntegrationTest`.
-- Готово: website и стандартный API используют Ktor, старый Spring bean удалён.
+- Готово: website и стандартный API используют Ktor, старый Spring bean удалён. Проверены `/avatar` и `/avatar.view`, SYSTEM/CUSTOM/NONE, forceCustom и lenient-разбор старого boolean параметра, 404, GET/HEAD, MIME, cache header `.view` и отсутствие фактически не выдаваемого Spring `Last-Modified`.
 
 ### 11. ProxyController
 

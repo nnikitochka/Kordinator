@@ -405,6 +405,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(RandomQueueController.PATH);
         registration.addUrlMappings(LiveQueueExportController.PATH);
         registration.addUrlMappings(AvatarRestController.PATHS);
+        registration.addUrlMappings(AvatarRestController.LEGACY_PATHS);
         registration.addUrlMappings(AvatarUploadController.PATH);
         registration.addUrlMappings(UploadController.PATH);
         registration.addUrlMappings(PlaylistExportController.PATH);

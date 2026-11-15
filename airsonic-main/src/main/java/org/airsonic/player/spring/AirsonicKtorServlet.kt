@@ -1764,7 +1764,11 @@ class AirsonicKtorServlet(
         } else if (path in AvatarRestController.PATHS) {
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val context = request.servletContext
-            request.setAttribute(AVATAR_REQUEST, AvatarRestController.Request(parametersWithMappedId(request)) { context.getResourceAsStream(it) })
+            request.setAttribute(AVATAR_REQUEST, AvatarRestController.Request(
+                parametersWithMappedId(request), webResource = { context.getResourceAsStream(it) }))
+        } else if (path in AvatarRestController.LEGACY_PATHS) {
+            val context = request.servletContext
+            request.setAttribute(AVATAR_REQUEST, AvatarRestController.Request(parameters(request), { context.getResourceAsStream(it) }, true))
         } else if (path in CoverArtRestController.PATHS) {
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             request.setAttribute(REST_PARAMETERS, parametersWithMappedId(request))

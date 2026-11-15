@@ -2,7 +2,6 @@ package org.airsonic.player.api;
 
 import jakarta.servlet.ServletContext;
 import org.airsonic.player.TestCaseUtils;
-import org.airsonic.player.controller.AvatarController;
 import org.airsonic.player.domain.Avatar;
 import org.airsonic.player.domain.AvatarScheme;
 import org.airsonic.player.domain.UserSettings;
@@ -14,8 +13,8 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.net.URI;
@@ -26,11 +25,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.Base64;
 
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -41,10 +38,11 @@ public class AvatarRestIntegrationTest {
     @LocalServerPort private int port;
     @Autowired private SettingsService settings;
     @Autowired private ServletContext servletContext;
-    @MockitoSpyBean private AvatarController mvc;
+    @Autowired private ApplicationContext context;
     private final HttpClient client = HttpClient.newHttpClient();
 
     @Test public void servesAvatarsViaKtorWithoutSpringMvc() throws Exception {
+        assertFalse(context.containsBean("avatarController"));
         Avatar system = settings.getAllSystemAvatars().get(0);
         byte[] systemBytes;
         try (var input = servletContext.getResourceAsStream("/" + system.getPath())) {
@@ -79,12 +77,32 @@ public class AvatarRestIntegrationTest {
                 assertEquals("image/jpeg", head.headers().firstValue("content-type").orElseThrow());
                 assertEquals(0, head.body().length);
             }
+            for (String path : new String[]{"/avatar", "/avatar.view"}) {
+                HttpResponse<byte[]> byId = request(path + "?id=" + system.getId(), "GET", null, true);
+                assertEquals(200, byId.statusCode());
+                assertEquals(system.getMimeType(), byId.headers().firstValue("content-type").orElseThrow());
+                assertArrayEquals(systemBytes, byId.body());
+                assertArrayEquals(systemBytes, request(path + "?username=admin", "GET", null, true).body());
+                assertArrayEquals(custom, request(path + "?username=admin&forceCustom=true", "GET", null, true).body());
+                assertArrayEquals(systemBytes, request(path + "?username=admin&forceCustom=invalid", "GET", null, true).body());
+                HttpResponse<byte[]> head = request(path + "?username=admin", "HEAD", null, true);
+                assertEquals(200, head.statusCode());
+                assertEquals(system.getMimeType(), head.headers().firstValue("content-type").orElseThrow());
+                assertEquals(0, head.body().length);
+                assertFalse(byId.headers().firstValue("Last-Modified").isPresent());
+                if (path.endsWith(".view")) {
+                    assertEquals("max-age=36000", byId.headers().firstValue("Cache-Control").orElseThrow());
+                }
+                assertEquals(404, request(path, "GET", null, true).statusCode());
+            }
             assertArrayEquals(custom, request("/rest/getAvatar.view", "POST", auth + "&username=admin&forceCustom=true").body());
             assertEquals(403, request("/rest/getAvatar", "POST", auth + "&username=admin").statusCode());
             user.setAvatarScheme(AvatarScheme.NONE);
             settings.updateUserSettings(user);
             assertEquals(404, request("/rest/getAvatar?" + auth + "&username=admin", "GET", null).statusCode());
             assertArrayEquals(custom, request("/rest/getAvatar?" + auth + "&username=admin&forceCustom=yes", "GET", null).body());
+            assertEquals(404, request("/avatar?username=admin", "GET", null, true).statusCode());
+            assertArrayEquals(custom, request("/avatar.view?username=admin&forceCustom=yes", "GET", null, true).body());
             user.setAvatarScheme(AvatarScheme.CUSTOM);
             settings.updateUserSettings(user);
             assertArrayEquals(custom, request("/rest/getAvatar?" + auth + "&username=admin", "GET", null).body());
@@ -96,7 +114,6 @@ public class AvatarRestIntegrationTest {
             assertArrayEquals(custom, request("/rest/getAvatar?" + auth + "&username=admin", "GET", null).body());
             settings.setCustomAvatar(null, "admin");
             assertEquals(404, request("/rest/getAvatar?" + auth + "&username=admin", "GET", null).statusCode());
-            verify(mvc, never()).handleRequest(any(), any());
         } finally {
             settings.setCustomAvatar(previous, "admin");
             user.setAvatarScheme(previousScheme);
@@ -106,8 +123,12 @@ public class AvatarRestIntegrationTest {
         }
     }
     private HttpResponse<byte[]> request(String path, String method, String form) throws Exception {
+        return request(path, method, form, false);
+    }
+    private HttpResponse<byte[]> request(String path, String method, String form, boolean basic) throws Exception {
         HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic" + path));
         if (form != null) builder.header("Content-Type", "application/x-www-form-urlencoded");
+        if (basic) builder.header("Authorization", "Basic " + Base64.getEncoder().encodeToString("admin:admin".getBytes(StandardCharsets.UTF_8)));
         builder.method(method, form == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(form));
         return client.send(builder.build(), HttpResponse.BodyHandlers.ofByteArray());
     }
