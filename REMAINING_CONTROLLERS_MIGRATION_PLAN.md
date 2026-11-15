@@ -37,7 +37,7 @@
 | 2 | `ChangeCoverArtController.kt` | `/changeCoverArt` | Исходные данные формы по `id`, fallback исполнителя/альбома; действия уже в Ktor | Выполнен; `CoverArtActionsIntegrationTest` прошёл |
 | 3 | `tags/EditTagsController.kt` | `/editTags` | Модель редактора тегов, значения по умолчанию, предложения названий/номеров и жанры; запись уже в REST | Выполнен; `TagEditIntegrationTest` прошёл; отдельный коммит `Move tag editor page data to Ktor REST` |
 | 4 | `StarredController.kt` | `/starred` | Четыре раздела избранного, даты и настройки отображения | Выполнен; `StarredIntegrationTest` прошёл; отдельный коммит `Move starred page to Ktor REST` |
-| 5 | `RightController.kt` | `/right` | Настройки правой панели и уведомление о версии; polling уже есть | Не начат |
+| 5 | `RightController.kt` | `/right` | Настройки правой панели и уведомление о версии; polling уже есть | Выполнен; `RightPageIntegrationTest` прошёл; `Move right panel data to Ktor REST` |
 | 6 | `IndexController.kt` | `/index` | Настройки оболочки сайта и первоначальная навигация/iframe | Не начат |
 | 7 | `cover/CoverArtJspController.kt` | `/coverArtJsp` | HTML-фрагмент обложки, который запрашивают main/playlists | Не начат |
 | 8 | `RatingJspController.kt` | `/ratingJsp` | HTML-фрагмент рейтинга и readonly/editable режимы | Не начат |
@@ -90,11 +90,10 @@
 
 ### 5. RightController
 
-- Перенести настройки панели, brand и уведомление о новой версии в минимальный DTO, например `/rest/rightPageSettings`. Не отдавать целиком User/объект версии.
-- Сохранить приоритет: разрешённая пользователем final-версия, затем beta. В DTO передать только нужные текст/версию/адрес; проверить происхождение ссылки.
-- Использовать уже имеющиеся `getScanStatus` и now-playing клиент с обычным polling. Учитывать `showNowPlaying`: отключённая опция не должна запускать лишний опрос. Не создавать дублирующиеся таймеры при повторной инициализации.
-- Проверки: настройки двух пользователей, final/beta/нет обновления через контролируемый VersionService без обращения в интернет, скрытый now playing, scanning→idle, ошибка запроса и восстановление. База: `NowPlayingIntegrationTest` и существующие JS-тесты опроса (точные имена сверить в репозитории).
-- Готово: данные панели и её обновления больше не зависят от Spring-контроллера.
+- `/rest/rightPageSettings` отдаёт только brand, showNowPlaying и поля уведомления; User/Version целиком не сериализуются. Ссылка релиза разрешается только на HTTPS GitHub releases Airsonic Advanced.
+- Сохранён приоритет final затем beta. JSP получает конфигурацию из Ktor, scan status опрашивается существующим REST polling, now-playing запускается только при включённой настройке. Данные now-playing строятся через DOM textContent.
+- Проверки: `RightPageIntegrationTest` проверил final/beta/нет обновления, две пользовательские настройки, allowlist URL, заголовок no-store, JSP shell и отсутствие Spring bean. Существующий `NowPlayingIntegrationTest` покрывает REST-контракт/polling now-playing. JS в Firefox не запускался; Checkstyle и PMD пропущены в Maven-команде.
+- Готово: `/right[.view]` и настройки панели обслуживаются Ktor; `RightController` удалён. Коммит `Move right panel data to Ktor REST`.
 
 ### 6. IndexController
 

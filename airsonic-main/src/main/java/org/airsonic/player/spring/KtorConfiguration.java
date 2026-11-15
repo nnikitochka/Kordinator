@@ -47,6 +47,7 @@ import org.airsonic.player.controller.rest.rating.RatingController;
 import org.airsonic.player.controller.rest.scrobble.ScrobbleController;
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingController;
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingPageController;
+import org.airsonic.player.controller.rest.nowplaying.RightPageController;
 import org.airsonic.player.controller.rest.more.MorePageController;
 import org.airsonic.player.controller.rest.indexes.LeftPageController;
 import org.airsonic.player.controller.rest.bookmarks.BookmarksPageController;
@@ -87,6 +88,7 @@ import org.airsonic.player.service.MusicFolderAdministrationService;
 import org.airsonic.player.service.search.IndexManager;
 import org.airsonic.player.controller.rest.users.PasswordController;
 import org.airsonic.player.service.SettingsService;
+import org.airsonic.player.service.VersionService;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.controller.rest.jukebox.JukeboxController;
 import org.airsonic.player.controller.rest.starred.StarredController;
@@ -217,6 +219,7 @@ public class KtorConfiguration {
             org.springframework.transaction.PlatformTransactionManager transactionManager,
             SecurityService securityService,
             SettingsService settingsService,
+            VersionService versionService,
             MusicIndexService musicIndexService,
             AudioScrobblerService audioScrobblerService,
             UPnPService upnpService,
@@ -288,6 +291,7 @@ public class KtorConfiguration {
                                 new ScrobbleController(mediaFileService, statusService, audioScrobblerService, jaxbWriter),
                                 new NowPlayingController(statusService, responseMapper, jaxbWriter),
                                 new NowPlayingPageController(playerService, statusService, mediaFileService),
+                                new RightPageController(settingsService, versionService, objectMapper),
                                 new MorePageController(settingsService, mediaFileService, mediaFolderService, objectMapper),
                                 new LeftPageController(settingsService, mediaFolderService, musicIndexService, musicIndexStateService, mediaScannerService, indexManager, playerService, objectMapper),
                                 new BookmarksPageController(settingsService, objectMapper),
@@ -407,6 +411,8 @@ public class KtorConfiguration {
         registration.addUrlMappings(ServerInfoController.PATHS);
         registration.addUrlMappings(ServerInfoController.GETTING_STARTED_PATH, "/gettingStarted", "/gettingStarted.view");
         registration.addUrlMappings(NowPlayingPageController.PATHS);
+        registration.addUrlMappings(RightPageController.DATA_PATH);
+        registration.addUrlMappings(RightPageController.PAGE_PATHS);
         registration.addUrlMappings(MorePageController.PATH);
         registration.addUrlMappings(MorePageController.PAGE_PATHS);
         registration.addUrlMappings(LeftPageController.DATA_PATH, LeftPageController.SELECT_PATH, "/left", LeftPageController.PAGE_PATH);
