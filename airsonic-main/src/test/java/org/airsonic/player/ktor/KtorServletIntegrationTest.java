@@ -3,6 +3,7 @@ package org.airsonic.player.ktor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.airsonic.player.TestCaseUtils;
+import org.airsonic.player.controller.rest.login.AccessDeniedPageController;
 import org.airsonic.player.api.ScanningTestUtils;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.MusicFolder;
@@ -92,6 +93,45 @@ public class KtorServletIntegrationTest {
         assertEquals(response.body(), 302, response.statusCode());
         String location = response.headers().firstValue("location").orElseThrow();
         assertTrue(location, URI.create(location).getPath().endsWith("/airsonic/login"));
+    }
+
+    @Test
+    public void accessDeniedPageIsServedDirectlyByKtorForLegacyPaths() throws Exception {
+        assertTrue(!applicationContext.containsBean("accessDeniedController"));
+        ch.qos.logback.classic.Logger pageLogger = (ch.qos.logback.classic.Logger)
+                org.slf4j.LoggerFactory.getLogger(AccessDeniedPageController.class);
+        ch.qos.logback.classic.Level previousLevel = pageLogger.getLevel();
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> logs =
+                new ch.qos.logback.core.read.ListAppender<>();
+        logs.start();
+        pageLogger.setLevel(ch.qos.logback.classic.Level.INFO);
+        pageLogger.addAppender(logs);
+        try {
+            for (String path : List.of("/accessDenied", "/accessDenied.view")) {
+                HttpResponse<String> page = get(path + "?source=mediaMain", false);
+                assertEquals(page.body(), 200, page.statusCode());
+                assertTrue(page.body(), page.body().contains("class=\"mainframe bgcolor1\""));
+                assertTrue(page.body(), page.body().contains("icons/default_light/error.svg"));
+
+                HttpRequest headRequest = HttpRequest.newBuilder()
+                        .uri(URI.create("http://localhost:" + port + "/airsonic" + path))
+                        .timeout(Duration.ofSeconds(10))
+                        .method("HEAD", HttpRequest.BodyPublishers.noBody())
+                        .build();
+                HttpResponse<String> head = client.send(headRequest, HttpResponse.BodyHandlers.ofString());
+                assertEquals(200, head.statusCode());
+                assertTrue(head.body().isEmpty());
+            }
+        } finally {
+            pageLogger.detachAppender(logs);
+            pageLogger.setLevel(previousLevel);
+        }
+        assertEquals(4, logs.list.size());
+        for (ch.qos.logback.classic.spi.ILoggingEvent event : logs.list) {
+            assertTrue(event.getFormattedMessage(), event.getFormattedMessage().contains("tried to access the forbidden url"));
+            assertTrue(event.getFormattedMessage(), event.getFormattedMessage().contains("/airsonic/accessDenied"));
+            assertTrue(event.getFormattedMessage(), !event.getFormattedMessage().contains("source=mediaMain"));
+        }
     }
 
     @Test

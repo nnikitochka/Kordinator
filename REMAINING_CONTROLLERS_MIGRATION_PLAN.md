@@ -157,10 +157,12 @@
 
 ### 14. AccessDeniedController
 
-- Перенести `/accessDenied[.view]` как Ktor-страницу, сохранить нужное журналирование без секретов. Не добавлять отдельный REST ради статичного текста ошибки.
+- Перенесено: Ktor servlet adapter обслуживает `/accessDenied` и `/accessDenied.view` прямым JSP forward, сохраняет GET/HEAD, исходное info-журналирование remote IP + requestURL без query, и JSP theme/locale context. Spring Security chain и Boot `/error` не менялись; прежний Spring controller удалён.
 - Отличать прямой запрос страницы от error/forward dispatch: реальный отказ в API должен сохранять своё тело и HTTP-статус, не превращаться в успешный HTML.
 - Проверки: доступ анонимного пользователя по действующей конфигурации, прямой запрос и реальный отказ роли, контекст `/airsonic`, отсутствие redirect loop; 403/Subsonic ошибки остаются корректными.
-- Готово: страница не зависит от Spring-класса, реальный сценарий отказа подтверждён.
+- Проверки: `KtorServletIntegrationTest` прошёл (14/14): прямые оба URL, анонимный доступ при context path `/airsonic`, HTML/theme render, HEAD без тела, отсутствие Spring bean, четыре записи лога для GET/HEAD без query string. `SettingsEntryIntegrationTest` прошёл (1/1), включая HTTP 403 для пользователя без нужной роли; Spring Security chain и REST-ошибки не изменены.
+- Осталось отдельно проверить локализацию JSP в тестовом окружении: там выводятся `???accessDenied.title???`/`???accessDenied.text???`, хотя JSP и тема рендерятся.
+- Готово: страница обслуживается без Spring-контроллера, прямые запросы проверены, отказ по роли по-прежнему возвращает 403.
 
 ### 15. NotFoundController
 
