@@ -1768,6 +1768,20 @@ class AirsonicKtorServlet(
         } else if (path in CoverArtRestController.PATHS) {
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             request.setAttribute(REST_PARAMETERS, parametersWithMappedId(request))
+        } else if (path in CoverArtRestController.LEGACY_PATHS) {
+            val params = parameters(request)
+            if (path.startsWith("/ext/coverArt") && request.userPrincipal is JWTAuthenticationToken) {
+                val auth = request.userPrincipal as JWTAuthenticationToken
+                val expected = (auth.details as? DecodedJWT)?.getClaim(JWTSecurityService.CLAIM_PATH)?.asString()
+                val signedId = try {
+                    UriComponentsBuilder.fromUriString(expected ?: "").build().queryParams.getFirst("id")
+                } catch (_: IllegalArgumentException) { null }
+                if (signedId == null || signedId != params["id"]) {
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                    return
+                }
+            }
+            request.setAttribute(REST_PARAMETERS, params)
         }
         super.service(request, response)
     }

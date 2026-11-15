@@ -14,7 +14,7 @@ import java.time.format.FormatStyle
 import java.util.ResourceBundle
 import kotlin.coroutines.cancellation.CancellationException
 import org.airsonic.player.controller.JAXBWriter
-import org.airsonic.player.controller.cover.CoverArtController
+import org.airsonic.player.service.CoverArtImageService
 import org.airsonic.player.controller.rest.SubsonicResponseMapper
 import org.airsonic.player.controller.rest.error.ErrorCode
 import org.airsonic.player.dao.MediaFileDao
@@ -243,7 +243,7 @@ class PlaylistsController(
         duration = Math.round(playlist.duration).toInt()
         created = writer.convertDate(playlist.created)
         changed = writer.convertDate(playlist.changed)
-        coverArt = CoverArtController.PLAYLIST_COVERART_PREFIX + playlist.id
+        coverArt = CoverArtImageService.PLAYLIST_COVERART_PREFIX + playlist.id
         allowedUser.addAll(playlists.getPlaylistUsers(playlist.id))
     }
 

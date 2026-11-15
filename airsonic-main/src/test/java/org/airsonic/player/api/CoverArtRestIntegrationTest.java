@@ -1,7 +1,6 @@
 package org.airsonic.player.api;
 
 import org.airsonic.player.TestCaseUtils;
-import org.airsonic.player.controller.cover.CoverArtController;
 import org.airsonic.player.dao.AlbumDao;
 import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.dao.MediaFileDao;
@@ -13,6 +12,7 @@ import org.airsonic.player.domain.Playlist;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.MediaScannerService;
 import org.airsonic.player.service.PlaylistService;
+import org.airsonic.player.service.JWTSecurityService;
 import org.airsonic.player.util.HomeRule;
 import org.airsonic.player.util.MusicFolderTestData;
 import org.airsonic.player.util.StringUtil;
@@ -22,9 +22,10 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.imageio.ImageIO;
 import java.io.ByteArrayInputStream;
@@ -41,9 +42,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
@@ -57,10 +55,12 @@ public class CoverArtRestIntegrationTest {
     @Autowired private AlbumDao albums;
     @Autowired private ArtistDao artists;
     @Autowired private PlaylistService playlists;
-    @MockitoSpyBean private CoverArtController mvc;
+    @Autowired private JWTSecurityService jwt;
+    @Autowired private ApplicationContext context;
     private final HttpClient client = HttpClient.newHttpClient();
 
     @Test public void servesOriginalResizedAndGeneratedImagesWithoutCallingSpringMvc() throws Exception {
+        assertFalse(context.containsBean("coverArtController"));
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
         UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
         Playlist playlist = new Playlist(0, "admin", false, "Test playlist", null, 0, 0, Instant.now(), Instant.now(), null);
@@ -111,10 +111,43 @@ public class CoverArtRestIntegrationTest {
             var second = CompletableFuture.supplyAsync(() -> uncheckedRequest(parallelPath));
             assertArrayEquals(first.get().body(), second.get().body());
             assertDimensions(first.get(), 47, 47);
-            verify(mvc, never()).handleRequest(any(), any());
-            HttpResponse<byte[]> web = request("/coverArt?id=" + dir.getId() + "&size=48", "GET", null, true);
-            assertDimensions(web, 48, 48);
-            assertArrayEquals(web.body(), request("/rest/getCoverArt?" + auth + "&id=" + dir.getId() + "&size=48", "GET", null, false).body());
+            HttpResponse<byte[]> restScaled = request("/rest/getCoverArt?" + auth + "&id=" + dir.getId() + "&size=48", "GET", null, false);
+            for (String path : new String[]{"/coverArt", "/coverArt.view"}) {
+                HttpResponse<byte[]> web = request(path + "?id=" + dir.getId() + "&size=48", "GET", null, true);
+                assertDimensions(web, 48, 48);
+                assertArrayEquals(restScaled.body(), web.body());
+                assertFalse("The annotated Spring MVC handler did not emit Last-Modified",
+                        web.headers().firstValue("Last-Modified").isPresent());
+                if (path.endsWith(".view")) {
+                    assertEquals("max-age=36000", web.headers().firstValue("Cache-Control").orElseThrow());
+                }
+                HttpResponse<byte[]> head = request(path + "?id=" + dir.getId() + "&size=48", "HEAD", null, true);
+                assertEquals(200, head.statusCode());
+                assertEquals("image/jpeg", head.headers().firstValue("content-type").orElseThrow());
+                assertEquals(0, head.body().length);
+            }
+
+            for (String path : new String[]{"/ext/coverArt", "/ext/coverArt.view"}) {
+                String signed = "/" + jwt.addJWTToken("admin", path.substring(1) + "?id=" + dir.getId() + "&size=48");
+                HttpResponse<byte[]> external = request(signed, "GET", null, false);
+                assertEquals(path, 200, external.statusCode());
+                assertEquals("image/jpeg", external.headers().firstValue("content-type").orElseThrow());
+                assertArrayEquals(restScaled.body(), external.body());
+                assertEquals(200, request(signed, "HEAD", null, false).statusCode());
+                String signedPath = path.substring(1) + "?id=" + dir.getId() + "&size=48";
+                String expired = "/" + jwt.addJWTToken("admin", UriComponentsBuilder.fromUriString(signedPath),
+                        Instant.now().minusSeconds(60)).build().toUriString();
+                assertTrue(request(expired, "GET", null, false).statusCode() >= 300);
+                int tokenStart = signed.indexOf("jwt=") + "jwt=".length();
+                char firstTokenChar = signed.charAt(tokenStart);
+                String tamperedToken = signed.substring(0, tokenStart)
+                        + (firstTokenChar == 'a' ? 'b' : 'a') + signed.substring(tokenStart + 1);
+                assertTrue(request(tamperedToken, "GET", null, false).statusCode() >= 300);
+                assertTrue(request(signed.replace("id=" + dir.getId(), "id=" + (dir.getId() + 1)),
+                        "GET", null, false).statusCode() >= 300);
+                assertTrue(request(signed.replace(path, path.equals("/ext/coverArt")
+                        ? "/ext/coverArt.view" : "/ext/coverArt"), "GET", null, false).statusCode() >= 300);
+            }
         } finally {
             playlists.deletePlaylist(playlist.getId());
             ScanningTestUtils.after(cleanup, folders);

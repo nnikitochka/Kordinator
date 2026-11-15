@@ -765,7 +765,7 @@ public class MediaFileService {
     /**
      * Returns the accent color of the cover art shown for the given media file.
      * For non-directory files the cover art belongs to the parent (album) directory,
-     * mirroring the resolution logic of CoverArtController.
+     * mirroring the resolution logic of CoverArtImageService.
      */
     private String getAccentColor(MediaFile file) {
         MediaFile dir = file.isDirectory() ? file : Optional.ofNullable(getParentOf(file)).orElse(file);

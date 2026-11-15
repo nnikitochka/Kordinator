@@ -394,6 +394,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(DownloadRestController.PATHS);
         registration.addUrlMappings(DownloadRestController.WEBSITE_PATH);
         registration.addUrlMappings(CoverArtRestController.PATHS);
+        registration.addUrlMappings(CoverArtRestController.LEGACY_PATHS);
         registration.addUrlMappings(CoverArtActionsController.PATHS);
         registration.addUrlMappings(MediaFileCommentController.PATH);
         registration.addUrlMappings(TagEditController.PATHS);

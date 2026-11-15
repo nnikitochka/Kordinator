@@ -1,6 +1,5 @@
 package org.airsonic.player.controller.rest
 
-import org.airsonic.player.controller.cover.CoverArtController
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.dao.AlbumDao
 import org.airsonic.player.dao.ArtistDao
@@ -11,6 +10,7 @@ import org.airsonic.player.domain.CoverArt.EntityType
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.Player
 import org.airsonic.player.service.CoverArtService
+import org.airsonic.player.service.CoverArtImageService
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.RatingService
 import org.airsonic.player.service.TranscodingService
@@ -37,7 +37,7 @@ class SubsonicResponseMapper(
         target.starred = jaxbWriter.convertDate(artistDao.getArtistStarredDate(artist.id, username))
         target.albumCount = artist.albumCount
         if (CoverArt.NULL_ART != coverArtService.get(EntityType.ARTIST, artist.id)) {
-            target.coverArt = CoverArtController.ARTIST_COVERART_PREFIX + artist.id
+            target.coverArt = CoverArtImageService.ARTIST_COVERART_PREFIX + artist.id
         }
         return target
     }
@@ -57,7 +57,7 @@ class SubsonicResponseMapper(
             artistDao.getArtist(albumArtist)?.let { target.artistId = it.id.toString() }
         }
         if (CoverArt.NULL_ART != coverArtService.get(EntityType.ALBUM, album.id)) {
-            target.coverArt = CoverArtController.ALBUM_COVERART_PREFIX + album.id
+            target.coverArt = CoverArtImageService.ALBUM_COVERART_PREFIX + album.id
         }
         target.accentColor = coverArtService.getAccentColor(EntityType.ALBUM, album.id)
         target.songCount = album.songCount

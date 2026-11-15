@@ -41,7 +41,7 @@
 | 6 | `IndexController.kt` | `/index` | Настройки оболочки сайта и первоначальная навигация/iframe | Выполнен; `IndexPageIntegrationTest`, `KtorServletIntegrationTest`, `WebsiteSettingsIntegrationTest` прошли; `Move index shell to Ktor REST` |
 | 7 | `cover/CoverArtJspController.kt` | `/coverArtJsp` | HTML-фрагмент обложки, который запрашивают main/playlists/playlist | Выполнен |
 | 8 | `RatingJspController.kt` | `/ratingJsp` | HTML-фрагмент рейтинга и readonly/editable режимы | Выполнен |
-| 9 | `cover/CoverArtController.java` | `/coverArt`, `/ext/coverArt` | Старые адреса изображений, публичные подписанные ссылки, кеширование; `/rest/getCoverArt` уже Ktor | Не начат |
+| 9 | `cover/CoverArtController.java` | `/coverArt`, `/ext/coverArt` | Старые адреса изображений, публичные подписанные ссылки, кеширование; `/rest/getCoverArt` уже Ktor | Выполнен; `CoverArtRestIntegrationTest`, `PublicShareIntegrationTest`, `CoverArtImageServiceTest` прошли; отдельный коммит `Move cover art legacy routes to Ktor` |
 | 10 | `AvatarController.kt` | `/avatar` | Старые адреса аватаров и варианты выбора изображения; `/rest/getAvatar` уже Ktor | Не начат |
 | 11 | `ProxyController.kt` | `/proxy` | Совместимый HTTP proxy с журналированием обращений | Не начат |
 | 12 | `removal/PodcastRemovalController.java` | 8 путей `/rest/*`, см. этап | Совместимые пустые ответы, отказы и OPML удалённых подкастов | Не начат |
@@ -124,8 +124,8 @@
 - Проверить фактически действующие cache headers/Last-Modified/условные запросы. Наличие интерфейса `LastModified` не доказывает, что MVC применяет его к аннотированному обработчику. Сохранить наблюдаемое поведение, не предполагать обязательный 304 без проверки.
 - Заменить ссылки на `CoverArtController.*` в REST mapper/playlists существующими константами сервиса; проверить внешние usages `scale` и статических prefix. Не удалять изображения/кеши пользователей.
 - `CoverArtRestIntegrationTest` содержит spy на удаляемый MVC-класс — заменить его проверками результата и отсутствия Spring bean, не оставлять зависимость от удалённого типа.
-- Проверки: стандартные XML/JSON связанные контракты не меняются; бинарные байты/MIME GET и HEAD, все поддерживаемые префиксы id, offset/size, отсутствующий ресурс; старые пути; public share с валидным/просроченным/чужим JWT и подменой id. База: `CoverArtRestIntegrationTest`, `CoverArtImageServiceTest` и тесты share.
-- Готово: все необходимые адреса изображений обслуживает Ktor без ссылок на старый класс.
+- Проверки: стандартные XML/JSON связанные контракты не меняются; бинарные байты/MIME GET и HEAD, все поддерживаемые префиксы id, offset/size, отсутствующий ресурс; старые пути; public share с валидным/просроченным/испорченным JWT и попытками подмены id/пути. База: `CoverArtRestIntegrationTest`, `CoverArtImageServiceTest` и тесты share.
+- Готово: все необходимые адреса изображений обслуживает Ktor без ссылок на старый класс. Проверены GET/HEAD, исходный и масштабированный контент, legacy id и offset, playlist/artist/album префиксы, MIME, cache header `.view`, отсутствие фактически не выдававшегося `Last-Modified`, обе подписанные `/ext` формы, отказ для просроченного или испорченного токена, подменённого id и подменённого пути; `PublicShareIntegrationTest` подтвердил созданные share-ссылки.
 
 ### 10. AvatarController
 
