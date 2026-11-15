@@ -102,3 +102,59 @@ test('page refresh targets the rated directory only if it is still displayed', (
     refresh('42');
     assert.deepEqual(calls, ['42']);
 });
+
+class RatingElement {
+    constructor(tagName) {
+        this.tagName = tagName;
+        this.children = [];
+        this.dataset = {};
+        this.style = {};
+    }
+    appendChild(child) { this.children.push(child); return child; }
+    replaceChildren(...children) { this.children = children; }
+}
+
+function renderFixture() {
+    const doc = {
+        createElement: tagName => new RatingElement(tagName),
+        createTextNode: text => Object.assign(new RatingElement('#text'), {textContent: text})
+    };
+    const container = new RatingElement('div');
+    container.ownerDocument = doc;
+    const context = {document: {}, URLSearchParams};
+    vm.runInNewContext(readFileSync('airsonic-main/src/main/webapp/script/subsonic-rating.js', 'utf8'), context);
+    return {container, render: context.renderSubsonicRating};
+}
+
+const ratingImages = {
+    ratingOnImage: '/on.svg', ratingHalfImage: '/half.svg', ratingOffImage: '/off.svg',
+    clearRatingImage: '/clear.svg', ratingLabel: 'Rating', clearRatingLabel: 'Clear rating'
+};
+
+test('readonly rating renders five full, half, and empty stars on the 0–50 display scale', () => {
+    const {container, render} = renderFixture();
+    for (const [score, expected] of [
+        [0, ['/off.svg', '/off.svg', '/off.svg', '/off.svg', '/off.svg']],
+        [30, ['/on.svg', '/on.svg', '/on.svg', '/off.svg', '/off.svg']],
+        [35, ['/on.svg', '/on.svg', '/on.svg', '/half.svg', '/off.svg']],
+        [50, ['/on.svg', '/on.svg', '/on.svg', '/on.svg', '/on.svg']]
+    ]) {
+        render(container, score, null, true, ratingImages);
+        assert.deepEqual(container.children.map(image => image.src), expected);
+        assert.equal(container.children.length, 5);
+        assert.equal(container.children[0].title, 'Rating ' + score / 10);
+        assert.equal(container.children.every(image => image.tagName === 'img'), true);
+    }
+});
+
+test('editable rating uses the media id and 1–5 commands plus a clear command of zero', () => {
+    const {container, render} = renderFixture();
+    render(container, 30, 812, false, ratingImages);
+    const buttons = container.children.filter(child => child.tagName === 'button');
+    assert.deepEqual(buttons.map(button => button.dataset.mediaRating), ['1', '2', '3', '4', '5', '0']);
+    assert.equal(buttons.every(button => button.dataset.mediaId === '812'), true);
+    assert.deepEqual(buttons.slice(0, 5).map(button => button.children[0].src),
+        ['/on.svg', '/on.svg', '/on.svg', '/off.svg', '/off.svg']);
+    assert.equal(buttons[5].children[0].src, '/clear.svg');
+    assert.equal(buttons[5].children[0].title, 'Clear rating');
+});

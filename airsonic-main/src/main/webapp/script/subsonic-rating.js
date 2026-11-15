@@ -1,4 +1,56 @@
-/* Delegation also covers rating fragments loaded after the page has initialized. */
+/* Keep click handling delegated because rating buttons are rendered after page load. */
+function renderSubsonicRating(container, rating, mediaId, readOnly, config) {
+    var doc = container.ownerDocument || document;
+    var value = Number(rating) || 0;
+    container.replaceChildren();
+
+    function iconFor(star) {
+        if (value >= star * 10) return config.ratingOnImage;
+        if (value >= star * 10 - 7 && value <= star * 10 - 3) return config.ratingHalfImage;
+        return config.ratingOffImage;
+    }
+
+    function appendIcon(parent, src, title) {
+        var image = doc.createElement("img");
+        image.src = src;
+        image.alt = "";
+        image.title = title;
+        image.style.cssText = "margin-right:-3px;height:18px";
+        parent.appendChild(image);
+    }
+
+    for (var star = 1; star <= 5; star++) {
+        var title = config.ratingLabel + " " + (readOnly ? value / 10 : star);
+        if (readOnly) {
+            var image = doc.createElement("img");
+            image.src = iconFor(star);
+            image.alt = "";
+            image.title = title;
+            image.style.cssText = "margin-right:-3px;height:18px";
+            container.appendChild(image);
+        } else {
+            var button = doc.createElement("button");
+            button.type = "button";
+            button.dataset.mediaId = String(mediaId);
+            button.dataset.mediaRating = String(star);
+            button.style.cssText = "border:0;padding:0;background:transparent;cursor:pointer";
+            appendIcon(button, iconFor(star), title);
+            container.appendChild(button);
+        }
+    }
+
+    if (!readOnly) {
+        container.appendChild(doc.createTextNode("\u00a0| "));
+        var clearButton = doc.createElement("button");
+        clearButton.type = "button";
+        clearButton.dataset.mediaId = String(mediaId);
+        clearButton.dataset.mediaRating = "0";
+        clearButton.style.cssText = "border:0;padding:0;background:transparent;cursor:pointer";
+        appendIcon(clearButton, config.clearRatingImage, config.clearRatingLabel);
+        container.appendChild(clearButton);
+    }
+}
+
 function installSubsonicRating(options) {
     var pending = false;
     document.addEventListener("click", async function (event) {

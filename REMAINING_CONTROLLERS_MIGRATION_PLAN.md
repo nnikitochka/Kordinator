@@ -40,7 +40,7 @@
 | 5 | `RightController.kt` | `/right` | Настройки правой панели и уведомление о версии; polling уже есть | Выполнен; `RightPageIntegrationTest` прошёл; `Move right panel data to Ktor REST` |
 | 6 | `IndexController.kt` | `/index` | Настройки оболочки сайта и первоначальная навигация/iframe | Выполнен; `IndexPageIntegrationTest`, `KtorServletIntegrationTest`, `WebsiteSettingsIntegrationTest` прошли; `Move index shell to Ktor REST` |
 | 7 | `cover/CoverArtJspController.kt` | `/coverArtJsp` | HTML-фрагмент обложки, который запрашивают main/playlists/playlist | Выполнен |
-| 8 | `RatingJspController.kt` | `/ratingJsp` | HTML-фрагмент рейтинга и readonly/editable режимы | Не начат |
+| 8 | `RatingJspController.kt` | `/ratingJsp` | HTML-фрагмент рейтинга и readonly/editable режимы | Выполнен |
 | 9 | `cover/CoverArtController.java` | `/coverArt`, `/ext/coverArt` | Старые адреса изображений, публичные подписанные ссылки, кеширование; `/rest/getCoverArt` уже Ktor | Не начат |
 | 10 | `AvatarController.kt` | `/avatar` | Старые адреса аватаров и варианты выбора изображения; `/rest/getAvatar` уже Ktor | Не начат |
 | 11 | `ProxyController.kt` | `/proxy` | Совместимый HTTP proxy с журналированием обращений | Не начат |
@@ -110,12 +110,12 @@
 - Проверки: `cover-art-renderer.test.cjs` прошёл (4 сценария: URL, album/playlist, HTML в подписи, размер/overflow, queue actions); `WebsiteSettingsIntegrationTest` и `PlaylistsIntegrationTest` прошли на чистой сборке (3 HTTP-интеграционных теста). Они проверяют все три страницы и отсутствие Spring bean/старого импорта. Checkstyle и PMD пропущены параметрами Maven; Firefox не запускался.
 - Готово: старый Spring bean удалён, оба потребителя строят обложки через общий клиентский рендерер.
 
-### 8. RatingJspController
+### 8. RatingJspController — выполнен
 
-- Перенести отрисовку readonly/editable рейтинга в общий JS, используя существующий REST рейтинга. Сохранить шкалу 0–50 для отображения, 0–5 для команды и половинчатые звёзды.
-- Обновить потребителя в `mediaMain.jsp`. Совместимость `/ratingJsp[.view]` решать по фактическим вызовам, при необходимости дать HTML-адаптер на Ktor.
-- Проверки: 0/30/35/50, режим без кнопок, set/reset с правильным media id, отказ по роли/CSRF и безопасные параметры фрагмента. Уже есть проверки `/ratingJsp.view` в `KtorServletIntegrationTest`; их обновить осмысленно. База также `RatingIntegrationTest`, `subsonic-rating.test.cjs`.
-- Готово: рейтинг отображается и изменяется без Spring MVC-фрагмента.
+- `mediaMain.jsp` строит среднюю и пользовательскую оценки клиентским рендерером на данных `getMusicDirectory`; запросов к `/ratingJsp.view` больше нет. Шкала отображения 0–50, интерактивные команды 0–5, половинчатые звёзды и сброс сохранены.
+- Существующий делегированный обработчик `subsonic-rating.js` продолжает отправлять сессию/CSRF на `/rest/setRating`; успешная команда перечитывает REST-данные текущего каталога. Spring controller и JSP fragment удалены. Legacy `/ratingJsp[.view]` был только внутренней HTML-ручкой и после удаления возвращает 404; Subsonic `/rest/setRating` не менялся.
+- Проверки: все 12 сценариев `subsonic-rating.test.cjs` прошли, включая readonly 0/30/35/50, кнопки set/clear и REST ошибки; `KtorServletIntegrationTest` (13) и `RatingIntegrationTest` (1) прошли на чистой сборке. Интеграционные проверки покрывают страницу, set/clear, CSRF, неверные данные, отсутствие Spring bean/HTML route и сохранность Subsonic-контракта. Checkstyle и PMD пропущены параметрами Maven; Firefox не запускался.
+- Готово: оценка отображается и изменяется через REST без Spring MVC-фрагмента.
 
 ### 9. CoverArtController
 

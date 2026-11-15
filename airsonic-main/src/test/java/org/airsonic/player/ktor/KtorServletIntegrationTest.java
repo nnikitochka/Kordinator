@@ -457,6 +457,10 @@ public class KtorServletIntegrationTest {
             assertEquals(page.body(), 200, page.statusCode());
             assertTrue(page.body(), page.body().contains("/airsonic/rest/setRating"));
             assertTrue(page.body(), page.body().contains("/airsonic/script/subsonic-rating.js"));
+            assertTrue(page.body(), page.body().contains("id=\"ratingRendererConfig\""));
+            assertTrue(page.body(), !page.body().contains("ratingJsp.view"));
+            assertTrue("The HTML fragment controller must be removed",
+                    !applicationContext.containsBean("ratingJspController"));
             token = java.util.regex.Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
             assertTrue(page.body(), token.find());
             String csrf = token.group(1);
@@ -470,16 +474,8 @@ public class KtorServletIntegrationTest {
             subsonic(browserRequest(browser, "/rest/setRating", form + "&rating=0", csrf));
             assertEquals(null, ratingService.getRatingForUser("admin", album));
 
-            HttpResponse<String> editable = browserRequest(browser,
-                    "/ratingJsp.view?readonly=false&id=" + id + "&rating=30", null, null);
-            assertEquals(editable.body(), 200, editable.statusCode());
-            assertEquals(6, editable.body().split("data-media-rating=", -1).length - 1);
-            assertTrue(editable.body(), editable.body().contains("data-media-rating=\"0\""));
-            assertTrue(editable.body(), !editable.body().contains("setRating.view"));
-            HttpResponse<String> readonly = browserRequest(browser,
-                    "/ratingJsp.view?readonly=true&rating=35", null, null);
-            assertEquals(readonly.body(), 200, readonly.statusCode());
-            assertTrue(readonly.body(), !readonly.body().contains("data-media-rating"));
+            assertEquals(404, browserRequest(browser,
+                    "/ratingJsp.view?readonly=false&id=" + id + "&rating=30", null, null).statusCode());
             assertEquals(404, browserRequest(browser, "/setRating.view?id=" + id + "&rating=5", null, null).statusCode());
             assertEquals(null, ratingService.getRatingForUser("admin", album));
 

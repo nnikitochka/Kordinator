@@ -236,18 +236,17 @@
     }
 
     function getRatings() {
-        var urlBase = "<c:url value='/ratingJsp.view'/>";
+        var averageContainer = document.getElementById('avgRating');
         if (mediaDir.averageRating && mediaDir.averageRating > 0) {
-            $.get(urlBase + '?readonly=true&rating=' + mediaDir.averageRating, data => {
-                $('#avgRating').html('&nbsp;&nbsp;'+data).show();
-            });
+            averageContainer.style.marginLeft = '0.5em';
+            renderSubsonicRating(averageContainer, mediaDir.averageRating, null, true, ratingRendererConfig);
+            $('#avgRating').show();
         } else {
-            $('#avgRating').html('').hide();
+            averageContainer.replaceChildren();
+            $('#avgRating').hide();
         }
 
-        $.get(urlBase + '?readonly=false&id=' + mediaDir.id + '&rating=' + mediaDir.userRating, data => {
-            $('#userRating').html(data);
-        });
+        renderSubsonicRating(document.getElementById('userRating'), mediaDir.userRating, mediaDir.id, false, ratingRendererConfig);
     }
 
     function updatePlayCountData() {
@@ -1110,6 +1109,7 @@
 </head>
 <body class="mainframe bgcolor1" onload="loadMainPage();">
 <%@ include file="coverArtRendererConfig.jsp" %>
+<%@ include file="ratingRendererConfig.jsp" %>
 <div style="float:left">
     <h1>
         <img id="starImage" src="<spring:theme code='ratingOffImage'/>"
