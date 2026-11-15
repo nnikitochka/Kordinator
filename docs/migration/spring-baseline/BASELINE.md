@@ -37,7 +37,7 @@ node --test airsonic-main/src/test/javascript/*.test.cjs
 
 ## Проверки и точные границы доказательств
 
-Статический inventory baseline создан из `71b47a3`; dependency trees всех пяти модулей и effective POM сняты offline. Полный `clean test` reactor завершился **BUILD FAILURE**: 280 тестов (4 в `subsonic-rest-api`, 276 в `airsonic-main` на этом запуске), 5 failures, 1 error, 0 skipped. Из шести проблем:
+Статический inventory baseline создан из `71b47a3`; dependency trees всех пяти модулей и effective POM сняты offline. Первый полный `clean test` reactor baseline завершился **BUILD FAILURE**: 280 тестов (4 в `subsonic-rest-api`, 276 в `airsonic-main`), 5 failures, 1 error, 0 skipped. Из шести зафиксированных проблем:
 
 | Тесты | Наблюдение | Следующее действие |
 |---|---|---|
@@ -48,7 +48,13 @@ node --test airsonic-main/src/test/javascript/*.test.cjs
 
 Повторный запуск изменённых fixtures и HTTP-тестов: **8 тестов всего, 7 прошли и 1 упал**. Прошли `MediaScannerServiceUnitTest` (1), `CredentialCompatibilityBaselineTest` (2), `CORSTest` (3) и directory assertion из `AirsonicRestApiIntTest` (1). Единственное падение было вызвано устаревшим тестом на удалённый endpoint; этот тест удалён после прогона, остальные семь проверок прошли. После этого удалены два assertion-а на наличие cookie в REST-ответах; оба затронутых integration-теста повторно прошли (2/2). Полный reactor итог исходного запуска и его test XML остаются исторической записью.
 
-Отдельно прошли все **29/29** JS файлов. Checkstyle отдельно проверен и падает на существующем `PlayQueue.java:430:20`; PMD включён и прошёл. Сборка исполняемого WAR (`mvn ... -DskipTests package`) прошла, размер 110 MB, SHA-256 `3d310a51a802335e25de0196f5d5d88ccf36677deaa3ce2c46653e7ff63fba5c`. Отчёт исходных полных XML результатов сохранён в [test-results-initial.json](test-results-initial.json).
+После удаления устаревшего endpoint-теста и cookie assertions повторно выполнен полный чистый reactor:
+
+```bash
+XDG_DATA_HOME=/tmp mvn -o -fae -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true clean test
+```
+
+Результат **BUILD SUCCESS**: 279 тестов (4 в `subsonic-rest-api`, 275 в `airsonic-main`), 0 failures, 0 errors, 0 skipped. HSQLDB DAO, startup/migration, REST и servlet integration suites прошли. PMD включён и прошёл. Checkstyle намеренно отключён: отдельный запуск падает на существующем `PlayQueue.java:430:20`; полная проверка без обходов не объявляется успешной. Отдельно прошли все **29/29** JS файлов. Сборка исполняемого WAR (`mvn ... -DskipTests package`) прошла, размер 110 MB, SHA-256 `3d310a51a802335e25de0196f5d5d88ccf36677deaa3ce2c46653e7ff63fba5c`. Исходные XML результаты первого запуска сохранены в [test-results-initial.json](test-results-initial.json); они остаются историческими и отражают прежние тестовые ожидания.
 
 ### Credentials
 
