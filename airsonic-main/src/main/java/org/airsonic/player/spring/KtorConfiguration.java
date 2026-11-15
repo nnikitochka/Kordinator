@@ -107,6 +107,7 @@ import org.airsonic.player.controller.rest.shares.SharesController;
 import org.airsonic.player.controller.rest.search.SearchController;
 import org.airsonic.player.controller.rest.search.SearchPageController;
 import org.airsonic.player.controller.rest.home.HomePageController;
+import org.airsonic.player.controller.rest.cover.ChangeCoverArtPageController;
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsController;
 import org.airsonic.player.controller.rest.SubsonicResponseMapper;
 import org.airsonic.player.dao.AlbumDao;
@@ -292,6 +293,7 @@ public class KtorConfiguration {
                                 new PlaylistsPageController(settingsService, objectMapper),
                                 new HomePageController(settingsService, mediaScannerService, ratingService, securityService,
                                         mediaFileService, mediaFolderService, albumSearchService, objectMapper),
+                                new ChangeCoverArtPageController(mediaFileService, mediaFolderService),
                                 new UploadStatusController(statusService, jaxbWriter, databaseService),
                                 new StatisticsController(statusService, securityService, jaxbWriter),
                                 new ScheduledTasksController(taskSchedulingService, jaxbWriter),
@@ -321,6 +323,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(HomePageController.DATA_PATH);
         registration.addUrlMappings(HomePageController.PAGE_PATHS);
         registration.addUrlMappings("/lyrics", "/lyrics.view");
+        registration.addUrlMappings("/changeCoverArt", "/changeCoverArt.view");
         registration.addUrlMappings(MusicFoldersController.PATHS);
         registration.addUrlMappings(GenresController.PATHS);
         registration.addUrlMappings(ArtistsController.PATHS);

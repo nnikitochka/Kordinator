@@ -61,6 +61,7 @@ import org.airsonic.player.controller.rest.shares.SharesRequest
 import org.airsonic.player.controller.rest.search.SearchController
 import org.airsonic.player.controller.rest.search.SearchPageController
 import org.airsonic.player.controller.rest.home.HomePageController
+import org.airsonic.player.controller.rest.cover.ChangeCoverArtPageController
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsController
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsRequest
 import org.airsonic.player.service.MediaStreamService
@@ -194,6 +195,7 @@ class AirsonicKtorServlet(
     private val mainPageController: MainPageController,
     private val playlistsPageController: PlaylistsPageController,
     private val homePageController: HomePageController,
+    private val changeCoverArtPageController: ChangeCoverArtPageController,
     private val uploadStatusController: UploadStatusController,
     private val statisticsController: StatisticsController,
     private val scheduledTasksController: ScheduledTasksController,
@@ -489,6 +491,34 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path == "/changeCoverArt" || path == "/changeCoverArt.view") {
+            if (request.method !in setOf("GET", "HEAD")) {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            val username = securityService.getCurrentUsername(request) ?: run { response.sendError(401); return }
+            val id = request.getParameter("id")?.toIntOrNull() ?: run { response.sendError(400); return }
+            val model = try {
+                changeCoverArtPageController.page(username, id, request.getParameter("artist"), request.getParameter("album"))
+            } catch (_: NoSuchElementException) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND)
+                return
+            } catch (_: SecurityException) {
+                response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                return
+            }
+            request.setAttribute("model", model)
+            response.setHeader("Cache-Control", "no-store")
+            val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
+            request.getRequestDispatcher("/WEB-INF/jsp/changeCoverArt.jsp").forward(request, response)
+            return
+        }
         if (path == "/lyrics" || path == "/lyrics.view") {
             if (request.method !in setOf("GET", "HEAD")) {
                 response.setHeader("Allow", "GET, HEAD")

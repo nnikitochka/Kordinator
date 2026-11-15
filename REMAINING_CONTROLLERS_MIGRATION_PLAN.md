@@ -34,7 +34,7 @@
 | № | Исходный контроллер | Текущие пути без суффикса | Что осталось перенести | Статус / коммит |
 |---|---|---|---|---|
 | 1 | `LyricsController.kt` | `/lyrics` | Оболочка popup с `artist`, `song`; получение текста уже через `/rest/getLyrics` | Выполнен; `LyricsIntegrationTest` прошёл |
-| 2 | `ChangeCoverArtController.kt` | `/changeCoverArt` | Исходные данные формы по `id`, fallback исполнителя/альбома; действия уже в Ktor | Не начат |
+| 2 | `ChangeCoverArtController.kt` | `/changeCoverArt` | Исходные данные формы по `id`, fallback исполнителя/альбома; действия уже в Ktor | Выполнен; `CoverArtActionsIntegrationTest` прошёл |
 | 3 | `tags/EditTagsController.kt` | `/editTags` | Модель редактора тегов, значения по умолчанию, предложения названий/номеров и жанры; запись уже в REST | Не начат |
 | 4 | `StarredController.kt` | `/starred` | Четыре раздела избранного, даты и настройки отображения | Не начат |
 | 5 | `RightController.kt` | `/right` | Настройки правой панели и уведомление о версии; polling уже есть | Не начат |

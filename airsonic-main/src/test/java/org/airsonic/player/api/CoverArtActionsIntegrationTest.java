@@ -59,6 +59,25 @@ public class CoverArtActionsIntegrationTest {
             assertEquals(page.body(), 200, page.statusCode());
             assertTrue(page.body().contains("/airsonic/script/subsonic-cover-art.js"));
             assertFalse(page.body().contains("/app/coverart/"));
+            assertTrue(page.body().contains("value=\"A\""));
+            assertTrue(page.body().contains("value=\"B\""));
+            HttpResponse<String> defaults = send(browser, "/changeCoverArt?id=" + id, null, null);
+            assertEquals(defaults.body(), 200, defaults.statusCode());
+            assertTrue(defaults.body().contains("id=\"album\""));
+            assertEquals(400, send(browser, "/changeCoverArt", null, null).statusCode());
+            assertEquals(404, send(browser, "/changeCoverArt?id=2147483647", null, null).statusCode());
+            int inaccessibleId = files.getMediaFile("_DIR_ chrome hoof - 2004", library.get(1).getId()).getId();
+            User restricted = new User("cover-restricted", null);
+            restricted.setRoles(Set.of(User.Role.COVERART));
+            security.createUser(restricted, "secret", "test");
+            folders.setMusicFoldersForUser(restricted.getUsername(), Set.of(library.get(0).getId()));
+            HttpClient restrictedBrowser = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL)).followRedirects(HttpClient.Redirect.NEVER).build();
+            HttpResponse<String> restrictedLogin = send(restrictedBrowser, "/login", null, null);
+            token = java.util.regex.Pattern.compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"").matcher(restrictedLogin.body());
+            assertTrue(token.find());
+            assertEquals(302, send(restrictedBrowser, "/login", "j_username=cover-restricted&j_password=secret&_csrf="
+                    + URLEncoder.encode(token.group(1), StandardCharsets.UTF_8), null).statusCode());
+            assertEquals(403, send(restrictedBrowser, "/changeCoverArt.view?id=" + inaccessibleId, null, null).statusCode());
             token = java.util.regex.Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
             assertTrue(token.find());
             String csrf = token.group(1);
@@ -76,6 +95,7 @@ public class CoverArtActionsIntegrationTest {
             assertEquals(50, body(send(external, "/rest/searchCoverArt.view", auth + "artist=A&album=B", null)).path("error").path("code").asInt());
             assertEquals(50, body(send(external, "/rest/setCoverArt.view", auth + "id=" + id + "&url=https%3A%2F%2Fimg.test", null)).path("error").path("code").asInt());
             assertFalse(context.containsBean("coverArtWSController"));
+            assertFalse(context.containsBean("changeCoverArtController"));
         } finally {
             ScanningTestUtils.after(cleanup, folders);
             folders.expunge();

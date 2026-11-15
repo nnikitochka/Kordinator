@@ -107,8 +107,8 @@
 <form action="javascript:search()">
     <sec:csrfInput />
     <table class="indent"><tr>
-        <td><input id="artist" name="artist" placeholder="<fmt:message key='changecoverart.artist'/>" size="35" type="text" value="${model.artist}" onclick="select()"/></td>
-        <td><input id="album" name="album" placeholder="<fmt:message key='changecoverart.album'/>" size="35" type="text" value="${model.album}" onclick="select()"/></td>
+        <td><input id="artist" name="artist" placeholder="<fmt:message key='changecoverart.artist'/>" size="35" type="text" value="<c:out value='${model.artist}'/>" onclick="select()"/></td>
+        <td><input id="album" name="album" placeholder="<fmt:message key='changecoverart.album'/>" size="35" type="text" value="<c:out value='${model.album}'/>" onclick="select()"/></td>
         <td style="padding-left:0.5em"><input type="submit" value="<fmt:message key='changecoverart.search'/>"/></td>
     </tr></table>
 </form>
