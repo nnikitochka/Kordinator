@@ -1,3 +1,4 @@
+<%@ page contentType="text/html; charset=utf-8" pageEncoding="utf-8" %>
 <%@ include file="include.jsp" %>
 <c:url value="/coverArt.view" var="coverArtRendererUrl"/>
 <c:url value="/changeCoverArt.view" var="coverArtRendererChangeUrl"/>

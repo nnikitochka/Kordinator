@@ -18,7 +18,14 @@
 </c:import>
 
 <p id="generalSettingsError" role="alert" class="warning"></p>
-<p id="generalSettingsSaved" role="status" <c:if test="${param.saved ne 'true'}">hidden</c:if>><fmt:message key="common.settingssaved"/></p>
+<c:choose>
+    <c:when test="${param.saved ne 'true'}">
+        <p id="generalSettingsSaved" role="status" hidden><fmt:message key="common.settingssaved"/></p>
+    </c:when>
+    <c:otherwise>
+        <p id="generalSettingsSaved" role="status"><fmt:message key="common.settingssaved"/></p>
+    </c:otherwise>
+</c:choose>
 <form id="generalSettings"><fieldset id="generalFields" disabled>
 
     <table style="white-space:nowrap" class="indent">

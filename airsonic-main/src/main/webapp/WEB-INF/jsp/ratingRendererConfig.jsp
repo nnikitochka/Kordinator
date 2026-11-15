@@ -1,3 +1,4 @@
+<%@ page contentType="text/html; charset=utf-8" pageEncoding="utf-8" %>
 <%@ include file="include.jsp" %>
 <spring:theme code="ratingOnImage" var="ratingRendererOn"/>
 <spring:theme code="ratingHalfImage" var="ratingRendererHalf"/>
