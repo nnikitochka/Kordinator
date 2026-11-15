@@ -1,5 +1,7 @@
 package org.airsonic.player.api;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.MediaFile;
@@ -12,35 +14,40 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.web.servlet.MockMvc;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest
-@AutoConfigureMockMvc
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "server.servlet.context-path=/airsonic")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class AirsonicRestApiIntTest {
 
     private static final String CLIENT_NAME = "airsonic";
     private static final String AIRSONIC_USER = "admin";
     private static final String AIRSONIC_PASSWORD = "admin";
     private static final String EXPECTED_FORMAT = "json";
+    private static final String AIRSONIC_API_VERSION = TestCaseUtils.restApiVersion();
+    private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(10);
 
-    private static String AIRSONIC_API_VERSION = TestCaseUtils.restApiVersion();
+    @ClassRule
+    public static final HomeRule classRule = new HomeRule();
 
-    @Autowired
-    private MockMvc mvc;
+    @LocalServerPort
+    private int port;
 
     @Autowired
     private MediaScannerService mediaScannerService;
@@ -51,22 +58,19 @@ public class AirsonicRestApiIntTest {
     @Autowired
     private MediaFileDao mediaFileDao;
 
-    @ClassRule
-    public static final HomeRule classRule = new HomeRule(); // sets airsonic.home to a temporary dir
+    private final HttpClient client = HttpClient.newBuilder()
+            .connectTimeout(HTTP_TIMEOUT)
+            .followRedirects(HttpClient.Redirect.NEVER)
+            .build();
+    private final ObjectMapper json = new ObjectMapper();
 
     @Test
     public void licenseTest() throws Exception {
-        mvc.perform(get("/rest/getLicense")
-                .param("v", AIRSONIC_API_VERSION)
-                .param("c", CLIENT_NAME)
-                .param("u", AIRSONIC_USER)
-                .param("p", AIRSONIC_PASSWORD)
-                .param("f", EXPECTED_FORMAT)
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.subsonic-response.status").value("ok"))
-                .andExpect(jsonPath("$.subsonic-response.version").value(AIRSONIC_API_VERSION))
-                .andDo(print());
+        HttpResponse<String> response = get("/rest/getLicense", null);
+        assertEquals(response.body(), 200, response.statusCode());
+        JsonNode envelope = json.readTree(response.body()).path("subsonic-response");
+        assertEquals("ok", envelope.path("status").asText());
+        assertEquals(AIRSONIC_API_VERSION, envelope.path("version").asText());
     }
 
     @Test
@@ -79,21 +83,26 @@ public class AirsonicRestApiIntTest {
                     "_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", testFolders.get(0).getId());
             assertNotNull("Album directory not found after scan", albumDir);
 
-            mvc.perform(get("/rest/getMusicDirectory")
-                    .param("v", AIRSONIC_API_VERSION)
-                    .param("c", CLIENT_NAME)
-                    .param("u", AIRSONIC_USER)
-                    .param("p", AIRSONIC_PASSWORD)
-                    .param("f", EXPECTED_FORMAT)
-                    .param("id", String.valueOf(albumDir.getId())))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.subsonic-response.status").value("ok"))
-                    // The dominant color of the folder cover (cover.jpg) is known/deterministic.
-                    .andExpect(jsonPath("$.subsonic-response.directory.accentColor").value("#A58866"))
-                    .andExpect(jsonPath("$.subsonic-response.directory.child[0].accentColor").value("#A58866"))
-                    .andDo(print());
+            HttpResponse<String> response = get("/rest/getMusicDirectory", "id=" + albumDir.getId());
+            assertEquals(response.body(), 200, response.statusCode());
+            JsonNode envelope = json.readTree(response.body()).path("subsonic-response");
+            assertEquals("ok", envelope.path("status").asText());
+            // The dominant color of the folder cover (cover.jpg) is known/deterministic.
+            assertEquals("#A58866", envelope.path("directory").path("accentColor").asText());
+            assertEquals("#A58866", envelope.path("directory").path("child").get(0).path("accentColor").asText());
         } finally {
             ScanningTestUtils.after(cleanupId, mediaFolderService);
         }
+    }
+
+    private HttpResponse<String> get(String path, String extraParams) throws Exception {
+        String params = "v=" + AIRSONIC_API_VERSION + "&c=" + CLIENT_NAME + "&u=" + AIRSONIC_USER
+                + "&p=" + AIRSONIC_PASSWORD + "&f=" + EXPECTED_FORMAT;
+        if (extraParams != null && !extraParams.isEmpty()) params += "&" + extraParams;
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic" + path + "?" + params))
+                .timeout(HTTP_TIMEOUT)
+                .GET()
+                .build();
+        return client.send(request, HttpResponse.BodyHandlers.ofString());
     }
 }

@@ -150,7 +150,7 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 | Этап | Статус | Commit | Checks / evidence | Ограничения / открытые вопросы |
 |---|---|---|---|---|
-| 0. Baseline | Не начат | — | Не запускались в рамках написания плана | Зафиксировать доступные JDK/DB/ports и полный module scan. |
+| 0. Baseline | Частично выполнен | После фиксации см. `docs/migration/spring-baseline/BASELINE.md` | Inventory, all-module dependency trees, effective POM, JS 29/29, credential 2/2, unit repair 1/1, package WAR pass; initial reactor 280 tests, 5 failures/1 error. | HTTP repeats and executable-WAR smoke are blocked by auto-review usage limit; two stale `Set-Cookie` assertions and missing `getLicense` remain open. PostgreSQL/MySQL/MariaDB/Docker unavailable. Do not start Spring removal until gate resolved or explicitly carried as accepted baseline gaps. |
 | 1. Скелет graph + первый срез | Не начат | — | Не запускались | Выбрать первую subsystem срез; не создавать копии Spring singleton services. |
 | 2. Utilities | Не начат | — | Не запускались | Validation provider и exception map требуют отдельной инвентаризации. |
 | 3. Config/logging | Не начат | — | Не запускались | Сохранить Boot adapter до stage 12; precedence подтвердить тестами. |
