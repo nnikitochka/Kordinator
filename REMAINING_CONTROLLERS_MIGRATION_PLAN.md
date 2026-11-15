@@ -38,7 +38,7 @@
 | 3 | `tags/EditTagsController.kt` | `/editTags` | Модель редактора тегов, значения по умолчанию, предложения названий/номеров и жанры; запись уже в REST | Выполнен; `TagEditIntegrationTest` прошёл; отдельный коммит `Move tag editor page data to Ktor REST` |
 | 4 | `StarredController.kt` | `/starred` | Четыре раздела избранного, даты и настройки отображения | Выполнен; `StarredIntegrationTest` прошёл; отдельный коммит `Move starred page to Ktor REST` |
 | 5 | `RightController.kt` | `/right` | Настройки правой панели и уведомление о версии; polling уже есть | Выполнен; `RightPageIntegrationTest` прошёл; `Move right panel data to Ktor REST` |
-| 6 | `IndexController.kt` | `/index` | Настройки оболочки сайта и первоначальная навигация/iframe | Не начат |
+| 6 | `IndexController.kt` | `/index` | Настройки оболочки сайта и первоначальная навигация/iframe | Выполнен; `IndexPageIntegrationTest`, `KtorServletIntegrationTest`, `WebsiteSettingsIntegrationTest` прошли; `Move index shell to Ktor REST` |
 | 7 | `cover/CoverArtJspController.kt` | `/coverArtJsp` | HTML-фрагмент обложки, который запрашивают main/playlists | Не начат |
 | 8 | `RatingJspController.kt` | `/ratingJsp` | HTML-фрагмент рейтинга и readonly/editable режимы | Не начат |
 | 9 | `cover/CoverArtController.java` | `/coverArt`, `/ext/coverArt` | Старые адреса изображений, публичные подписанные ссылки, кеширование; `/rest/getCoverArt` уже Ktor | Не начат |
@@ -97,12 +97,11 @@
 
 ### 6. IndexController
 
-- Перенести `showRight`, `autoHidePlayQueue`, `keyboardShortcutsEnabled`, `showSideBar`, brand в Ktor, например `/rest/indexPageSettings`.
-- Сохранить имена iframe, ссылки верхней/левой/правой панели, первоначальную навигацию `nowPlaying.view`, очередь и настройку `main`. Проверить, какие из передававшихся полей фактически потребляются include-файлами.
-- Начальные параметры навигации не должны позволять вставку HTML или `javascript:`/внешнего URL в iframe. Согласовать допустимые локальные назначения с найденными вызывающими местами.
-- При асинхронной загрузке настроек не создавать второй плеер и не запускать очередь дважды. Для отсутствия скачивания `play.m3u` проверить фактический выбор веб-плеера в HTTP-сценарии и клиентскую инициализацию.
-- Проверки: `/index`, `/index.view`, переход после login, видимость панелей, настройки двух пользователей, безопасный main, загрузка очереди один раз, неизменность выбранного веб-плеера. Использовать существующий `KtorServletIntegrationTest` и тесты очереди/навигации по затронутым сценариям.
-- Готово: оболочка сайта получает настройки через Ktor и сохраняет рабочую навигацию без IndexController.
+- `/rest/indexPageSettings` отдаёт минимальные настройки `showRight`, `showSideBar` и `keyboardShortcutsEnabled`; `autoHidePlayQueue` уже поступает в очередь через её существующий Ktor API, а brand в index shell не используется.
+- Ktor обслуживает `/index` и `/index.view`. Главные iframe загружаются после ответа настроек, чтобы дочерние панели сразу видели настройку клавиатуры. Существующие имена iframe, default `nowPlaying.view` и переход `personalSettings.view?saved=true` сохранены.
+- `main` проходит same-origin/context-path проверку; `javascript:`, внешние адреса и выход из пути приложения заменяются на `nowPlaying.view`. Очередь подключается непосредственно её JSP fragment с существующими Ktor-настройками, без вложенного Spring dispatch и повторной инициализации плеера.
+- Проверки: чистая сборка и `IndexPageIntegrationTest`, `KtorServletIntegrationTest`, `WebsiteSettingsIntegrationTest` прошли (15 интеграционных тестов); `index-page.test.cjs` проверил локальные и отклоняемые URL; inline JS прошёл `node --check`. Checkstyle и PMD пропущены; Firefox не запускался.
+- Готово: оболочка сайта и её пользовательские настройки обслуживаются Ktor; старый `IndexController` удалён. Коммит `Move index shell to Ktor REST`.
 
 ### 7. CoverArtJspController
 

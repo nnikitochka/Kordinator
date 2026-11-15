@@ -50,6 +50,7 @@ import org.airsonic.player.controller.rest.nowplaying.NowPlayingPageController;
 import org.airsonic.player.controller.rest.nowplaying.RightPageController;
 import org.airsonic.player.controller.rest.more.MorePageController;
 import org.airsonic.player.controller.rest.indexes.LeftPageController;
+import org.airsonic.player.controller.rest.indexes.IndexPageController;
 import org.airsonic.player.controller.rest.bookmarks.BookmarksPageController;
 import org.airsonic.player.controller.rest.playlists.PlaylistPageController;
 import org.airsonic.player.controller.rest.music.MainPageController;
@@ -292,6 +293,7 @@ public class KtorConfiguration {
                                 new NowPlayingController(statusService, responseMapper, jaxbWriter),
                                 new NowPlayingPageController(playerService, statusService, mediaFileService),
                                 new RightPageController(settingsService, versionService, objectMapper),
+                                new IndexPageController(settingsService, objectMapper),
                                 new MorePageController(settingsService, mediaFileService, mediaFolderService, objectMapper),
                                 new LeftPageController(settingsService, mediaFolderService, musicIndexService, musicIndexStateService, mediaScannerService, indexManager, playerService, objectMapper),
                                 new BookmarksPageController(settingsService, objectMapper),
@@ -413,6 +415,8 @@ public class KtorConfiguration {
         registration.addUrlMappings(NowPlayingPageController.PATHS);
         registration.addUrlMappings(RightPageController.DATA_PATH);
         registration.addUrlMappings(RightPageController.PAGE_PATHS);
+        registration.addUrlMappings(IndexPageController.DATA_PATH);
+        registration.addUrlMappings(IndexPageController.PAGE_PATHS);
         registration.addUrlMappings(MorePageController.PATH);
         registration.addUrlMappings(MorePageController.PAGE_PATHS);
         registration.addUrlMappings(LeftPageController.DATA_PATH, LeftPageController.SELECT_PATH, "/left", LeftPageController.PAGE_PATH);

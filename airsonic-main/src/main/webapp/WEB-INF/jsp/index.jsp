@@ -61,23 +61,53 @@
     </style>
 </head>
 
-<body class="bgcolor2" style="height: 100%; margin: 0; overflow-y: hidden">
+<body class="bgcolor2" style="height: 100%; margin: 0; overflow-y: hidden" data-main="<c:out value='${param.main}'/>">
+    <script src="<c:url value='/script/index-page.js'/>?v=1"></script>
+    <script type="text/javascript">
+        function startWebsite(settings) {
+            window.keyboardShortcutsEnabled = settings.keyboardShortcutsEnabled === true;
+            document.querySelector('.left-nav-container').style.display = settings.showSideBar ? '' : 'none';
+            document.querySelector('.right-info-container').style.display = settings.showRight ? '' : 'none';
+
+            var target = resolveIndexMainTarget(document.body.getAttribute('data-main'), "<c:url value='/'/>", window.location.href);
+
+            document.getElementById('upper').src = "<c:url value='/top.view?'/>";
+            document.getElementById('left').src = "<c:url value='/left.view?'/>";
+            document.getElementById('right').src = "<c:url value='/right.view?'/>";
+            document.getElementById('main').src = target;
+        }
+
+        fetch("<c:url value='/rest/indexPageSettings'/>", {credentials: 'same-origin', cache: 'no-store'})
+            .then(function (response) {
+                if (!response.ok || response.redirected) throw new Error('Website settings request failed');
+                return response.json();
+            }).then(function (settings) {
+                if (typeof settings.showSideBar !== 'boolean' || typeof settings.showRight !== 'boolean' ||
+                        typeof settings.keyboardShortcutsEnabled !== 'boolean') {
+                    throw new Error('Invalid website settings response');
+                }
+                startWebsite(settings);
+            }).catch(function (error) {
+                console.error(error);
+                startWebsite({showSideBar: true, showRight: true, keyboardShortcutsEnabled: false});
+            });
+    </script>
     <div class="entire-panel">
-        <iframe id="upper" name="upper" src="top.view?" onload="this.style.height=(this.contentWindow.document.body.clientHeight+15)+'px';" class="bgcolor2 main-navigation"></iframe>
+        <iframe id="upper" name="upper" onload="this.style.height=(this.contentWindow.document.body.clientHeight+15)+'px';" class="bgcolor2 main-navigation"></iframe>
 
         <div class="lower">
-            <div class="bgcolor2 left-nav-container" ${!model.showSideBar ? "style='display: none;'" : ""}>
-                <iframe id="left" name="left" src="left.view?" class="left-navigation"></iframe>
+            <div class="bgcolor2 left-nav-container">
+                <iframe id="left" name="left" class="left-navigation"></iframe>
             </div>
             <div class="non-left-navigation-container">
                 <div class="main-right-container">
-                    <iframe id="main" name="main" src="${empty param.main? 'nowPlaying.view' : param.main}" class="bgcolor1 main-panel" allowfullscreen></iframe>
-                    <div class="bgcolor1 right-info-container" ${!model.showRight ? "style='display: none;'" : ""}>
-                        <iframe id="right" name="right" src="right.view?" class="right-info"></iframe>
+                    <iframe id="main" name="main" class="bgcolor1 main-panel" allowfullscreen></iframe>
+                    <div class="bgcolor1 right-info-container">
+                        <iframe id="right" name="right" class="right-info"></iframe>
                     </div>
                 </div>
                 <div class="bgcolor2 playqueue-container">
-                    <c:import url="/playQueue.view" />
+                    <jsp:include page="playQueue.jsp" />
                 </div>
            </div>
        </div>

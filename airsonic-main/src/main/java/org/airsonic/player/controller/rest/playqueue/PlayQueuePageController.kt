@@ -20,6 +20,18 @@ class PlayQueuePageController(
 ) {
     data class Request(val user: User, val player: org.airsonic.player.domain.Player?)
 
+    /** Settings still consumed by the legacy JSP queue fragment included by the website shell. */
+    fun jspModel(user: User): Map<String, Any> {
+        val userSettings = settings.getUserSettings(user.username)
+        return mapOf(
+            "visibility" to userSettings.playqueueVisibility,
+            "autoHide" to userSettings.autoHidePlayQueue,
+            "initialPaginationSize" to userSettings.paginationSizePlayqueue,
+            "autoBookmark" to userSettings.autoBookmark,
+            "audioBookmarkFrequency" to userSettings.audioBookmarkFrequency,
+        )
+    }
+
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
         with(root) {
             get(SETTINGS_PATH) { respondSettings(call, request(call)) }

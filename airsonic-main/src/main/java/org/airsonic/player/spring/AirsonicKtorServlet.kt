@@ -118,6 +118,7 @@ import org.airsonic.player.controller.rest.nowplaying.NowPlayingPageController
 import org.airsonic.player.controller.rest.nowplaying.RightPageController
 import org.airsonic.player.controller.rest.more.MorePageController
 import org.airsonic.player.controller.rest.indexes.LeftPageController
+import org.airsonic.player.controller.rest.indexes.IndexPageController
 import org.airsonic.player.controller.rest.bookmarks.BookmarksPageController
 import org.airsonic.player.controller.rest.playlists.PlaylistPageController
 import org.airsonic.player.controller.rest.music.MainPageController
@@ -193,6 +194,7 @@ class AirsonicKtorServlet(
     private val nowPlayingController: NowPlayingController,
     private val nowPlayingPageController: NowPlayingPageController,
     private val rightPageController: RightPageController,
+    private val indexPageController: IndexPageController,
     private val morePageController: MorePageController,
     private val leftPageController: LeftPageController,
     private val bookmarksPageController: BookmarksPageController,
@@ -255,6 +257,8 @@ class AirsonicKtorServlet(
             if (nowPlayingPageRequest != null) call.attributes.put(NOW_PLAYING_PAGE_REQUEST_KEY, nowPlayingPageRequest)
             val rightPageRequest = request.getAttribute(RightPageController.REQUEST_ATTRIBUTE) as? RightPageController.Request
             if (rightPageRequest != null) call.attributes.put(RIGHT_PAGE_REQUEST_KEY, rightPageRequest)
+            val indexPageRequest = request.getAttribute(IndexPageController.REQUEST_ATTRIBUTE) as? IndexPageController.Request
+            if (indexPageRequest != null) call.attributes.put(INDEX_PAGE_REQUEST_KEY, indexPageRequest)
             val morePageRequest = request.getAttribute(MorePageController.REQUEST_ATTRIBUTE) as? MorePageController.Request
             if (morePageRequest != null) call.attributes.put(MORE_PAGE_REQUEST_KEY, morePageRequest)
             val leftPageRequest = request.getAttribute(LeftPageController.REQUEST_ATTRIBUTE) as? LeftPageController.Request
@@ -447,6 +451,7 @@ class AirsonicKtorServlet(
             nowPlayingController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             nowPlayingPageController.routes(this) { call -> call.attributes[NOW_PLAYING_PAGE_REQUEST_KEY] }
             rightPageController.routes(this) { call -> call.attributes[RIGHT_PAGE_REQUEST_KEY] }
+            indexPageController.routes(this) { call -> call.attributes[INDEX_PAGE_REQUEST_KEY] }
             morePageController.routes(this) { call -> call.attributes[MORE_PAGE_REQUEST_KEY] }
             leftPageController.routes(this, { call -> call.attributes[LEFT_PAGE_REQUEST_KEY] }, { call -> call.attributes[LEFT_PAGE_SELECTION_KEY] })
             bookmarksPageController.routes(this) { call -> call.attributes[BOOKMARKS_PAGE_REQUEST_KEY] }
@@ -506,6 +511,28 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (path in IndexPageController.PAGE_PATHS) {
+            if (request.method !in setOf("GET", "HEAD")) {
+                response.setHeader("Allow", "GET, HEAD")
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+                return
+            }
+            if (securityService.getCurrentUsername(request) == null) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                return
+            }
+            val user = requireNotNull(securityService.getCurrentUser(request))
+            request.setAttribute("model", playQueuePageController.jspModel(user))
+            response.setHeader("Cache-Control", "no-store")
+            val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
+            request.getRequestDispatcher("/WEB-INF/jsp/index.jsp").forward(request, response)
+            return
+        }
         if (path in RightPageController.PAGE_PATHS) {
             if (request.method !in setOf("GET", "HEAD")) {
                 response.setHeader("Allow", "GET, HEAD")
@@ -1719,6 +1746,9 @@ class AirsonicKtorServlet(
         } else if (path == RightPageController.DATA_PATH) {
             val username = requireNotNull(securityService.getCurrentUsername(request))
             request.setAttribute(RightPageController.REQUEST_ATTRIBUTE, RightPageController.Request(username))
+        } else if (path == IndexPageController.DATA_PATH) {
+            val username = requireNotNull(securityService.getCurrentUsername(request))
+            request.setAttribute(IndexPageController.REQUEST_ATTRIBUTE, IndexPageController.Request(username))
         } else if (path in TagEditController.PATHS) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(TAG_EDIT_REQUEST, TagEditController.Request(
@@ -1817,6 +1847,7 @@ class AirsonicKtorServlet(
         val REST_PARAMETERS_KEY = AttributeKey<Parameters>(REST_PARAMETERS)
         val NOW_PLAYING_PAGE_REQUEST_KEY = AttributeKey<NowPlayingPageController.Request>(NowPlayingPageController.REQUEST_ATTRIBUTE)
         val RIGHT_PAGE_REQUEST_KEY = AttributeKey<RightPageController.Request>(RightPageController.REQUEST_ATTRIBUTE)
+        val INDEX_PAGE_REQUEST_KEY = AttributeKey<IndexPageController.Request>(IndexPageController.REQUEST_ATTRIBUTE)
         val MORE_PAGE_REQUEST_KEY = AttributeKey<MorePageController.Request>(MorePageController.REQUEST_ATTRIBUTE)
         val LEFT_PAGE_REQUEST_KEY = AttributeKey<LeftPageController.Request>(LeftPageController.REQUEST_ATTRIBUTE)
         val LEFT_PAGE_SELECTION_KEY = AttributeKey<LeftPageController.Selection>(LeftPageController.SELECTION_ATTRIBUTE)
