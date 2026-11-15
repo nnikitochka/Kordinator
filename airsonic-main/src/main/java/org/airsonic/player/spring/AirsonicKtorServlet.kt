@@ -246,6 +246,8 @@ class AirsonicKtorServlet(
     private val loginPageController: LoginPageController,
     private val accessDeniedPageController: AccessDeniedPageController,
     private val jaxbWriter: JAXBWriter,
+    private val errorProperties: org.springframework.boot.autoconfigure.web.ErrorProperties,
+    private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
 ) : ServletApplicationEngine() {
     private val proxyRestController = ProxyRestController()
 
@@ -254,6 +256,15 @@ class AirsonicKtorServlet(
         super.init()
         application.intercept(ApplicationCallPipeline.Setup) {
             val request = (call.request as ServletApplicationRequest).servletRequest
+            val requestPath = request.requestURI.removePrefix(request.contextPath)
+            val servletPath = request.servletPath
+            val isStaticRequest = listOf("/script", "/style", "/icons").any { servletPath == it || servletPath.startsWith("$it/") } ||
+                requestPath in setOf("/", "/favicon.ico", "/browserconfig.xml", "/index.html")
+            val isErrorRequest = requestPath == errorProperties.path || servletPath == errorProperties.path ||
+                request.getAttribute(jakarta.servlet.RequestDispatcher.ERROR_STATUS_CODE) != null
+            if (isStaticRequest || isErrorRequest) {
+                call.attributes.put(INFRASTRUCTURE_REQUEST, infrastructureRequestSnapshot(request))
+            }
             val searchRequest = request.getAttribute(SEARCH_REQUEST) as? SearchController.Request
             if (searchRequest != null) {
                 call.attributes.put(SEARCH_REQUEST_KEY, searchRequest)
@@ -407,6 +418,7 @@ class AirsonicKtorServlet(
             if (stream != null) call.attributes.put(STREAM_REQUEST_KEY, stream)
         }
         application.routing {
+            infrastructureRoutes(errorProperties, objectMapper)
             proxyRestController.routes(this)
             for (path in listOf("/settings", "/settings.view")) {
                 get(path) { redirectSettings(call) }
@@ -520,6 +532,18 @@ class AirsonicKtorServlet(
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        val errorDispatch = path == errorProperties.path &&
+            (request.dispatcherType == jakarta.servlet.DispatcherType.ERROR ||
+                request.getAttribute(jakarta.servlet.RequestDispatcher.ERROR_STATUS_CODE) != null)
+        if (errorDispatch && request.isAsyncSupported) {
+            // Ktor's async servlet service returns before Tomcat finishes an ERROR dispatch response.
+            // Force Ktor's built-in blocking service branch for this dispatch only.
+            val synchronousErrorRequest = object : HttpServletRequestWrapper(request) {
+                override fun isAsyncSupported(): Boolean = false
+            }
+            super.service(synchronousErrorRequest, response)
+            return
+        }
         if (path in AccessDeniedPageController.PATHS) {
             if (request.method !in setOf("GET", "HEAD")) {
                 response.setHeader("Allow", "GET, HEAD")

@@ -6,6 +6,7 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jmx.JmxAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.MultipartAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
@@ -18,7 +19,8 @@ import java.lang.reflect.Method;
 
 @SpringBootApplication(exclude = {
     JmxAutoConfiguration.class,
-    MultipartAutoConfiguration.class // TODO: update to use spring boot builtin multipart support
+    MultipartAutoConfiguration.class, // TODO: update to use spring boot builtin multipart support
+    ErrorMvcAutoConfiguration.class
 })
 @EnableTransactionManagement(mode = AdviceMode.ASPECTJ)
 public class Application extends SpringBootServletInitializer implements WebServerFactoryCustomizer<ConfigurableServletWebServerFactory> {

@@ -145,6 +145,12 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class KtorConfiguration {
 
+    @Bean
+    public org.springframework.boot.web.server.ErrorPageRegistrar ktorErrorPageRegistrar(
+            org.springframework.boot.autoconfigure.web.ServerProperties serverProperties) {
+        return factory -> factory.addErrorPages(new org.springframework.boot.web.server.ErrorPage(serverProperties.getError().getPath()));
+    }
+
     // Keep the health contributors independent of Actuator HTTP endpoint exposure.
     @Bean
     public org.springframework.boot.actuate.health.HealthContributorRegistry serverHealthContributors(
@@ -248,7 +254,8 @@ public class KtorConfiguration {
             HlsPlaylistService hlsPlaylistService,
             HlsSegmentService hlsSegmentService,
             MediaStreamService mediaStreamService,
-            UploadFileService uploadFileService
+            UploadFileService uploadFileService,
+            org.springframework.boot.autoconfigure.web.ServerProperties serverProperties
     ) {
         ServletRegistrationBean<ServletApplicationEngine> registration =
                 new ServletRegistrationBean<>(
@@ -329,7 +336,7 @@ public class KtorConfiguration {
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService), new AvatarUploadController(settingsService, jaxbWriter),
                                 new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(mediaStreamService),
                                 new PublicShareController(shareService, mediaFileService, mediaFolderService, jwtSecurityService, metadataParsers, objectMapper), new CaptionsRestController(captionService, mediaFolderService, objectMapper),
-                                new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), new PlayQueuePageController(playerService, settingsService, objectMapper), new LoginPageController(securityService, settingsService), new AccessDeniedPageController(), jaxbWriter),
+                                new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), new PlayQueuePageController(playerService, settingsService, objectMapper), new LoginPageController(securityService, settingsService), new AccessDeniedPageController(), jaxbWriter, serverProperties.getError(), objectMapper),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(SearchPageController.DATA_PATH);
@@ -447,6 +454,8 @@ public class KtorConfiguration {
         registration.addUrlMappings(HlsSegmentRestController.PATHS);
         registration.addUrlMappings(StreamRestController.PATHS);
         registration.addUrlMappings("/stream", "/stream/*", "/ext/stream", "/ext/stream/*");
+        // Explicit mappings keep the migrated browser assets and error dispatch in Ktor.
+        registration.addUrlMappings("/script/*", "/style/*", "/icons/*", "/favicon.ico", "/browserconfig.xml", "/index.html", serverProperties.getError().getPath(), "");
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);

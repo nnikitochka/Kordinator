@@ -49,6 +49,7 @@
 | 14 | `AccessDeniedController.kt` | `/accessDenied` | Страница отказа и нужное журналирование | Выполнен; `5fa7662`, HTTP и role-based 403 проверены |
 | 15 | `NotFoundController.kt` | `/notFound` | Страница отсутствующего ресурса | Выполнен; `d18deda`, HTTP и media-directory контракт проверены |
 | 16 | Инфраструктура MVC | Суффиксы, JSP, статика, ошибки | Финальный аудит после переноса 14 контроллеров в объёме; не отдельный исходный контроллер | Выполнен; 34 HTTP-теста, 29 JS-файлов, PMD прошли; Checkstyle parser требует обновления |
+| 17 | Статика и общие HTTP-ошибки | `/script/*`, `/style/*`, `/icons/*`, корневые файлы, `/error` | Последующий этап удаления потребителей MVC | Выполнен; `Move static resources and HTTP errors to Ktor`, проверки в отчёте |
 
 Для всех существующих адресов отдельно проверить вариант `.view`: сейчас совместимость часто обеспечивает `LegacyViewSuffixHandlerMapping`, поэтому нельзя считать его работу автоматической после удаления MVC.
 
@@ -182,6 +183,16 @@
 - После подтверждения отсутствия потребителей убрать только ненужную MVC-инфраструктуру. Если JSP всё ещё использует Spring locale/theme/views или Boot/статика требуют dispatcher, явно отразить это в итоговом статусе; не объявлять весь Spring удалённым.
 - Прогнать регрессии по входу/навигации, очереди/выбору плеера, streaming/HLS/download, public shares, аватарам/обложкам и Subsonic XML/JSON. Отдельно проверить отсутствие возвращённых STOMP/WebSocket-зависимостей.
 - Итоговый документ должен содержать перечень остаточных зависимостей Spring и следующий объём работ для полного отключения MVC/сервлетного окружения, если они ещё нужны.
+
+### 17. Статика и общие HTTP-ошибки — последующий этап
+
+По поручению владельца после завершения исходного плана: перевести публичные ресурсы webapp на прямые Ktor routes и заменить Boot MVC error rendering. Сохранить GET/HEAD, MIME, байты, Last-Modified/If-Modified-Since, одиночные Range/If-Range, исходные статусы ошибок и HTML/JSON negotiation. Проверить реальные servlet ERROR dispatch, в том числе после POST, контекст `/airsonic`, экранирование HTML и настройки `server.error.*`. Не перехватывать весь `/`, сохранять отдельные контракты Subsonic/media и исключённый `removal`.
+
+Выполнено: удалены явный JSP ViewResolver и больше не используемая `error.jsp`, отключены MVC resource mappings и ErrorMvcAutoConfiguration. Корень контекста обслуживает точный пустой servlet mapping, без перехвата остальных MVC-адресов. Для ERROR/FORWARD с error attributes adapter выбирает штатный blocking Ktor engine, чтобы контейнер не завершал response до записи. Выбор внешней security chain `/ext/**` переведён на explicit Ant matcher полного пути: MVC fallback после отключения ресурсов терял prefix servlet mappings, что выявили signed share/HLS тесты. JWT и роли не менялись.
+
+Проверки: финальный запуск 34/34 HTTP-теста, затем целевой 9/9 после последней правки HEAD+Range; остальные 9 сценариев расширенного прогона прошли ранее (43 разных HTTP-сценария всего). Все 29 JS-файлов и PMD прошли. Checkstyle отключён из-за существующей ошибки parser на PlayQueue.java:430. Подробные классы, покрытия и воспроизведение: [MVC_INFRASTRUCTURE_AUDIT.md](MVC_INFRASTRUCTURE_AUDIT.md). Firefox и отдельный внешний WAR-контейнер не запускались; FORWARD проверен test servlet.
+
+DispatcherServlet, suffix adapter и LoggingExceptionResolver сохраняются для исключённых MVC-потребителей и неизвестных адресов до error dispatch; JSP locale/theme/security/filter инфраструктура остаётся. Весь `removal` не изменялся. Следующая самостоятельная работа — servlet-фильтры/безопасность либо отказ от Spring-тегов в JSP.
 
 ## 5. Тестовая стратегия и критерии завершения
 
