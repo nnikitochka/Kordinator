@@ -17,8 +17,6 @@ import org.fourthline.cling.support.model.container.Container;
 import org.fourthline.cling.support.model.container.MusicAlbum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.util.UriComponentsBuilder;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -135,16 +133,9 @@ public class AlbumUpnpProcessor extends UpnpContentProcessor <Album, MediaFile> 
     }
 
     public URI getAlbumArtURI(int albumId) {
-        return UriComponentsBuilder
-                .fromUriString(getDispatcher().getBaseUrl())
-                .uriComponents(getDispatcher().getJwtSecurityService()
-                        .addJWTToken(
-                                User.USERNAME_ANONYMOUS,
-                                UriComponentsBuilder.fromUriString("ext/coverArt.view")
-                                        .queryParam("id", albumId)
-                                        .queryParam("size", CoverArtScheme.LARGE.getSize()))
-                        .build())
-                .build().encode().toUri();
+        String path = "ext/coverArt.view?id=" + albumId + "&size=" + CoverArtScheme.LARGE.getSize();
+        String signedPath = getDispatcher().getJwtSecurityService().addJWTToken(User.USERNAME_ANONYMOUS, path);
+        return URI.create(getDispatcher().getBaseUrl() + signedPath);
     }
 
     public PersonWithRole[] getAlbumArtists(String artist) {
