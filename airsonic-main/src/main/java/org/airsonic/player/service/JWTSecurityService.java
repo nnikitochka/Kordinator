@@ -73,6 +73,10 @@ public class JWTSecurityService {
         return addJWTToken(user, UriComponentsBuilder.fromUriString(uri)).build().toString();
     }
 
+    public String addJWTToken(String user, String uri, Instant expires) {
+        return addJWTToken(user, UriComponentsBuilder.fromUriString(uri), expires).build().toString();
+    }
+
     public UriComponentsBuilder addJWTToken(String user, UriComponentsBuilder builder) {
         return addJWTToken(user, builder, Collections.emptyMap());
     }

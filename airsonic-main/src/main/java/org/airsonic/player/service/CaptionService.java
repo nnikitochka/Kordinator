@@ -13,7 +13,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -134,15 +133,11 @@ public class CaptionService {
 
     public String getUrl(String basePath, String externalUser, Instant externalExpiration, int mediaId, String captionId) {
         boolean ext = !StringUtils.isBlank(externalUser);
-        UriComponentsBuilder builder = UriComponentsBuilder
-                .fromUriString((ext ? "ext/" : "") + "rest/captions")
-                .queryParam("id", mediaId)
-                .queryParam("captionId", captionId);
-
+        String url = (ext ? "ext/" : "") + "rest/captions?id=" + mediaId + "&captionId=" + captionId;
         if (ext) {
-            builder = jwtSecurityService.addJWTToken(externalUser, builder, externalExpiration);
+            url = jwtSecurityService.addJWTToken(externalUser, url, externalExpiration);
         }
-        return basePath + builder.build().toUriString();
+        return basePath + url;
     }
 
     public InputStream openExternal(Path captionsFile, String format) throws IOException {
