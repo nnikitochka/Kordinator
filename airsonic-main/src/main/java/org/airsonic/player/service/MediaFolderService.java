@@ -9,8 +9,9 @@ import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
+
+import javax.cache.CacheManager;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,13 +32,21 @@ public class MediaFolderService {
 
     private final MusicFolderDao musicFolderDao;
     private final MediaFileDao mediaFileDao;
+    private final CacheManager cacheManager;
 
     private List<MusicFolder> cachedMusicFolders;
     private final ConcurrentMap<String, List<MusicFolder>> cachedMusicFoldersPerUser = new ConcurrentHashMap<>();
 
     public MediaFolderService(MusicFolderDao musicFolderDao, MediaFileDao mediaFileDao) {
+        this(musicFolderDao, mediaFileDao, null);
+    }
+
+    @Autowired
+    public MediaFolderService(MusicFolderDao musicFolderDao, MediaFileDao mediaFileDao,
+                              @Autowired(required = false) CacheManager cacheManager) {
         this.musicFolderDao = musicFolderDao;
         this.mediaFileDao = mediaFileDao;
+        this.cacheManager = cacheManager;
     }
 
     /**
@@ -236,9 +245,17 @@ public class MediaFolderService {
         cachedMusicFoldersPerUser.clear();
     }
 
-    @CacheEvict(cacheNames = { "mediaFilePathCache", "mediaFileIdCache" }, allEntries = true)
     public void clearMediaFileCache() {
-        // TODO: optimize cache eviction
+        if (cacheManager != null) {
+            var pathCache = cacheManager.getCache("mediaFilePathCache");
+            if (pathCache != null) {
+                pathCache.removeAll();
+            }
+            var idCache = cacheManager.getCache("mediaFileIdCache");
+            if (idCache != null) {
+                idCache.removeAll();
+            }
+        }
     }
 
 }

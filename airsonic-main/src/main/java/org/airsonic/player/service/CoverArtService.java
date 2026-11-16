@@ -12,11 +12,12 @@ import org.airsonic.player.service.metadata.JaudiotaggerParser;
 import org.jaudiotagger.tag.images.Artwork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.CacheConfig;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
+import org.airsonic.player.cache.CacheHelper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.cache.Cache;
+import javax.cache.CacheManager;
 import javax.imageio.ImageIO;
 
 import java.awt.image.BufferedImage;
@@ -27,17 +28,24 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-@CacheConfig(cacheNames = "coverArtCache")
 public class CoverArtService {
     private static final Logger LOG = LoggerFactory.getLogger(CoverArtService.class);
     final CoverArtDao coverArtDao;
     final MediaFolderService mediaFolderService;
     final JaudiotaggerParser jaudiotaggerParser;
+    private final Cache<String, CoverArt> coverArtCache;
 
     public CoverArtService(CoverArtDao coverArtDao, MediaFolderService mediaFolderService, JaudiotaggerParser jaudiotaggerParser) {
+        this(coverArtDao, mediaFolderService, jaudiotaggerParser, null);
+    }
+
+    @Autowired
+    public CoverArtService(CoverArtDao coverArtDao, MediaFolderService mediaFolderService, JaudiotaggerParser jaudiotaggerParser,
+                           @Autowired(required = false) CacheManager cacheManager) {
         this.coverArtDao = coverArtDao;
         this.mediaFolderService = mediaFolderService;
         this.jaudiotaggerParser = jaudiotaggerParser;
+        this.coverArtCache = cacheManager != null ? cacheManager.getCache("coverArtCache", String.class, CoverArt.class) : null;
     }
 
     public void upsert(EntityType type, int id, String path, Integer folderId, boolean overridden) {
@@ -45,8 +53,10 @@ public class CoverArtService {
         upsert(art);
     }
 
-    @CacheEvict(key = "#art.entityType.toString().concat('-').concat(#art.entityId)")
     public void upsert(CoverArt art) {
+        if (coverArtCache != null && art != null && art.getEntityType() != null) {
+            coverArtCache.remove(art.getEntityType().toString() + "-" + art.getEntityId());
+        }
         if (art.getAccentColor() == null) {
             CoverArt existing = coverArtDao.get(art.getEntityType(), art.getEntityId());
             if (existing != null && art.getPath().equals(existing.getPath()) && existing.getAccentColor() != null) {
@@ -154,9 +164,9 @@ public class CoverArtService {
         }
     }
 
-    @Cacheable(key = "#type.toString().concat('-').concat(#id)", unless = "#result == null") // 'unless' condition should never happen, because of null-object pattern
     public CoverArt get(EntityType type, int id) {
-        return Optional.ofNullable(coverArtDao.get(type, id)).orElse(CoverArt.NULL_ART);
+        String key = type.toString() + "-" + id;
+        return CacheHelper.getOrCompute(coverArtCache, key, k -> Optional.ofNullable(coverArtDao.get(type, id)).orElse(CoverArt.NULL_ART));
     }
 
     public Path getFullPath(EntityType type, int id) {
@@ -180,13 +190,17 @@ public class CoverArtService {
         return null;
     }
 
-    @CacheEvict(key = "#type.toString().concat('-').concat(#id)")
     public void delete(EntityType type, int id) {
+        if (coverArtCache != null) {
+            coverArtCache.remove(type.toString() + "-" + id);
+        }
         coverArtDao.delete(type, id);
     }
 
-    @CacheEvict(allEntries = true)
     public void expunge() {
+        if (coverArtCache != null) {
+            coverArtCache.removeAll();
+        }
         coverArtDao.expunge();
     }
 }

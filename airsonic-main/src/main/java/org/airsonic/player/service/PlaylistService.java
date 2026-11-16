@@ -12,14 +12,17 @@ import org.airsonic.player.domain.User;
 import org.airsonic.player.service.playlist.PlaylistExportHandler;
 import org.airsonic.player.service.playlist.PlaylistImportHandler;
 import org.airsonic.player.util.StringUtil;
+import org.airsonic.player.cache.CacheHelper;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
+
+import javax.cache.Cache;
+import javax.cache.CacheManager;
 
 import jakarta.annotation.PostConstruct;
 
@@ -50,6 +53,8 @@ public class PlaylistService {
     private final List<PlaylistExportHandler> exportHandlers;
     private final List<PlaylistImportHandler> importHandlers;
     private final PathWatcherService pathWatcherService;
+    private final Cache<Integer, Playlist> playlistCache;
+    private final Cache<Integer, Object> playlistUsersCache;
 
     public PlaylistService(
             MediaFileDao mediaFileDao,
@@ -59,6 +64,20 @@ public class PlaylistService {
             List<PlaylistExportHandler> exportHandlers,
             List<PlaylistImportHandler> importHandlers,
             PathWatcherService pathWatcherService
+    ) {
+        this(mediaFileDao, playlistDao, securityService, settingsService, exportHandlers, importHandlers, pathWatcherService, null);
+    }
+
+    @Autowired
+    public PlaylistService(
+            MediaFileDao mediaFileDao,
+            PlaylistDao playlistDao,
+            SecurityService securityService,
+            SettingsService settingsService,
+            List<PlaylistExportHandler> exportHandlers,
+            List<PlaylistImportHandler> importHandlers,
+            PathWatcherService pathWatcherService,
+            @Autowired(required = false) CacheManager cacheManager
     ) {
         notNull(mediaFileDao, "mediaFileDao must not be null");
         notNull(playlistDao, "playlistDao must not be null");
@@ -77,6 +96,8 @@ public class PlaylistService {
                 .sorted(Comparator.comparingInt(PlaylistImportHandler::getOrder))
                 .toList();
         this.pathWatcherService = pathWatcherService;
+        this.playlistCache = cacheManager != null ? cacheManager.getCache("playlistCache", Integer.class, Playlist.class) : null;
+        this.playlistUsersCache = cacheManager != null ? cacheManager.getCache("playlistUsersCache", Integer.class, Object.class) : null;
     }
 
     public static void notNull(@Nullable Object object, String message) {
@@ -124,14 +145,13 @@ public class PlaylistService {
         return playlistDao.getWritablePlaylistsForUser(username);
     }
 
-    @Cacheable(cacheNames = "playlistCache", unless = "#result == null")
     public Playlist getPlaylist(int id) {
-        return playlistDao.getPlaylist(id);
+        return CacheHelper.getOrCompute(playlistCache, id, playlistDao::getPlaylist);
     }
 
-    @Cacheable(cacheNames = "playlistUsersCache", unless = "#result == null")
+    @SuppressWarnings("unchecked")
     public List<String> getPlaylistUsers(int playlistId) {
-        return playlistDao.getPlaylistUsers(playlistId);
+        return (List<String>) CacheHelper.getOrCompute(playlistUsersCache, playlistId, playlistDao::getPlaylistUsers);
     }
 
     public List<MediaFile> getFilesInPlaylist(int id) {
@@ -163,13 +183,17 @@ public class PlaylistService {
         playlistDao.createPlaylist(playlist);
     }
 
-    @CacheEvict(cacheNames = "playlistUsersCache", key = "#playlist.id")
     public void addPlaylistUser(Playlist playlist, String username) {
+        if (playlistUsersCache != null && playlist != null) {
+            playlistUsersCache.remove(playlist.getId());
+        }
         playlistDao.addPlaylistUser(playlist.getId(), username);
     }
 
-    @CacheEvict(cacheNames = "playlistUsersCache", key = "#playlist.id")
     public void deletePlaylistUser(Playlist playlist, String username) {
+        if (playlistUsersCache != null && playlist != null) {
+            playlistUsersCache.remove(playlist.getId());
+        }
         playlistDao.deletePlaylistUser(playlist.getId(), username);
     }
 
@@ -187,13 +211,17 @@ public class PlaylistService {
         return username != null && username.equals(playlist.getUsername());
     }
 
-    @CacheEvict(cacheNames = "playlistCache")
     public void deletePlaylist(int id) {
+        if (playlistCache != null) {
+            playlistCache.remove(id);
+        }
         playlistDao.deletePlaylist(id);
     }
 
-    @CacheEvict(cacheNames = "playlistCache", key = "#playlist.id")
     public void updatePlaylist(Playlist playlist) {
+        if (playlistCache != null && playlist != null) {
+            playlistCache.remove(playlist.getId());
+        }
         playlistDao.updatePlaylist(playlist);
     }
 

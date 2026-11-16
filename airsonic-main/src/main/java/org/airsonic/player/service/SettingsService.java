@@ -12,16 +12,18 @@ import org.airsonic.player.util.Util;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
+import org.airsonic.player.cache.CacheHelper;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.logging.LogFile;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
+import javax.cache.Cache;
+import javax.cache.CacheManager;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -243,10 +245,19 @@ public class SettingsService {
             "database.usertable.quote", "DatabaseUsertableQuote", "spring.liquibase.parameters.userTableQuote"
             );
 
+    private final Cache<String, UserSettings> userSettingsCache;
+
     public SettingsService(UserDao userDao, AvatarDao avatarDao, Environment env) {
+        this(userDao, avatarDao, env, null);
+    }
+
+    @Autowired
+    public SettingsService(UserDao userDao, AvatarDao avatarDao, Environment env,
+                           @Autowired(required = false) CacheManager cacheManager) {
         this.userDao = userDao;
         this.avatarDao = avatarDao;
         this.env = env;
+        this.userSettingsCache = cacheManager != null ? cacheManager.getCache("userSettingsCache", String.class, UserSettings.class) : null;
     }
 
     public static Map<String, String> getMigratedPropertyKeys() {
@@ -1150,10 +1161,11 @@ public class SettingsService {
      * @param username The username.
      * @return User-specific settings. Never <code>null</code>.
      */
-    @Cacheable(cacheNames = "userSettingsCache")
     public UserSettings getUserSettings(String username) {
-        UserSettings settings = userDao.getUserSettings(username);
-        return settings == null ? createDefaultUserSettings(username) : settings;
+        return CacheHelper.getOrCompute(userSettingsCache, username, u -> {
+            UserSettings settings = userDao.getUserSettings(u);
+            return settings == null ? createDefaultUserSettings(u) : settings;
+        });
     }
 
     private UserSettings createDefaultUserSettings(String username) {
@@ -1197,8 +1209,10 @@ public class SettingsService {
      *
      * @param settings The user-specific settings.
      */
-    @CacheEvict(cacheNames = "userSettingsCache", key = "#settings.username")
     public void updateUserSettings(UserSettings settings) {
+        if (userSettingsCache != null && settings != null && settings.getUsername() != null) {
+            userSettingsCache.remove(settings.getUsername());
+        }
         userDao.updateUserSettings(settings);
     }
 

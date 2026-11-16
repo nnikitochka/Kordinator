@@ -116,10 +116,12 @@
             <artifactId>cache-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.ehcache</groupId>
-            <artifactId>ehcache</artifactId>
-            <!-- jakarta classifier variant for EE10 (Tomcat 10.1); JCache API stays javax.cache -->
-            <classifier>jakarta</classifier>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>jcache</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>

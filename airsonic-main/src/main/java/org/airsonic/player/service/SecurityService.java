@@ -8,14 +8,13 @@ import org.airsonic.player.domain.UserCredential;
 import org.airsonic.player.domain.UserCredential.App;
 import org.airsonic.player.security.GlobalSecurityConfig;
 import org.airsonic.player.security.PasswordDecoder;
+import org.airsonic.player.cache.CacheHelper;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.CacheConfig;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -26,6 +25,8 @@ import org.springframework.security.web.servletapi.SecurityContextHolderAwareReq
 import org.springframework.stereotype.Service;
 
 import jakarta.servlet.http.HttpServletRequest;
+import javax.cache.Cache;
+import javax.cache.CacheManager;
 
 import java.io.IOException;
 import java.nio.file.AccessDeniedException;
@@ -49,18 +50,25 @@ import java.util.stream.Stream;
  * @author Sindre Mehus
  */
 @Service
-@CacheConfig(cacheNames = "userCache")
 public class SecurityService implements UserDetailsService {
     private static final Logger LOG = LoggerFactory.getLogger(SecurityService.class);
 
     private UserDao userDao;
     private SettingsService settingsService;
     private final MediaFolderService mediaFolderService;
+    private final Cache<String, User> userCache;
 
     public SecurityService(UserDao userDao, SettingsService settingsService, MediaFolderService mediaFolderService) {
+        this(userDao, settingsService, mediaFolderService, null);
+    }
+
+    @Autowired
+    public SecurityService(UserDao userDao, SettingsService settingsService, MediaFolderService mediaFolderService,
+                           @Autowired(required = false) CacheManager cacheManager) {
         this.userDao = userDao;
         this.settingsService = settingsService;
         this.mediaFolderService = mediaFolderService;
+        this.userCache = cacheManager != null ? cacheManager.getCache("userCache", String.class, User.class) : null;
     }
 
     /**
@@ -262,9 +270,11 @@ public class SecurityService implements UserDetailsService {
      * @param caseSensitive If false, will do a case insensitive search
      * @return The corresponding User
      */
-    @Cacheable(key = "#username", condition = "#caseSensitive", unless = "#result == null")
     public User getUserByName(String username, boolean caseSensitive) {
-        return userDao.getUserByName(username, caseSensitive);
+        if (!caseSensitive) {
+            return userDao.getUserByName(username, false);
+        }
+        return CacheHelper.getOrCompute(userCache, username, u -> userDao.getUserByName(u, true));
     }
 
     /**
@@ -326,8 +336,10 @@ public class SecurityService implements UserDetailsService {
      *
      * @param username The username.
      */
-    @CacheEvict
     public void deleteUser(String username) {
+        if (userCache != null && username != null) {
+            userCache.remove(username);
+        }
         userDao.deleteUser(username);
         LOG.info("Deleted user {}", username);
     }
@@ -337,8 +349,10 @@ public class SecurityService implements UserDetailsService {
      *
      * @param user The user to update.
      */
-    @CacheEvict(key = "#user.username")
     public void updateUser(User user) {
+        if (userCache != null && user != null && user.getUsername() != null) {
+            userCache.remove(user.getUsername());
+        }
         userDao.updateUser(user);
     }
 
@@ -350,10 +364,12 @@ public class SecurityService implements UserDetailsService {
      * @param bytesDownloadedDelta Increment bytes downloaded count with this value.
      * @param bytesUploadedDelta   Increment bytes uploaded count with this value.
      */
-    @CacheEvict(key = "#user.username", condition = "#user != null")
     public void updateUserByteCounts(User user, long bytesStreamedDelta, long bytesDownloadedDelta, long bytesUploadedDelta) {
         if (user == null) {
             return;
+        }
+        if (userCache != null && user.getUsername() != null) {
+            userCache.remove(user.getUsername());
         }
 
         userDao.updateUserByteCounts(user.getUsername(), bytesStreamedDelta, bytesDownloadedDelta, bytesUploadedDelta);

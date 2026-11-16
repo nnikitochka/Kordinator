@@ -17,10 +17,11 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import javax.cache.Cache;
+import javax.cache.CacheManager;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -50,9 +51,17 @@ public class MediaFileService {
     private MetaDataParserFactory metaDataParserFactory;
     private final CoverArtService coverArtService;
     private final LocaleResolver localeResolver;
+    private final Cache<String, MediaFile> mediaFilePathCache;
+    private final Cache<Integer, MediaFile> mediaFileIdCache;
     private boolean memoryCacheEnabled = true;
 
     public MediaFileService(SecurityService securityService, SettingsService settingsService, MediaFileDao mediaFileDao, MediaFolderService mediaFolderService, AlbumDao albumDao, JaudiotaggerParser parser, MetaDataParserFactory metaDataParserFactory, CoverArtService coverArtService, LocaleResolver localeResolver) {
+        this(securityService, settingsService, mediaFileDao, mediaFolderService, albumDao, parser, metaDataParserFactory, coverArtService, localeResolver, null);
+    }
+
+    @Autowired
+    public MediaFileService(SecurityService securityService, SettingsService settingsService, MediaFileDao mediaFileDao, MediaFolderService mediaFolderService, AlbumDao albumDao, JaudiotaggerParser parser, MetaDataParserFactory metaDataParserFactory, CoverArtService coverArtService, LocaleResolver localeResolver,
+                            @Autowired(required = false) CacheManager cacheManager) {
         this.securityService = securityService;
         this.settingsService = settingsService;
         this.mediaFileDao = mediaFileDao;
@@ -62,6 +71,8 @@ public class MediaFileService {
         this.metaDataParserFactory = metaDataParserFactory;
         this.coverArtService = coverArtService;
         this.localeResolver = localeResolver;
+        this.mediaFilePathCache = cacheManager != null ? cacheManager.getCache("mediaFilePathCache", String.class, MediaFile.class) : null;
+        this.mediaFileIdCache = cacheManager != null ? cacheManager.getCache("mediaFileIdCache", Integer.class, MediaFile.class) : null;
     }
 
     public MediaFile getMediaFile(String pathName) {
@@ -104,12 +115,22 @@ public class MediaFileService {
         return getMediaFile(Paths.get(relativePath), mediaFolderService.getMusicFolderById(folderId), minimizeDiskAccess);
     }
 
-    @Cacheable(cacheNames = "mediaFilePathCache", key = "#relativePath.toString().concat('-').concat(#folder.id)", condition = "#root.target.memoryCacheEnabled", unless = "#result == null")
     public MediaFile getMediaFile(Path relativePath, MusicFolder folder, boolean minimizeDiskAccess) {
+        String key = relativePath.toString() + "-" + folder.getId();
+        if (memoryCacheEnabled && mediaFilePathCache != null) {
+            MediaFile cached = mediaFilePathCache.get(key);
+            if (cached != null) {
+                return cached;
+            }
+        }
+
         // Look in database.
         MediaFile result = mediaFileDao.getMediaFile(relativePath.toString(), folder.getId());
         if (result != null) {
             result = checkLastModified(result, folder, minimizeDiskAccess);
+            if (result != null && memoryCacheEnabled && mediaFilePathCache != null) {
+                mediaFilePathCache.put(key, result);
+            }
             return result;
         }
 
@@ -123,17 +144,30 @@ public class MediaFileService {
         // Put in database.
         updateMediaFile(result);
 
+        if (result != null && memoryCacheEnabled && mediaFilePathCache != null) {
+            mediaFilePathCache.put(key, result);
+        }
+
         return result;
     }
 
-    @Cacheable(cacheNames = "mediaFileIdCache", condition = "#root.target.memoryCacheEnabled", unless = "#result == null")
     public MediaFile getMediaFile(int id) {
+        if (memoryCacheEnabled && mediaFileIdCache != null) {
+            MediaFile cached = mediaFileIdCache.get(id);
+            if (cached != null) {
+                return cached;
+            }
+        }
         MediaFile mediaFile = mediaFileDao.getMediaFile(id);
         if (mediaFile == null) {
             return null;
         }
 
-        return checkLastModified(mediaFile, mediaFolderService.getMusicFolderById(mediaFile.getFolderId()), settingsService.isFastCacheEnabled());
+        MediaFile result = checkLastModified(mediaFile, mediaFolderService.getMusicFolderById(mediaFile.getFolderId()), settingsService.isFastCacheEnabled());
+        if (result != null && memoryCacheEnabled && mediaFileIdCache != null) {
+            mediaFileIdCache.put(id, result);
+        }
+        return result;
     }
 
     public List<MediaFile> getMediaFilesByRelativePath(Path relativePath) {
@@ -595,9 +629,18 @@ public class MediaFileService {
         updateMediaFile(mediaFile);
     }
 
-    @CacheEvict(cacheNames = { "mediaFilePathCache", "mediaFileIdCache" }, allEntries = true)
     public void setMemoryCacheEnabled(boolean memoryCacheEnabled) {
         this.memoryCacheEnabled = memoryCacheEnabled;
+        clearMemoryCache();
+    }
+
+    public void clearMemoryCache() {
+        if (mediaFilePathCache != null) {
+            mediaFilePathCache.removeAll();
+        }
+        if (mediaFileIdCache != null) {
+            mediaFileIdCache.removeAll();
+        }
     }
 
     public boolean getMemoryCacheEnabled() {
@@ -697,10 +740,15 @@ public class MediaFileService {
         this.metaDataParserFactory = metaDataParserFactory;
     }
 
-    @Caching(evict = {
-        @CacheEvict(cacheNames = "mediaFilePathCache", key = "#mediaFile.path.concat('-').concat(#mediaFile.folderId)"),
-        @CacheEvict(cacheNames = "mediaFileIdCache", key = "#mediaFile.id", condition = "#mediaFile.id != null") })
     public void updateMediaFile(MediaFile mediaFile) {
+        if (mediaFile != null) {
+            if (mediaFilePathCache != null && mediaFile.getPath() != null) {
+                mediaFilePathCache.remove(mediaFile.getPath() + "-" + mediaFile.getFolderId());
+            }
+            if (mediaFileIdCache != null && mediaFile.getId() != null) {
+                mediaFileIdCache.remove(mediaFile.getId());
+            }
+        }
         mediaFileDao.createOrUpdateMediaFile(mediaFile, file -> {
             // Copy values from obsolete table music_file_info if inserting for first time
             MusicFolder folder = mediaFolderService.getMusicFolderById(mediaFile.getFolderId());
