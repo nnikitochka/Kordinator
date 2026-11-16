@@ -12,7 +12,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.awt.Dimension;
 import java.io.PrintWriter;
@@ -51,14 +50,13 @@ public class HlsPlaylistService {
             bitRates = Collections.singletonList(
                     Pair.of(VideoPlaybackService.DEFAULT_BIT_RATE, TranscodingService.getSuitableVideoSize(
                             mediaFile.getWidth(), mediaFile.getHeight(), VideoPlaybackService.DEFAULT_BIT_RATE)));
-        UriComponentsBuilder prefix = UriComponentsBuilder.fromUriString(prefixPath);
         Instant linkExpiration = expiration(authentication, signedRestUrls, mediaFile.getDuration());
         StringWriter body = new StringWriter();
         PrintWriter writer = new PrintWriter(body);
         if (bitRates.size() > 1) {
-            generateVariantPlaylist(authentication, basePath, prefix, mediaFile.getId(), player, bitRates, writer, signedRestUrls, linkExpiration);
+            generateVariantPlaylist(authentication, basePath, prefixPath, mediaFile.getId(), player, bitRates, writer, signedRestUrls, linkExpiration);
         } else {
-            generateNormalPlaylist(authentication, basePath, prefix, mediaFile.getId(), player, bitRates.getFirst(),
+            generateNormalPlaylist(authentication, basePath, prefixPath, mediaFile.getId(), player, bitRates.getFirst(),
                     Math.round(mediaFile.getDuration()), writer, signedRestUrls, linkExpiration);
         }
         writer.flush();
@@ -100,7 +98,7 @@ public class HlsPlaylistService {
         }
     }
 
-    private void generateVariantPlaylist(Authentication authentication, String basePath, UriComponentsBuilder prefix,
+    private void generateVariantPlaylist(Authentication authentication, String basePath, String prefix,
             int id, Player player, List<Pair<Integer, Dimension>> bitRates, PrintWriter writer, boolean signedRestUrls, Instant linkExpiration) {
         writer.println("#EXTM3U");
         writer.println("#EXT-X-VERSION:1");
@@ -110,22 +108,17 @@ public class HlsPlaylistService {
             Integer kbps = bitRate.getLeft();
             int averageVideoBitRate = TranscodingService.getAverageVideoBitRate(kbps);
             writer.println("#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=" + (kbps * 1000L) + ",AVERAGE-BANDWIDTH=" + (averageVideoBitRate * 1000L));
-            UriComponentsBuilder url = prefix.cloneBuilder()
-                    .pathSegment("hls.m3u8")
-                    .queryParam("id", id)
-                    .queryParam("player", player.getId())
-                    .queryParam("maxBitRate", kbps + Optional.ofNullable(bitRate.getRight()).map(d -> "@" + d.width + "x" + d.height).orElse(""));
-            if (signedRestUrls || authentication instanceof JWTAuthenticationToken) {
-                url = jwtSecurityService.addJWTToken(authentication.getName(), url, linkExpiration);
-            }
-
-            writer.print(basePath + url.toUriString());
+            String url = appendPath(prefix, "hls.m3u8") + "?id=" + id
+                    + "&player=" + player.getId()
+                    + "&maxBitRate=" + kbps + Optional.ofNullable(bitRate.getRight())
+                            .map(d -> "@" + d.width + "x" + d.height).orElse("");
+            writer.print(basePath + signIfNeeded(authentication, url, signedRestUrls, linkExpiration));
             writer.println();
         }
 //        writer.println("#EXT-X-ENDLIST");
     }
 
-    private void generateNormalPlaylist(Authentication authentication, String basePath, UriComponentsBuilder prefix,
+    private void generateNormalPlaylist(Authentication authentication, String basePath, String prefix,
             int id, Player player, Pair<Integer, Dimension> bitRate, long totalDuration, PrintWriter writer, boolean signedRestUrls, Instant linkExpiration) {
         writer.println("#EXTM3U");
         writer.println("#EXT-X-VERSION:1");
@@ -156,26 +149,38 @@ public class HlsPlaylistService {
     }
 
     private String createStreamUrl(Authentication authentication,
-            String basePath, UriComponentsBuilder prefix,
+            String basePath, String prefix,
             Player player,
             int id,
             int segmentIndex,
             long duration,
             Pair<Integer, Dimension> bitRate, boolean signedRestUrls, Instant linkExpiration) {
-        UriComponentsBuilder builder = prefix.cloneBuilder()
-                .pathSegment("segment", "segment.ts")
-                .queryParam("id", id)
-                .queryParam("hls", "true")
-                .queryParam("segmentIndex", segmentIndex)
-                .queryParam("player", player.getId())
-                .queryParam("duration", duration)
-                .queryParam("maxBitRate", bitRate.getLeft())
-                .queryParam("size", bitRate.getRight().width + "x" + bitRate.getRight().height);
+        String url = appendPath(prefix, "segment", "segment.ts")
+                + "?id=" + id
+                + "&hls=true"
+                + "&segmentIndex=" + segmentIndex
+                + "&player=" + player.getId()
+                + "&duration=" + duration
+                + "&maxBitRate=" + bitRate.getLeft()
+                + "&size=" + bitRate.getRight().width + "x" + bitRate.getRight().height;
+        return basePath + signIfNeeded(authentication, url, signedRestUrls, linkExpiration);
+    }
 
+    private String signIfNeeded(Authentication authentication, String url, boolean signedRestUrls, Instant linkExpiration) {
         if (signedRestUrls || authentication instanceof JWTAuthenticationToken) {
-            builder = jwtSecurityService.addJWTToken(authentication.getName(), builder, linkExpiration);
+            return jwtSecurityService.addJWTToken(authentication.getName(), url, linkExpiration);
         }
-        return basePath + builder.toUriString();
+        return url;
+    }
+
+    private String appendPath(String prefix, String... segments) {
+        StringBuilder path = new StringBuilder(prefix);
+        if (!prefix.isEmpty() && !prefix.endsWith("/")) path.append('/');
+        for (int i = 0; i < segments.length; i++) {
+            if (i > 0) path.append('/');
+            path.append(segments[i]);
+        }
+        return path.toString();
     }
 
 }
