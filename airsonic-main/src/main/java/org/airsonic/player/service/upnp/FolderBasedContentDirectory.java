@@ -18,8 +18,6 @@ import org.fourthline.cling.support.model.item.MusicTrack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.util.UriComponentsBuilder;
-
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
@@ -251,16 +249,9 @@ public class FolderBasedContentDirectory extends CustomContentDirectory {
     }
 
     private URI getAlbumArtUrl(MediaFile album) {
-        return UriComponentsBuilder
-                .fromUriString(getBaseUrl())
-                .uriComponents(jwtSecurityService
-                        .addJWTToken(
-                                User.USERNAME_ANONYMOUS,
-                                UriComponentsBuilder.fromUriString("ext/coverArt.view")
-                                        .queryParam("id", album.getId())
-                                        .queryParam("size", CoverArtScheme.LARGE.getSize()))
-                        .build())
-                .build().encode().toUri();
+        String path = "ext/coverArt.view?id=" + album.getId() + "&size=" + CoverArtScheme.LARGE.getSize();
+        String signedPath = jwtSecurityService.addJWTToken(User.USERNAME_ANONYMOUS, path);
+        return URI.create(getBaseUrl() + signedPath);
     }
 
     public void setMediaFileService(MediaFileService mediaFileService) {
