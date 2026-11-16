@@ -127,15 +127,28 @@ public class LiveQueueExportIntegrationTest {
         assertTrue(response.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
     }
     private void assertUrl(String value, String username, int playerId, Integer fileId, String suffix) {
-        var uri = org.springframework.web.util.UriComponentsBuilder.fromUriString(value).build();
+        URI uri = URI.create(value);
         assertEquals("/airsonic/ext/stream", uri.getPath());
-        assertEquals(String.valueOf(playerId), uri.getQueryParams().getFirst("player"));
-        assertEquals(fileId == null ? null : fileId.toString(), uri.getQueryParams().getFirst("id"));
-        assertEquals(suffix == null ? null : "." + suffix, uri.getQueryParams().getFirst("suffix"));
-        var token = jwt.verify(uri.getQueryParams().getFirst("jwt"));
+        var params = queryParams(uri.getRawQuery());
+        assertEquals(String.valueOf(playerId), params.get("player"));
+        assertEquals(fileId == null ? null : fileId.toString(), params.get("id"));
+        assertEquals(suffix == null ? null : "." + suffix, params.get("suffix"));
+        var token = jwt.verify(params.get("jwt"));
         assertEquals(username, token.getSubject());
         assertEquals("ext/stream?player=" + playerId + (fileId == null ? "" : "&id=" + fileId) + (suffix == null ? "" : "&suffix=." + suffix), token.getClaim("path").asString());
         assertTrue(token.getExpiresAt().toInstant().isAfter(java.time.Instant.now()));
+    }
+
+    private static java.util.Map<String, String> queryParams(String query) {
+        if (query == null) return java.util.Collections.emptyMap();
+        java.util.Map<String, String> map = new java.util.LinkedHashMap<>();
+        for (String pair : query.split("&")) {
+            int eq = pair.indexOf('=');
+            if (eq > 0) {
+                map.put(pair.substring(0, eq), pair.substring(eq + 1));
+            }
+        }
+        return map;
     }
     private void assertError(HttpResponse<String> response, int code) throws Exception {
         assertEquals(response.body(), 200, response.statusCode());

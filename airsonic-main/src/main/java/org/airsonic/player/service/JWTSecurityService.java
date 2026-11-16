@@ -11,10 +11,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.util.UriComponents;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigInteger;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -52,9 +52,7 @@ public class JWTSecurityService {
     }
 
     private static String createToken(String jwtKey, String user, String path, Instant expireDate, Map<String, String> additionalClaims) {
-        UriComponents components = UriComponentsBuilder.fromUriString(path).build();
-        String query = components.getQuery();
-        String pathClaim = components.getPath() + (!StringUtils.isBlank(query) ? "?" + components.getQuery() : "");
+        String pathClaim = createPathClaim(path);
         Builder builder = JWT
                 .create()
                 .withIssuer("airsonic")
@@ -70,36 +68,98 @@ public class JWTSecurityService {
     }
 
     public String addJWTToken(String user, String uri) {
-        return addJWTToken(user, UriComponentsBuilder.fromUriString(uri)).build().toString();
+        return addJWTToken(user, uri, null, Collections.emptyMap());
     }
 
     public String addJWTToken(String user, String uri, Instant expires) {
-        return addJWTToken(user, UriComponentsBuilder.fromUriString(uri), expires).build().toString();
+        return addJWTToken(user, uri, expires, Collections.emptyMap());
     }
 
-    public UriComponentsBuilder addJWTToken(String user, UriComponentsBuilder builder) {
-        return addJWTToken(user, builder, Collections.emptyMap());
+    public String addJWTToken(String user, String uri, Map<String, String> additionalClaims) {
+        return addJWTToken(user, uri, null, additionalClaims);
     }
 
-    public UriComponentsBuilder addJWTToken(String user, UriComponentsBuilder builder, Map<String, String> additionalClaims) {
-        return addJWTToken(user, builder, null, additionalClaims);
-    }
-
-    public UriComponentsBuilder addJWTToken(String user, UriComponentsBuilder builder, Instant expires) {
-        return addJWTToken(user, builder, expires, Collections.emptyMap());
-    }
-
-    public UriComponentsBuilder addJWTToken(String user, UriComponentsBuilder builder, Instant expires, Map<String, String> additionalClaims) {
+    public String addJWTToken(String user, String uri, Instant expires, Map<String, String> additionalClaims) {
         if (expires == null) {
             expires = Instant.now().plus(DEFAULT_DAYS_VALID_FOR, ChronoUnit.DAYS);
         }
         String token = JWTSecurityService.createToken(
                 settingsService.getJWTKey(),
                 user,
-                builder.toUriString(),
+                uri,
                 expires,
                 additionalClaims);
-        return builder.queryParam(JWTSecurityService.JWT_PARAM_NAME, token);
+        return appendQueryParameter(uri, JWT_PARAM_NAME, token);
+    }
+
+    private static String createPathClaim(String rawUri) {
+        RawUri uri = parseUri(rawUri);
+        try {
+            // Reconstructing from raw URI components encodes percent signs in values that were
+            // already escaped, preserving URL-encoding compatibility.
+            URI encoded = new URI(uri.scheme, uri.authority, uri.path, uri.query, null);
+            String path = encoded.getRawPath();
+            if (path == null) path = "";
+            String query = encoded.getRawQuery();
+            return path + (!StringUtils.isBlank(query) ? "?" + query : "");
+        } catch (URISyntaxException ex) {
+            throw new IllegalArgumentException("Invalid URI: " + rawUri, ex);
+        }
+    }
+
+    private static RawUri parseUri(String rawUri) {
+        if (rawUri == null) {
+            throw new IllegalArgumentException("URI must not be null");
+        }
+        try {
+            URI uri = new URI(rawUri);
+            String path = uri.isOpaque() ? uri.getRawSchemeSpecificPart() : uri.getRawPath();
+            return new RawUri(uri.getScheme(), uri.getRawAuthority(), path, uri.getRawQuery());
+        } catch (URISyntaxException ex) {
+            // Preserve raw pieces here; createPathClaim performs the one encoding pass that
+            // Spring's toUriString() performs, including for malformed percent escapes.
+            String withoutFragment = rawUri;
+            int fragmentIndex = withoutFragment.indexOf('#');
+            if (fragmentIndex >= 0) withoutFragment = withoutFragment.substring(0, fragmentIndex);
+            int queryIndex = withoutFragment.indexOf('?');
+            String rawQuery = queryIndex < 0 ? null : withoutFragment.substring(queryIndex + 1);
+            String rawPath = queryIndex < 0 ? withoutFragment : withoutFragment.substring(0, queryIndex);
+            String scheme = null;
+            int colonIndex = rawPath.indexOf(':');
+            if (colonIndex > 0) {
+                scheme = rawPath.substring(0, colonIndex);
+                rawPath = rawPath.substring(colonIndex + 1);
+            }
+            String authority = null;
+            if (rawPath.startsWith("//")) {
+                int authorityEnd = rawPath.indexOf('/', 2);
+                authority = authorityEnd < 0 ? rawPath.substring(2) : rawPath.substring(2, authorityEnd);
+                rawPath = authorityEnd < 0 ? "" : rawPath.substring(authorityEnd);
+            }
+            return new RawUri(scheme, authority, rawPath, rawQuery);
+        }
+    }
+
+    private static final class RawUri {
+        private final String scheme;
+        private final String authority;
+        private final String path;
+        private final String query;
+        private RawUri(String scheme, String authority, String path, String query) {
+            this.scheme = scheme;
+            this.authority = authority;
+            this.path = path;
+            this.query = query;
+        }
+    }
+
+    private static String appendQueryParameter(String rawUri, String name, String value) {
+        int fragmentIndex = rawUri.indexOf('#');
+        String beforeFragment = fragmentIndex < 0 ? rawUri : rawUri.substring(0, fragmentIndex);
+        String fragment = fragmentIndex < 0 ? "" : rawUri.substring(fragmentIndex);
+        int queryIndex = beforeFragment.indexOf('?');
+        String separator = queryIndex < 0 ? "?" : queryIndex == beforeFragment.length() - 1 ? "" : "&";
+        return beforeFragment + separator + name + "=" + value + fragment;
     }
 
     public static DecodedJWT verify(String jwtKey, String token) {

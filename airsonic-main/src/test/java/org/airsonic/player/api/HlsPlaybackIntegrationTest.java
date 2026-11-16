@@ -100,8 +100,7 @@ public class HlsPlaybackIntegrationTest {
                 assertEquals(websiteSegment.body().length, Long.parseLong(headSegment.headers().firstValue("Content-Length").orElseThrow()));
                 if (prefix.startsWith("ext/")) {
                     assertTrue(getText(websiteSegmentUrl.replaceFirst("&jwt=.*", "")).statusCode() >= 300);
-                    String expired = jwt.addJWTToken(restricted.getUsername(),
-                            org.springframework.web.util.UriComponentsBuilder.fromUriString(relative), Instant.now().minusSeconds(60)).toUriString();
+                    String expired = jwt.addJWTToken(restricted.getUsername(), relative, Instant.now().minusSeconds(60));
                     assertTrue(getText("http://localhost:" + port + "/airsonic/" + expired).statusCode() >= 300);
                 }
             }

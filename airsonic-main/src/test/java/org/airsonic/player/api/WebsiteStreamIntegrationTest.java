@@ -108,7 +108,7 @@ public class WebsiteStreamIntegrationTest {
             assertArrayEquals(expected, audio(client, publicUrl, "GET", null, null).body());
             String signed = "/" + jwt.addJWTToken("admin", "ext/stream?" + query);
             assertArrayEquals(expected, audio(client, signed, "GET", null, null).body());
-            String expired = "/" + jwt.addJWTToken("admin", org.springframework.web.util.UriComponentsBuilder.fromUriString("ext/stream?" + query), java.time.Instant.now().minusSeconds(60)).build().toUriString();
+            String expired = "/" + jwt.addJWTToken("admin", "ext/stream?" + query, java.time.Instant.now().minusSeconds(60));
             for (String bad : List.of("/ext/stream?" + query, "/ext/stream?" + query + "&jwt=invalid", expired, signed.replace("/ext/stream?", "/ext/stream/other?"))) {
                 var rejected = audio(client, bad, "GET", null, null); assertTrue(bad, rejected.statusCode() >= 300);
             }

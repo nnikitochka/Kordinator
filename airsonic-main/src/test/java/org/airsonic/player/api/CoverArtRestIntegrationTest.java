@@ -25,7 +25,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.imageio.ImageIO;
 import java.io.ByteArrayInputStream;
@@ -135,8 +134,7 @@ public class CoverArtRestIntegrationTest {
                 assertArrayEquals(restScaled.body(), external.body());
                 assertEquals(200, request(signed, "HEAD", null, false).statusCode());
                 String signedPath = path.substring(1) + "?id=" + dir.getId() + "&size=48";
-                String expired = "/" + jwt.addJWTToken("admin", UriComponentsBuilder.fromUriString(signedPath),
-                        Instant.now().minusSeconds(60)).build().toUriString();
+                String expired = "/" + jwt.addJWTToken("admin", signedPath, Instant.now().minusSeconds(60));
                 assertTrue(request(expired, "GET", null, false).statusCode() >= 300);
                 int tokenStart = signed.indexOf("jwt=") + "jwt=".length();
                 char firstTokenChar = signed.charAt(tokenStart);

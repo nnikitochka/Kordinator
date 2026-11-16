@@ -20,7 +20,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -103,7 +102,7 @@ public class PublicShareIntegrationTest {
             assertEquals(206, bytes.statusCode());
             assertArrayEquals(java.util.Arrays.copyOf(Files.readAllBytes(original), 10), bytes.body());
             for (String field : List.of("streamUrl", "captionsUrl", "coverArtUrl")) {
-                String token = UriComponentsBuilder.fromUriString(media.path(field).asText()).build().getQueryParams().getFirst("jwt");
+                String token = queryParam(media.path(field).asText(), "jwt");
                 var decoded = jwt.verify(token);
                 assertEquals(User.USERNAME_GUEST, decoded.getSubject());
                 assertTrue(decoded.getExpiresAt().toInstant().isBefore(Instant.now().plusSeconds(601)));
@@ -123,7 +122,7 @@ public class PublicShareIntegrationTest {
             assertEquals(1, shares.getShareById(share.getId()).getVisitCount());
             share.setExpires(Instant.now().plusSeconds(60)); shares.updateShare(share);
             JsonNode renewed = json.readTree(get(dataUrl).body());
-            String freshToken = UriComponentsBuilder.fromUriString(renewed.path("media").get(0).path("streamUrl").asText()).build().getQueryParams().getFirst("jwt");
+            String freshToken = queryParam(renewed.path("media").get(0).path("streamUrl").asText(), "jwt");
             assertTrue(jwt.verify(freshToken).getExpiresAt().toInstant().isBefore(Instant.now().plusSeconds(61)));
             Files.delete(albumDir.resolve("Two.mp3"));
             assertEquals(1, json.readTree(get(dataUrl).body()).path("media").size());
@@ -199,11 +198,22 @@ public class PublicShareIntegrationTest {
     }
 
     private String signed(String path, Instant expiration) {
-        return "http://localhost:" + port + "/airsonic/" + jwt.addJWTToken(User.USERNAME_ANONYMOUS,
-                UriComponentsBuilder.fromPath(path), expiration).toUriString();
+        return "http://localhost:" + port + "/airsonic/" + jwt.addJWTToken(User.USERNAME_ANONYMOUS, path, expiration);
     }
 
     private HttpResponse<String> get(String url) throws Exception {
         return client.send(HttpRequest.newBuilder(URI.create(url)).GET().build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static String queryParam(String url, String name) {
+        int queryStart = url.indexOf('?');
+        if (queryStart < 0) return null;
+        for (String pair : url.substring(queryStart + 1).split("&")) {
+            int eq = pair.indexOf('=');
+            if (eq > 0 && pair.substring(0, eq).equals(name)) {
+                return pair.substring(eq + 1);
+            }
+        }
+        return null;
     }
 }

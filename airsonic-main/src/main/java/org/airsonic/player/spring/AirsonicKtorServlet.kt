@@ -30,7 +30,6 @@ import org.airsonic.player.controller.rest.hls.HlsRestController
 import org.airsonic.player.controller.rest.hls.HlsSegmentRestController
 import org.airsonic.player.service.JWTSecurityService
 import com.auth0.jwt.interfaces.DecodedJWT
-import org.springframework.web.util.UriComponentsBuilder
 import org.springframework.security.core.Authentication
 import org.airsonic.player.controller.rest.starred.StarredController
 import org.airsonic.player.controller.rest.starred.StarredPageController
@@ -1032,9 +1031,9 @@ class AirsonicKtorServlet(
             if (auth is JWTAuthenticationToken) {
                 val expected = (auth.details as? DecodedJWT)?.getClaim(JWTSecurityService.CLAIM_PATH)?.asString()
                 val valid = try {
-                    val params = UriComponentsBuilder.fromUriString(expected ?: "").build().queryParams
+                    val params = parseQueryParams(expected)
                     // A public link grants access to this video's subtitles only.
-                    params.getFirst("id") == request.getParameter("id")
+                    params["id"]?.firstOrNull() == request.getParameter("id")
                 } catch (_: IllegalArgumentException) { false }
                 if (!valid) {
                     response.sendError(HttpServletResponse.SC_FORBIDDEN)
@@ -1119,8 +1118,8 @@ class AirsonicKtorServlet(
             val expected = token?.getClaim(JWTSecurityService.CLAIM_PATH)?.asString()
             val actual = request.requestURI.substring(request.contextPath.length + 1) + "?" + request.queryString
             val valid = try {
-                val signed = UriComponentsBuilder.fromUriString(expected ?: "").build()
-                val received = UriComponentsBuilder.fromUriString(actual).replaceQueryParam("jwt").build()
+                val signed = parseUriComponents(expected)
+                val received = parseUriComponents(actual).withoutQueryParam("jwt")
                 signed.path == received.path && signed.queryParams == received.queryParams
             } catch (_: IllegalArgumentException) { false }
             if (auth == null || !valid) {
@@ -1864,7 +1863,7 @@ class AirsonicKtorServlet(
                 val auth = request.userPrincipal as JWTAuthenticationToken
                 val expected = (auth.details as? DecodedJWT)?.getClaim(JWTSecurityService.CLAIM_PATH)?.asString()
                 val signedId = try {
-                    UriComponentsBuilder.fromUriString(expected ?: "").build().queryParams.getFirst("id")
+                    parseQueryParams(expected)["id"]?.firstOrNull()
                 } catch (_: IllegalArgumentException) { null }
                 if (signedId == null || signedId != params["id"]) {
                     response.sendError(HttpServletResponse.SC_FORBIDDEN)
@@ -2020,3 +2019,31 @@ class AirsonicKtorServlet(
         val SIMILAR_SONGS_REQUEST_KEY = AttributeKey<SimilarSongsRequest>(SIMILAR_SONGS_REQUEST)
     }
 }
+
+private data class ParsedUriComponents(
+    val path: String,
+    val queryParams: Map<String, List<String>>,
+) {
+    fun withoutQueryParam(name: String): ParsedUriComponents =
+        copy(queryParams = queryParams.filterKeys { it != name })
+}
+
+private fun parseUriComponents(rawUri: String?): ParsedUriComponents {
+    if (rawUri.isNullOrEmpty()) return ParsedUriComponents("", emptyMap())
+    val withoutFragment = rawUri.substringBefore('#')
+    val rawPath = withoutFragment.substringBefore('?')
+    val rawQuery = if (withoutFragment.contains('?')) withoutFragment.substringAfter('?') else null
+    val queryParams = LinkedHashMap<String, MutableList<String>>()
+    if (!rawQuery.isNullOrEmpty()) {
+        for (param in rawQuery.split('&')) {
+            val equalsIndex = param.indexOf('=')
+            val name = if (equalsIndex < 0) param else param.substring(0, equalsIndex)
+            val value = if (equalsIndex < 0) "" else param.substring(equalsIndex + 1)
+            queryParams.computeIfAbsent(name) { mutableListOf() }.add(value)
+        }
+    }
+    return ParsedUriComponents(rawPath, queryParams)
+}
+
+private fun parseQueryParams(rawUri: String?): Map<String, List<String>> =
+    parseUriComponents(rawUri).queryParams

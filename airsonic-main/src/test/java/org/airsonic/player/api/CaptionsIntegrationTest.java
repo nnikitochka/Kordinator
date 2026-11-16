@@ -17,7 +17,6 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -120,7 +119,7 @@ public class CaptionsIntegrationTest {
                     String url = track.path("url").asText();
                     assertTrue(url, url.contains("/ext/rest/captions?"));
                     assertEquals(200, get(url).statusCode());
-                    String token = UriComponentsBuilder.fromUriString(url).build().getQueryParams().getFirst("jwt");
+                    String token = queryParam(url, "jwt");
                     assertEquals(expiration.getEpochSecond(), jwt.verify(token).getExpiresAt().toInstant().getEpochSecond());
                     assertEquals(403, get(url.replace("id=" + id, "id=" + otherId)).statusCode());
                 }
@@ -140,11 +139,23 @@ public class CaptionsIntegrationTest {
     private String auth(String url) { return url + (url.contains("?") ? "&" : "?") + "v=" + TestCaseUtils.restApiVersion() + "&c=captions-test&u=admin&p=admin"; }
     private String rest(String path, int id) { return auth(base() + path + "?id=" + id); }
     private String sign(String path, Instant expiration) {
-        return base() + "/" + jwt.addJWTToken(User.USERNAME_GUEST, UriComponentsBuilder.fromUriString(path), expiration).toUriString();
+        return base() + "/" + jwt.addJWTToken(User.USERNAME_GUEST, path, expiration);
     }
     private HttpResponse<String> get(String url) throws Exception {
         var request = HttpRequest.newBuilder(URI.create(url));
         if (url.contains("u=admin")) request.header("Authorization", "Basic " + java.util.Base64.getEncoder().encodeToString("admin:admin".getBytes(StandardCharsets.UTF_8)));
         return client.send(request.GET().build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    private static String queryParam(String url, String name) {
+        int queryStart = url.indexOf('?');
+        if (queryStart < 0) return null;
+        for (String pair : url.substring(queryStart + 1).split("&")) {
+            int eq = pair.indexOf('=');
+            if (eq > 0 && pair.substring(0, eq).equals(name)) {
+                return pair.substring(eq + 1);
+            }
+        }
+        return null;
     }
 }
