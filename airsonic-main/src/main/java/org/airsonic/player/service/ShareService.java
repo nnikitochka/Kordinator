@@ -10,7 +10,6 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -91,8 +90,7 @@ public class ShareService {
     public String getShareUrl(HttpServletRequest request, Share share) {
         String shareUrl = "ext/share/" + share.getName();
         return NetworkService.getBaseUrl(request) + jwtSecurityService
-                .addJWTToken(User.USERNAME_ANONYMOUS, UriComponentsBuilder.fromUriString(shareUrl), share.getExpires())
-                .build().toUriString();
+                .addJWTToken(User.USERNAME_ANONYMOUS, shareUrl, share.getExpires());
     }
 
     public void setSecurityService(SecurityService securityService) {
