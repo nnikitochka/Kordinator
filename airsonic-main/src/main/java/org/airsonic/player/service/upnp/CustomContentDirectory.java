@@ -20,7 +20,6 @@ import org.fourthline.cling.support.model.Res;
 import org.fourthline.cling.support.model.SortCriterion;
 import org.seamless.util.MimeType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * @version $Id: TagBasedContentDirectory.java 3739 2013-12-03 11:55:01Z sindre_mehus $
@@ -45,17 +44,16 @@ public abstract class CustomContentDirectory extends AbstractContentDirectorySer
     protected Res createResourceForSong(MediaFile song) {
         Player player = playerService.getGuestPlayer(null);
 
-        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString("ext/stream")
-                .queryParam("id", song.getId())
-                .queryParam("player", player.getId());
-
+        StringBuilder path = new StringBuilder("ext/stream?id=")
+                .append(song.getId())
+                .append("&player=")
+                .append(player.getId());
         if (song.isVideo()) {
-            builder.queryParam("format", TranscodingService.FORMAT_RAW);
+            path.append("&format=").append(TranscodingService.FORMAT_RAW);
         }
 
-        builder = jwtSecurityService.addJWTToken(User.USERNAME_ANONYMOUS, builder);
-
-        String url = getBaseUrl() + builder.toUriString();
+        String signedPath = jwtSecurityService.addJWTToken(User.USERNAME_ANONYMOUS, path.toString());
+        String url = getBaseUrl() + signedPath;
 
         String suffix = song.isVideo() ? FilenameUtils.getExtension(song.getPath()) : transcodingService.getSuffix(player, song, null);
         String mimeTypeString = StringUtil.getMimeType(suffix);
