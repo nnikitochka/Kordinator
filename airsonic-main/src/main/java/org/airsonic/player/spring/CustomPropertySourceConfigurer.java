@@ -2,7 +2,6 @@ package org.airsonic.player.spring;
 
 import org.airsonic.player.service.ConfigurationPropertiesService;
 import org.airsonic.player.service.SettingsService;
-import org.apache.commons.configuration2.spring.ConfigurationPropertySource;
 import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
 import org.springframework.boot.context.logging.LoggingApplicationListener;
 import org.springframework.context.ApplicationListener;
@@ -51,7 +50,7 @@ public class CustomPropertySourceConfigurer implements
 
         // Migrate external property file
         SettingsService.migratePropFileKeys(migratedProps, ConfigurationPropertiesService.getInstance());
-        event.getEnvironment().getPropertySources().addLast(new ConfigurationPropertySource("airsonic-properties", ConfigurationPropertiesService.getInstance().getConfiguration()));
+        event.getEnvironment().getPropertySources().addLast(new CommonsConfigurationPropertySource("airsonic-properties", ConfigurationPropertiesService.getInstance().getConfiguration()));
 
         // Set default constants - only set if vars are blank so their PS need to be set first (or blank vars will get picked up first on look up)
         SettingsService.setDefaultConstants(event.getEnvironment(), DEFAULT_CONSTANTS);
