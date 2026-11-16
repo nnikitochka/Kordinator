@@ -3,7 +3,6 @@ package org.airsonic.player.dao;
 import org.airsonic.player.domain.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
 import jakarta.annotation.PostConstruct;

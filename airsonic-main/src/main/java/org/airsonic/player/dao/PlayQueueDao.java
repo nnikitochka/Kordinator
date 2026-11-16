@@ -1,7 +1,6 @@
 package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.SavedPlayQueue;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 

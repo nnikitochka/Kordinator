@@ -8,11 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
-import org.springframework.jdbc.support.KeyHolder;
 
+import javax.sql.DataSource;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.invoke.MethodHandle;
@@ -21,37 +18,67 @@ import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Abstract superclass for all DAO's.
+ * Abstract superclass for all DAO's. Backed by framework-neutral JdbcHelper.
  */
 public class AbstractDao {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractDao.class);
 
-    @Autowired
+    private static volatile JdbcHelper staticJdbcHelper;
+
+    @Autowired(required = false)
+    DataSource dataSource;
+
+    @Autowired(required = false)
     JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+    private JdbcHelper jdbcHelper;
+
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+        if (dataSource != null) {
+            this.jdbcHelper = new JdbcHelper(dataSource);
+            staticJdbcHelper = this.jdbcHelper;
+        }
+    }
+
+    public void setJdbcHelper(JdbcHelper jdbcHelper) {
+        this.jdbcHelper = jdbcHelper;
+        if (jdbcHelper != null) {
+            staticJdbcHelper = jdbcHelper;
+        }
+    }
+
+    public JdbcHelper getJdbcHelper() {
+        if (jdbcHelper == null && dataSource != null) {
+            jdbcHelper = new JdbcHelper(dataSource);
+        }
+        if (jdbcHelper == null && jdbcTemplate != null && jdbcTemplate.getDataSource() != null) {
+            jdbcHelper = new JdbcHelper(jdbcTemplate.getDataSource());
+        }
+        if (jdbcHelper != null) {
+            staticJdbcHelper = jdbcHelper;
+            return jdbcHelper;
+        }
+        return staticJdbcHelper;
+    }
+
+    private static JdbcHelper getStaticJdbcHelper() {
+        if (staticJdbcHelper == null) {
+            throw new IllegalStateException("JdbcHelper is not initialized in AbstractDao");
+        }
+        return staticJdbcHelper;
+    }
 
     public JdbcTemplate getJdbcTemplate() {
         return jdbcTemplate;
-    }
-
-    public NamedParameterJdbcTemplate getNamedParameterJdbcTemplate() {
-        return namedParameterJdbcTemplate;
     }
 
     protected static String questionMarks(String columns) {
@@ -76,7 +103,6 @@ public class AbstractDao {
         return args == null ? null : args.entrySet()
                 .stream()
                 .map(x -> Pair.of(x.getKey(), convertToDBType(x.getValue())))
-                //can't use Collectors.toMap or Collectors.toConcurrentMap due to possible null value mappings
                 .collect(HashMap::new, (m, v) -> m.put(v.getKey(), v.getValue()), HashMap::putAll);
     }
 
@@ -84,22 +110,19 @@ public class AbstractDao {
         if (x instanceof Instant) {
             return Timestamp.from((Instant) x);
         }
-
         if (x instanceof Enum) {
             return ((Enum<?>) x).name();
         }
-
         if (x instanceof Path) {
             return ((Path) x).toString();
         }
-
         return x;
     }
 
     protected int update(String sql, Object... args) {
         long t = System.nanoTime();
         LOG.trace("Executing query: [{}]", sql);
-        int result = getJdbcTemplate().update(sql, convertToDBTypes(args));
+        int result = getJdbcHelper().update(sql, convertToDBTypes(args));
         LOG.trace("Updated {} rows", result);
         log(sql, t);
         return result;
@@ -108,7 +131,7 @@ public class AbstractDao {
     protected int namedUpdate(String sql, Map<String, Object> args) {
         long t = System.nanoTime();
         LOG.trace("Executing query: [{}]", sql);
-        int result = getNamedParameterJdbcTemplate().update(sql, convertToDBTypes(args));
+        int result = getJdbcHelper().namedUpdate(sql, convertToDBTypes(args));
         LOG.trace("Updated {} rows", result);
         log(sql, t);
         return result;
@@ -116,18 +139,10 @@ public class AbstractDao {
 
     protected int batchedUpdate(String sql, Collection<Object[]> batchArgs) {
         long t = System.nanoTime();
-        // used to get around postgres's wire limit when sending a large number of params
         int batchSize = 30000 / batchArgs.stream().findAny().map(x -> x.length).orElse(1);
         LOG.trace("Executing query: [{}]", sql);
-        int[][] result = getJdbcTemplate().batchUpdate(sql,
-            batchArgs.parallelStream().map(AbstractDao::convertToDBTypes).collect(Collectors.toList()),
-            batchSize,
-            (ps, args) -> {
-                for (int i = 0; i < args.length; i++) {
-                    ps.setObject(i + 1, args[i]);
-                }
-            });
-        int tally = Arrays.stream(result).flatMapToInt(Arrays::stream).sum();
+        List<Object[]> converted = batchArgs.stream().map(AbstractDao::convertToDBTypes).collect(Collectors.toList());
+        int tally = getJdbcHelper().batchedUpdate(sql, converted, batchSize);
         LOG.trace("Updated {} rows", tally);
         log(sql, t);
         return tally;
@@ -135,8 +150,6 @@ public class AbstractDao {
 
     private void log(String sql, long startTimeNano) {
         long millis = (System.nanoTime() - startTimeNano) / 1000000L;
-
-        // Log queries that take more than 2 seconds.
         if (millis > TimeUnit.SECONDS.toMillis(2L)) {
             LOG.debug("{} ms:  {}", millis, sql);
         }
@@ -144,28 +157,28 @@ public class AbstractDao {
 
     protected <T> List<T> query(String sql, RowMapper<T> rowMapper, Object... args) {
         long t = System.nanoTime();
-        List<T> result = getJdbcTemplate().query(sql, convertToDBTypes(args), rowMapper);
+        List<T> result = getJdbcHelper().query(sql, rowMapper, convertToDBTypes(args));
         log(sql, t);
         return result;
     }
 
     protected <T> List<T> namedQuery(String sql, RowMapper<T> rowMapper, Map<String, Object> args) {
         long t = System.nanoTime();
-        List<T> result = getNamedParameterJdbcTemplate().query(sql, convertToDBTypes(args), rowMapper);
+        List<T> result = getJdbcHelper().namedQuery(sql, rowMapper, convertToDBTypes(args));
         log(sql, t);
         return result;
     }
 
     protected <T> List<T> queryForTypes(String sql, Class<T> type, Object... args) {
         long t = System.nanoTime();
-        List<T> result = getJdbcTemplate().queryForList(sql, convertToDBTypes(args), type);
+        List<T> result = getJdbcHelper().queryForList(sql, type, convertToDBTypes(args));
         log(sql, t);
         return result;
     }
 
     protected <T> List<T> namedQueryForTypes(String sql, Class<T> type, Map<String, Object> args) {
         long t = System.nanoTime();
-        List<T> result = getNamedParameterJdbcTemplate().queryForList(sql, convertToDBTypes(args), type);
+        List<T> result = getJdbcHelper().namedQueryForList(sql, type, convertToDBTypes(args));
         log(sql, t);
         return result;
     }
@@ -212,21 +225,24 @@ public class AbstractDao {
         return list.isEmpty() ? null : list.getFirst();
     }
 
-    private static final Map<String, SimpleJdbcInsert> insertTemplates = new HashMap<>();
-    private static final Map<String, Map<String, MethodHandle>> methods = new HashMap<>();
+    private static final Map<String, String> insertSqls = new ConcurrentHashMap<>();
+    private static final Map<String, String> insertGeneratedKeys = new ConcurrentHashMap<>();
+    private static final Map<String, List<String>> insertColumnLists = new ConcurrentHashMap<>();
+    private static final Map<String, Map<String, MethodHandle>> methods = new ConcurrentHashMap<>();
     private static final MethodHandles.Lookup lookup = MethodHandles.lookup();
     private static final List<Function<String, String>> colNameTransforms = Arrays.asList(Function.identity(),
         c -> CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, c),
         c -> CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, c).toLowerCase());
 
     protected void registerInserts(String table, String generatedKey, List<String> columns, Class<?> klazz) throws Exception {
-        var insert = new SimpleJdbcInsert(jdbcTemplate).withTableName(table);
+        getJdbcHelper();
+        String sql = "insert into " + table + " (" + String.join(", ", columns) + ") values (" + questionMarks(String.join(", ", columns)) + ")";
+        insertSqls.put(table, sql);
+        insertColumnLists.put(table, new ArrayList<>(columns));
         if (generatedKey != null) {
-            insert.usingGeneratedKeyColumns(generatedKey);
+            insertGeneratedKeys.put(table, generatedKey);
         }
-        insertTemplates.put(table, insert);
 
-        // preprocess annotated fields
         var fields = new HashMap<String, Field>();
         for (Field cf : klazz.getDeclaredFields()) {
             fields.putIfAbsent(cf.getName(), cf);
@@ -242,12 +258,11 @@ public class AbstractDao {
             var alreadyLooked = new HashSet<String>();
 
             for (Function<String, String> colNameTransform : colNameTransforms) {
-                String lookup = colNameTransform.apply(c);
-                if (alreadyLooked.add(lookup)) {
-                    f = fields.get(lookup);
-
+                String lookupCol = colNameTransform.apply(c);
+                if (alreadyLooked.add(lookupCol)) {
+                    f = fields.get(lookupCol);
                     if (f != null) {
-                        LOG.debug("Found suitable field {} (as {}) in class {} for table {} column {}", f.getName(), lookup, klazz.getName(), table, c);
+                        LOG.debug("Found suitable field {} (as {}) in class {} for table {} column {}", f.getName(), lookupCol, klazz.getName(), table, c);
                         break;
                     }
                 }
@@ -260,24 +275,27 @@ public class AbstractDao {
     }
 
     protected static Integer insert(String table, Object obj) {
-        Map<String, Object> args = methods.get(table).entrySet()
-                .stream()
-                .map(e -> {
-                    try {
-                        return Pair.of(e.getKey(), convertToDBType(e.getValue().invoke(obj)));
-                    } catch (Throwable x) {
-                        throw new RuntimeException(x);
-                    }
-                })
-                //can't use Collectors.toMap or Collectors.toConcurrentMap due to possible null value mappings
-                .collect(HashMap::new, (m, v) -> m.put(v.getKey(), v.getValue()), HashMap::putAll);
-        var template = insertTemplates.get(table);
-        if (template.getGeneratedKeyNames() == null || template.getGeneratedKeyNames().length == 0) {
-            template.execute(args);
+        List<String> cols = insertColumnLists.get(table);
+        String sql = insertSqls.get(table);
+        String genKey = insertGeneratedKeys.get(table);
+        Map<String, MethodHandle> tableMethods = methods.get(table);
+
+        Object[] values = new Object[cols.size()];
+        for (int i = 0; i < cols.size(); i++) {
+            MethodHandle mh = tableMethods.get(cols.get(i));
+            try {
+                values[i] = convertToDBType(mh.invoke(obj));
+            } catch (Throwable x) {
+                throw new RuntimeException("Failed to read property for column " + cols.get(i) + " on table " + table, x);
+            }
+        }
+
+        JdbcHelper helper = getStaticJdbcHelper();
+        if (genKey == null) {
+            helper.update(sql, values);
             return null;
         } else {
-            var keyHolder = insertTemplates.get(table).executeAndReturnKeyHolder(args);
-            return Optional.ofNullable(keyHolder).map(KeyHolder::getKey).map(Number::intValue).orElse(null);
+            return helper.insertAndReturnKey(sql, genKey, values);
         }
     }
 

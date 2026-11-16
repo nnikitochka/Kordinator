@@ -10,7 +10,6 @@ import org.airsonic.player.domain.UserSettings;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -166,7 +165,7 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
     public void testUserSettings() {
         assertNull("Error in getUserSettings.", userDao.getUserSettings("sindre"));
 
-        assertThatExceptionOfType(DataIntegrityViolationException.class)
+        assertThatExceptionOfType(RuntimeException.class)
                 .isThrownBy(() -> updateUserSettings(new UserSettings("sindre")));
 
         userDao.createUser(new User("sindre", null), new UserCredential("sindre", "sindre", "secret", "noop", App.AIRSONIC));

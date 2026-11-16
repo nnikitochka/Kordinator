@@ -1,13 +1,11 @@
 package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.Bookmark;
-import org.springframework.jdbc.core.RowMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import jakarta.annotation.PostConstruct;
+import javax.sql.DataSource;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,15 +24,28 @@ public class BookmarkDao extends AbstractDao {
     private static final String INSERT_COLUMNS = "media_file_id, position_millis, username, comment, created, changed";
     private static final String QUERY_COLUMNS = "id, " + INSERT_COLUMNS;
     private static final int LOCK_STRIPES = 256;
+    private static final TransactionManager.TransactionDefinition TX_DEF =
+            new TransactionManager.TransactionDefinition(
+                    TransactionManager.PROPAGATION_REQUIRES_NEW,
+                    TransactionManager.ISOLATION_READ_COMMITTED
+            );
 
-    private final TransactionTemplate transactionTemplate;
+    private final TransactionManager transactionManager;
     private final ReentrantLock[] locks = new ReentrantLock[LOCK_STRIPES];
     private final BookmarkRowMapper bookmarkRowMapper = new BookmarkRowMapper();
 
-    public BookmarkDao(PlatformTransactionManager transactionManager) {
-        this.transactionTemplate = new TransactionTemplate(transactionManager);
-        this.transactionTemplate.setIsolationLevel(TransactionTemplate.ISOLATION_READ_COMMITTED);
-        this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    @Autowired
+    public BookmarkDao(DataSource dataSource) {
+        setDataSource(dataSource);
+        this.transactionManager = new TransactionManager(dataSource);
+        for (int i = 0; i < LOCK_STRIPES; i++) {
+            locks[i] = new ReentrantLock();
+        }
+    }
+
+    public BookmarkDao(TransactionManager transactionManager) {
+        setDataSource(transactionManager.getDataSource());
+        this.transactionManager = transactionManager;
         for (int i = 0; i < LOCK_STRIPES; i++) {
             locks[i] = new ReentrantLock();
         }
@@ -86,7 +97,7 @@ public class BookmarkDao extends AbstractDao {
         ReentrantLock lock = getLock(bookmark.getUsername(), bookmark.getMediaFileId());
         lock.lock();
         try {
-            transactionTemplate.executeWithoutResult(status -> createOrUpdateBookmarkInTransaction(bookmark));
+            transactionManager.executeWithoutResult(TX_DEF, status -> createOrUpdateBookmarkInTransaction(bookmark));
         } finally {
             lock.unlock();
         }
@@ -112,7 +123,7 @@ public class BookmarkDao extends AbstractDao {
         ReentrantLock lock = getLock(username, mediaFileId);
         lock.lock();
         try {
-            transactionTemplate.executeWithoutResult(status ->
+            transactionManager.executeWithoutResult(TX_DEF, status ->
                     update("delete from bookmark where username=? and media_file_id=?", username, mediaFileId));
         } finally {
             lock.unlock();

@@ -3,7 +3,6 @@ package org.airsonic.player.dao;
 import org.airsonic.player.domain.Avatar;
 import org.airsonic.player.service.SettingsService;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;

@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableMap;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.domain.UserCredential.App;
 import org.airsonic.player.util.Util;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -12,12 +12,11 @@ import org.airsonic.player.domain.User
 import org.airsonic.player.domain.UserCredential
 import org.airsonic.player.domain.UserCredential.App
 import org.airsonic.player.security.GlobalSecurityConfig as Encoders
+import org.airsonic.player.dao.TransactionManager
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.SettingsService
 import org.airsonic.player.util.Util
 import org.slf4j.LoggerFactory
-import org.springframework.transaction.PlatformTransactionManager
-import org.springframework.transaction.support.TransactionTemplate
 import org.subsonic.restapi.*
 import java.time.Instant
 import java.util.HexFormat
@@ -31,9 +30,8 @@ import kotlin.coroutines.cancellation.CancellationException
  */
 class CredentialsManagementController(
     private val security: SecurityService, private val settings: SettingsService, private val writer: JAXBWriter,
-    transactionManager: PlatformTransactionManager
+    private val transaction: TransactionManager
 ) {
-    private val transaction = TransactionTemplate(transactionManager)
     private val mutationLock = Any()
 
     fun routes(root: Route, request: (ApplicationCall) -> UsersRequest) {
