@@ -14,14 +14,15 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.net.URL;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,7 +48,17 @@ public class VersionService {
     private String localBuildNumber;
 
     public VersionService() throws IOException {
-        build = PropertiesLoaderUtils.loadAllProperties("build.properties");
+        Properties properties = new Properties();
+        ClassLoader classLoader = VersionService.class.getClassLoader();
+        if (classLoader != null) {
+            Enumeration<URL> urls = classLoader.getResources("build.properties");
+            while (urls.hasMoreElements()) {
+                try (InputStream in = urls.nextElement().openStream()) {
+                    properties.load(in);
+                }
+            }
+        }
+        build = properties;
     }
 
     /**

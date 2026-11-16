@@ -7,10 +7,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.jdbc.EmbeddedDatabaseConnection;
 import org.springframework.core.env.Environment;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.support.PropertiesLoaderUtils;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
@@ -26,10 +26,14 @@ public class LegacyHsqlMigrationUtil {
      * Return the current version of the HSQLDB database, as reported by the database properties file.
      */
     public static String getHsqlDbVersion(String dbPath) {
-        try {
-            return PropertiesLoaderUtils
-                    .loadProperties(new FileSystemResource(Paths.get(dbPath + ".properties")))
-                    .getProperty("version");
+        Path path = Paths.get(dbPath + ".properties");
+        if (!Files.exists(path)) {
+            return null;
+        }
+        try (InputStream is = Files.newInputStream(path)) {
+            Properties properties = new Properties();
+            properties.load(is);
+            return properties.getProperty("version");
         } catch (Exception e) {
             LOG.warn("Failed to determine HSQLDB database version", e);
             return null;
