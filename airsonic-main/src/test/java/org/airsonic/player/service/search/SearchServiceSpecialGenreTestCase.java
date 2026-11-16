@@ -20,8 +20,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 
-import static org.springframework.util.ObjectUtils.isEmpty;
-
 /*
  * Tests to prove what kind of strings/chars can be used in the genre field.
  */
@@ -34,7 +32,7 @@ public class SearchServiceSpecialGenreTestCase extends AbstractAirsonicHomeTest 
 
     @Override
     public List<MusicFolder> getMusicFolders() {
-        if (isEmpty(musicFolders)) {
+        if (musicFolders == null || musicFolders.isEmpty()) {
             musicFolders = new ArrayList<>();
             Path musicDir = MusicFolderTestData.resolveBaseMediaPath().resolve("Search").resolve("SpecialGenre");
             musicFolders.add(new MusicFolder(1, musicDir, "accessible", Type.MEDIA, true, Instant.now()));

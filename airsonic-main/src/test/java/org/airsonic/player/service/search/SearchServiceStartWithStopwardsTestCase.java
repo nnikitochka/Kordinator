@@ -19,8 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static org.springframework.util.ObjectUtils.isEmpty;
-
 /*
  * Test cases related to #1142.
  * The filter is not properly applied when analyzing the query,
@@ -37,7 +35,7 @@ public class SearchServiceStartWithStopwardsTestCase extends AbstractAirsonicHom
 
     @Override
     public List<MusicFolder> getMusicFolders() {
-        if (isEmpty(musicFolders)) {
+        if (musicFolders == null || musicFolders.isEmpty()) {
             musicFolders = new ArrayList<>();
             Path musicDir = MusicFolderTestData.resolveBaseMediaPath().resolve("Search").resolve("StartWithStopwards");
             musicFolders.add(new MusicFolder(1, musicDir, "accessible", Type.MEDIA, true, Instant.now()));

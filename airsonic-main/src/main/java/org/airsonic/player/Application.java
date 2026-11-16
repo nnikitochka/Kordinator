@@ -13,7 +13,6 @@ import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerF
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.annotation.AdviceMode;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
-import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
 
@@ -54,7 +53,7 @@ public class Application extends SpringBootServletInitializer implements WebServ
                 LOG.debug("Attempting to optimize tomcat");
                 Object tomcatESCFInstance = tomcatESCF.cast(container);
                 Class<?> tomcatApplicationClass = Class.forName("org.airsonic.player.TomcatApplication");
-                Method configure = ReflectionUtils.findMethod(tomcatApplicationClass, "configure", tomcatESCF);
+                Method configure = tomcatApplicationClass.getMethod("configure", tomcatESCF);
                 configure.invoke(null, tomcatESCFInstance);
                 LOG.debug("Tomcat optimizations complete");
             } else {

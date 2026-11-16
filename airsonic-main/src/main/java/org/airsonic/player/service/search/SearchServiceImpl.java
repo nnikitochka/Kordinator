@@ -14,7 +14,7 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static org.airsonic.player.service.search.IndexType.*;
-import static org.springframework.util.ObjectUtils.isEmpty;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 @Service
 public class SearchServiceImpl implements SearchService {

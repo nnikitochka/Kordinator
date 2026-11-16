@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
-import static org.springframework.util.ObjectUtils.isEmpty;
 
 public class IndexManagerTestCase extends AbstractAirsonicHomeTest {
 
@@ -38,7 +37,7 @@ public class IndexManagerTestCase extends AbstractAirsonicHomeTest {
 
     @Override
     public List<MusicFolder> getMusicFolders() {
-        if (isEmpty(musicFolders)) {
+        if (musicFolders == null || musicFolders.isEmpty()) {
             musicFolders = new ArrayList<>();
             Path musicDir = MusicFolderTestData.resolveMusicFolderPath();
             musicFolders.add(new MusicFolder(1, musicDir, "Music", Type.MEDIA, true, Instant.now()));

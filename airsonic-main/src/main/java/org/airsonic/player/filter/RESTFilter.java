@@ -5,8 +5,6 @@ import org.airsonic.player.controller.rest.error.ErrorCode;
 import org.airsonic.player.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.ServletRequestBindingException;
-import org.springframework.web.util.NestedServletException;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,11 +28,15 @@ public class RESTFilter implements Filter {
     }
 
     private void handleException(Throwable err, HttpServletRequest request, HttpServletResponse response) {
-        if (err instanceof NestedServletException && err.getCause() != null) {
+        if (err instanceof ServletException && err.getCause() != null) {
             err = err.getCause();
         }
 
-        ErrorCode code = (err instanceof ServletRequestBindingException) ? ErrorCode.MISSING_PARAMETER : ErrorCode.GENERIC;
+        boolean isBindingException = err != null && (
+                err.getClass().getName().endsWith("ServletRequestBindingException") ||
+                err.getClass().getName().endsWith("MissingServletRequestParameterException")
+        );
+        ErrorCode code = isBindingException ? ErrorCode.MISSING_PARAMETER : ErrorCode.GENERIC;
         String msg = getErrorMessage(err);
 
         // This happens often and outside of the control of the server, so

@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.function.BiConsumer;
 
-import static org.springframework.util.ObjectUtils.isEmpty;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 /**
  * A factory that generates the documents to be stored in the index.

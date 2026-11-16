@@ -4,7 +4,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.util.UrlPathHelper;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -15,7 +14,6 @@ import java.net.URL;
 
 @Service
 public class NetworkService {
-    private static final UrlPathHelper urlPathHelper = new UrlPathHelper();
     private static final String X_FORWARDED_SERVER = "X-Forwarded-Server";
     private static final String X_FORWARDED_PROTO = "X-Forwarded-Proto";
     private static final String X_FORWARDED_HOST = "X-Forwarded-Host";
@@ -85,7 +83,7 @@ public class NetworkService {
             }
         }
 
-        return new URI(scheme, null, host, port, urlPathHelper.getContextPath(request), null, null);
+        return new URI(scheme, null, host, port, getContextPath(request), null, null);
     }
 
     private static boolean isValidXForwardedHost(String xForwardedHost) {
@@ -98,6 +96,14 @@ public class NetworkService {
         String scheme = url.getProtocol();
         int port = url.getPort();
         String userInfo = url.getUserInfo();
-        return new URI(scheme, userInfo, host, port, urlPathHelper.getContextPath(request), null, null);
+        return new URI(scheme, userInfo, host, port, getContextPath(request), null, null);
+    }
+
+    private static String getContextPath(HttpServletRequest request) {
+        String contextPath = request.getContextPath();
+        if (contextPath == null || "/".equals(contextPath)) {
+            return "";
+        }
+        return contextPath;
     }
 }

@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.comparator.NullSafeComparator;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -176,17 +175,14 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
         UserSettings settings = new UserSettings("sindre");
         userDao.updateUserSettings(settings);
         UserSettings userSettings = userDao.getUserSettings("sindre");
-        assertThat(userSettings).usingComparatorForType(new NullSafeComparator<Instant>(new Comparator<Instant>() {
+        assertThat(userSettings).usingComparatorForType(Comparator.nullsFirst((o1, o2) -> {
             // use a custom comparator to account for micro second differences
             // (Mysql only stores floats in json to a certain value)
-            @Override
-            public int compare(Instant o1, Instant o2) {
-                if (o1.equals(o2) || Math.abs(ChronoUnit.MICROS.between(o1, o2)) <= 2) {
-                    return 0;
-                }
-                return o1.compareTo(o2);
+            if (o1.equals(o2) || Math.abs(ChronoUnit.MICROS.between(o1, o2)) <= 2) {
+                return 0;
             }
-        }, true), Instant.class)
+            return o1.compareTo(o2);
+        }), Instant.class)
                 .usingRecursiveComparison().isEqualTo(settings);
 
         settings = new UserSettings("sindre");

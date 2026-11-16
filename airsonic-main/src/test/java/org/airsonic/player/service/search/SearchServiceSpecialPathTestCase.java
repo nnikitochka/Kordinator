@@ -19,8 +19,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static org.springframework.util.ObjectUtils.isEmpty;
-
 /*
  * Test cases related to #1139.
  * Confirming whether shuffle search can be performed correctly in MusicFolder containing special strings.
@@ -40,7 +38,7 @@ public class SearchServiceSpecialPathTestCase extends AbstractAirsonicHomeTest {
 
     @Override
     public List<MusicFolder> getMusicFolders() {
-        if (isEmpty(musicFolders)) {
+        if (musicFolders == null || musicFolders.isEmpty()) {
             musicFolders = new ArrayList<>();
 
             Path musicDir = MusicFolderTestData.resolveBaseMediaPath().resolve("Search").resolve("SpecialPath").resolve("accessible");
