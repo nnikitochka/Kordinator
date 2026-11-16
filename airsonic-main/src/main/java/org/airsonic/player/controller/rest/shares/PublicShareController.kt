@@ -22,7 +22,6 @@ import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.ShareService
 import org.airsonic.player.service.metadata.MetaDataParserFactory
 import org.airsonic.player.util.StringUtil
-import org.springframework.web.util.UriComponentsBuilder
 import java.nio.file.Files
 import java.time.Instant
 
@@ -38,8 +37,8 @@ class PublicShareController(
     data class Request(val name: String, val player: Player, val baseUrl: String, val expiration: Instant?)
 
     fun dataUrl(name: String, baseUrl: String, expiration: Instant?): String = baseUrl + jwt.addJWTToken(
-        User.USERNAME_ANONYMOUS, UriComponentsBuilder.fromPath("ext/rest/share/$name"), expiration
-    ).toUriString()
+        User.USERNAME_ANONYMOUS, "ext/rest/share/$name", expiration
+    )
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
         with(root) {
@@ -76,9 +75,8 @@ class PublicShareController(
         if (share.expires?.isBefore(Instant.now()) == true) return null
         val file = selectedFiles(share, request.player).firstOrNull() ?: return null
         val expiration = listOfNotNull(request.expiration, share.expires).minOrNull()
-        val image = request.baseUrl + jwt.addJWTToken(User.USERNAME_GUEST,
-            UriComponentsBuilder.fromPath("ext/coverArt.view").queryParam("id", file.id).queryParam("size", 500),
-            expiration).toUriString()
+        val imagePath = "ext/coverArt.view?id=${file.id}&size=500"
+        val image = request.baseUrl + jwt.addJWTToken(User.USERNAME_GUEST, imagePath, expiration)
         return mapOf("title" to "${file.artist.orEmpty()} — ${file.albumName.orEmpty()}", "image" to image)
     }
 
@@ -96,20 +94,25 @@ class PublicShareController(
     }
 
     private fun media(file: MediaFile, request: Request, expiration: Instant?): Map<String, Any?> {
-        fun url(path: String, configure: (UriComponentsBuilder) -> Unit = {}): String {
-            val builder = UriComponentsBuilder.fromPath(path).queryParam("id", file.id)
-            configure(builder)
-            return request.baseUrl + jwt.addJWTToken(User.USERNAME_GUEST, builder, expiration).toUriString()
+        fun url(path: String, vararg parameters: Pair<String, Any?>): String {
+            val relativeUrl = buildString {
+                append(path).append("?id=").append(file.id)
+                parameters.forEach { (name, value) ->
+                    when (value) {
+                        is Iterable<*> -> value.forEach { append('&').append(name).append('=').append(it) }
+                        else -> append('&').append(name).append('=').append(value)
+                    }
+                }
+            }
+            return request.baseUrl + jwt.addJWTToken(User.USERNAME_GUEST, relativeUrl, expiration)
         }
         val direct = !file.isVideo || streamable(file)
-        val stream = if (direct) url("ext/stream") { it.queryParam("player", request.player.id).queryParam("format", "raw") }
-            else url("ext/hls/hls.m3u8") {
-                it.queryParam("player", request.player.id).queryParam("maxBitRate", VideoPlaybackService.BIT_RATES)
-            }
+        val stream = if (direct) url("ext/stream", "player" to request.player.id, "format" to "raw")
+            else url("ext/hls/hls.m3u8", "player" to request.player.id, "maxBitRate" to VideoPlaybackService.BIT_RATES)
         return mapOf("id" to file.id, "title" to file.title, "artist" to file.artist, "album" to file.albumName,
             "video" to file.isVideo, "streamable" to direct,
             "contentType" to if (direct) StringUtil.getMimeType(MoreFiles.getFileExtension(file.relativePath)) else "application/x-mpegurl",
-            "streamUrl" to stream, "coverArtUrl" to url("ext/coverArt.view") { it.queryParam("size", 500) },
+            "streamUrl" to stream, "coverArtUrl" to url("ext/coverArt.view", "size" to 500),
             "captionsUrl" to url("ext/rest/captions/list"))
     }
 
