@@ -93,6 +93,7 @@ import org.airsonic.player.service.MusicFolderAdministrationService;
 import org.airsonic.player.service.search.IndexManager;
 import org.airsonic.player.controller.rest.users.PasswordController;
 import org.airsonic.player.service.SettingsService;
+import org.airsonic.player.runtime.RuntimeCompositionRoot;
 import org.airsonic.player.service.VersionService;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.controller.rest.jukebox.JukeboxController;
@@ -159,10 +160,18 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public RuntimeCompositionRoot runtimeCompositionRoot(
+            @org.springframework.beans.factory.annotation.Value("${management.endpoint.health.status.order:"
+                    + org.airsonic.player.runtime.RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER + "}")
+            String order) {
+        return new RuntimeCompositionRoot(order);
+    }
+
+    @Bean
     public org.springframework.boot.actuate.health.StatusAggregator serverHealthStatusAggregator(
-            @org.springframework.beans.factory.annotation.Value("${management.endpoint.health.status.order:DOWN,OUT_OF_SERVICE,UP,UNKNOWN}")
-            java.util.List<String> order) {
-        return new org.springframework.boot.actuate.health.SimpleStatusAggregator(order);
+            RuntimeCompositionRoot runtime) {
+        return new org.springframework.boot.actuate.health.SimpleStatusAggregator(
+                runtime.getConfiguration().getHealthStatusOrder());
     }
 
 

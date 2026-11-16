@@ -1,6 +1,6 @@
 # План полного удаления Spring перед Kotlin rewrite
 
-Дата базового аудита: **16 ноября 2026 года**. Документ описывает целевой путь от текущего Ktor-on-servlet приложения к приложению без Spring, с отдельным шлюзом от сохранённого JSP-сайта к standalone Ktor. Это план, а не отчёт о выполненных изменениях: все этапы ниже остаются **не начатыми**, если отдельный коммит и проверка не докажут обратное.
+Дата базового аудита: **16 ноября 2026 года**. Документ описывает целевой путь от текущего Ktor-on-servlet приложения к приложению без Spring, с отдельным шлюзом от сохранённого JSP-сайта к standalone Ktor. Ниже ведётся журнал подтверждённых изменений; незавершённые или не проверенные срезы не считаются закрытыми этапами.
 
 ## 1. Цель, границы и решения
 
@@ -146,12 +146,12 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 ### Журнал этапов — состояние на момент создания плана
 
-Статусы `не начат` относятся ко всем implementation этапам: файл только задаёт план. По мере работы добавлять отдельные commit IDs, воспроизводимые команды/результаты и ограничения; один этап может иметь несколько небольших commit rows.
+Для статусов этапов указывать отдельные commit IDs, воспроизводимые команды/результаты и ограничения; один этап может иметь несколько небольших commit rows.
 
 | Этап | Статус | Commit | Checks / evidence | Ограничения / открытые вопросы |
 |---|---|---|---|---|
 | 0. Baseline | Частично выполнен | `e2d8312`, `670d347`, `0992d6c`, `1090683` + итоговая запись; подробности в `docs/migration/spring-baseline/BASELINE.md` | Inventory, all-module dependency trees, effective POM, JS 29/29, credential 2/2, packaged WAR smoke 2 cycles pass, final clean reactor 279 tests, 0 failures/errors/skipped (Checkstyle disabled due existing parser failure). Earlier targeted HTTP rerun 7/8 preceded deletion of its obsolete failing test; TopSongs/SimilarSongs after cookie assertion removal 2/2. | PostgreSQL/MySQL/MariaDB, Docker and external deployment variants are unavailable in this environment; baseline remains partial for those matrices. |
-| 1. Скелет graph + первый срез | Не начат | — | Не запускались | Выбрать первую subsystem срез; не создавать копии Spring singleton services. |
+| 1. Скелет graph + первый срез | Первый config/context срез выполнен; этап продолжается | После коммита | `RuntimeConfiguration` и `RuntimeCompositionRoot` добавлены; `KtorConfiguration` направляет существующий health `StatusAggregator` через root. `RuntimeCompositionRootTest` — 4/4; `ServerHealthIntegrationTest` — 1/1. Проверены plain-Java config и реальная Spring→health adapter→Ktor HTTP цепочка. `git diff --check` прошёл. | Это начальный срез composition root, а не перенос всего графа. Spring остаётся; дальше добавлять только по одной подсистеме, без создания копий services/jobs/caches/security. |
 | 2. Utilities | Не начат | — | Не запускались | Validation provider и exception map требуют отдельной инвентаризации. |
 | 3. Config/logging | Не начат | — | Не запускались | Сохранить Boot adapter до stage 12; precedence подтвердить тестами. |
 | 4. JDBC/DAO transactions | Не начат | — | Не запускались | AspectJ weaving пока нужен; доказать границы на каждой DB. |
@@ -164,7 +164,7 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 | 15. Kotlin rewrite, M3 | Не начат | — | Не запускались | Не prerequisite для M1 или M2. |
 | M1 / M2 / M3 gates | Не достигнуты | — | Не запускались | Документ является только планом. |
 
-**Первый рекомендуемый implementation step:** этап 0 без изменений runtime: полный scan dependency graph и resource/JSP/build metadata, baseline commands с журналом окружения/ограничений, затем минимальные HTTP, DAO/transaction, auth/password, scheduler/cache, DB-upgrade и shutdown suites. Первый кодовый срез этапа 1 — нейтральный composition-root skeleton и одна выбранная subsystem, адаптированные на те же существующие singleton instances до их явного переноса.
+**Первый срез этапа 1:** нейтральные `RuntimeConfiguration`/`RuntimeCompositionRoot` подключены к одному Spring health-status-order adapter и проверены unit плюс HTTP integration тестами. Следующие slices должны добавлять в этот root только по одной необходимой подсистеме и переиспользовать существующие singleton instances.
 
 ## 6. Основание и связанные аудиты
 
