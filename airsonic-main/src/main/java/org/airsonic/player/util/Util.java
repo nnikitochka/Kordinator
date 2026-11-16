@@ -9,9 +9,6 @@ import com.google.common.primitives.Ints;
 import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.util.UriComponentsBuilder;
-
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
@@ -107,18 +104,47 @@ public final class Util {
      * @return The associated anonymized URL
      */
     public static String getAnonymizedURLForRequest(HttpServletRequest request) {
-
         String url = getURLForRequest(request);
-        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(url);
-        MultiValueMap<String, String> components = builder.build().getQueryParams();
+        int fragmentStart = url.indexOf('#');
+        String fragment = fragmentStart < 0 ? "" : url.substring(fragmentStart);
+        String urlWithoutFragment = fragmentStart < 0 ? url : url.substring(0, fragmentStart);
+        int queryStart = urlWithoutFragment.indexOf('?');
+        if (queryStart < 0) {
+            // Spring's lenient parser drops an incomplete IPv6 authority this way.
+            if (urlWithoutFragment.matches("(?i)^https?://\\[[^]]*$")) return urlWithoutFragment.substring(0, urlWithoutFragment.indexOf('[')) + "[]" + fragment;
+            return url;
+        }
 
-        // Subsonic REST API authentication (see RESTRequestParameterProcessingFilter)
-        if (components.containsKey("p")) builder.replaceQueryParam("p", URL_SENSITIVE_REPLACEMENT_STRING);  // Cleartext password
-        if (components.containsKey("t")) builder.replaceQueryParam("t", URL_SENSITIVE_REPLACEMENT_STRING);  // Token
-        if (components.containsKey("s")) builder.replaceQueryParam("s", URL_SENSITIVE_REPLACEMENT_STRING);  // Salt
-        if (components.containsKey("u")) builder.replaceQueryParam("u", URL_SENSITIVE_REPLACEMENT_STRING);  // Username
+        String query = urlWithoutFragment.substring(queryStart + 1);
+        if (query.isEmpty()) return url;
+        Map<String, List<String>> queryParameters = new LinkedHashMap<>();
+        for (String parameter : query.split("&")) {
+            if (parameter.isEmpty()) continue;
+            int equals = parameter.indexOf('=');
+            String name = equals < 0 ? parameter : parameter.substring(0, equals);
+            String value = equals < 0 ? "" : parameter.substring(equals + 1);
+            queryParameters.computeIfAbsent(name, ignored -> new ArrayList<>()).add(value);
+        }
 
-        return builder.build().toUriString();
+        // Subsonic REST API authentication (see RESTRequestParameterProcessingFilter).
+        // replaceQueryParam removes all values and appends one replacement at the end.
+        for (String sensitiveName : List.of("p", "t", "s", "u")) {
+            if (queryParameters.containsKey(sensitiveName)) {
+                queryParameters.remove(sensitiveName);
+                queryParameters.put(sensitiveName, List.of(URL_SENSITIVE_REPLACEMENT_STRING));
+            }
+        }
+
+        StringBuilder anonymized = new StringBuilder(urlWithoutFragment.substring(0, queryStart)).append('?');
+        boolean first = true;
+        for (Map.Entry<String, List<String>> parameter : queryParameters.entrySet()) {
+            for (String value : parameter.getValue()) {
+                if (!first) anonymized.append('&');
+                first = false;
+                anonymized.append(parameter.getKey()).append('=').append(value);
+            }
+        }
+        return anonymized.append(fragment).toString();
     }
 
     /**

@@ -4,13 +4,69 @@ import org.airsonic.player.domain.MediaLibraryStatistics;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
+import java.lang.reflect.Proxy;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import static org.junit.Assert.*;
 
 public class UtilTest {
+
+    private HttpServletRequest request(String url, String query) {
+        return (HttpServletRequest) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{HttpServletRequest.class}, (proxy, method, args) -> {
+                    if (method.getName().equals("getRequestURL")) return new StringBuffer(url);
+                    if (method.getName().equals("getQueryString")) return query;
+                    if (method.getName().equals("toString")) return "request";
+                    if (method.getName().equals("hashCode")) return System.identityHashCode(proxy);
+                    if (method.getName().equals("equals")) return proxy == args[0];
+                    return null;
+                });
+    }
+
+    @Test
+    public void anonymizedUrlReplacesSensitiveValuesAndPreservesOtherQueryData() {
+        assertEquals("https://example.test/path?x=keep&p=<hidden>&t=<hidden>&s=<hidden>&u=<hidden>",
+                Util.getAnonymizedURLForRequest(request("https://example.test/path", "p=secret&t=token&s=salt&u=user&x=keep")));
+    }
+
+    @Test
+    public void anonymizedUrlPreservesEncodedValuesAndReservedCharacters() {
+        assertEquals("https://example.test/a%20b?x=a%2Bb%2Fc%3Dd%26e%3Df&empty=&p=<hidden>",
+                Util.getAnonymizedURLForRequest(request("https://example.test/a%20b", "p=a%2Fb&x=a%2Bb%2Fc%3Dd%26e%3Df&empty=")));
+    }
+
+    @Test
+    public void anonymizedUrlReplacesEveryDuplicateSensitiveValue() {
+        assertEquals("https://example.test/path?x=1&x=2&p=<hidden>",
+                Util.getAnonymizedURLForRequest(request("https://example.test/path", "p=one&p=two&x=1&x=2")));
+    }
+
+    @Test
+    public void anonymizedUrlWithoutQueryHasNoQuestionMark() {
+        assertEquals("https://example.test/path", Util.getAnonymizedURLForRequest(request("https://example.test/path", null)));
+        assertEquals("https://example.test/path", Util.getAnonymizedURLForRequest(request("https://example.test/path", "")));
+    }
+
+    @Test
+    public void anonymizedUrlMalformedQueryValueIsPreservedUnlessSensitive() {
+        assertEquals("https://example.test/path?x=%ZZ&p=<hidden>",
+                Util.getAnonymizedURLForRequest(request("https://example.test/path", "x=%ZZ&p=%ZZ")));
+    }
+
+    @Test
+    public void anonymizedUrlOnlyMatchesLiteralSensitiveParameterNames() {
+        assertEquals("https://example.test/path?%70=encoded-key&p=<hidden>",
+                Util.getAnonymizedURLForRequest(request("https://example.test/path", "%70=encoded-key&p=value")));
+    }
+
+    @Test
+    public void anonymizedUrlMalformedAuthorityIsReturnedAsSpringParsesIt() {
+        assertEquals("http://[]", Util.getAnonymizedURLForRequest(request("http://[::1", null)));
+    }
 
     @Test
     public void objectToStringMapNull() {
