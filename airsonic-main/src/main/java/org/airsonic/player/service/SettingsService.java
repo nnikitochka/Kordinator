@@ -32,6 +32,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -277,22 +278,26 @@ public class SettingsService {
     }
 
     public static void migratePropertySourceKeys(Map<String, String> keyMaps, PropertySource<?> src, Map<String, Object> migrated) {
+        migrateKeys(keyMaps, src::getProperty, src.getName(), migrated);
+    }
+
+    public static void migrateKeys(Map<String, String> keyMaps, Function<String, Object> propertyLookup, String sourceName, Map<String, Object> migrated) {
         Map<String, Object> temp = new HashMap<>();
         // needs to be processed serially
         keyMaps.entrySet().stream()
                 // we're not migrating to null, i.e. trying to delete the property
                 .filter(e -> e.getValue() != null)
                 // ps has the property we're trying to migrate (either directly or migrated earlier within the chain)
-                .filter(e -> StringUtils.isNotBlank(Optional.ofNullable(src.getProperty(e.getKey())).map(Object::toString).orElse(temp.getOrDefault(e.getKey(), "").toString())))
+                .filter(e -> StringUtils.isNotBlank(Optional.ofNullable(propertyLookup.apply(e.getKey())).map(Object::toString).orElse(temp.getOrDefault(e.getKey(), "").toString())))
                 // we're not migrating to a property that is already occupied
-                .filter(e -> StringUtils.isBlank(Optional.ofNullable(src.getProperty(e.getValue())).map(Object::toString).orElse(temp.getOrDefault(e.getValue(), "").toString())))
+                .filter(e -> StringUtils.isBlank(Optional.ofNullable(propertyLookup.apply(e.getValue())).map(Object::toString).orElse(temp.getOrDefault(e.getValue(), "").toString())))
                 .forEach(e -> {
-                    Object val = Optional.ofNullable(src.getProperty(e.getKey())).orElse(temp.get(e.getKey()));
+                    Object val = Optional.ofNullable(propertyLookup.apply(e.getKey())).orElse(temp.get(e.getKey()));
                     temp.put(e.getValue(), val);
                     if (migrated.containsKey(e.getValue())) {
-                        LOG.info("Skipping migrating property [{}] to [{}] in {} (already migrated)", e.getKey(), e.getValue(), src.getName());
+                        LOG.info("Skipping migrating property [{}] to [{}] in {} (already migrated)", e.getKey(), e.getValue(), sourceName);
                     } else {
-                        LOG.info("Migrating property [{}] to [{}] in {}", e.getKey(), e.getValue(), src.getName());
+                        LOG.info("Migrating property [{}] to [{}] in {}", e.getKey(), e.getValue(), sourceName);
                         migrated.put(e.getValue(), val);
                     }
                 });

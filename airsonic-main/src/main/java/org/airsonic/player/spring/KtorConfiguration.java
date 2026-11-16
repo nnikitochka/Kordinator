@@ -160,11 +160,8 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public RuntimeCompositionRoot runtimeCompositionRoot(
-            @org.springframework.beans.factory.annotation.Value("${management.endpoint.health.status.order:"
-                    + org.airsonic.player.runtime.RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER + "}")
-            String order) {
-        return new RuntimeCompositionRoot(order);
+    public RuntimeCompositionRoot runtimeCompositionRoot(org.springframework.core.env.Environment env) {
+        return new RuntimeCompositionRoot(org.airsonic.player.runtime.RuntimeConfigurationLoader.fromSpringEnvironment(env));
     }
 
     @Bean

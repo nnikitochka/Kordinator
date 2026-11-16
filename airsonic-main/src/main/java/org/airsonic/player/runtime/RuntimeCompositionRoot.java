@@ -13,6 +13,10 @@ public final class RuntimeCompositionRoot {
         this.configuration = new RuntimeConfiguration(healthStatusOrder);
     }
 
+    public RuntimeCompositionRoot(RuntimeConfiguration configuration) {
+        this.configuration = java.util.Objects.requireNonNull(configuration, "configuration");
+    }
+
     public RuntimeConfiguration getConfiguration() {
         return configuration;
     }
