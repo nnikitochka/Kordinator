@@ -92,6 +92,34 @@ public class LiveQueueIntegrationTest {
         assertFalse(body(send(browser, "/rest/livePlayQueue", "f=json&action=players", csrf))
                 .path("livePlayQueue").path("player").toString().contains("Renamed polling player"));
     }
+    @Test public void liveQueueChecksFolderRightsForOwnedPlayer() throws Exception {
+        List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
+        UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
+        Player player = new Player();
+        try {
+            int accessible = files.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId()).getId();
+            int inaccessible = files.getMediaFile("_DIR_ chrome hoof - 2004", library.get(1).getId()).getId();
+            User listener = new User("live-queue-restricted", null);
+            listener.setRoles(java.util.Set.of(User.Role.STREAM));
+            security.createUser(listener, "secret", "test");
+            folders.setMusicFoldersForUser(listener.getUsername(), java.util.Set.of(library.get(0).getId()));
+            player.setUsername(listener.getUsername());
+            players.createPlayer(player);
+
+            HttpClient browser = client();
+            String csrf = login(browser, listener.getUsername(), "secret");
+            String prefix = "f=json&c=airsonic-web&playerId=" + player.getId();
+            assertEquals("ok", body(send(browser, "/rest/livePlayQueue", prefix + "&action=play%2Fmediafile&id=" + accessible, csrf))
+                    .path("status").asText());
+            JsonNode denied = body(send(browser, "/rest/livePlayQueue", prefix + "&action=play%2Fmediafile&id=" + inaccessible, csrf));
+            assertEquals("failed", denied.path("status").asText());
+            assertEquals(50, denied.path("error").path("code").asInt());
+        } finally {
+            if (player.getId() != null) players.removePlayerById(player.getId());
+            ScanningTestUtils.after(cleanup, folders);
+            folders.expunge();
+        }
+    }
     @Test public void playsAndEditsRealMediaQueue() throws Exception {
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
         UUID cleanup = ScanningTestUtils.before(library, folders, scanner);

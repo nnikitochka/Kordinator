@@ -11,6 +11,7 @@ import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.error.ErrorCode
 import org.airsonic.player.domain.PlayQueue
 import org.airsonic.player.domain.Player
+import org.airsonic.player.security.CallerContext
 import org.airsonic.player.service.PlayQueueService
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.PlaylistService
@@ -24,7 +25,7 @@ import org.airsonic.player.controller.rest.toWebsiteEntry
 import kotlin.coroutines.cancellation.CancellationException
 
 class LiveQueueController(private val service: PlayQueueService, private val writer: JAXBWriter, private val media: MediaFileService, private val playlists: PlaylistService, private val security: SecurityService, private val queues: PlayQueueDao, private val players: PlayerService) {
-    data class Request(val player: Player?, val params: Parameters, val username: String)
+    data class Request(val player: Player?, val params: Parameters, val username: String, val callerContext: CallerContext)
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
         PATHS.forEach { path -> root.post(path) { respond(call, request(call)) } }
@@ -54,20 +55,20 @@ class LiveQueueController(private val service: PlayQueueService, private val wri
                 val action = p["action"]
                 if (action in setOf("play/mediafile", "play/topsongs", "play/random", "play/similar", "add")) {
                     val ids = if (action == "add") indices() else listOf(integer("id"))
-                    if (ids.isEmpty() || ids.any { id -> media.getMediaFile(id)?.let { !security.isFolderAccessAllowed(it, player.username) } ?: true }) {
+                    if (ids.isEmpty() || ids.any { id -> media.getMediaFile(id)?.let { !security.isFolderAccessAllowed(it, request.callerContext) } ?: true }) {
                         throw SecurityException("Media access denied")
                     }
                 }
                 if (action == "play/saved") {
                     val ids = queues.getPlayQueue(player.username)?.mediaFileIds ?: emptyList()
-                    if (ids.any { id -> media.getMediaFile(id)?.let { !security.isFolderAccessAllowed(it, player.username) } ?: false }) {
+                    if (ids.any { id -> media.getMediaFile(id)?.let { !security.isFolderAccessAllowed(it, request.callerContext) } ?: false }) {
                         throw SecurityException("Media access denied")
                     }
                 }
                 if (action in setOf("play/playlist", "add/playlist")) {
                     val playlist = playlists.getPlaylist(integer("id"))
                     if (playlist == null || !playlists.isReadAllowed(playlist, player.username)) throw SecurityException("Playlist access denied")
-                    if (playlists.getFilesInPlaylist(playlist.id).any { !security.isFolderAccessAllowed(it, player.username) }) throw SecurityException("Media access denied")
+                    if (playlists.getFilesInPlaylist(playlist.id).any { !security.isFolderAccessAllowed(it, request.callerContext) }) throw SecurityException("Media access denied")
                 }
                 val size = player.playQueue.size()
                 when (action) {

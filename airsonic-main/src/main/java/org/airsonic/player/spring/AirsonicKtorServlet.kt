@@ -1826,7 +1826,7 @@ class AirsonicKtorServlet(
             val username = requireNotNull(securityService.getCurrentUsername(request))
             val player = request.getParameter("playerId")?.toIntOrNull()?.let { playerService.getPlayerById(it) }
             request.setAttribute(LIVE_QUEUE_REQUEST, LiveQueueController.Request(
-                player?.takeIf { it.username == username }, parameters(request), username))
+                player?.takeIf { it.username == username }, parameters(request), username, callerContextAdapter.fromRequest(request)))
         } else if (path in StatisticsController.PATHS) {
             requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(STATISTICS_REQUEST, StatisticsController.Request(parameters(request), localeResolver.resolveLocale(request)))
