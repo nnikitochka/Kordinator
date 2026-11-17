@@ -114,7 +114,7 @@ class SharesController(
         val available = when (source) {
             "id" -> {
                 val file = mediaFiles.getMediaFile(id) ?: return errorResponse(ErrorCode.NOT_FOUND, "Media not found")
-                if (!security.isFolderAccessAllowed(file, request.user.username))
+                if (!security.isFolderAccessAllowed(file, request.callerContext))
                     return errorResponse(ErrorCode.NOT_AUTHORIZED, "Music folder access denied")
                 if (p.contains("i")) mediaFiles.getChildrenOf(file, true, false, true) else listOf(file)
             }
@@ -139,7 +139,7 @@ class SharesController(
             available[index]
         } ?: available
         if (selected.isEmpty()) return errorResponse(ErrorCode.GENERIC, "The selection is empty")
-        if (selected.any { !security.isFolderAccessAllowed(it, request.user.username) })
+        if (selected.any { !security.isFolderAccessAllowed(it, request.callerContext) })
             return errorResponse(ErrorCode.NOT_AUTHORIZED, "Music folder access denied")
         val share = request.createShare(selected)
         if (description != null) {

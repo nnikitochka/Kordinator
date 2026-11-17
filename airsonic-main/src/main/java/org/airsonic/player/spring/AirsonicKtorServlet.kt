@@ -1578,7 +1578,7 @@ class AirsonicKtorServlet(
             val id = if (operation == "updateShare" || operation == "deleteShare")
                 mapRestId(request.getParameter("id")) else null
             val context = SecurityContextHolder.getContext()
-            request.setAttribute(SHARES_REQUEST, SharesRequest(parameters(request), user, player, id, { files ->
+            request.setAttribute(SHARES_REQUEST, SharesRequest(parameters(request), user, callerContextAdapter.fromRequest(request), player, id, { files ->
                 val previous = SecurityContextHolder.getContext()
                 try {
                     SecurityContextHolder.setContext(context)
