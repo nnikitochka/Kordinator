@@ -104,6 +104,10 @@ public class MediaFileCommentIntegrationTest {
             assertTrue(xml.body(), xml.body().contains("status=\"ok\""));
             assertEquals("", files.getMediaFile(album.getId()).getComment());
             assertTrue(xml.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
+            editor.setRoles(Set.of(User.Role.STREAM));
+            security.updateUser(editor);
+            assertEquals(50, body(send(browser, path, fields, csrf)).path("error").path("code").asInt());
+            assertEquals("", files.getMediaFile(album.getId()).getComment());
             assertEquals(405, send(browser, path, null, null).statusCode());
             for (String old : List.of("/setMusicFileInfo", "/setMusicFileInfo.view")) {
                 assertEquals(404, send(browser, old, fields, csrf).statusCode());
