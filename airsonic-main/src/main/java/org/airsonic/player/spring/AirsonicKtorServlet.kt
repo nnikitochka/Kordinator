@@ -1249,16 +1249,8 @@ class AirsonicKtorServlet(
                 override fun getParameter(name: String): String? =
                     if (name == "player") playerId?.toString() else super.getParameter(name)
             }
-            val securityContext = SecurityContextHolder.getContext()
-            request.setAttribute(SIMILAR_SONGS_REQUEST, SimilarSongsRequest(username, parameters(request), parsedId) {
-                val previousContext = SecurityContextHolder.getContext()
-                try {
-                    SecurityContextHolder.setContext(securityContext)
-                    playerService.getPlayer(playerRequest, response)
-                } finally {
-                    SecurityContextHolder.setContext(previousContext)
-                }
-            })
+            val player = if (parsedId == null) null else playerService.getPlayer(playerRequest, response)
+            request.setAttribute(SIMILAR_SONGS_REQUEST, SimilarSongsRequest(username, parameters(request), parsedId, player))
         } else if (path in ArtistInfoController.PATHS) {
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val username = requireNotNull(securityService.getCurrentUsername(request))

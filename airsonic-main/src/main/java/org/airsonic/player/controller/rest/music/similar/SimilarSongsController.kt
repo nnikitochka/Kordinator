@@ -66,7 +66,7 @@ class SimilarSongsController(
                 ?: return writer.createErrorResponse(ErrorCode.NOT_FOUND, "Media file not found.")
             lastFm.getSimilarSongs(mediaFile, count, folders.getMusicFoldersForUser(request.username))
         }
-        val player = request.player()
+        val player = requireNotNull(request.player) { "Player unavailable" }
         return writer.createResponse(true).apply {
             if (second) {
                 similarSongs2 = SimilarSongs2().apply {

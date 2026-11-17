@@ -7,5 +7,5 @@ data class SimilarSongsRequest(
     val username: String,
     val parameters: Parameters,
     val id: Int?,
-    val player: () -> Player,
+    val player: Player?,
 )
