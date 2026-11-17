@@ -329,7 +329,7 @@ public class KtorConfiguration {
                                 new MusicFolderSettingsController(new MusicFolderAdministrationService(settingsService, mediaScannerService, mediaFolderService, artistDao, albumDao, mediaFileDao, indexManager, playlistService, coverArtService), jaxbWriter),
                                 new PasswordController(securityService, jaxbWriter),
                                 new PlayQueueController(playQueueDao, mediaFileService, responseMapper, jaxbWriter),
-                                new IndexesController(settingsService, mediaFolderService, musicIndexService, musicIndexStateService, mediaFileDao, ratingService, responseMapper, jaxbWriter),
+                                new IndexesController(settingsService, mediaFolderService, musicIndexService, musicIndexStateService, mediaFileDao, ratingService, responseMapper, jaxbWriter, playerService),
                                 new SongsByGenreController(mediaFileDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new TopSongsController(lastFmService, mediaFolderService, responseMapper, jaxbWriter),
                                 new MusicDirectoryController(mediaFileService, mediaFileDao, securityService, ratingService, responseMapper, jaxbWriter, mediaDirectoryService),

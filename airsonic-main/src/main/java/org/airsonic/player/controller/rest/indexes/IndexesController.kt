@@ -13,6 +13,7 @@ import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.MusicIndexService
 import org.airsonic.player.service.MusicIndexStateService
+import org.airsonic.player.service.PlayerService
 import org.airsonic.player.service.RatingService
 import org.airsonic.player.service.SettingsService
 import org.slf4j.LoggerFactory
@@ -31,6 +32,7 @@ class IndexesController(
     private val ratings: RatingService,
     private val mapper: SubsonicResponseMapper,
     private val writer: JAXBWriter,
+    private val players: PlayerService,
 ) {
     fun routes(root: Route, request: (ApplicationCall) -> IndexesRequest) {
         with(root) {
@@ -89,7 +91,7 @@ class IndexesController(
                 }
             }
         }
-        val player = request.player()
+        val player = requireNotNull(players.getPlayerById(request.playerId)) { "Player unavailable" }
         content.singleSongs.forEach { indexes.child.add(mapper.child(player, it, request.username)) }
         result.indexes = indexes
         return result

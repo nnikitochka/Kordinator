@@ -1469,22 +1469,7 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST)
                 return
             }
-            val wrapped = object : HttpServletRequestWrapper(request) {
-                override fun getParameter(name: String): String? =
-                    if (name == "player") playerId?.toString() else super.getParameter(name)
-            }
-            val securityContext = SecurityContextHolder.getContext()
-            fun <T> withSecurityContext(action: () -> T): T {
-                val previousContext = SecurityContextHolder.getContext()
-                return try {
-                    SecurityContextHolder.setContext(securityContext)
-                    action()
-                } finally {
-                    SecurityContextHolder.setContext(previousContext)
-                }
-            }
-            request.setAttribute(INDEXES_REQUEST, IndexesRequest(username, parameters(request), folderId,
-                { withSecurityContext { playerService.getPlayer(wrapped, response) } }))
+            request.setAttribute(INDEXES_REQUEST, IndexesRequest(username, parameters(request), folderId, playerId))
         } else if (path in PlayQueueController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val username = requireNotNull(securityService.getCurrentUsername(request))
