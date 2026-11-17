@@ -4,6 +4,7 @@ import org.airsonic.player.ajax.tag.TagData;
 
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
+import org.airsonic.player.security.CallerContext;
 import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.metadata.MetaData;
@@ -38,13 +39,13 @@ public class TagEditService {
      * @return "UPDATED" if the new tags were updated, "SKIPPED" if no update was necessary.
      *         Otherwise, the error message is returned.
      */
-    public String setTags(TagData data, String username) {
+    public String setTags(TagData data, CallerContext callerContext) {
         try {
             MediaFile file = mediaFileService.getMediaFile(data.getMediaFileId());
             if (file == null) {
                 throw new IllegalArgumentException("Media file not found");
             }
-            if (!securityService.isFolderAccessAllowed(file, username)) {
+            if (!securityService.isFolderAccessAllowed(file, callerContext)) {
                 throw new SecurityException("Access denied");
             }
             if (!file.isFile()) {

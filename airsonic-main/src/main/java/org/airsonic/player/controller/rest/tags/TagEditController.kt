@@ -9,13 +9,14 @@ import io.ktor.server.routing.post
 import org.airsonic.player.ajax.tag.TagData
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.error.ErrorCode
+import org.airsonic.player.security.CallerContext
 import org.airsonic.player.service.TagEditService
 import org.slf4j.LoggerFactory
 import org.subsonic.restapi.TagEdit
 import kotlin.coroutines.cancellation.CancellationException
 
 class TagEditController(private val service: TagEditService, private val writer: JAXBWriter) {
-    data class Request(val username: String, val allowed: Boolean, val params: Parameters)
+    data class Request(val callerContext: CallerContext, val allowed: Boolean, val params: Parameters)
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
         with(root) { PATHS.forEach { path -> post(path) { respond(call, request(call)) } } }
@@ -37,7 +38,7 @@ class TagEditController(private val service: TagEditService, private val writer:
                         genre = p["genre"]; track = number("track"); year = number("year")
                     }
                     writer.createResponse(true).apply {
-                        tagEdit = TagEdit().apply { this.result = service.setTags(data, request.username) }
+                        tagEdit = TagEdit().apply { this.result = service.setTags(data, request.callerContext) }
                     }
                 }
             }

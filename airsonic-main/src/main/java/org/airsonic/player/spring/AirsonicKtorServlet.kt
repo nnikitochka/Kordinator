@@ -1800,7 +1800,7 @@ class AirsonicKtorServlet(
         } else if (path in TagEditController.PATHS) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(TAG_EDIT_REQUEST, TagEditController.Request(
-                user.username, user.isAdminRole || user.isCoverArtRole, parameters(request)))
+                callerContextAdapter.fromRequest(request), user.isAdminRole || user.isCoverArtRole, parameters(request)))
         } else if (path == TagEditorPageController.PATH) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(TagEditorPageController.REQUEST_ATTRIBUTE, TagEditorPageController.Request(
