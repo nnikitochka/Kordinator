@@ -10,8 +10,6 @@ import org.airsonic.player.security.SecurityRoutePolicy
 import org.airsonic.player.service.SettingsService
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.authority.SimpleGrantedAuthority
-import org.springframework.security.web.csrf.CsrfFilter
-import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository
 import org.springframework.util.AntPathMatcher
 import java.security.Principal
 
@@ -21,9 +19,7 @@ internal class KtorExternalSecurityPipeline(
     csrfRequestMatcher: org.springframework.security.web.util.matcher.RequestMatcher,
 ) {
     private val corsAdapter = KtorCorsAdapter()
-    private val csrfFilter = CsrfFilter(HttpSessionCsrfTokenRepository()).apply {
-        setRequireCsrfProtectionMatcher(csrfRequestMatcher)
-    }
+    private val csrfAdapter = KtorCsrfAdapter(csrfRequestMatcher)
     private val antPathMatcher = AntPathMatcher()
     private val jwtTokenVerifier = JwtTokenVerifier()
 
@@ -35,7 +31,7 @@ internal class KtorExternalSecurityPipeline(
 
         writeSecurityHeaders(request, response)
         corsAdapter.service(request, response, FilterChain { corsRequest, corsResponse ->
-            csrfFilter.doFilter(corsRequest, corsResponse, FilterChain { csrfRequest, csrfResponse ->
+            csrfAdapter.service(corsRequest as HttpServletRequest, corsResponse as HttpServletResponse, FilterChain { csrfRequest, csrfResponse ->
                 authenticate(
                     csrfRequest as HttpServletRequest,
                     csrfResponse as HttpServletResponse,
