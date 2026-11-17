@@ -24,6 +24,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -91,6 +92,13 @@ public class LoginPageIntegrationTest {
         assertNotEquals("Successful login must rotate the CSRF session id", sessionBeforeLogin, sessionId(browser));
         assertTrue(success.headers().firstValue("Location").orElseThrow().endsWith("/airsonic/index"));
         assertTrue(success.headers().allValues("Set-Cookie").toString().contains("remember-me"));
+        for (String method : List.of("GET", "HEAD", "TRACE", "OPTIONS")) {
+            HttpResponse<String> response = send(browser, "/rest/ping", method, null);
+            assertNotEquals(method + " must be exempt from CSRF checks", 403, response.statusCode());
+        }
+        assertNotEquals(403, post(browser, "/rest/getScanStatus.view", "f=json").statusCode());
+        assertNotEquals(403, post(browser, "/search", "query=airsonic").statusCode());
+        assertEquals(403, post(browser, "/rest/getScanStatus", "f=json").statusCode());
         assertEquals(200, send(browser, "/index", "GET", null).statusCode());
         HttpResponse<String> authenticatedLoginPage = send(browser, "/login.view", "GET", null);
         assertEquals(200, authenticatedLoginPage.statusCode());

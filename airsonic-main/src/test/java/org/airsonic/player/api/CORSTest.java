@@ -17,6 +17,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -81,6 +82,33 @@ public class CORSTest {
 
         assertEquals(200, response.statusCode());
         assertEquals("*", response.headers().firstValue("Access-Control-Allow-Origin").orElse(null));
+    }
+
+    @Test
+    public void corsPreflightMatchesEveryConfiguredPathFamily() throws Exception {
+        for (String path : List.of(
+                "/rest/ping",
+                "/stream/test",
+                "/hls/test",
+                "/captions/test",
+                "/ext/stream/test",
+                "/ext/hls/test",
+                "/ext/captions/test")) {
+            HttpRequest request = HttpRequest.newBuilder(uri(path))
+                    .timeout(REQUEST_TIMEOUT)
+                    .header("Origin", ORIGIN)
+                    .header("Access-Control-Request-Method", "GET")
+                    .method("OPTIONS", HttpRequest.BodyPublishers.noBody())
+                    .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            assertEquals("CORS preflight for " + path + " headers=" + response.headers().map() + " body=" + response.body(),
+                    200, response.statusCode());
+            assertEquals("CORS origin for " + path, "*",
+                    response.headers().firstValue("Access-Control-Allow-Origin").orElse(null));
+            assertTrue("CORS allowed methods for " + path,
+                    response.headers().firstValue("Access-Control-Allow-Methods").orElse("").contains("GET"));
+        }
     }
 
     private HttpResponse<String> get(String path) throws Exception {

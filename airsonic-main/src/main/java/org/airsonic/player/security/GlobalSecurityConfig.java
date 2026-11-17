@@ -41,7 +41,6 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 import org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import jakarta.servlet.DispatcherType;
 
@@ -236,6 +235,7 @@ public class GlobalSecurityConfig {
         http
                 // These Ktor prefix servlet mappings don't expose the prefix through MVC lookup paths.
                 .securityMatcher(AntPathRequestMatcher.antMatcher("/ext/**"))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.requireCsrfProtectionMatcher(csrfSecurityRequestMatcher))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(authorize -> authorize
@@ -324,14 +324,22 @@ public class GlobalSecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Collections.singletonList("*"));
         configuration.setAllowedMethods(Collections.singletonList("*"));
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/rest/**", configuration);
-        source.registerCorsConfiguration("/stream/**", configuration);
-        source.registerCorsConfiguration("/hls**", configuration);
-        source.registerCorsConfiguration("/captions**", configuration);
-        source.registerCorsConfiguration("/ext/stream/**", configuration);
-        source.registerCorsConfiguration("/ext/hls**", configuration);
-        source.registerCorsConfiguration("/ext/captions**", configuration);
-        return source;
+        return request -> {
+            String contextPath = request.getContextPath();
+            String requestUri = request.getRequestURI();
+            String applicationPath = requestUri.startsWith(contextPath)
+                    ? requestUri.substring(contextPath.length()) : requestUri;
+            return isCorsPath(applicationPath) ? configuration : null;
+        };
+    }
+
+    private static boolean isCorsPath(String path) {
+        return path.equals("/rest") || path.startsWith("/rest/")
+                || path.equals("/stream") || path.startsWith("/stream/")
+                || path.startsWith("/hls")
+                || path.startsWith("/captions")
+                || path.equals("/ext/stream") || path.startsWith("/ext/stream/")
+                || path.startsWith("/ext/hls")
+                || path.startsWith("/ext/captions");
     }
 }
