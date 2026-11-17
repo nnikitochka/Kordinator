@@ -1850,7 +1850,7 @@ class AirsonicKtorServlet(
         } else if (path == TagEditorPageController.PATH) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(TagEditorPageController.REQUEST_ATTRIBUTE, TagEditorPageController.Request(
-                user.username, request.getParameter("id")?.toIntOrNull(), user.isAdminRole || user.isCoverArtRole))
+                user.username, callerContextAdapter.fromRequest(request), request.getParameter("id")?.toIntOrNull(), user.isAdminRole || user.isCoverArtRole))
         } else if (path in CoverArtActionsController.PATHS) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(COVER_ACTIONS_REQUEST, CoverArtActionsController.Request(

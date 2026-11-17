@@ -10,6 +10,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.head
+import org.airsonic.player.security.CallerContext
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.SecurityService
@@ -24,7 +25,7 @@ class TagEditorPageController(
     private val security: SecurityService,
     private val json: ObjectMapper,
 ) {
-    data class Request(val username: String, val id: Int?, val allowed: Boolean)
+    data class Request(val username: String, val callerContext: CallerContext, val id: Int?, val allowed: Boolean)
 
     data class Song(
         val id: Int,
@@ -56,11 +57,11 @@ class TagEditorPageController(
         }
     }
 
-    fun page(username: String, allowed: Boolean, id: Int): PageData {
+    fun page(username: String, callerContext: CallerContext, allowed: Boolean, id: Int): PageData {
         if (!allowed) throw SecurityException("Tag editing permission required")
         val directory = mediaFiles.getMediaFile(id) ?: throw NoSuchElementException("Media file not found")
         if (!directory.isDirectory) throw IllegalArgumentException("Tag editor requires a directory")
-        if (!security.isFolderAccessAllowed(directory, username) || folders.getMusicFoldersForUser(username).none { it.id == directory.folderId }) {
+        if (!security.isFolderAccessAllowed(directory, callerContext) || folders.getMusicFoldersForUser(username).none { it.id == directory.folderId }) {
             throw SecurityException("Tag editing access denied")
         }
         val songs = mediaFiles.getChildrenOf(directory, true, false, true, false).mapIndexed { index, file ->
@@ -94,7 +95,7 @@ class TagEditorPageController(
             return
         }
         val data = try {
-            page(request.username, request.allowed, id)
+            page(request.username, request.callerContext, request.allowed, id)
         } catch (_: NoSuchElementException) {
             call.respond(HttpStatusCode.NotFound)
             return
