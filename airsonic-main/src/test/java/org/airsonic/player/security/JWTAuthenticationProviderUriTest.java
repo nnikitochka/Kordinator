@@ -5,7 +5,6 @@ import com.auth0.jwt.algorithms.Algorithm;
 import org.airsonic.player.service.JWTSecurityService;
 import org.junit.Test;
 
-import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.Date;
 
@@ -64,9 +63,7 @@ public class JWTAuthenticationProviderUriTest {
         assertTrue(checked[0]);
     }
 
-    private static boolean roughlyEqual(String expected, String requested) throws Exception {
-        Method method = JWTAuthenticationProvider.class.getDeclaredMethod("roughlyEqual", String.class, String.class);
-        method.setAccessible(true);
-        return (boolean) method.invoke(null, expected, requested);
+    private static boolean roughlyEqual(String expected, String requested) {
+        return JwtTokenVerifier.roughlyEqual(expected, requested);
     }
 }
