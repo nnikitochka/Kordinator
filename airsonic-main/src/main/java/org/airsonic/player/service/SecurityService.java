@@ -8,6 +8,7 @@ import org.airsonic.player.domain.UserCredential;
 import org.airsonic.player.domain.UserCredential.App;
 import org.airsonic.player.security.GlobalSecurityConfig;
 import org.airsonic.player.security.CallerContext;
+import org.airsonic.player.security.AuthorizationPolicy;
 import org.airsonic.player.security.PasswordDecoder;
 import org.airsonic.player.security.SpringUserDetailsAdapter;
 import org.airsonic.player.security.UserIdentity;
@@ -58,6 +59,7 @@ public class SecurityService implements UserDetailsService {
     private SettingsService settingsService;
     private final MediaFolderService mediaFolderService;
     private final Cache<String, User> userCache;
+    private final AuthorizationPolicy authorizationPolicy = new AuthorizationPolicy();
 
     public SecurityService(UserDao userDao, SettingsService settingsService, MediaFolderService mediaFolderService) {
         this(userDao, settingsService, mediaFolderService, null);
@@ -306,6 +308,10 @@ public class SecurityService implements UserDetailsService {
         return user != null && user.isAdminRole();
     }
 
+    public boolean isAdmin(CallerContext caller) {
+        return authorizationPolicy.isAdmin(caller);
+    }
+
     public CallerContext createCallerContext(String username, boolean authenticated) {
         User user = getUserByName(username);
         if (user == null) {
@@ -432,6 +438,10 @@ public class SecurityService implements UserDetailsService {
     public boolean isFolderAccessAllowed(MediaFile file, String username) {
         return mediaFolderService.getMusicFoldersForUser(username).parallelStream()
                 .anyMatch(musicFolder -> musicFolder.getId().equals(file.getFolderId()));
+    }
+
+    public boolean isFolderAccessAllowed(MediaFile file, CallerContext caller) {
+        return authorizationPolicy.hasFolderAccess(caller, file);
     }
 
     public static boolean isFileInFolder(Path file, Path folder) {
