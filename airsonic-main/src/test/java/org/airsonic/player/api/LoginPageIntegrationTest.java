@@ -14,6 +14,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.net.CookieManager;
 import java.net.CookiePolicy;
+import java.net.HttpCookie;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -81,11 +82,13 @@ public class LoginPageIntegrationTest {
 
         HttpResponse<String> loginPage = send(browser, "/login", "GET", null);
         String csrf = csrf(loginPage.body());
+        String sessionBeforeLogin = sessionId(browser);
         HttpResponse<String> missingCsrf = post(browser(), "/login", "j_username=admin&j_password=admin");
         assertEquals(403, missingCsrf.statusCode());
 
         HttpResponse<String> success = post(browser, "/login", credentials("admin", "admin", csrf) + "&remember-me=on");
         assertEquals(302, success.statusCode());
+        assertNotEquals("Successful login must rotate the CSRF session id", sessionBeforeLogin, sessionId(browser));
         assertTrue(success.headers().firstValue("Location").orElseThrow().endsWith("/airsonic/index"));
         assertTrue(success.headers().allValues("Set-Cookie").toString().contains("remember-me"));
         assertEquals(200, send(browser, "/index", "GET", null).statusCode());
@@ -147,6 +150,15 @@ public class LoginPageIntegrationTest {
         Matcher matcher = CSRF.matcher(html);
         assertTrue(html, matcher.find());
         return matcher.group(1);
+    }
+
+    private String sessionId(HttpClient browser) {
+        CookieManager cookies = (CookieManager) browser.cookieHandler().orElseThrow();
+        return cookies.getCookieStore().getCookies().stream()
+                .filter(cookie -> "JSESSIONID".equals(cookie.getName()))
+                .map(HttpCookie::getValue)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Expected JSESSIONID cookie"));
     }
 
     private String credentials(String username, String password, String csrf) {
