@@ -1349,9 +1349,10 @@ class AirsonicKtorServlet(
             val player = if (!user.isDownloadRole) null
                 else if (explicit != null) explicit.toIntOrNull()?.let { playerService.getPlayerById(it) }
                 else playerService.getPlayer(request, response, false, false)
+            val callerContext = callerContextAdapter.fromRequest(request)
             val webRequest = ServletWebRequest(request, response)
             request.setAttribute(WEBSITE_DOWNLOAD_REQUEST, DownloadRestController.WebsiteRequest(
-                user, player?.takeIf { it.username == user.username }, parameters(request),
+                user, callerContext, player?.takeIf { it.username == user.username }, parameters(request),
                 java.util.function.BiPredicate { tag, modified -> webRequest.checkNotModified(tag, modified) },
                 { response.status }))
         } else if (path in DownloadRestController.PATHS) {
@@ -1378,13 +1379,15 @@ class AirsonicKtorServlet(
             }
             val id = mapRestId(params["id"])?.takeIf { StringUtils.isNumeric(it) }?.let { Integer.valueOf(it) }
             val user = requireNotNull(securityService.getUserByName(request.userPrincipal.name))
+            val callerContext = callerContextAdapter.fromRequest(request)
             if (!user.isDownloadRole) {
                 request.setAttribute(DOWNLOAD_REQUEST, DownloadRequest(params, null, ErrorCode.NOT_AUTHORIZED,
                     "${user.username} is not authorized to download files."))
             } else {
                 try {
                     val player = playerService.getPlayer(wrapped, response, false, false)
-                    val download = downloads.prepare(user, player, Optional.ofNullable(id), playlist, playerId, indices?.filterNotNull())
+                    val download = downloads.prepare(user, callerContext, player, Optional.ofNullable(id), playlist,
+                        playerId, indices?.filterNotNull(), null)
                     if (download != null && ServletWebRequest(wrapped, response).checkNotModified(download.size.toString(), download.changed)) return
                     val disposition = download?.let { ContentDisposition.builder("attachment").filename(it.filename, StandardCharsets.UTF_8).build().toString() }
                     val type = download?.let { StringUtil.getMimeType(FilenameUtils.getExtension(it.filename)) }

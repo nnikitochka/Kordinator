@@ -8,6 +8,7 @@ import org.airsonic.player.io.PipeStreams.PipedOutputStream;
 import org.airsonic.player.util.FileUtil;
 import org.airsonic.player.util.LambdaUtils;
 import org.airsonic.player.util.StringUtil;
+import org.airsonic.player.security.CallerContext;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -50,6 +51,12 @@ public class DownloadService {
     /** Uses a validated selection snapshot so live queue or playlist edits cannot replace checked files. */
     public DownloadResponse prepare(User user, Player transferPlayer, Optional<Integer> id, Integer playlist,
             Integer player, List<Integer> indices, List<MediaFile> selection) throws IOException {
+        return prepare(user, securityService.createCallerContext(user.getUsername(), true), transferPlayer, id, playlist, player, indices, selection);
+    }
+
+    /** Uses the immutable request identity established at the servlet boundary. */
+    public DownloadResponse prepare(User user, CallerContext callerContext, Player transferPlayer, Optional<Integer> id,
+            Integer playlist, Integer player, List<Integer> indices, List<MediaFile> selection) throws IOException {
         String defaultDownloadName = null;
         DownloadResponse response = null;
 
@@ -65,7 +72,7 @@ public class DownloadService {
         Collection<Pair<Path, Integer>> additionalFiles = Collections.emptyList();
 
         if (mediaFile != null) {
-            if (!securityService.isFolderAccessAllowed(mediaFile, user.getUsername())) {
+            if (!securityService.isFolderAccessAllowed(mediaFile, callerContext)) {
                 throw new AccessDeniedException("Access to file " + mediaFile.getId() + " is forbidden for user " + user.getUsername());
             }
             if (mediaFile.isFile()) {

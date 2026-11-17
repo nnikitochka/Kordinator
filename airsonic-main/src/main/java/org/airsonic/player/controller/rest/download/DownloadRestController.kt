@@ -26,6 +26,7 @@ import org.airsonic.player.service.DownloadService
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.PlaylistService
 import org.airsonic.player.service.SecurityService
+import org.airsonic.player.security.CallerContext
 import org.airsonic.player.util.StringUtil
 import org.apache.commons.io.FilenameUtils
 import org.slf4j.LoggerFactory
@@ -43,7 +44,7 @@ class DownloadRestController(
     private val playlists: PlaylistService,
     private val security: SecurityService,
 ) {
-    data class WebsiteRequest(val user: User, val player: Player?, val parameters: Parameters,
+    data class WebsiteRequest(val user: User, val callerContext: CallerContext, val player: Player?, val parameters: Parameters,
                               val notModified: BiPredicate<String?, Long>, val conditionalStatus: () -> Int)
 
     fun routes(root: Route, request: (ApplicationCall) -> DownloadRequest, websiteRequest: (ApplicationCall) -> WebsiteRequest) {
@@ -89,7 +90,7 @@ class DownloadRestController(
         val files = when (source) {
             "id" -> {
                 val file = media.getMediaFile(id) ?: return fail(ErrorCode.NOT_FOUND, "Media not found")
-                if (!security.isFolderAccessAllowed(file, r.user.username)) return fail(ErrorCode.NOT_AUTHORIZED, "Music folder access denied")
+                if (!security.isFolderAccessAllowed(file, r.callerContext)) return fail(ErrorCode.NOT_AUTHORIZED, "Music folder access denied")
                 if (file.isFile) listOf(file) else media.getChildrenOf(file, true, false, true)
             }
             "playlist" -> {
@@ -104,9 +105,9 @@ class DownloadRestController(
                 ?: return fail(ErrorCode.GENERIC, "Invalid selection index")
         }
         val selected = indices?.map { files[it] } ?: files
-        if (selected.any { !security.isFolderAccessAllowed(it, r.user.username) })
+        if (selected.any { !security.isFolderAccessAllowed(it, r.callerContext) })
             return fail(ErrorCode.NOT_AUTHORIZED, "Music folder access denied")
-        val download = downloads.prepare(r.user, player, Optional.ofNullable(if (source == "id") id else null),
+        val download = downloads.prepare(r.user, r.callerContext, player, Optional.ofNullable(if (source == "id") id else null),
             if (source == "playlist") id else null, if (source == "player") id else null, indices, files)
             ?: return fail(ErrorCode.NOT_FOUND, "Download not found")
         val name = download.filename.filter { !it.isISOControl() }
