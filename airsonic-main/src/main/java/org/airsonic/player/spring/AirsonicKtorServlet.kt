@@ -1813,7 +1813,7 @@ class AirsonicKtorServlet(
             val player = if (explicit != null) explicit.toIntOrNull()?.let { playerService.getPlayerById(it) }
                 else playerService.getPlayer(request, response)
             request.setAttribute(QUEUE_EXPORT_REQUEST, LiveQueueExportController.Request(
-                player?.takeIf { it.username == username }, username,
+                player?.takeIf { it.username == username }, username, callerContextAdapter.fromRequest(request),
                 org.airsonic.player.service.NetworkService.getBaseUrl(request), parameters(request)))
         } else if (path == RandomQueueController.PATH && request.method == "POST") {
             val username = requireNotNull(securityService.getCurrentUsername(request))

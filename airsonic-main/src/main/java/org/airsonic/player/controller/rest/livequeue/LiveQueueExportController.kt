@@ -13,6 +13,7 @@ import kotlinx.coroutines.withContext
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.error.ErrorCode
 import org.airsonic.player.domain.Player
+import org.airsonic.player.security.CallerContext
 import org.airsonic.player.service.JWTSecurityService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.TranscodingService
@@ -26,7 +27,7 @@ class LiveQueueExportController(
     private val security: SecurityService,
     private val writer: JAXBWriter,
 ) {
-    data class Request(val player: Player?, val username: String, val baseUrl: String, val params: Parameters)
+    data class Request(val player: Player?, val username: String, val callerContext: CallerContext, val baseUrl: String, val params: Parameters)
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
         root.get(PATH) {
@@ -37,7 +38,7 @@ class LiveQueueExportController(
                     val player = r.player
                     if (player == null || player.username != r.username) throw SecurityException("Player access denied")
                     val files = synchronized(player.playQueue) { player.playQueue.files.toList() }
-                    if (files.any { !security.isFolderAccessAllowed(it, r.username) })
+                    if (files.any { !security.isFolderAccessAllowed(it, r.callerContext) })
                         throw SecurityException("Music folder access denied")
                     buildString {
                         if (player.m3uBomEnabled) append('\uFEFF')
