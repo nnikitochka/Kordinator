@@ -106,7 +106,7 @@ class MusicDirectoryController(
             paths.getOrPut(folder) { mutableListOf() }.add(raw.substring(colon + 1))
         }
         if (ids.isEmpty() && paths.isEmpty()) return writer.createErrorResponse(ErrorCode.MISSING_PARAMETER, "ID or folder path required")
-        val value = websiteDirectories.get(request.username, ids, paths)
+        val value = websiteDirectories.get(request.callerContext, ids, paths)
         val result = WebsiteDirectory()
         when (value) {
             is MediaFileDirectoryEntry -> {

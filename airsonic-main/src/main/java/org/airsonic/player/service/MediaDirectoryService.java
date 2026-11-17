@@ -5,6 +5,7 @@ import org.airsonic.player.ajax.media.MediaFileDirectoryEntry;
 import com.google.common.collect.ImmutableMap;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MediaFileComparator;
+import org.airsonic.player.security.CallerContext;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Service;
 
@@ -33,7 +34,8 @@ public class MediaDirectoryService {
         this.settingsService = settingsService;
     }
 
-    public Object get(String username, List<Integer> ids, Map<Integer, List<String>> paths) {
+    public Object get(CallerContext callerContext, List<Integer> ids, Map<Integer, List<String>> paths) {
+        String username = callerContext.getUsername();
         List<MediaFile> mediaFiles = getMediaFiles(ids, paths);
 
         if (mediaFiles.isEmpty()) {
@@ -50,13 +52,13 @@ public class MediaDirectoryService {
             return ImmutableMap.of("contentType", "home");
         }
 
-        if (!securityService.isFolderAccessAllowed(dir, username)) {
+        if (!securityService.isFolderAccessAllowed(dir, callerContext)) {
             return ImmutableMap.of("contentType", "accessDenied");
         }
 
         for (MediaFile selected : mediaFiles) {
             MediaFile selectedDir = selected.isFile() ? mediaFileService.getParentOf(selected) : selected;
-            if (selectedDir == null || !securityService.isFolderAccessAllowed(selectedDir, username)) {
+            if (selectedDir == null || !securityService.isFolderAccessAllowed(selectedDir, callerContext)) {
                 return ImmutableMap.of("contentType", "accessDenied");
             }
         }
