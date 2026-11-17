@@ -1261,16 +1261,8 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST)
                 return
             }
-            val securityContext = SecurityContextHolder.getContext()
-            request.setAttribute(ARTIST_INFO_REQUEST, ArtistInfoRequest(username, callerContextAdapter.fromRequest(request), parameters(request), parsedId) {
-                val previousContext = SecurityContextHolder.getContext()
-                try {
-                    SecurityContextHolder.setContext(securityContext)
-                    localeResolver.resolveLocale(request)
-                } finally {
-                    SecurityContextHolder.setContext(previousContext)
-                }
-            })
+            request.setAttribute(ARTIST_INFO_REQUEST, ArtistInfoRequest(username, callerContextAdapter.fromRequest(request),
+                parameters(request), parsedId, localeResolver.resolveLocale(username)))
         } else if (path in AlbumInfoController.PATHS) {
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val rawId = mapRestId(request.getParameter("id"))

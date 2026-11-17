@@ -73,7 +73,7 @@ class ArtistInfoController(
             val similar = lastFm.getSimilarArtists(artist, count, includeNotPresent, folders.getMusicFoldersForUser(request.username))
             val result = ArtistInfo2()
             similar.forEach { result.similarArtist.add(mapper.artist(ArtistID3(), it, request.username)) }
-            lastFm.getArtistBio(artist, request.locale())?.let { setBio(result, it) }
+            lastFm.getArtistBio(artist, request.locale)?.let { setBio(result, it) }
             writer.createResponse(true).apply { artistInfo2 = result }
         } else {
             val mediaFile = mediaFiles.getMediaFile(id)
@@ -90,7 +90,7 @@ class ArtistInfoController(
                     if (website) name = artist.name
                 })
             }
-            lastFm.getArtistBio(mediaFile, request.locale())?.let { setBio(result, it) }
+            lastFm.getArtistBio(mediaFile, request.locale)?.let { setBio(result, it) }
             writer.createResponse(true).apply {
                 artistInfo = result
                 if (website) {

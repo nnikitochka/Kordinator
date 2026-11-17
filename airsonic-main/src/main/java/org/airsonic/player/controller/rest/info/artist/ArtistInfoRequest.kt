@@ -9,5 +9,5 @@ data class ArtistInfoRequest(
     val callerContext: CallerContext,
     val parameters: Parameters,
     val id: Int?,
-    val locale: () -> Locale,
+    val locale: Locale,
 )
