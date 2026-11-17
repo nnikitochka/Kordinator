@@ -5,12 +5,11 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import org.airsonic.player.security.JWTAuthenticationToken
+import org.airsonic.player.security.JwtTokenVerifier
 import org.airsonic.player.security.SecurityRoutePolicy
-import org.slf4j.LoggerFactory
-import org.springframework.security.authentication.AuthenticationManager
-import org.springframework.security.authentication.InternalAuthenticationServiceException
+import org.airsonic.player.service.SettingsService
 import org.springframework.security.core.Authentication
-import org.springframework.security.core.AuthenticationException
+import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.web.csrf.CsrfFilter
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository
 import org.springframework.util.AntPathMatcher
@@ -20,7 +19,7 @@ import java.security.Principal
 
 /** Temporary servlet boundary adapter for the stateless external player routes. */
 internal class KtorExternalSecurityPipeline(
-    private val authenticationManager: AuthenticationManager,
+    private val settingsService: SettingsService,
     corsConfigurationSource: CorsConfigurationSource,
     csrfRequestMatcher: org.springframework.security.web.util.matcher.RequestMatcher,
 ) {
@@ -29,6 +28,7 @@ internal class KtorExternalSecurityPipeline(
         setRequireCsrfProtectionMatcher(csrfRequestMatcher)
     }
     private val antPathMatcher = AntPathMatcher()
+    private val jwtTokenVerifier = JwtTokenVerifier()
 
     fun service(request: HttpServletRequest, response: HttpServletResponse, terminal: FilterChain) {
         if (!isExternalPath(request.servletPath)) {
@@ -56,17 +56,21 @@ internal class KtorExternalSecurityPipeline(
         }
 
         val requestedPath = request.requestURI.substring(request.contextPath.length + 1) + "?" + request.queryString
-        val authentication = try {
-            authenticationManager.authenticate(JWTAuthenticationToken(null, rawToken, requestedPath))
-        } catch (failure: AuthenticationException) {
-            if (failure is InternalAuthenticationServiceException) {
-                LOG.error("An internal error occurred while trying to authenticate an external request.", failure)
-            }
+        val verification = jwtTokenVerifier.verifyRequest(settingsService.jwtKey, rawToken, requestedPath)
+        if (!verification.isVerified) {
             response.sendRedirect(request.contextPath + FAILURE_URL)
             return
         }
+        val token = verification.token
+        val authentication = JWTAuthenticationToken(
+            token.subject,
+            rawToken,
+            requestedPath,
+            JWT_AUTHORITIES,
+            token,
+        )
 
-        if (authentication == null || !authentication.isAuthenticated || !isAuthorizedForPath(request, authentication)) {
+        if (!authentication.isAuthenticated || !isAuthorizedForPath(request, authentication)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN)
             return
         }
@@ -111,6 +115,9 @@ internal class KtorExternalSecurityPipeline(
 
     private companion object {
         const val FAILURE_URL = "/login?error"
-        val LOG = LoggerFactory.getLogger(KtorExternalSecurityPipeline::class.java)
+        val JWT_AUTHORITIES = mutableListOf(
+            SimpleGrantedAuthority("IS_AUTHENTICATED_FULLY"),
+            SimpleGrantedAuthority("ROLE_TEMP"),
+        )
     }
 }
