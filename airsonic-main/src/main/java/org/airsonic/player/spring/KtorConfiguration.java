@@ -165,6 +165,27 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry(RuntimeCompositionRoot runtime) {
+        org.airsonic.player.runtime.LifecycleRegistry registry = runtime.getLifecycleRegistry();
+        Runtime.getRuntime().addShutdownHook(new Thread(registry::shutdown, "airsonic-lifecycle-shutdown"));
+        return registry;
+    }
+
+    @Bean(destroyMethod = "shutdown")
+    public TaskSchedulingService taskSchedulingService(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
+        TaskSchedulingService service = new TaskSchedulingService();
+        lifecycleRegistry.registerShutdown("taskSchedulingService", service);
+        return service;
+    }
+
+    @Bean(destroyMethod = "close")
+    public org.airsonic.player.service.PathWatcherService pathWatcherService(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) throws Exception {
+        org.airsonic.player.service.PathWatcherService service = new org.airsonic.player.service.PathWatcherService();
+        lifecycleRegistry.registerShutdown("pathWatcherService", service);
+        return service;
+    }
+
+    @Bean
     public org.springframework.boot.actuate.health.StatusAggregator serverHealthStatusAggregator(
             RuntimeCompositionRoot runtime) {
         return new org.springframework.boot.actuate.health.SimpleStatusAggregator(

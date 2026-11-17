@@ -3,10 +3,9 @@ package org.airsonic.player.service;
 import org.airsonic.player.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.nio.file.ClosedWatchServiceException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
@@ -25,8 +24,7 @@ import java.util.function.BiConsumer;
 
 import static java.util.stream.Collectors.toMap;
 
-@Service
-public class PathWatcherService {
+public class PathWatcherService implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(PathWatcherService.class);
 
     private final ExecutorService watcherThread = Executors.newSingleThreadExecutor(Util.getDaemonThreadfactory("path-watcher-thread-"));
@@ -37,9 +35,18 @@ public class PathWatcherService {
     private WatchService watchService;
     private final Runnable watcherTask = () -> {
         for (;;) {
+            if (Thread.currentThread().isInterrupted()) {
+                break;
+            }
             WatchKey key;
             try {
                 key = watchService.take();
+            } catch (ClosedWatchServiceException e) {
+                LOG.info("Watch service closed, exiting path watcher thread");
+                break;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
             } catch (Exception e) {
                 LOG.warn("Watch service unable to poll. Directory monitoring may be off", e);
                 continue;
@@ -116,4 +123,24 @@ public class PathWatcherService {
                 .collect(toMap(Map.Entry::getKey, e -> e.getValue().watchable().toString()));
     }
 
+    @Override
+    public void close() {
+        LOG.info("Closing PathWatcherService...");
+        for (WatchKey key : watchNames.values()) {
+            if (key != null) {
+                key.cancel();
+            }
+        }
+        watchNames.clear();
+        watchFunctions.clear();
+        try {
+            if (watchService != null) {
+                watchService.close();
+            }
+        } catch (IOException e) {
+            LOG.warn("Error closing watch service", e);
+        }
+        watcherThread.shutdownNow();
+        watcherFunctionThreadPool.shutdownNow();
+    }
 }
