@@ -19,6 +19,8 @@ import io.ktor.utils.io.InternalAPI
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
+import jakarta.servlet.FilterChain
+import org.airsonic.player.monitor.MetricsManager
 import org.airsonic.player.controller.rest.stream.StreamRestController
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.server.ServerInfoController
@@ -247,9 +249,11 @@ class AirsonicKtorServlet(
     private val jaxbWriter: JAXBWriter,
     private val errorProperties: org.springframework.boot.autoconfigure.web.ErrorProperties,
     private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
+    metricsManager: MetricsManager,
 ) : ServletApplicationEngine() {
     private val proxyRestController = ProxyRestController()
     private val callerContextAdapter = SpringCallerContextAdapter(securityService)
+    private val requestFilterPipeline = KtorServletFilterPipeline(metricsManager)
 
     @OptIn(InternalAPI::class)
     override fun init() {
@@ -531,6 +535,12 @@ class AirsonicKtorServlet(
     }
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
+        requestFilterPipeline.service(request, response, FilterChain { filteredRequest, filteredResponse ->
+            serviceRequest(filteredRequest as HttpServletRequest, filteredResponse as HttpServletResponse)
+        })
+    }
+
+    private fun serviceRequest(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
         val errorDispatch = path == errorProperties.path &&
             (request.dispatcherType == jakarta.servlet.DispatcherType.ERROR ||

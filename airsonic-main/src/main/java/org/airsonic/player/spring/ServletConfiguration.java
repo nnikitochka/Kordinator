@@ -1,13 +1,5 @@
 package org.airsonic.player.spring;
 
-import org.airsonic.player.filter.BootstrapVerificationFilter;
-import org.airsonic.player.filter.MetricsFilter;
-import org.airsonic.player.filter.ParameterDecodingFilter;
-import org.airsonic.player.filter.RESTFilter;
-import org.airsonic.player.filter.RequestEncodingFilter;
-import org.airsonic.player.filter.RequestEncodingPolicy;
-import org.airsonic.player.filter.ResponseHeaderFilter;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,9 +7,6 @@ import org.springframework.validation.Validator;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
-import jakarta.servlet.Filter;
-
 
 @Configuration
 public class ServletConfiguration implements WebMvcConfigurer {
@@ -30,113 +19,11 @@ public class ServletConfiguration implements WebMvcConfigurer {
         return new LegacyViewSuffixHandlerMapping();
     }
 
-    @Bean
-    public FilterRegistrationBean<Filter> bootstrapVerificationFilterRegistration() {
-        FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>();
-        registration.setFilter(bootstrapVerificationFilter());
-        registration.addUrlPatterns("/*");
-        registration.setName("BootstrapVerificationFilter");
-        registration.setOrder(1);
-        return registration;
-    }
-
-    @Bean
-    public Filter bootstrapVerificationFilter() {
-        return new BootstrapVerificationFilter();
-    }
-
-    @Bean
-    public FilterRegistrationBean<Filter> parameterDecodingFilterRegistration() {
-        FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>(parameterDecodingFilter());
-        registration.addUrlPatterns("/*");
-        registration.setName("ParameterDecodingFilter");
-        registration.setOrder(2);
-        return registration;
-    }
-
-    @Bean
-    public Filter parameterDecodingFilter() {
-        return new ParameterDecodingFilter();
-    }
-
-    @Bean
-    public FilterRegistrationBean<Filter> restFilterRegistration() {
-        FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>(restFilter());
-        registration.addUrlPatterns("/rest/*");
-        registration.setName("RESTFilter");
-        registration.setOrder(3);
-        return registration;
-    }
-
-    @Bean
-    public Filter restFilter() {
-        return new RESTFilter();
-    }
-
-    @Bean
-    public FilterRegistrationBean<Filter> requestEncodingFilterRegistration() {
-        FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>(requestEncodingFilter());
-        registration.addUrlPatterns("/*");
-        registration.addInitParameter("encoding", RequestEncodingPolicy.DEFAULT_ENCODING);
-        registration.setName("RequestEncodingFilter");
-        registration.setOrder(4);
-        return registration;
-    }
-
-    @Bean
-    public Filter requestEncodingFilter() {
-        return new RequestEncodingFilter();
-    }
-
-    @Bean
-    public FilterRegistrationBean<Filter> cacheFilterRegistration() {
-        FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>(cacheFilter());
-        registration.addUrlPatterns("/icons/*", "/style/*", "/script/*", "/icons/*", "/coverArt.view", "/avatar.view");
-        registration.addInitParameter("Cache-Control", "max-age=36000");
-        registration.setName("CacheFilter");
-        registration.setOrder(5);
-        return registration;
-    }
-
-    @Bean
-    public Filter cacheFilter() {
-        return new ResponseHeaderFilter();
-    }
-
-    @Bean
-    public FilterRegistrationBean<Filter> noCacheFilterRegistration() {
-        FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>(noCacheFilter());
-        registration.addUrlPatterns("/statusChart.view", "/userChart.view", "/playQueue.view", "/help.view", "/top.view", "/home.view");
-        registration.addInitParameter("Cache-Control", "no-cache, post-check=0, pre-check=0");
-        registration.addInitParameter("Pragma", "no-cache");
-        registration.addInitParameter("Expires", "Thu, 01 Dec 1994 16:00:00 GMT");
-        registration.setName("NoCacheFilter");
-        registration.setOrder(6);
-        return registration;
-    }
-
-    @Bean
-    public Filter noCacheFilter() {
-        return new ResponseHeaderFilter();
-    }
-
     @Bean(destroyMethod = "close")
     public org.airsonic.player.monitor.MetricsManager metricsManager(org.airsonic.player.runtime.RuntimeCompositionRoot runtime) {
         org.airsonic.player.monitor.MetricsManager manager = new org.airsonic.player.monitor.MetricsManager(runtime.getConfiguration());
         runtime.getLifecycleRegistry().registerShutdown("metricsManager", manager);
         return manager;
-    }
-
-    @Bean
-    public FilterRegistrationBean<Filter> metricsFilterRegistration(org.airsonic.player.monitor.MetricsManager metricsManager) {
-        FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>(metricsFilter(metricsManager));
-        registration.setOrder(7);
-        return registration;
-    }
-
-    @Bean
-    public Filter metricsFilter(org.airsonic.player.monitor.MetricsManager metricsManager) {
-        return new MetricsFilter(metricsManager);
     }
 
     private final MessageSource messageSource;

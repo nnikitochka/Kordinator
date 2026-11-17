@@ -12,14 +12,14 @@ import java.util.LinkedHashMap
  * @author Sindre Mehus
  * @version $Revision: 1.1 $ $Date: 2005/08/14 13:14:47 $
  */
-class ResponseHeaderFilter : Filter {
-    private var headers: StaticResponseHeaders? = null
+class ResponseHeaderFilter(initialHeaders: Map<String, String> = emptyMap()) : Filter {
+    private var headers = StaticResponseHeaders(initialHeaders)
 
     @Throws(IOException::class, ServletException::class)
     override fun doFilter(req: ServletRequest?, res: ServletResponse?, chain: FilterChain) {
         val response = res as HttpServletResponse
 
-        headers!!.apply(response::setHeader)
+        headers.apply(response::setHeader)
 
         // pass the request/response on
         chain.doFilter(req, response)
@@ -36,6 +36,6 @@ class ResponseHeaderFilter : Filter {
     }
 
     override fun destroy() {
-        headers = null
+        headers = StaticResponseHeaders(emptyMap())
     }
 }

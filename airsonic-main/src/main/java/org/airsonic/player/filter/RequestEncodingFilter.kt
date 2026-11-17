@@ -12,8 +12,7 @@ import java.io.IOException
  * @author Sindre Mehus
  * @version $Revision: 1.1 $ $Date: 2006/03/01 16:58:08 $
  */
-class RequestEncodingFilter : Filter {
-    private var encoding: String? = null
+class RequestEncodingFilter(private var encoding: String? = RequestEncodingPolicy.DEFAULT_ENCODING) : Filter {
 
     @Throws(IOException::class, ServletException::class)
     override fun doFilter(req: ServletRequest, res: ServletResponse, chain: FilterChain) {
@@ -25,7 +24,7 @@ class RequestEncodingFilter : Filter {
     }
 
     override fun init(filterConfig: FilterConfig) {
-        encoding = filterConfig.getInitParameter("encoding")
+        encoding = filterConfig.getInitParameter("encoding") ?: encoding
     }
 
     override fun destroy() {

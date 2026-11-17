@@ -6,6 +6,7 @@ import org.airsonic.player.monitor.MetricsManager
 import java.io.IOException
 
 class MetricsFilter(private val metricsManager: MetricsManager) : Filter {
+    private val metricsPolicy = RequestMetricsPolicy()
 
     override fun init(filterConfig: FilterConfig) {
     }
@@ -14,11 +15,12 @@ class MetricsFilter(private val metricsManager: MetricsManager) : Filter {
     override fun doFilter(request: ServletRequest, response: ServletResponse, chain: FilterChain) {
         val httpServletRequest = request as HttpServletRequest
 
-        val timerName = httpServletRequest.requestURI
+        val requestUri = httpServletRequest.requestURI
 
-        metricsManager.condition(timerName.contains("main.view")).timer(this, timerName).use {
-            chain.doFilter(request, response)
-        }
+        metricsManager.condition(metricsPolicy.shouldMeasure(requestUri))
+            .timer(this, metricsPolicy.metricName(requestUri)).use {
+                chain.doFilter(request, response)
+            }
     }
 
     override fun destroy() {

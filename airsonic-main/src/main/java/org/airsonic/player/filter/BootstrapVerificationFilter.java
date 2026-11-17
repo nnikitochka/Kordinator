@@ -8,7 +8,6 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -23,6 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class BootstrapVerificationFilter implements Filter {
     private static final Logger LOG = LoggerFactory.getLogger(BootstrapVerificationFilter.class);
+    private final BootstrapVerificationPolicy verificationPolicy = new BootstrapVerificationPolicy();
     private boolean airsonicHomeVerified = false;
     private final AtomicBoolean serverInfoLogged = new AtomicBoolean();
 
@@ -36,13 +36,14 @@ public class BootstrapVerificationFilter implements Filter {
         }
 
         Path home = SettingsService.getAirsonicHome();
-        if (!directoryExists(home)) {
+        BootstrapVerificationPolicy.Result result = verificationPolicy.verify(home);
+        if (result == BootstrapVerificationPolicy.Result.MISSING_OR_NOT_DIRECTORY) {
             error(res, "<p>The directory <b>" + home + "</b> does not exist. Please create it and make it writable, " +
                        "then restart the servlet container.</p>" +
                        "<p>(You can override the directory location by specifying -Dairsonic.home=... when " +
                        "starting the servlet container.)</p>");
 
-        } else if (!directoryWritable(home)) {
+        } else if (result == BootstrapVerificationPolicy.Result.NOT_WRITABLE) {
             error(res, "<p>The directory <b>" + home + "</b> is not writable. Please change file permissions, " +
                        "then restart the servlet container.</p>" +
                        "<p>(You can override the directory location by specifying -Dairsonic.home=... when " +
@@ -59,19 +60,6 @@ public class BootstrapVerificationFilter implements Filter {
         if (!serverInfoLogged.getAndSet(true) && req instanceof HttpServletRequest) {
             String serverInfo = ((HttpServletRequest) req).getSession().getServletContext().getServerInfo();
             LOG.info("Servlet container: {}", serverInfo);
-        }
-    }
-
-    private boolean directoryExists(Path dir) {
-        return Files.exists(dir) && Files.isDirectory(dir);
-    }
-
-    private boolean directoryWritable(Path dir) {
-        try {
-            Path tempFile = Files.createTempFile(dir, "test", null);
-            return Files.exists(tempFile) && Files.deleteIfExists(tempFile);
-        } catch (Exception x) {
-            return false;
         }
     }
 
