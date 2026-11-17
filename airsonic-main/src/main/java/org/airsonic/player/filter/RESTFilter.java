@@ -17,6 +17,7 @@ public class RESTFilter implements Filter {
     private static final Logger LOG = LoggerFactory.getLogger(RESTFilter.class);
 
     private final JAXBWriter jaxbWriter = new JAXBWriter();
+    private final RestErrorPolicy errorPolicy = new RestErrorPolicy();
 
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) {
@@ -32,37 +33,24 @@ public class RESTFilter implements Filter {
             err = err.getCause();
         }
 
-        boolean isBindingException = err != null && (
-                err.getClass().getName().endsWith("ServletRequestBindingException") ||
-                err.getClass().getName().endsWith("MissingServletRequestParameterException")
-        );
-        ErrorCode code = isBindingException ? ErrorCode.MISSING_PARAMETER : ErrorCode.GENERIC;
-        String msg = getErrorMessage(err);
+        RestErrorPolicy.Decision decision = errorPolicy.classify(err);
 
         // This happens often and outside of the control of the server, so
         // we catch Tomcat/Jetty "connection aborted by client" exceptions
         // and display a short error message.
-        boolean shouldCatch = Util.isInstanceOfClassName(err, "org.apache.catalina.connector.ClientAbortException");
-        if (shouldCatch) {
+        if (decision.clientAbort()) {
             LOG.info("{}: Client unexpectedly closed connection while loading {} ({})", request.getRemoteAddr(),
                     Util.getAnonymizedURLForRequest(request), err.getMessage());
         } else {
             LOG.warn("Error in REST API", err);
 
             try {
-                jaxbWriter.writeErrorResponse(request, response, code, msg);
+                jaxbWriter.writeErrorResponse(request, response, decision.errorCode(), decision.message());
             } catch (Exception e) {
                 LOG.error("Failed to write error response.", e);
             }
         }
 
-    }
-
-    private String getErrorMessage(Throwable x) {
-        if (x.getMessage() != null) {
-            return x.getMessage();
-        }
-        return x.getClass().getSimpleName();
     }
 
     @Override
