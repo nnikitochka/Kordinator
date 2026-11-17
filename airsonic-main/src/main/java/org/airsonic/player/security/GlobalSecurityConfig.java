@@ -239,12 +239,8 @@ public class GlobalSecurityConfig {
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
-                                "/ext/stream/**",
-                                "/ext/coverArt*",
-                                "/ext/share/**",
-                                "/ext/hls/**",
-                                "/ext/captions**")
-                        .hasAnyRole("TEMP", "USER")
+                                SecurityRoutePolicy.EXT_ROLE_PATHS.toArray(String[]::new))
+                        .hasAnyRole(SecurityRoutePolicy.EXT_ROLE_NAMES.toArray(String[]::new))
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -284,22 +280,17 @@ public class GlobalSecurityConfig {
                 .addFilterAfter(restAuthenticationFilter, BasicAuthenticationFilter.class)
                 .csrf(csrf -> csrf.requireCsrfProtectionMatcher(csrfSecurityRequestMatcher))
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
-                .authorizeHttpRequests(authorize -> authorize
-                        // Views are forwarded internally to /WEB-INF/jsp/*.jsp after the
-                        // public controller endpoint has already been authorized.
-                        .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll()
-                        .requestMatchers("/rest/recover", "/recover*", "/accessDenied*", "/style/**", "/icons/**", "/flash/**", "/script/**",
-                                "/login", "/error").permitAll()
-                        .requestMatchers("/personalSettings*",
-                                "/playerSettings*", "/shareSettings*", "/credentialsSettings*").hasRole("SETTINGS")
-                        .requestMatchers("/generalSettings*", "/advancedSettings*", "/userSettings*",
-                                "/musicFolderSettings*", "/databaseSettings*", "/transcodeSettings*", "/rest/startScan*").hasRole("ADMIN")
-                        .requestMatchers("/deletePlaylist*", "/savePlaylist*").hasRole("PLAYLIST")
-                        .requestMatchers("/upload*").hasRole("UPLOAD")
-                        .requestMatchers("/createShare*").hasRole("SHARE")
-                        .requestMatchers("/changeCoverArt*", "/editTags*").hasRole("COVERART")
-                        .requestMatchers("/**").hasRole("USER")
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(authorize -> {
+                    // Views are forwarded internally to /WEB-INF/jsp/*.jsp after the
+                    // public controller endpoint has already been authorized.
+                    authorize.dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll();
+                    authorize.requestMatchers(SecurityRoutePolicy.WEB_PUBLIC_PATHS.toArray(String[]::new)).permitAll();
+                    for (SecurityRoutePolicy.RoleRule rule : SecurityRoutePolicy.WEB_ROLE_RULES) {
+                        authorize.requestMatchers(rule.getPaths().toArray(String[]::new)).hasRole(rule.getRole());
+                    }
+                    authorize.requestMatchers("/**").hasRole("USER");
+                    authorize.anyRequest().authenticated();
+                })
                 .formLogin(login -> login
                         .loginPage("/login")
                         .permitAll()
