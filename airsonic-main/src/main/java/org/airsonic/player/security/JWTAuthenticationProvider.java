@@ -1,6 +1,5 @@
 package org.airsonic.player.security;
 
-import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.google.common.collect.MapDifference;
@@ -46,15 +45,14 @@ public class JWTAuthenticationProvider implements AuthenticationProvider {
             return null;
         }
         String rawToken = (String) auth.getCredentials();
-        DecodedJWT token = null;
-
-        try {
-            token = JWTSecurityService.verify(jwtKey, rawToken);
-        } catch (TokenExpiredException ex) {
-            throw new CredentialsExpiredException("Credentials have expired", ex);
-        } catch (Exception ex) {
-            throw new BadCredentialsException("Error verifying JWT", ex);
+        JwtTokenVerifier.Result verification = new JwtTokenVerifier().verify(jwtKey, rawToken);
+        if (verification.getFailure() == JwtTokenVerifier.Failure.EXPIRED) {
+            throw new CredentialsExpiredException("Credentials have expired");
         }
+        if (!verification.isVerified()) {
+            throw new BadCredentialsException("Error verifying JWT");
+        }
+        DecodedJWT token = verification.getToken();
 
         Claim path = token.getClaim(JWTSecurityService.CLAIM_PATH);
 
