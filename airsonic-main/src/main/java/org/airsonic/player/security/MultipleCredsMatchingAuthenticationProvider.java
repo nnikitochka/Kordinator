@@ -17,13 +17,14 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 
 @Component
 public class MultipleCredsMatchingAuthenticationProvider extends DaoAuthenticationProvider {
     public static final String SALT_TOKEN_MECHANISM_SPECIALIZATION = "salttoken";
     private SecurityService securityService;
+    private final SubsonicAuthenticator authenticator = new SubsonicAuthenticator();
 
     @Override
     protected void additionalAuthenticationChecks(UserDetails userDetails,
@@ -46,11 +47,35 @@ public class MultipleCredsMatchingAuthenticationProvider extends DaoAuthenticati
 
         SpringUserDetailsAdapter userDetail = (SpringUserDetailsAdapter) userDetails;
 
-        Optional<UserCredential> matchedCred = userDetail.getCredentials().parallelStream()
-                .filter(c -> getPasswordEncoder().matches(presentedPassword, "{" + c.getEncoder() + encoderSpecialization + "}" + c.getCredential()))
-                .findAny();
+        SubsonicAuthenticator.Mode mode = encoderSpecialization.isEmpty()
+                ? SubsonicAuthenticator.Mode.PASSWORD : SubsonicAuthenticator.Mode.SALTED_TOKEN;
+        Map<String, org.airsonic.player.security.crypto.PasswordEncoder> encoders = new java.util.HashMap<>();
+        GlobalSecurityConfig.ENCODERS.forEach((name, encoder) -> {
+            if (encoder instanceof SpringPasswordEncoderAdapter) {
+                encoders.put(name, ((SpringPasswordEncoderAdapter) encoder).getDelegate());
+            } else {
+                encoders.put(name, new org.airsonic.player.security.crypto.PasswordEncoder() {
+                    @Override
+                    public String encode(CharSequence rawPassword) {
+                        return encoder.encode(rawPassword);
+                    }
 
-        if (!matchedCred.isPresent()) {
+                    @Override
+                    public boolean matches(CharSequence rawPassword, String encodedPassword) {
+                        return encoder.matches(rawPassword, encodedPassword);
+                    }
+
+                    @Override
+                    public boolean upgradeEncoding(String encodedPassword) {
+                        return encoder.upgradeEncoding(encodedPassword);
+                    }
+                });
+            }
+        });
+        SubsonicAuthenticator.Result result = authenticator.authenticate(userDetail.getCredentials(),
+                presentedPassword, mode, encoders);
+
+        if (!result.isAuthenticated() && result.getFailure().orElse(null) != SubsonicAuthenticator.Failure.CREDENTIALS_EXPIRED) {
             logger.debug("Authentication failed: password does not match any stored values");
 
             // If failure via tokens, try and signal to automatically upgrade to a non-token (password) method
@@ -63,18 +88,18 @@ public class MultipleCredsMatchingAuthenticationProvider extends DaoAuthenticati
             throw new BadCredentialsException(messages.getMessage("AbstractUserDetailsAuthenticationProvider.badCredentials", "Bad credentials"), rootCause);
         }
 
-        Instant expiration = matchedCred.map(UserCredential::getExpiration).orElse(null);
-        if (expiration != null && expiration.isBefore(Instant.now())) {
+        if (result.getFailure().orElse(null) == SubsonicAuthenticator.Failure.CREDENTIALS_EXPIRED) {
             logger.debug("User account credentials have expired");
 
             throw new CredentialsExpiredException(messages.getMessage("AbstractUserDetailsAuthenticationProvider.credentialsExpired", "User credentials have expired"));
         }
 
         // perform upgrade if needed for password-based auth
-        if (encoderSpecialization.isEmpty() && getPasswordEncoder().upgradeEncoding("{" + matchedCred.get().getEncoder() + "}" + matchedCred.get().getCredential())) {
-            UserCredential upgraded = new UserCredential(matchedCred.get());
+        Optional<UserCredential> matchedCred = result.getCredential();
+        if (result.isUpgradeRequired()) {
+            UserCredential upgraded = new UserCredential(matchedCred.orElseThrow());
             upgraded.setCredential(authentication.getCredentials().toString());
-            if (!securityService.updateCredentials(matchedCred.get(), upgraded, upgraded.getComment() + " | Automatically upgraded by system", true)) {
+            if (!securityService.updateCredentials(matchedCred.orElseThrow(), upgraded, upgraded.getComment() + " | Automatically upgraded by system", true)) {
                 logger.debug("Password needs to be upgraded, but failed");
             }
         }

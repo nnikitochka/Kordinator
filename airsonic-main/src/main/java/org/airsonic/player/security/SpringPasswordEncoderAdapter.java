@@ -39,6 +39,10 @@ public final class SpringPasswordEncoderAdapter implements PasswordEncoder, Pass
         return delegate.upgradeEncoding(encodedPassword);
     }
 
+    public org.airsonic.player.security.crypto.PasswordEncoder getDelegate() {
+        return delegate;
+    }
+
     @Override
     public String decode(String encoded) throws Exception {
         if (decoder == null) {
