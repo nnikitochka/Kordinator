@@ -66,6 +66,7 @@ import org.airsonic.player.controller.rest.music.similar.SimilarSongsController
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsRequest
 import org.airsonic.player.service.MediaStreamService
 import org.airsonic.player.service.CoverArtImageService
+import org.airsonic.player.filter.RequestEncodingPolicy
 import org.airsonic.player.controller.rest.avatar.AvatarRestController
 import org.airsonic.player.controller.rest.proxy.ProxyRestController
 import org.airsonic.player.controller.rest.login.LoginPageController
@@ -944,7 +945,7 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
                 return
             }
-            request.characterEncoding = "UTF-8"
+            request.characterEncoding = RequestEncodingPolicy.DEFAULT_ENCODING
             val csrf = request.getAttribute(org.springframework.security.web.csrf.CsrfToken::class.java.name)
                 as? org.springframework.security.web.csrf.CsrfToken
             request.setAttribute(RECOVERY_REQUEST, PasswordRecoveryController.Request(

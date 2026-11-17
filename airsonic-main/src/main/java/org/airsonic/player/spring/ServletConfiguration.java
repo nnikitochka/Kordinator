@@ -5,6 +5,7 @@ import org.airsonic.player.filter.MetricsFilter;
 import org.airsonic.player.filter.ParameterDecodingFilter;
 import org.airsonic.player.filter.RESTFilter;
 import org.airsonic.player.filter.RequestEncodingFilter;
+import org.airsonic.player.filter.RequestEncodingPolicy;
 import org.airsonic.player.filter.ResponseHeaderFilter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.MessageSource;
@@ -76,7 +77,7 @@ public class ServletConfiguration implements WebMvcConfigurer {
     public FilterRegistrationBean<Filter> requestEncodingFilterRegistration() {
         FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>(requestEncodingFilter());
         registration.addUrlPatterns("/*");
-        registration.addInitParameter("encoding", "UTF-8");
+        registration.addInitParameter("encoding", RequestEncodingPolicy.DEFAULT_ENCODING);
         registration.setName("RequestEncodingFilter");
         registration.setOrder(4);
         return registration;
