@@ -31,14 +31,11 @@ public class ShareService {
     private static final Logger LOG = LoggerFactory.getLogger(ShareService.class);
 
     private ShareDao shareDao;
-    private SecurityService securityService;
     private MediaFileService mediaFileService;
     private JWTSecurityService jwtSecurityService;
 
-    public ShareService(ShareDao shareDao, SecurityService securityService,
-                        MediaFileService mediaFileService, JWTSecurityService jwtSecurityService) {
+    public ShareService(ShareDao shareDao, MediaFileService mediaFileService, JWTSecurityService jwtSecurityService) {
         this.shareDao = shareDao;
-        this.securityService = securityService;
         this.mediaFileService = mediaFileService;
         this.jwtSecurityService = jwtSecurityService;
     }
@@ -63,12 +60,12 @@ public class ShareService {
         return shareDao.getSharedFiles(id, musicFolders).stream().map(mediaFileService::getMediaFile).filter(Objects::nonNull).collect(toList());
     }
 
-    public Share createShare(HttpServletRequest request, List<MediaFile> files) {
+    public Share createShare(String username, List<MediaFile> files) {
 
         Share share = new Share();
         share.setName(RandomStringUtils.random(5, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"));
         share.setCreated(Instant.now());
-        share.setUsername(securityService.getCurrentUsername(request));
+        share.setUsername(username);
 
         share.setExpires(Instant.now().plus(ChronoUnit.YEARS.getDuration()));
 
@@ -91,10 +88,6 @@ public class ShareService {
         String shareUrl = "ext/share/" + share.getName();
         return NetworkService.getBaseUrl(request) + jwtSecurityService
                 .addJWTToken(User.USERNAME_ANONYMOUS, shareUrl, share.getExpires());
-    }
-
-    public void setSecurityService(SecurityService securityService) {
-        this.securityService = securityService;
     }
 
     public void setShareDao(ShareDao shareDao) {

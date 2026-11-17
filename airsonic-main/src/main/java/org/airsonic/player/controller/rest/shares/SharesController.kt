@@ -90,7 +90,7 @@ class SharesController(
         val values = request.parameters.getAll("id") ?: return missingId()
         val ids = values.map { it.toIntOrNull() ?: return null }
         val files = ids.map { mediaFiles.getMediaFile(it) }
-        val share = request.createShare(files)
+        val share = shares.createShare(request.user.username, files)
         share.description = request.parameters["description"]
         val expiry = request.parameters["expires"]?.toLongOrNull() ?: 0L
         if (expiry != 0L) share.expires = Instant.ofEpochMilli(expiry)
@@ -141,7 +141,7 @@ class SharesController(
         if (selected.isEmpty()) return errorResponse(ErrorCode.GENERIC, "The selection is empty")
         if (selected.any { !security.isFolderAccessAllowed(it, request.callerContext) })
             return errorResponse(ErrorCode.NOT_AUTHORIZED, "Music folder access denied")
-        val share = request.createShare(selected)
+        val share = shares.createShare(request.user.username, selected)
         if (description != null) {
             share.description = description
             shares.updateShare(share)

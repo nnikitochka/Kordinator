@@ -152,8 +152,6 @@ import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.ShareService
 import org.airsonic.player.util.StringUtil
 import org.apache.commons.lang.StringUtils
-import org.springframework.security.core.context.SecurityContextHolder
-
 class AirsonicKtorServlet(
     private val searchController: SearchController,
     private val searchPageController: SearchPageController,
@@ -1538,16 +1536,8 @@ class AirsonicKtorServlet(
             val user = requireNotNull(securityService.getCurrentUser(request))
             val id = if (operation == "updateShare" || operation == "deleteShare")
                 mapRestId(request.getParameter("id")) else null
-            val context = SecurityContextHolder.getContext()
-            request.setAttribute(SHARES_REQUEST, SharesRequest(parameters(request), user, callerContextAdapter.fromRequest(request), player, id, { files ->
-                val previous = SecurityContextHolder.getContext()
-                try {
-                    SecurityContextHolder.setContext(context)
-                    shareService.createShare(request, files)
-                } finally {
-                    SecurityContextHolder.setContext(previous)
-                }
-            }, { share -> shareService.getShareUrl(request, share) }))
+            request.setAttribute(SHARES_REQUEST, SharesRequest(parameters(request), user, callerContextAdapter.fromRequest(request), player, id,
+                { share -> shareService.getShareUrl(request, share) }))
         } else if (path in PlaylistsController.PATHS) {
             val operation = path.substringAfterLast('/').removeSuffix(".view")
             val jukebox = operation == "createPlaylist" || operation == "updatePlaylist" || operation == "deletePlaylist"

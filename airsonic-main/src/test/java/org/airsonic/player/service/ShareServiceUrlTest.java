@@ -25,8 +25,7 @@ public class ShareServiceUrlTest {
         when(request.getContextPath()).thenReturn("/airsonic");
         SettingsService settings = mock(SettingsService.class);
         when(settings.getJWTKey()).thenReturn("test-jwt-key");
-        ShareService service = new ShareService(mock(ShareDao.class), mock(SecurityService.class),
-                mock(MediaFileService.class), new JWTSecurityService(settings));
+        ShareService service = new ShareService(mock(ShareDao.class), mock(MediaFileService.class), new JWTSecurityService(settings));
         Share share = new Share();
         share.setName("ShareName1");
         Instant expires = Instant.parse("2030-02-03T04:05:06Z");
