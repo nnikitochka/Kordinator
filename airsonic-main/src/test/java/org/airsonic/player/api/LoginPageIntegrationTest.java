@@ -186,6 +186,24 @@ public class LoginPageIntegrationTest {
             HttpResponse<String> errorPage = send(browser, "/login?error", "GET", null);
             assertEquals(200, errorPage.statusCode());
             assertTrue(errorPage.body(), errorPage.body().contains("class=\"warning\""));
+
+            org.airsonic.player.security.LdapDirectoryAuthenticator timeoutDirectory = (user, password) -> {
+                throw new JndiLdapDirectoryAuthenticator.LdapDirectoryException("LDAP search failed",
+                        new javax.naming.CommunicationException("LDAP request timed out"));
+            };
+            loginFilter.setAuthenticationManager(new ProviderManager(List.of(
+                    new SpringLdapAuthenticationProvider(
+                            new LdapAuthenticator(security, settings, timeoutDirectory))), authenticationManager));
+            HttpClient timeoutBrowser = browser();
+            HttpResponse<String> timeoutPage = send(timeoutBrowser, "/login", "GET", null);
+            HttpResponse<String> timeoutFailure = post(timeoutBrowser, "/login",
+                    credentials(username, "ldap-password", csrf(timeoutPage.body())));
+            assertEquals(302, timeoutFailure.statusCode());
+            assertTrue(timeoutFailure.headers().firstValue("Location").orElseThrow()
+                    .endsWith("/airsonic/login?error"));
+            HttpResponse<String> timeoutErrorPage = send(timeoutBrowser, "/login?error", "GET", null);
+            assertEquals(200, timeoutErrorPage.statusCode());
+            assertTrue(timeoutErrorPage.body(), timeoutErrorPage.body().contains("class=\"warning\""));
         } finally {
             loginFilter.setAuthenticationManager(authenticationManager);
             settings.setLdapEnabled(oldEnabled);
