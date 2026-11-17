@@ -1653,8 +1653,9 @@ class AirsonicKtorServlet(
             }
             val file = request.getParameter("path")?.let { mediaFileService.getMediaFile(it) }
                 ?: id?.let { mediaFileService.getMediaFile(it) }
-            if (file != null && (restStream || authentication !is JWTAuthenticationToken)
-                && !securityService.isFolderAccessAllowed(file, user.username)) {
+             val callerContext = callerContextAdapter.fromRequest(request)
+             if (file != null && (restStream || authentication !is JWTAuthenticationToken)
+                 && !securityService.isFolderAccessAllowed(file, callerContext)) {
                 if (!restStream || path.endsWith(".view")) {
                     response.sendError(HttpServletResponse.SC_FORBIDDEN)
                     return
@@ -1662,7 +1663,7 @@ class AirsonicKtorServlet(
                 throw AccessDeniedException("Access to file ${file.id} is forbidden for user ${user.username}")
             }
             val webRequest = ServletWebRequest(wrapped, response)
-            request.setAttribute(STREAM_REQUEST, StreamRestController.Request(authentication, player, user,
+             request.setAttribute(STREAM_REQUEST, StreamRestController.Request(authentication, callerContext, player, user,
                 request.getParameter("format"), request.getParameter("suffix"), bitRate, id, request.getParameter("path"), offset,
                 MediaStreamService.VideoOptions(request.getParameter("maxBitRate"), request.getParameter("timeOffset"),
                     request.getParameter("duration"), request.getParameter("size")), request.getHeader("icy-metadata"),
