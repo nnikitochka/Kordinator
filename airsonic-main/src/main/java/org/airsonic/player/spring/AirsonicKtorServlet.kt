@@ -1706,7 +1706,8 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_NOT_FOUND, "Media file not found or incorrect type: $id")
                 return
             }
-            if (!securityService.isFolderAccessAllowed(mediaFile, player.username)) {
+            val callerContext = callerContextAdapter.fromRequest(wrapped)
+            if (!securityService.isFolderAccessAllowed(mediaFile, callerContext)) {
                 if (path.endsWith(".view")) {
                     response.sendError(HttpServletResponse.SC_FORBIDDEN)
                     return
