@@ -1,5 +1,10 @@
 package org.airsonic.player.api;
 
+import org.airsonic.player.domain.User;
+import org.airsonic.player.security.JndiLdapDirectoryAuthenticator;
+import org.airsonic.player.security.LdapAuthenticator;
+import org.airsonic.player.security.SpringLdapAuthenticationProvider;
+import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.util.HomeRule;
 import org.junit.ClassRule;
@@ -9,6 +14,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.ApplicationContext;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.web.FilterChainProxy;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -16,6 +25,7 @@ import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.HttpCookie;
 import java.net.URI;
+import java.net.ServerSocket;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -42,6 +52,9 @@ public class LoginPageIntegrationTest {
     @LocalServerPort private int port;
     @Autowired private SettingsService settings;
     @Autowired private ApplicationContext context;
+    @Autowired private SecurityService security;
+    @Autowired private AuthenticationManager authenticationManager;
+    @Autowired private FilterChainProxy filterChainProxy;
 
     @Test
     public void rendersLoginJspWithModelAndCsrfWithoutEnablingCors() throws Exception {
@@ -126,6 +139,63 @@ public class LoginPageIntegrationTest {
         HttpResponse<String> errorPage = send(browser, "/login?error", "GET", null);
         assertEquals(200, errorPage.statusCode());
         assertTrue(errorPage.body(), errorPage.body().contains("class=\"warning\""));
+    }
+
+    @Test
+    public void unavailableLocalLdapEndpointReturnsOrdinaryLoginFailure() throws Exception {
+        String username = "ldap-outage-it-user";
+        User ldapUser = new User(username, null, true, 0L, 0L, 0L, java.util.Set.of(User.Role.STREAM));
+        boolean userCreated = false;
+        boolean oldEnabled = settings.isLdapEnabled();
+        String oldUrl = settings.getLdapUrl();
+        String oldFilter = settings.getLdapSearchFilter();
+        String oldManagerDn = settings.getLdapManagerDn();
+        String oldManagerPassword = settings.getLdapManagerPassword();
+        boolean oldShadowing = settings.isLdapAutoShadowing();
+        UsernamePasswordAuthenticationFilter loginFilter = filterChainProxy.getFilterChains().stream()
+                .flatMap(chain -> chain.getFilters().stream())
+                .filter(UsernamePasswordAuthenticationFilter.class::isInstance)
+                .map(UsernamePasswordAuthenticationFilter.class::cast)
+                .findFirst().orElseThrow(() -> new AssertionError("Form login filter not found"));
+        try {
+            security.createUser(ldapUser, "ignored-local-password", "LDAP outage integration fixture");
+            userCreated = true;
+            int closedPort;
+            try (ServerSocket socket = new ServerSocket(0, 1, java.net.InetAddress.getLoopbackAddress())) {
+                closedPort = socket.getLocalPort();
+            }
+            settings.setLdapEnabled(true);
+            settings.setLdapUrl("ldap://127.0.0.1:" + closedPort + "/dc=example,dc=test");
+            settings.setLdapSearchFilter("(uid={0})");
+            settings.setLdapManagerDn(null);
+            settings.setLdapManagerPassword(null);
+            settings.setLdapAutoShadowing(false);
+
+            loginFilter.setAuthenticationManager(new ProviderManager(List.of(
+                    new SpringLdapAuthenticationProvider(
+                            new LdapAuthenticator(security, settings, new JndiLdapDirectoryAuthenticator(settings)))),
+                    authenticationManager));
+
+            HttpClient browser = browser();
+            HttpResponse<String> page = send(browser, "/login", "GET", null);
+            HttpResponse<String> failure = post(browser, "/login",
+                    credentials(username, "ldap-password", csrf(page.body())));
+            assertEquals(302, failure.statusCode());
+            assertTrue(failure.headers().firstValue("Location").orElseThrow()
+                    .endsWith("/airsonic/login?error"));
+            HttpResponse<String> errorPage = send(browser, "/login?error", "GET", null);
+            assertEquals(200, errorPage.statusCode());
+            assertTrue(errorPage.body(), errorPage.body().contains("class=\"warning\""));
+        } finally {
+            loginFilter.setAuthenticationManager(authenticationManager);
+            settings.setLdapEnabled(oldEnabled);
+            settings.setLdapUrl(oldUrl);
+            settings.setLdapSearchFilter(oldFilter);
+            settings.setLdapManagerDn(oldManagerDn);
+            settings.setLdapManagerPassword(oldManagerPassword);
+            settings.setLdapAutoShadowing(oldShadowing);
+            if (userCreated) security.deleteUser(username);
+        }
     }
 
     private HttpClient browser() {
