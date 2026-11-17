@@ -79,7 +79,7 @@ class ArtistInfoController(
             val mediaFile = mediaFiles.getMediaFile(id)
                 ?: return writer.createErrorResponse(ErrorCode.NOT_FOUND, "Media file not found.")
             val website = request.parameters["includeWebsiteDetails"] == "true"
-            if (website && !security.isFolderAccessAllowed(mediaFile, request.username)) {
+            if (website && !security.isFolderAccessAllowed(mediaFile, request.callerContext)) {
                 return writer.createErrorResponse(ErrorCode.NOT_AUTHORIZED, "Access denied")
             }
             val musicFolders = folders.getMusicFoldersForUser(request.username)

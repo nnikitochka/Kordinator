@@ -1270,7 +1270,7 @@ class AirsonicKtorServlet(
                 return
             }
             val securityContext = SecurityContextHolder.getContext()
-            request.setAttribute(ARTIST_INFO_REQUEST, ArtistInfoRequest(username, parameters(request), parsedId) {
+            request.setAttribute(ARTIST_INFO_REQUEST, ArtistInfoRequest(username, callerContextAdapter.fromRequest(request), parameters(request), parsedId) {
                 val previousContext = SecurityContextHolder.getContext()
                 try {
                     SecurityContextHolder.setContext(securityContext)
