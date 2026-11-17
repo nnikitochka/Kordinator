@@ -4,7 +4,6 @@ import org.airsonic.player.controller.rest.error.APIException;
 import org.airsonic.player.controller.rest.error.ErrorCode;
 import org.airsonic.player.domain.UserCredential;
 import org.airsonic.player.service.SecurityService;
-import org.airsonic.player.service.SecurityService.UserDetail;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -41,11 +40,11 @@ public class MultipleCredsMatchingAuthenticationProvider extends DaoAuthenticati
                 ? SALT_TOKEN_MECHANISM_SPECIALIZATION
                 : "";
 
-        if (!UserDetail.class.isAssignableFrom(userDetails.getClass())) {
+        if (!SpringUserDetailsAdapter.class.isAssignableFrom(userDetails.getClass())) {
             throw new InternalAuthenticationServiceException("Retrieved user does not match expected class");
         }
 
-        UserDetail userDetail = (UserDetail) userDetails;
+        SpringUserDetailsAdapter userDetail = (SpringUserDetailsAdapter) userDetails;
 
         Optional<UserCredential> matchedCred = userDetail.getCredentials().parallelStream()
                 .filter(c -> getPasswordEncoder().matches(presentedPassword, "{" + c.getEncoder() + encoderSpecialization + "}" + c.getCredential()))

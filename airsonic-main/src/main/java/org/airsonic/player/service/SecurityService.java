@@ -7,9 +7,11 @@ import org.airsonic.player.domain.User;
 import org.airsonic.player.domain.UserCredential;
 import org.airsonic.player.domain.UserCredential.App;
 import org.airsonic.player.security.GlobalSecurityConfig;
+import org.airsonic.player.security.CallerContext;
 import org.airsonic.player.security.PasswordDecoder;
+import org.airsonic.player.security.SpringUserDetailsAdapter;
+import org.airsonic.player.security.UserIdentity;
 import org.airsonic.player.cache.CacheHelper;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -36,7 +38,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -86,21 +87,19 @@ public class SecurityService implements UserDetailsService {
 
     public UserDetails loadUserByUsername(String username, boolean caseSensitive)
             throws UsernameNotFoundException, DataAccessException {
+        return new SpringUserDetailsAdapter(loadUserIdentity(username, caseSensitive),
+                getGrantedAuthorities(getUserByName(username, caseSensitive)));
+    }
+
+    /** Loads identity data without exposing Spring Security types. */
+    public UserIdentity loadUserIdentity(String username, boolean caseSensitive)
+            throws UsernameNotFoundException, DataAccessException {
         User user = getUserByName(username, caseSensitive);
         if (user == null) {
             throw new UsernameNotFoundException("User \"" + username + "\" was not found.");
         }
 
-        List<GrantedAuthority> authorities = getGrantedAuthorities(user);
-
-        return new UserDetail(
-                username,
-                getCredentials(user.getUsername(), App.AIRSONIC),
-                true,
-                true,
-                true,
-                true,
-                authorities);
+        return new UserIdentity(user.getUsername(), getCredentials(user.getUsername(), App.AIRSONIC), user.getRoles());
     }
 
     public boolean updateCredentials(UserCredential oldCreds, UserCredential newCreds, String comment,
@@ -307,6 +306,20 @@ public class SecurityService implements UserDetailsService {
         return user != null && user.isAdminRole();
     }
 
+    public CallerContext createCallerContext(String username, boolean authenticated) {
+        User user = getUserByName(username);
+        if (user == null) {
+            return CallerContext.anonymous();
+        }
+        return new CallerContext(
+                user.getUsername(),
+                user.getRoles(),
+                mediaFolderService.getMusicFoldersForUser(user.getUsername()).stream()
+                        .map(MusicFolder::getId)
+                        .collect(Collectors.toSet()),
+                authenticated);
+    }
+
     /**
      * Creates a new user.
      *
@@ -436,27 +449,4 @@ public class SecurityService implements UserDetailsService {
         this.userDao = userDao;
     }
 
-    public static class UserDetail extends org.springframework.security.core.userdetails.User {
-        private List<UserCredential> creds;
-
-        public UserDetail(String username, List<UserCredential> creds, boolean enabled, boolean accountNonExpired,
-                boolean credentialsNonExpired, boolean accountNonLocked,
-                Collection<? extends GrantedAuthority> authorities) {
-            super(username,
-                    DigestUtils.md5Hex(creds.stream().map(x -> x.getEncoder() + "/" + x.getCredential() + "/" + x.getExpiration()).collect(Collectors.joining())),
-                    enabled, accountNonExpired, credentialsNonExpired, accountNonLocked, authorities);
-
-            this.creds = creds;
-        }
-
-        public List<UserCredential> getCredentials() {
-            return creds;
-        }
-
-        @Override
-        public void eraseCredentials() {
-            super.eraseCredentials();
-            creds = null;
-        }
-    }
 }
