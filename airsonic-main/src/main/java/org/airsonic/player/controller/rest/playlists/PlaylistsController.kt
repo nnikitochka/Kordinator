@@ -97,7 +97,7 @@ class PlaylistsController(
         val result = toRest(PlaylistWithSongs(), playlist)
         val details = request.parameters["includeEntryDetails"] == "true"
         playlists.getFilesInPlaylist(id, details).forEachIndexed { index, file ->
-            val allowed = security.isFolderAccessAllowed(file, request.username)
+            val allowed = security.isFolderAccessAllowed(file, request.callerContext)
             if (allowed || details) {
                 // Keep every occurrence addressable without exposing restricted file metadata.
                 val child = if (allowed) mapper.child(requireNotNull(request.player), file, request.username) else Child().apply {

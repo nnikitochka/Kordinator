@@ -1613,7 +1613,7 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST)
                 return
             }
-            request.setAttribute(PLAYLISTS_REQUEST, PlaylistsRequest(username, admin, parameters(request), id, player))
+            request.setAttribute(PLAYLISTS_REQUEST, PlaylistsRequest(username, callerContextAdapter.fromRequest(request), admin, parameters(request), id, player))
         } else if ((path in StreamRestController.PATHS || path in StreamRestController.WEBSITE_PATHS)
             && (request.method in setOf("GET", "HEAD") || (path in StreamRestController.PATHS && request.method == "POST"))) {
             val restStream = path in StreamRestController.PATHS
