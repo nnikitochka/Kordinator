@@ -4,11 +4,10 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.function.Function;
 
-public class SaltedTokenPasswordEncoder implements PasswordEncoder {
+public class SaltedTokenPasswordEncoder implements org.airsonic.player.security.crypto.PasswordEncoder {
     private static final Logger LOG = LoggerFactory.getLogger(SaltedTokenPasswordEncoder.class);
 
     private final Function<String, SaltToken> saltTokenExtractor;

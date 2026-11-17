@@ -77,22 +77,40 @@ public class GlobalSecurityConfig {
             .put("argon2", new Argon2PasswordEncoder(16, 32, 1, 4096, 1)) // legacy Security 5 no-arg defaults
 
             // base decodable encoders
-            .put("noop", new PasswordEncoderDecoderWrapper(org.springframework.security.crypto.password.NoOpPasswordEncoder.getInstance(), p -> p))
-            .put("hex", HexPasswordEncoder.getInstance())
-            .put("encrypted-AES-GCM", new AesGcmPasswordEncoder()) // placeholder (real instance created below)
+             .put("noop", spring(new PasswordEncoderDecoderWrapper(noopEncoder(), p -> p)))
+             .put("hex", spring(HexPasswordEncoder.getInstance()))
+             .put("encrypted-AES-GCM", spring(new AesGcmPasswordEncoder())) // placeholder (real instance created below)
 
             // base decodable encoders that rely on salt+token being passed in (not stored in db with this type)
-            .put("noop" + SALT_TOKEN_MECHANISM_SPECIALIZATION, new SaltedTokenPasswordEncoder(p -> p))
-            .put("hex" + SALT_TOKEN_MECHANISM_SPECIALIZATION, new SaltedTokenPasswordEncoder(HexPasswordEncoder.getInstance()))
-            .put("encrypted-AES-GCM" + SALT_TOKEN_MECHANISM_SPECIALIZATION, new SaltedTokenPasswordEncoder(new AesGcmPasswordEncoder())) // placeholder (real instance created below)
+             .put("noop" + SALT_TOKEN_MECHANISM_SPECIALIZATION, spring(new SaltedTokenPasswordEncoder(p -> p)))
+             .put("hex" + SALT_TOKEN_MECHANISM_SPECIALIZATION, spring(new SaltedTokenPasswordEncoder(HexPasswordEncoder.getInstance())))
+             .put("encrypted-AES-GCM" + SALT_TOKEN_MECHANISM_SPECIALIZATION, spring(new SaltedTokenPasswordEncoder(new AesGcmPasswordEncoder()))) // placeholder (real instance created below)
 
             // TODO: legacy marked base encoders, to be upgraded to one-way formats at breaking version change
-            .put("legacynoop", new PasswordEncoderDecoderWrapper(org.springframework.security.crypto.password.NoOpPasswordEncoder.getInstance(), p -> p))
-            .put("legacyhex", HexPasswordEncoder.getInstance())
+             .put("legacynoop", spring(new PasswordEncoderDecoderWrapper(noopEncoder(), p -> p)))
+             .put("legacyhex", spring(HexPasswordEncoder.getInstance()))
 
-            .put("legacynoop" + SALT_TOKEN_MECHANISM_SPECIALIZATION, new SaltedTokenPasswordEncoder(p -> p))
-            .put("legacyhex" + SALT_TOKEN_MECHANISM_SPECIALIZATION, new SaltedTokenPasswordEncoder(HexPasswordEncoder.getInstance()))
-            .build());
+             .put("legacynoop" + SALT_TOKEN_MECHANISM_SPECIALIZATION, spring(new SaltedTokenPasswordEncoder(p -> p)))
+             .put("legacyhex" + SALT_TOKEN_MECHANISM_SPECIALIZATION, spring(new SaltedTokenPasswordEncoder(HexPasswordEncoder.getInstance())))
+             .build());
+
+    private static PasswordEncoder spring(org.airsonic.player.security.crypto.PasswordEncoder encoder) {
+        return new SpringPasswordEncoderAdapter(encoder);
+    }
+
+    private static org.airsonic.player.security.crypto.PasswordEncoder noopEncoder() {
+        return new org.airsonic.player.security.crypto.PasswordEncoder() {
+            @Override
+            public String encode(CharSequence rawPassword) {
+                return rawPassword.toString();
+            }
+
+            @Override
+            public boolean matches(CharSequence rawPassword, String encodedPassword) {
+                return StringUtils.equals(rawPassword, encodedPassword);
+            }
+        };
+    }
 
     public static final Set<String> OPENTEXT_ENCODERS = ImmutableSet.of("noop", "hex", "legacynoop", "legacyhex");
     public static final Set<String> DECODABLE_ENCODERS = ImmutableSet.<String>builder().addAll(OPENTEXT_ENCODERS).add("encrypted-AES-GCM").build();
@@ -142,8 +160,8 @@ public class GlobalSecurityConfig {
         }
 
         AesGcmPasswordEncoder encoder = new AesGcmPasswordEncoder(encryptionKeyPass, encryptionKeySalt);
-        ENCODERS.put("encrypted-AES-GCM", encoder);
-        ENCODERS.put("encrypted-AES-GCM" + SALT_TOKEN_MECHANISM_SPECIALIZATION, new SaltedTokenPasswordEncoder(encoder));
+        ENCODERS.put("encrypted-AES-GCM", spring(encoder));
+        ENCODERS.put("encrypted-AES-GCM" + SALT_TOKEN_MECHANISM_SPECIALIZATION, spring(new SaltedTokenPasswordEncoder(encoder)));
 
         DelegatingPasswordEncoder pEncoder = new DelegatingPasswordEncoder(settingsService.getNonDecodablePasswordEncoder(), ENCODERS) {
             @Override

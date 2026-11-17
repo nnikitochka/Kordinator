@@ -4,12 +4,11 @@ import org.apache.commons.lang3.StringUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.security.crypto.encrypt.Encryptors
-import org.springframework.security.crypto.password.PasswordEncoder
 
 class AesGcmPasswordEncoder @JvmOverloads constructor(
     password: String = CONSTANT_PASSWORD,
     salt: String = CONSTANT_SALT
-) : PasswordEncoder, PasswordDecoder {
+) : org.airsonic.player.security.crypto.PasswordEncoder, PasswordDecoder {
     private val encryptor = Encryptors.delux(password, salt)
 
     @Throws(Exception::class)
@@ -17,7 +16,7 @@ class AesGcmPasswordEncoder @JvmOverloads constructor(
         return encryptor.decrypt(encoded)
     }
 
-    override fun encode(rawPassword: CharSequence): String? {
+    override fun encode(rawPassword: CharSequence): String {
         return encryptor.encrypt(rawPassword.toString())
     }
 
