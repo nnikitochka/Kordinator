@@ -13,17 +13,14 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.web.csrf.CsrfFilter
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository
 import org.springframework.util.AntPathMatcher
-import org.springframework.web.cors.CorsConfigurationSource
-import org.springframework.web.filter.CorsFilter
 import java.security.Principal
 
 /** Temporary servlet boundary adapter for the stateless external player routes. */
 internal class KtorExternalSecurityPipeline(
     private val settingsService: SettingsService,
-    corsConfigurationSource: CorsConfigurationSource,
     csrfRequestMatcher: org.springframework.security.web.util.matcher.RequestMatcher,
 ) {
-    private val corsFilter = CorsFilter(corsConfigurationSource)
+    private val corsAdapter = KtorCorsAdapter()
     private val csrfFilter = CsrfFilter(HttpSessionCsrfTokenRepository()).apply {
         setRequireCsrfProtectionMatcher(csrfRequestMatcher)
     }
@@ -37,7 +34,7 @@ internal class KtorExternalSecurityPipeline(
         }
 
         writeSecurityHeaders(request, response)
-        corsFilter.doFilter(request, response, FilterChain { corsRequest, corsResponse ->
+        corsAdapter.service(request, response, FilterChain { corsRequest, corsResponse ->
             csrfFilter.doFilter(corsRequest, corsResponse, FilterChain { csrfRequest, csrfResponse ->
                 authenticate(
                     csrfRequest as HttpServletRequest,

@@ -291,7 +291,6 @@ public class KtorConfiguration {
             UploadFileService uploadFileService,
             org.springframework.boot.autoconfigure.web.ServerProperties serverProperties,
             org.airsonic.player.monitor.MetricsManager metricsManager,
-            org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource,
             org.springframework.security.web.util.matcher.RequestMatcher csrfRequestMatcher
     ) {
         ServletRegistrationBean<ServletApplicationEngine> registration =
@@ -373,7 +372,7 @@ public class KtorConfiguration {
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService), new AvatarUploadController(settingsService, jaxbWriter),
                                 new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(mediaStreamService),
                                 new PublicShareController(shareService, mediaFileService, mediaFolderService, jwtSecurityService, metadataParsers, objectMapper), new CaptionsRestController(captionService, mediaFolderService, objectMapper),
-                                new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), new PlayQueuePageController(playerService, settingsService, objectMapper), new LoginPageController(securityService, settingsService), new AccessDeniedPageController(), jaxbWriter, serverProperties.getError(), objectMapper, metricsManager, settingsService, corsConfigurationSource, csrfRequestMatcher),
+                                new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), new PlayQueuePageController(playerService, settingsService, objectMapper), new LoginPageController(securityService, settingsService), new AccessDeniedPageController(), jaxbWriter, serverProperties.getError(), objectMapper, metricsManager, settingsService, csrfRequestMatcher),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(SearchPageController.DATA_PATH);

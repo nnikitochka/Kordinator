@@ -22,7 +22,6 @@ import jakarta.servlet.http.HttpServletResponse
 import jakarta.servlet.FilterChain
 import org.airsonic.player.monitor.MetricsManager
 import org.springframework.security.web.util.matcher.RequestMatcher
-import org.springframework.web.cors.CorsConfigurationSource
 import org.airsonic.player.controller.rest.stream.StreamRestController
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.server.ServerInfoController
@@ -253,7 +252,6 @@ class AirsonicKtorServlet(
     private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
     metricsManager: MetricsManager,
     settingsService: org.airsonic.player.service.SettingsService,
-    corsConfigurationSource: CorsConfigurationSource,
     csrfRequestMatcher: RequestMatcher,
 ) : ServletApplicationEngine() {
     private val proxyRestController = ProxyRestController()
@@ -261,7 +259,6 @@ class AirsonicKtorServlet(
     private val requestFilterPipeline = KtorServletFilterPipeline(metricsManager)
     private val externalSecurityPipeline = KtorExternalSecurityPipeline(
         settingsService,
-        corsConfigurationSource,
         csrfRequestMatcher,
     )
 
