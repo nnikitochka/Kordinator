@@ -39,7 +39,7 @@ class TopSongsController(
             } else {
                 val count = params["count"]?.toIntOrNull() ?: 50
                 val songs = lastFm.getTopSongs(artist, count, folders.getMusicFoldersForUser(request.username))
-                val player = request.player()
+                val player = requireNotNull(request.player) { "Player unavailable" }
                 writer.createResponse(true).apply {
                     topSongs = TopSongs().apply {
                         songs.forEach { song.add(mapper.child(player, it, request.username)) }

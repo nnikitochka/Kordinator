@@ -1450,16 +1450,8 @@ class AirsonicKtorServlet(
                 override fun getParameter(name: String): String? =
                     if (name == "player") playerId?.toString() else super.getParameter(name)
             }
-            val securityContext = SecurityContextHolder.getContext()
-            request.setAttribute(TOP_SONGS_REQUEST, TopSongsRequest(username, parameters(request)) {
-                val previousContext = SecurityContextHolder.getContext()
-                try {
-                    SecurityContextHolder.setContext(securityContext)
-                    playerService.getPlayer(wrapped, response)
-                } finally {
-                    SecurityContextHolder.setContext(previousContext)
-                }
-            })
+            val player = if (request.getParameter("artist") == null) null else playerService.getPlayer(wrapped, response)
+            request.setAttribute(TOP_SONGS_REQUEST, TopSongsRequest(username, parameters(request), player))
         } else if (path in SongsByGenreController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val wrapped = object : HttpServletRequestWrapper(request) {
