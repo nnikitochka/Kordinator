@@ -14,13 +14,13 @@ public class DatabaseDao extends AbstractDao {
     private static final Logger LOG = LoggerFactory.getLogger(DatabaseDao.class);
 
     public boolean exportDB(Path tempWorkingDir, ThrowingBiFunction<Path, Connection, Boolean, Exception> exportFunction) throws Exception {
-        try (Connection con = jdbcTemplate.getDataSource().getConnection()) {
+        try (Connection con = getJdbcHelper().getDataSource().getConnection()) {
             return exportFunction.apply(tempWorkingDir, con);
         }
     }
 
     public void importDB(Consumer<Connection> importFunction) {
-        try (Connection con = jdbcTemplate.getDataSource().getConnection()) {
+        try (Connection con = getJdbcHelper().getDataSource().getConnection()) {
             importFunction.accept(con);
         } catch (Exception e) {
             LOG.info("DB Import failed!", e);

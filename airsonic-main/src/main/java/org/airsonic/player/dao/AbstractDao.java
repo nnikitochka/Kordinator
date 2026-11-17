@@ -31,11 +31,11 @@ import java.util.stream.Stream;
 public class AbstractDao {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractDao.class);
 
-    private static volatile JdbcHelper staticJdbcHelper;
-
     @Autowired(required = false)
     DataSource dataSource;
 
+    // Transitional compatibility for legacy DAO test fixtures; production DAO
+    // operations use the instance-scoped JdbcHelper below.
     @Autowired(required = false)
     JdbcTemplate jdbcTemplate;
 
@@ -45,36 +45,21 @@ public class AbstractDao {
         this.dataSource = dataSource;
         if (dataSource != null) {
             this.jdbcHelper = new JdbcHelper(dataSource);
-            staticJdbcHelper = this.jdbcHelper;
         }
     }
 
     public void setJdbcHelper(JdbcHelper jdbcHelper) {
         this.jdbcHelper = jdbcHelper;
-        if (jdbcHelper != null) {
-            staticJdbcHelper = jdbcHelper;
-        }
     }
 
     public JdbcHelper getJdbcHelper() {
         if (jdbcHelper == null && dataSource != null) {
             jdbcHelper = new JdbcHelper(dataSource);
         }
-        if (jdbcHelper == null && jdbcTemplate != null && jdbcTemplate.getDataSource() != null) {
-            jdbcHelper = new JdbcHelper(jdbcTemplate.getDataSource());
+        if (jdbcHelper == null) {
+            throw new IllegalStateException("JdbcHelper is not initialized for " + getClass().getName());
         }
-        if (jdbcHelper != null) {
-            staticJdbcHelper = jdbcHelper;
-            return jdbcHelper;
-        }
-        return staticJdbcHelper;
-    }
-
-    private static JdbcHelper getStaticJdbcHelper() {
-        if (staticJdbcHelper == null) {
-            throw new IllegalStateException("JdbcHelper is not initialized in AbstractDao");
-        }
-        return staticJdbcHelper;
+        return jdbcHelper;
     }
 
     public JdbcTemplate getJdbcTemplate() {
@@ -225,10 +210,10 @@ public class AbstractDao {
         return list.isEmpty() ? null : list.getFirst();
     }
 
-    private static final Map<String, String> insertSqls = new ConcurrentHashMap<>();
-    private static final Map<String, String> insertGeneratedKeys = new ConcurrentHashMap<>();
-    private static final Map<String, List<String>> insertColumnLists = new ConcurrentHashMap<>();
-    private static final Map<String, Map<String, MethodHandle>> methods = new ConcurrentHashMap<>();
+    private final Map<String, String> insertSqls = new ConcurrentHashMap<>();
+    private final Map<String, String> insertGeneratedKeys = new ConcurrentHashMap<>();
+    private final Map<String, List<String>> insertColumnLists = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, MethodHandle>> methods = new ConcurrentHashMap<>();
     private static final MethodHandles.Lookup lookup = MethodHandles.lookup();
     private static final List<Function<String, String>> colNameTransforms = Arrays.asList(Function.identity(),
         c -> CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, c),
@@ -274,7 +259,7 @@ public class AbstractDao {
         })).collect(Collectors.toConcurrentMap(Pair::getLeft, Pair::getRight)));
     }
 
-    protected static Integer insert(String table, Object obj) {
+    protected Integer insert(String table, Object obj) {
         List<String> cols = insertColumnLists.get(table);
         String sql = insertSqls.get(table);
         String genKey = insertGeneratedKeys.get(table);
@@ -290,7 +275,7 @@ public class AbstractDao {
             }
         }
 
-        JdbcHelper helper = getStaticJdbcHelper();
+        JdbcHelper helper = getJdbcHelper();
         if (genKey == null) {
             helper.update(sql, values);
             return null;
