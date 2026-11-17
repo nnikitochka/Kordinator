@@ -1440,7 +1440,7 @@ class AirsonicKtorServlet(
             }
             val player = playerService.getPlayer(wrapped, response)
             val username = requireNotNull(securityService.getCurrentUsername(request))
-            request.setAttribute(SONG_REQUEST, SongRequest(username, player, parametersWithMappedId(request)))
+            request.setAttribute(SONG_REQUEST, SongRequest(username, callerContextAdapter.fromRequest(request), player, parametersWithMappedId(request)))
         } else if (path in VideosController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val wrapped = object : HttpServletRequestWrapper(request) {
