@@ -21,6 +21,9 @@ import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.servlet.FilterChain
 import org.airsonic.player.monitor.MetricsManager
+import org.springframework.security.authentication.AuthenticationManager
+import org.springframework.security.web.util.matcher.RequestMatcher
+import org.springframework.web.cors.CorsConfigurationSource
 import org.airsonic.player.controller.rest.stream.StreamRestController
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.server.ServerInfoController
@@ -250,10 +253,18 @@ class AirsonicKtorServlet(
     private val errorProperties: org.springframework.boot.autoconfigure.web.ErrorProperties,
     private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
     metricsManager: MetricsManager,
+    authenticationManager: AuthenticationManager,
+    corsConfigurationSource: CorsConfigurationSource,
+    csrfRequestMatcher: RequestMatcher,
 ) : ServletApplicationEngine() {
     private val proxyRestController = ProxyRestController()
     private val callerContextAdapter = SpringCallerContextAdapter(securityService)
     private val requestFilterPipeline = KtorServletFilterPipeline(metricsManager)
+    private val externalSecurityPipeline = KtorExternalSecurityPipeline(
+        authenticationManager,
+        corsConfigurationSource,
+        csrfRequestMatcher,
+    )
 
     @OptIn(InternalAPI::class)
     override fun init() {
@@ -535,8 +546,10 @@ class AirsonicKtorServlet(
     }
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
-        requestFilterPipeline.service(request, response, FilterChain { filteredRequest, filteredResponse ->
-            serviceRequest(filteredRequest as HttpServletRequest, filteredResponse as HttpServletResponse)
+        externalSecurityPipeline.service(request, response, FilterChain { securedRequest, securedResponse ->
+            requestFilterPipeline.service(securedRequest as HttpServletRequest, securedResponse as HttpServletResponse, FilterChain { filteredRequest, filteredResponse ->
+                serviceRequest(filteredRequest as HttpServletRequest, filteredResponse as HttpServletResponse)
+            })
         })
     }
 

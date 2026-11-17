@@ -250,6 +250,9 @@ public class SecurityService implements UserDetailsService {
      * @return The name of the logged-in user, or <code>null</code>.
      */
     public String getCurrentUsername(HttpServletRequest request) {
+        if (request.getUserPrincipal() != null && request.getUserPrincipal().getName() != null) {
+            return request.getUserPrincipal().getName();
+        }
         return new SecurityContextHolderAwareRequestWrapper(request, null).getRemoteUser();
     }
 

@@ -18,7 +18,9 @@ public final class SpringCallerContextAdapter {
     }
 
     public CallerContext fromRequest(HttpServletRequest request) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Authentication authentication = request.getUserPrincipal() instanceof Authentication
+                ? (Authentication) request.getUserPrincipal()
+                : SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             return CallerContext.anonymous();
         }

@@ -35,9 +35,11 @@ import org.springframework.security.crypto.password.Pbkdf2PasswordEncoder;
 import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -232,14 +234,14 @@ public class GlobalSecurityConfig {
                 UsernamePasswordAuthenticationFilter.class);
 
         http
-                // These Ktor prefix servlet mappings don't expose the prefix through MVC lookup paths.
-                .securityMatcher(AntPathRequestMatcher.antMatcher("/ext/**"))
+                .securityMatcher(new AndRequestMatcher(
+                        AntPathRequestMatcher.antMatcher("/ext/**"),
+                        new NegatedRequestMatcher(new org.airsonic.player.spring.KtorExternalRouteRequestMatcher())))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.requireCsrfProtectionMatcher(csrfSecurityRequestMatcher))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(
-                                SecurityRoutePolicy.EXT_ROLE_PATHS.toArray(String[]::new))
+                        .requestMatchers(SecurityRoutePolicy.EXT_ROLE_PATHS.toArray(String[]::new))
                         .hasAnyRole(SecurityRoutePolicy.EXT_ROLE_NAMES.toArray(String[]::new))
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager
@@ -275,6 +277,8 @@ public class GlobalSecurityConfig {
         }
 
         http
+                // Explicit Ktor external routes are secured at the Ktor servlet boundary.
+                .securityMatcher(new NegatedRequestMatcher(new org.airsonic.player.spring.KtorExternalRouteRequestMatcher()))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .httpBasic(Customizer.withDefaults())
                 .addFilterAfter(restAuthenticationFilter, BasicAuthenticationFilter.class)
