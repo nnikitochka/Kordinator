@@ -1290,10 +1290,10 @@ class AirsonicKtorServlet(
             }
             request.setAttribute(ALBUM_INFO_REQUEST, AlbumInfoRequest(parameters(request), id))
         } else if (path == "/settings" || path == "/settings.view") {
-            request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)), Parameters.Empty))
+            request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)), callerContextAdapter.fromRequest(request), Parameters.Empty))
         } else if (path == UploadController.PATH || path == PlaylistImportController.PATH || path == AvatarUploadController.PATH || path == DatabaseSettingsController.IMPORT_PATH) {
             // Multipart bodies belong to Ktor; capture only authentication and query parameters.
-            request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)),
+            request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)), callerContextAdapter.fromRequest(request),
                 parseQueryString(request.queryString.orEmpty())).apply {
                 if (path == UploadController.PATH && (user.isAdminRole || user.isUploadRole))
                     transferPlayer = playerService.getPlayer(request, response, false, false)
@@ -1307,7 +1307,7 @@ class AirsonicKtorServlet(
             path == GeneralSettingsController.READ_PATH || path in GeneralSettingsController.WRITE_PATHS ||
             path == MusicFolderSettingsController.READ_PATH || path in MusicFolderSettingsController.WRITE_PATHS || path in PasswordController.PATHS) {
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
-            request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)), parameters(request)).apply {
+            request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)), callerContextAdapter.fromRequest(request), parameters(request)).apply {
                 if (path == DatabaseSettingsController.EXPORT_PATH && user.isAdminRole) transferPlayer = playerService.getPlayer(request, response, false, false)
             })
         } else if (path in JukeboxController.PATHS) {

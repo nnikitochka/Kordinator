@@ -34,7 +34,7 @@ class MediaFileCommentController(private val files: MediaFileService,
                             val file = files.getMediaFile(id)
                             when {
                                 file == null -> writer.createErrorResponse(ErrorCode.NOT_FOUND, "Media file not found")
-                                !security.isFolderAccessAllowed(file, r.user.username) -> writer.createErrorResponse(ErrorCode.NOT_AUTHORIZED, "Folder access denied")
+                                !security.isFolderAccessAllowed(file, r.callerContext) -> writer.createErrorResponse(ErrorCode.NOT_AUTHORIZED, "Folder access denied")
                                 else -> {
                                     file.comment = p["comment"]!!
                                     files.updateMediaFile(file)
