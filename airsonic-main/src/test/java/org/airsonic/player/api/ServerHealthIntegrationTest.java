@@ -1,7 +1,7 @@
 package org.airsonic.player.api;
 
 import org.airsonic.player.domain.User;
-import org.springframework.boot.actuate.health.*;
+import org.airsonic.player.health.*;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.airsonic.player.TestCaseUtils;

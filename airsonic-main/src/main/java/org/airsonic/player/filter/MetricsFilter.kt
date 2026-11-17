@@ -3,12 +3,9 @@ package org.airsonic.player.filter
 import jakarta.servlet.*
 import jakarta.servlet.http.HttpServletRequest
 import org.airsonic.player.monitor.MetricsManager
-import org.springframework.beans.factory.annotation.Autowired
 import java.io.IOException
 
-class MetricsFilter : Filter {
-    @Autowired
-    private lateinit var metricsManager: MetricsManager
+class MetricsFilter(private val metricsManager: MetricsManager) : Filter {
 
     override fun init(filterConfig: FilterConfig) {
     }

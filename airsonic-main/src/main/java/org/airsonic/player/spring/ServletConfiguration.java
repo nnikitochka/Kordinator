@@ -119,16 +119,23 @@ public class ServletConfiguration implements WebMvcConfigurer {
         return new ResponseHeaderFilter();
     }
 
+    @Bean(destroyMethod = "close")
+    public org.airsonic.player.monitor.MetricsManager metricsManager(org.airsonic.player.runtime.RuntimeCompositionRoot runtime) {
+        org.airsonic.player.monitor.MetricsManager manager = new org.airsonic.player.monitor.MetricsManager(runtime.getConfiguration());
+        runtime.getLifecycleRegistry().registerShutdown("metricsManager", manager);
+        return manager;
+    }
+
     @Bean
-    public FilterRegistrationBean<Filter> metricsFilterRegistration() {
-        FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>(metricsFilter());
+    public FilterRegistrationBean<Filter> metricsFilterRegistration(org.airsonic.player.monitor.MetricsManager metricsManager) {
+        FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>(metricsFilter(metricsManager));
         registration.setOrder(7);
         return registration;
     }
 
     @Bean
-    public Filter metricsFilter() {
-        return new MetricsFilter();
+    public Filter metricsFilter(org.airsonic.player.monitor.MetricsManager metricsManager) {
+        return new MetricsFilter(metricsManager);
     }
 
     private final MessageSource messageSource;

@@ -2,8 +2,8 @@ package org.airsonic.player.runtime;
 
 import org.junit.jupiter.api.Test;
 import org.airsonic.player.spring.KtorConfiguration;
-import org.springframework.boot.actuate.health.SimpleStatusAggregator;
-import org.springframework.boot.actuate.health.Status;
+import org.airsonic.player.health.SimpleStatusAggregator;
+import org.airsonic.player.health.Status;
 
 import java.util.List;
 import java.util.Set;

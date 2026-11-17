@@ -154,9 +154,16 @@ public class KtorConfiguration {
 
     // Keep the health contributors independent of Actuator HTTP endpoint exposure.
     @Bean
-    public org.springframework.boot.actuate.health.HealthContributorRegistry serverHealthContributors(
-            java.util.Map<String, org.springframework.boot.actuate.health.HealthContributor> contributors) {
-        return new org.springframework.boot.actuate.health.DefaultHealthContributorRegistry(contributors);
+    public org.airsonic.player.health.HealthContributorRegistry serverHealthContributors(
+            javax.sql.DataSource dataSource,
+            SettingsService settingsService) {
+        org.airsonic.player.health.DefaultHealthContributorRegistry registry =
+                new org.airsonic.player.health.DefaultHealthContributorRegistry();
+        registry.registerContributor("db", new org.airsonic.player.health.DatabaseHealthIndicator(dataSource));
+        registry.registerContributor("diskSpace", new org.airsonic.player.health.DiskSpaceHealthIndicator(
+                settingsService.getAirsonicHome()));
+        registry.registerContributor("ping", new org.airsonic.player.health.PingHealthIndicator());
+        return registry;
     }
 
     @Bean
@@ -186,9 +193,9 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public org.springframework.boot.actuate.health.StatusAggregator serverHealthStatusAggregator(
+    public org.airsonic.player.health.StatusAggregator serverHealthStatusAggregator(
             RuntimeCompositionRoot runtime) {
-        return new org.springframework.boot.actuate.health.SimpleStatusAggregator(
+        return new org.airsonic.player.health.SimpleStatusAggregator(
                 runtime.getConfiguration().getHealthStatusOrder());
     }
 
@@ -263,8 +270,8 @@ public class KtorConfiguration {
             UPnPService upnpService,
             StatusService statusService,
             javax.cache.CacheManager jCacheCacheManager,
-            org.springframework.boot.actuate.health.HealthContributorRegistry healthContributors,
-            org.springframework.boot.actuate.health.StatusAggregator healthStatusAggregator,
+            org.airsonic.player.health.HealthContributorRegistry healthContributors,
+            org.airsonic.player.health.StatusAggregator healthStatusAggregator,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             io.micrometer.core.instrument.MeterRegistry meterRegistry,
             TaskSchedulingService taskSchedulingService,

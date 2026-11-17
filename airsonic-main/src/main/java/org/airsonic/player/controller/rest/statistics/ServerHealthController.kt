@@ -12,7 +12,7 @@ import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.error.ErrorCode
 import org.airsonic.player.controller.rest.users.UsersRequest
 import org.slf4j.LoggerFactory
-import org.springframework.boot.actuate.health.*
+import org.airsonic.player.health.*
 import org.subsonic.restapi.HealthComponentInfo
 import org.subsonic.restapi.ServerHealth
 import kotlin.coroutines.cancellation.CancellationException

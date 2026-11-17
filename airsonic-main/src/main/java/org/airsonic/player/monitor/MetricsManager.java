@@ -2,16 +2,15 @@ package org.airsonic.player.monitor;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jmx.JmxReporter;
-import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Service;
+import org.airsonic.player.runtime.RuntimeConfiguration;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 /**
  * Created by remi on 17/01/17.
  */
-@Service
-public class MetricsManager {
+public class MetricsManager implements AutoCloseable {
     // Main metrics registry
     private static final MetricRegistry metrics = new MetricRegistry();
 
@@ -21,13 +20,22 @@ public class MetricsManager {
     // Potential metrics reporters
     private static JmxReporter reporter;
 
-    private final Environment env;
-    public MetricsManager(Environment env) {
-        this.env = env;
+    private final Predicate<String> propertyChecker;
+
+    public MetricsManager() {
+        this(prop -> false);
+    }
+
+    public MetricsManager(RuntimeConfiguration config) {
+        this(config != null ? prop -> config.asMap().containsKey(prop) || System.getProperty(prop) != null : prop -> false);
+    }
+
+    public MetricsManager(Predicate<String> propertyChecker) {
+        this.propertyChecker = propertyChecker != null ? propertyChecker : prop -> false;
     }
 
     private void configureMetricsActivation() {
-        if (env.containsProperty("Metrics")) {
+        if (propertyChecker.test("Metrics")) {
             metricsActivatedByConfiguration = Boolean.TRUE;
 
             // Start a Metrics JMX reporter
@@ -124,6 +132,18 @@ public class MetricsManager {
 
     }
 
+
+    @Override
+    public void close() {
+        synchronized (_lock) {
+            if (reporter != null) {
+                reporter.stop();
+                reporter.close();
+                reporter = null;
+            }
+            metricsActivatedByConfiguration = null;
+        }
+    }
 
     // -----------------------------------------------------------------
     // Convenient singletons to avoid creating useless objects instances
