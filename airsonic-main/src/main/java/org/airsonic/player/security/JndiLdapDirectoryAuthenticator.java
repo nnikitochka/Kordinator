@@ -18,9 +18,20 @@ import java.util.Hashtable;
  */
 public final class JndiLdapDirectoryAuthenticator implements LdapDirectoryAuthenticator {
     private final SettingsService settings;
+    private final ContextFactory contextFactory;
 
     public JndiLdapDirectoryAuthenticator(SettingsService settings) {
+        this(settings, InitialDirContext::new);
+    }
+
+    JndiLdapDirectoryAuthenticator(SettingsService settings, ContextFactory contextFactory) {
         this.settings = settings;
+        this.contextFactory = contextFactory;
+    }
+
+    @FunctionalInterface
+    interface ContextFactory {
+        DirContext open(Hashtable<String, Object> environment) throws NamingException;
     }
 
     @Override
@@ -32,7 +43,7 @@ public final class JndiLdapDirectoryAuthenticator implements LdapDirectoryAuthen
         environment.put(Context.SECURITY_CREDENTIALS, password);
         DirContext context = null;
         try {
-            context = new InitialDirContext(environment);
+            context = contextFactory.open(environment);
             return new DirectoryIdentity(username, dn);
         } catch (Exception e) {
             throw new LdapDirectoryException("LDAP user bind failed", e);
@@ -48,13 +59,15 @@ public final class JndiLdapDirectoryAuthenticator implements LdapDirectoryAuthen
         DirContext context = null;
         NamingEnumeration<SearchResult> results = null;
         try {
-            context = new InitialDirContext(environment());
+            context = contextFactory.open(environment());
             results = context.search("", filter, controls);
-            if (!results.hasMore()) throw new LdapDirectoryException("LDAP user was not found");
+            if (!results.hasMore()) throw new UserNotFoundException(username);
             SearchResult result = results.next();
             if (results.hasMore()) throw new LdapDirectoryException("LDAP search returned multiple users");
             return result;
         } catch (LdapDirectoryException e) {
+            throw e;
+        } catch (UserNotFoundException e) {
             throw e;
         } catch (Exception e) {
             throw new LdapDirectoryException("LDAP search failed", e);

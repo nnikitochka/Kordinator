@@ -204,16 +204,9 @@ public class GlobalSecurityConfig {
     @Autowired
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
         if (settingsService.isLdapEnabled()) {
-            auth.ldapAuthentication()
-                    .contextSource()
-                        .managerDn(settingsService.getLdapManagerDn())
-                        .managerPassword(settingsService.getLdapManagerPassword())
-                        .url(settingsService.getLdapUrl())
-                    .and()
-                    .userSearchFilter(settingsService.getLdapSearchFilter())
-                    .userDetailsContextMapper(new CustomUserDetailsContextMapper())
-                    .ldapAuthoritiesPopulator(new CustomLDAPAuthenticatorPostProcessor.CustomLDAPAuthoritiesPopulator())
-                    .addObjectPostProcessor(new CustomLDAPAuthenticatorPostProcessor(securityService, settingsService));
+            LdapDirectoryAuthenticator directory = new JndiLdapDirectoryAuthenticator(settingsService);
+            LdapAuthenticator ldap = new LdapAuthenticator(securityService, settingsService, directory);
+            auth.authenticationProvider(new SpringLdapAuthenticationProvider(ldap));
         }
         String jwtKey = settingsService.getJWTKey();
         if (StringUtils.isBlank(jwtKey)) {
