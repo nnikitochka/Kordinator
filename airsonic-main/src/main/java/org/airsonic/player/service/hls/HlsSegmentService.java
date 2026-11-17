@@ -5,6 +5,7 @@ import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.TransferStatus;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.io.PipeStreams.MonitoredResource;
+import org.airsonic.player.security.CallerContext;
 import org.airsonic.player.security.JWTAuthenticationToken;
 import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.SecurityService;
@@ -55,14 +56,14 @@ public class HlsSegmentService {
         FileUtil.delete(HlsSession.getHlsRootDirectory());
     }
 
-    public Resource getSegment(Authentication auth, User user, Player player, int id, String playerId,
+    public Resource getSegment(Authentication auth, User user, CallerContext callerContext, Player player, int id, String playerId,
             int segmentIndex, int maxBitRate, String size, Integer duration, Integer audioTrack, boolean enforceFolderAccess, boolean countPlay) throws Exception {
         MediaFile mediaFile = this.mediaFileService.getMediaFile(id);
         if (mediaFile == null) {
             throw new NotFoundException("Media file not found: " + id);
         }
         if ((enforceFolderAccess || !(auth instanceof JWTAuthenticationToken))
-                && !securityService.isFolderAccessAllowed(mediaFile, user.getUsername())) {
+                && !securityService.isFolderAccessAllowed(mediaFile, callerContext)) {
             throw new AccessDeniedException("Access to file " + id + " is forbidden for user " + user.getUsername());
         }
         TransferStatus status = this.statusService.createStreamStatus(player);

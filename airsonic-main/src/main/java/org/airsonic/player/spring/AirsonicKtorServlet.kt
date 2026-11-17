@@ -1640,7 +1640,8 @@ class AirsonicKtorServlet(
             val player = playerService.getPlayer(request, response)
             val user = requireNotNull(securityService.getUserByName(auth.name))
             val signed = auth is JWTAuthenticationToken
-            if (!signed && !securityService.isFolderAccessAllowed(media, player.username)) {
+            val callerContext = callerContextAdapter.fromRequest(request)
+            if (!signed && !securityService.isFolderAccessAllowed(media, callerContext)) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
@@ -1668,7 +1669,7 @@ class AirsonicKtorServlet(
                     response.sendError(HttpServletResponse.SC_BAD_REQUEST)
                     return
                 }
-                request.setAttribute(HLS_SEGMENT_REQUEST, HlsSegmentRestController.Request(auth, user, player,
+                request.setAttribute(HLS_SEGMENT_REQUEST, HlsSegmentRestController.Request(auth, user, callerContext, player,
                     id, rawPlayer, index, bitRate, size, duration, audioTrack, false))
             }
         } else if (path in HlsRestController.PATHS && request.method in setOf("GET", "POST", "HEAD")) {
@@ -1747,7 +1748,8 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_NOT_FOUND)
                 return
             }
-            if (!securityService.isFolderAccessAllowed(media, user.username)) {
+            val callerContext = callerContextAdapter.fromRequest(request)
+            if (!securityService.isFolderAccessAllowed(media, callerContext)) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
@@ -1756,7 +1758,7 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
-            request.setAttribute(HLS_SEGMENT_REQUEST, HlsSegmentRestController.Request(auth, user, player,
+            request.setAttribute(HLS_SEGMENT_REQUEST, HlsSegmentRestController.Request(auth, user, callerContext, player,
                 id, playerId, index, bitRate, size, duration, audioTrack))
         } else if (path == LiveQueueExportController.PATH && request.method in setOf("GET", "HEAD")) {
             val username = requireNotNull(securityService.getCurrentUsername(request))
