@@ -1040,7 +1040,7 @@ class AirsonicKtorServlet(
                     return
                 }
             }
-            if (!signed && !securityService.isFolderAccessAllowed(file, auth.name)) {
+            if (!signed && !securityService.isFolderAccessAllowed(file, callerContextAdapter.fromRequest(request))) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
