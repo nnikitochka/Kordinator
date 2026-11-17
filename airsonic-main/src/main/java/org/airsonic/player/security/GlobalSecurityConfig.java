@@ -44,7 +44,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 
 import jakarta.servlet.DispatcherType;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -321,25 +320,15 @@ public class GlobalSecurityConfig {
 
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
+        CorsPolicy policy = CorsPolicy.defaults();
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Collections.singletonList("*"));
-        configuration.setAllowedMethods(Collections.singletonList("*"));
+        configuration.setAllowedOrigins(policy.allowedOrigins());
+        configuration.setAllowedMethods(policy.allowedMethods());
         return request -> {
             String contextPath = request.getContextPath();
             String requestUri = request.getRequestURI();
-            String applicationPath = requestUri.startsWith(contextPath)
-                    ? requestUri.substring(contextPath.length()) : requestUri;
-            return isCorsPath(applicationPath) ? configuration : null;
+            String applicationPath = policy.applicationPath(requestUri, contextPath);
+            return policy.appliesTo(applicationPath) ? configuration : null;
         };
-    }
-
-    private static boolean isCorsPath(String path) {
-        return path.equals("/rest") || path.startsWith("/rest/")
-                || path.equals("/stream") || path.startsWith("/stream/")
-                || path.startsWith("/hls")
-                || path.startsWith("/captions")
-                || path.equals("/ext/stream") || path.startsWith("/ext/stream/")
-                || path.startsWith("/ext/hls")
-                || path.startsWith("/ext/captions");
     }
 }
