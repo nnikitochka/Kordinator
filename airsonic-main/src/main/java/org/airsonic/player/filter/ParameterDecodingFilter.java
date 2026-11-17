@@ -1,6 +1,5 @@
 package org.airsonic.player.filter;
 
-import org.airsonic.player.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,8 +24,9 @@ import java.util.Vector;
  */
 public class ParameterDecodingFilter implements Filter {
 
-    public static final String PARAM_SUFFIX = "Utf8Hex";
+    public static final String PARAM_SUFFIX = ParameterDecodingPolicy.PARAM_SUFFIX;
     private static final Logger LOG = LoggerFactory.getLogger(ParameterDecodingFilter.class);
+    private static final ParameterDecodingPolicy POLICY = new ParameterDecodingPolicy();
 
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
@@ -68,8 +68,8 @@ public class ParameterDecodingFilter implements Filter {
                 String name = entry.getKey();
                 String[] values = entry.getValue();
 
-                if (name.endsWith(PARAM_SUFFIX)) {
-                    result.put(name.replace(PARAM_SUFFIX, ""), decode(values));
+                if (POLICY.isEncodedParameter(name)) {
+                    result.put(POLICY.decodedParameterName(name), decode(values));
                 } else {
                     result.put(name, values);
                 }
@@ -83,8 +83,8 @@ public class ParameterDecodingFilter implements Filter {
             Vector<String> v = new Vector<>();
             while (names.hasMoreElements()) {
                 String name = names.nextElement();
-                if (name.endsWith(PARAM_SUFFIX)) {
-                    name = name.replace(PARAM_SUFFIX, "");
+                if (POLICY.isEncodedParameter(name)) {
+                    name = POLICY.decodedParameterName(name);
                 }
                 v.add(name);
             }
@@ -108,21 +108,8 @@ public class ParameterDecodingFilter implements Filter {
         }
 
         private String[] decode(String[] values) {
-            if (values == null) {
-                return null;
-            }
-
-            String[] result = new String[values.length];
-            for (int i = 0; i < values.length; i++) {
-                try {
-                    result[i] = StringUtil.utf8HexDecode(values[i]);
-                } catch (Exception x) {
-                    LOG.error("Failed to decode parameter value '" + values[i] + "'");
-                    result[i] = values[i];
-                }
-            }
-
-            return result;
+            return POLICY.decodeValues(values,
+                    value -> LOG.error("Failed to decode parameter value '{}'", value));
         }
 
     }
