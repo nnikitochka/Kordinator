@@ -59,7 +59,7 @@ class MusicDirectoryController(
                 val dir = mediaFiles.getMediaFile(id)
                 when {
                     dir == null -> writer.createErrorResponse(ErrorCode.NOT_FOUND, "Directory not found")
-                    !security.isFolderAccessAllowed(dir, request.username) -> writer.createErrorResponse(ErrorCode.NOT_AUTHORIZED, "Access denied")
+                    !security.isFolderAccessAllowed(dir, request.callerContext) -> writer.createErrorResponse(ErrorCode.NOT_AUTHORIZED, "Access denied")
                     else -> {
                         val parent = mediaFiles.getParentOf(dir)
                         val directory = Directory().apply {

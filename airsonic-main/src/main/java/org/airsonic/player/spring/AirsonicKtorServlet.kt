@@ -105,6 +105,7 @@ import org.airsonic.player.controller.rest.music.top.TopSongsController
 import org.airsonic.player.controller.rest.music.top.TopSongsRequest
 import org.airsonic.player.controller.rest.music.directory.MusicDirectoryController
 import org.airsonic.player.controller.rest.music.directory.MusicDirectoryRequest
+import org.airsonic.player.security.SpringCallerContextAdapter
 import org.airsonic.player.controller.rest.music.random.RandomSongsController
 import org.airsonic.player.controller.rest.music.random.RandomSongsRequest
 import org.airsonic.player.controller.rest.scrobble.ScrobbleController
@@ -249,6 +250,7 @@ class AirsonicKtorServlet(
     private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
 ) : ServletApplicationEngine() {
     private val proxyRestController = ProxyRestController()
+    private val callerContextAdapter = SpringCallerContextAdapter(securityService)
 
     @OptIn(InternalAPI::class)
     override fun init() {
@@ -1423,7 +1425,10 @@ class AirsonicKtorServlet(
             }
             val player = playerService.getPlayer(wrapped, response)
             val username = requireNotNull(securityService.getCurrentUsername(request))
-            request.setAttribute(MUSIC_DIRECTORY_REQUEST, MusicDirectoryRequest(username, player, parameters(request)))
+             request.setAttribute(
+                 MUSIC_DIRECTORY_REQUEST,
+                 MusicDirectoryRequest(username, callerContextAdapter.fromRequest(request), player, parameters(request)),
+             )
         } else if (path in SongController.PATHS) {
             val playerId = playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val wrapped = object : HttpServletRequestWrapper(request) {
