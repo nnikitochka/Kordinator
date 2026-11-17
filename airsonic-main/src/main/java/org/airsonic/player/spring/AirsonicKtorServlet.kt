@@ -993,7 +993,7 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_NOT_FOUND)
                 return
             }
-            if (!securityService.isFolderAccessAllowed(file, user.username)) {
+            if (!securityService.isFolderAccessAllowed(file, callerContextAdapter.fromRequest(request))) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
