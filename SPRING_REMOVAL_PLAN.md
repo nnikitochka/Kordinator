@@ -186,6 +186,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `364c27b` переносит `JukeboxLegacySubsonicService`, `JukeboxService` и `PlayQueueService` под root ownership; инициализация и поведение живой очереди не менялись. `RuntimeCompositionRootGraphTest`, `PlayQueueBroadcastTest`, `JukeboxServiceUnitTest`, `JukeboxQueueIntegrationTest`, `PlayQueueIntegrationTest`, `JukeboxIntegrationTest` прошли 19/19.
 
+Срез `7f6886b` переносит `LastFmService` (включая однократный `init()`), `AudioScrobblerService`, `ShareService` и `UploadFileService` под root ownership. Проверены composition graph, scrobble/share/upload и потребители очереди/jukebox: 6/6 целевых тестовых классов прошли.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
