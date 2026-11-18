@@ -13,6 +13,10 @@ import org.airsonic.player.service.upnp.MediaFileUpnpProcessor;
 import org.airsonic.player.service.upnp.PlaylistUpnpProcessor;
 import org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor;
 import org.airsonic.player.service.upnp.RootUpnpProcessor;
+import org.airsonic.player.security.CsrfSecurityRequestMatcher;
+import org.airsonic.player.security.MultipleCredsMatchingAuthenticationProvider;
+import org.airsonic.player.theme.CustomThemeResolver;
+import org.airsonic.player.theme.CustomThemeSource;
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController;
 import org.airsonic.player.controller.rest.tags.TagEditController;
 import org.airsonic.player.controller.rest.tags.TagEditorPageController;
@@ -216,6 +220,43 @@ public class KtorConfiguration {
         org.airsonic.player.runtime.LifecycleRegistry registry = runtime.getLifecycleRegistry();
         Runtime.getRuntime().addShutdownHook(new Thread(registry::shutdown, "airsonic-lifecycle-shutdown"));
         return registry;
+    }
+
+    @Bean
+    public CsrfSecurityRequestMatcher csrfSecurityRequestMatcher() {
+        return new CsrfSecurityRequestMatcher();
+    }
+
+    @Bean
+    public MultipleCredsMatchingAuthenticationProvider multipleCredsMatchingAuthenticationProvider(
+            SecurityService securityService, @Lazy org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
+        MultipleCredsMatchingAuthenticationProvider provider = new MultipleCredsMatchingAuthenticationProvider();
+        provider.setSecurityService(securityService);
+        provider.setUserDetailsService(securityService);
+        provider.setPasswordEncoder(passwordEncoder);
+        return provider;
+    }
+
+    @Bean(name = "themeResolver")
+    public CustomThemeResolver customThemeResolver(SecurityService securityService, SettingsService settingsService) {
+        CustomThemeResolver resolver = new CustomThemeResolver();
+        resolver.setSecurityService(securityService);
+        resolver.setSettingsService(settingsService);
+        return resolver;
+    }
+
+    @Bean(name = org.springframework.ui.context.support.UiApplicationContextUtils.THEME_SOURCE_BEAN_NAME)
+    public CustomThemeSource customThemeSource(SettingsService settingsService) {
+        CustomThemeSource source = new CustomThemeSource();
+        source.setBasenamePrefix("org.airsonic.player.theme.");
+        source.setSettingsService(settingsService);
+        return source;
+    }
+
+    @Bean
+    @org.springframework.core.annotation.Order(org.springframework.core.Ordered.HIGHEST_PRECEDENCE)
+    public LoggingExceptionResolver loggingExceptionResolver() {
+        return new LoggingExceptionResolver();
     }
 
     @Bean

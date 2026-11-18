@@ -4,8 +4,6 @@ import org.airsonic.player.controller.rest.error.APIException;
 import org.airsonic.player.controller.rest.error.ErrorCode;
 import org.airsonic.player.domain.UserCredential;
 import org.airsonic.player.service.SecurityService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.CredentialsExpiredException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
@@ -15,12 +13,10 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
 
 import java.util.Map;
 import java.util.Optional;
 
-@Component
 public class MultipleCredsMatchingAuthenticationProvider extends DaoAuthenticationProvider {
     public static final String SALT_TOKEN_MECHANISM_SPECIALIZATION = "salttoken";
     private SecurityService securityService;
@@ -105,20 +101,17 @@ public class MultipleCredsMatchingAuthenticationProvider extends DaoAuthenticati
         }
     }
 
-    @Autowired
     public void setSecurityService(SecurityService securityService) {
         this.securityService = securityService;
     }
 
     @Override
-    @Autowired
     public void setUserDetailsService(UserDetailsService userDetailsService) {
         super.setUserDetailsService(userDetailsService);
     }
 
     @Override
-    @Autowired
-    public void setPasswordEncoder(@Lazy PasswordEncoder passwordEncoder) {
+    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
         super.setPasswordEncoder(passwordEncoder);
     }
 }

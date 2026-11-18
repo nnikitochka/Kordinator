@@ -2,7 +2,6 @@ package org.airsonic.player.security
 
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.security.web.util.matcher.RequestMatcher
-import org.springframework.stereotype.Component
 
 /**
  * See
@@ -10,7 +9,6 @@ import org.springframework.stereotype.Component
  * https://docs.spring.io/spring-security/site/docs/current/reference/html/appendix-namespace.html#nsa-csrf
  * 
  */
-@Component
 class CsrfSecurityRequestMatcher : RequestMatcher {
     private val policy = CsrfPolicy()
 
