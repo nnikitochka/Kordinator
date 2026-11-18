@@ -45,7 +45,8 @@ public class CustomPropertySourceConfigurer implements
         //  - Lookup(B) finds migrated[env[A]]
         //  - Lookup(C) finds file[C] (higher precedence than migrated[env[C]])
         //  - Lookup(D) finds migrated[env[A]]
-        event.getEnvironment().getPropertySources().forEach(ps -> SettingsService.migratePropertySourceKeys(migratedProps, ps, MIGRATED));
+        event.getEnvironment().getPropertySources().forEach(ps -> SettingsService.migrateKeys(
+                migratedProps, ps::getProperty, ps.getName(), MIGRATED));
         event.getEnvironment().getPropertySources().addLast(new MapPropertySource("migrated-properties", MIGRATED));
 
         // Migrate external property file

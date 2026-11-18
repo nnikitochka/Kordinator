@@ -70,7 +70,7 @@ public class CommonsConfigurationPropertySourceTest {
         aliases.put("legacy.name", "current.name");
         Map<String, Object> migrated = new LinkedHashMap<>();
 
-        SettingsService.migratePropertySourceKeys(aliases, source, migrated);
+        SettingsService.migrateKeys(aliases, source::getProperty, source.getName(), migrated);
 
         assertEquals("legacy-value", migrated.get("current.name"));
     }

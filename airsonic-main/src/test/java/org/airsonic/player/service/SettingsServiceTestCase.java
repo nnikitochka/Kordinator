@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -80,6 +81,17 @@ public class SettingsServiceTestCase {
         assertEquals("Wrong default LDAP search filter.", "(sAMAccountName={0})", settingsService.getLdapSearchFilter());
         assertEquals("Wrong default LDAP auto-shadowing.", false, settingsService.isLdapAutoShadowing());
         assertEquals("30m", settingsService.getSessionDuration());
+    }
+
+    @Test
+    public void contextualUploadPathResolvesContextKeysAndListIndexes() {
+        Map<String, Object> context = new LinkedHashMap<>();
+        context.put("USER_NAME", "alice");
+        context.put("USER_MUSIC_FOLDERS", List.of("/music/alice", "/shared"));
+
+        assertEquals("/incoming/alice/from-/music/alice",
+                settingsService.resolveContextualString("/incoming/%{['USER_NAME']}/from-%{['USER_MUSIC_FOLDERS'][0]}",
+                        () -> context));
     }
 
     @Test
@@ -246,7 +258,7 @@ public class SettingsServiceTestCase {
         keyMaps.put("bla", "bla2");
         keyMaps.put("bla2", "bla3");
         Map<String, Object> migrated = new LinkedHashMap<>();
-        SettingsService.migratePropertySourceKeys(keyMaps, new MapPropertySource("migrated-properties", Collections.emptyMap()), migrated);
+        migratePropertySourceKeys(keyMaps, new MapPropertySource("migrated-properties", Collections.emptyMap()), migrated);
 
         assertThat(migrated).isEmpty();
     }
@@ -260,9 +272,9 @@ public class SettingsServiceTestCase {
 
         Map<String, Object> migrated = new LinkedHashMap<>();
         // higher precedence starts earlier in the chain order
-        SettingsService.migratePropertySourceKeys(keyMaps,
+        migratePropertySourceKeys(keyMaps,
                 new MapPropertySource("migrated-properties", ImmutableMap.of("bla", "1")), migrated);
-        SettingsService.migratePropertySourceKeys(keyMaps,
+        migratePropertySourceKeys(keyMaps,
                 new MapPropertySource("migrated-properties", ImmutableMap.of("bla3", "3")), migrated);
 
         assertThat(migrated).containsOnly(entry("bla2", "1"), entry("bla3", "1"), entry("bla4", "1"));
@@ -277,9 +289,9 @@ public class SettingsServiceTestCase {
 
         Map<String, Object> migrated = new LinkedHashMap<>();
         // higher precedence starts later in the chain order
-        SettingsService.migratePropertySourceKeys(keyMaps,
+        migratePropertySourceKeys(keyMaps,
                 new MapPropertySource("migrated-properties", ImmutableMap.of("bla3", "1")), migrated);
-        SettingsService.migratePropertySourceKeys(keyMaps,
+        migratePropertySourceKeys(keyMaps,
                 new MapPropertySource("migrated-properties", ImmutableMap.of("bla", "3")), migrated);
 
         assertThat(migrated).containsOnly(entry("bla2", "3"), entry("bla3", "3"), entry("bla4", "1"));
@@ -294,11 +306,16 @@ public class SettingsServiceTestCase {
 
         Map<String, Object> migrated = new LinkedHashMap<>();
         // higher precedence starts later in the chain order
-        SettingsService.migratePropertySourceKeys(keyMaps,
+        migratePropertySourceKeys(keyMaps,
                 new MapPropertySource("migrated-properties", ImmutableMap.of("bla3", "1")), migrated);
-        SettingsService.migratePropertySourceKeys(keyMaps,
+        migratePropertySourceKeys(keyMaps,
                 new MapPropertySource("migrated-properties", ImmutableMap.of("bla", "3")), migrated);
 
         assertThat(migrated).containsOnly(entry("bla2", "3"), entry("bla3", "3"));
+    }
+
+    private static void migratePropertySourceKeys(Map<String, String> keyMaps,
+            MapPropertySource source, Map<String, Object> migrated) {
+        SettingsService.migrateKeys(keyMaps, source::getProperty, source.getName(), migrated);
     }
 }

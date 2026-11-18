@@ -14,9 +14,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.airsonic.player.cache.CacheHelper;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.logging.LogFile;
-import org.springframework.core.env.PropertySource;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.airsonic.player.runtime.RuntimeConfiguration;
 
 import javax.cache.Cache;
@@ -33,6 +30,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -223,6 +222,9 @@ public class SettingsService {
     private static final String THEMES_FILE = "/org/airsonic/player/theme/themes.txt";
 
     private static final Logger LOG = LoggerFactory.getLogger(SettingsService.class);
+    private static final String LOG_FILE_NAME_PROPERTY = "logging.file.name";
+    private static final Pattern CONTEXT_KEY_EXPRESSION = Pattern.compile(
+            "^(?:\\[['\"]([A-Za-z0-9_]+)['\"]]|([A-Za-z0-9_]+))(?:\\[(\\d+)])?$");
 
     private List<Theme> themes;
     private List<Locale> locales;
@@ -284,10 +286,6 @@ public class SettingsService {
         keyMaps.put("IgnoreFileTimestamps", KEY_FULL_SCAN);
 
         return keyMaps;
-    }
-
-    public static void migratePropertySourceKeys(Map<String, String> keyMaps, PropertySource<?> src, Map<String, Object> migrated) {
-        migrateKeys(keyMaps, src::getProperty, src.getName(), migrated);
     }
 
     public static void migrateKeys(Map<String, String> keyMaps, Function<String, Object> propertyLookup, String sourceName, Map<String, Object> migrated) {
@@ -357,8 +355,8 @@ public class SettingsService {
         if (StringUtils.isBlank(propertyLookup.apply(KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_MUSIC_FOLDER))) {
             defaultConstants.put(KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_MUSIC_FOLDER, Util.getDefaultMusicFolder());
         }
-        if (StringUtils.isBlank(propertyLookup.apply(LogFile.FILE_NAME_PROPERTY))) {
-            defaultConstants.put(LogFile.FILE_NAME_PROPERTY, getDefaultLogFile());
+        if (StringUtils.isBlank(propertyLookup.apply(LOG_FILE_NAME_PROPERTY))) {
+            defaultConstants.put(LOG_FILE_NAME_PROPERTY, getDefaultLogFile());
         }
     }
 
@@ -457,7 +455,7 @@ public class SettingsService {
     }
 
     public String getLogFile() {
-        return getProperty(LogFile.FILE_NAME_PROPERTY, getDefaultLogFile());
+        return getProperty(LOG_FILE_NAME_PROPERTY, getDefaultLogFile());
     }
 
     /**
@@ -612,13 +610,35 @@ public class SettingsService {
         }
 
         Map<String, Object> context = contextSupplier.get();
-        // StandardEvaluationContext spelCtx = new StandardEvaluationContext(context);
-
         return StringUtils.replaceEach(s,
                 Stream.of(contextuals).map(x -> "%{" + x + "}").toArray(String[]::new),
                 Stream.of(contextuals)
-                        .map(x -> new SpelExpressionParser().parseExpression(x).getValue(context, String.class))
+                        .map(x -> resolveContextKeyExpression(x, context))
                         .toArray(String[]::new));
+    }
+
+    private static String resolveContextKeyExpression(String expression, Map<String, Object> context) {
+        Matcher matcher = CONTEXT_KEY_EXPRESSION.matcher(expression.trim());
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Unsupported contextual setting expression: " + expression);
+        }
+        String key = matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
+        Object value = context.get(key);
+        String indexText = matcher.group(3);
+        if (indexText != null) {
+            int index = Integer.parseInt(indexText);
+            if (value instanceof List<?> values && index < values.size()) {
+                value = values.get(index);
+            } else if (value instanceof Object[] values && index < values.length) {
+                value = values[index];
+            } else {
+                throw new IllegalArgumentException("Context value '" + key + "' has no item at index " + index);
+            }
+        }
+        if (value == null) {
+            throw new IllegalArgumentException("Context value is missing: " + key);
+        }
+        return value.toString();
     }
 
     public String getGenreSeparators() {
