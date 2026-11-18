@@ -256,6 +256,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `2c4a5b8` перемещает `HealthContributorRegistry` под владение `RuntimeCompositionRoot`; Spring bean теперь только возвращает singleton из root. `RuntimeCompositionRootGraphTest` проверяет единственность и набор db/disk/ping contributors; health framework, graph и server health HTTP tests прошли 11/11.
 
+Срез `b1184e0` убирает `KtorConfiguration` и Spring bean projection assertions из `RuntimeCompositionRootGraphTest`. Тест собирает services/DAOs/handlers/jobs/lifecycle напрямую через root на тестовом HSQL `DataSource` без Spring application context и без Spring configuration object; обе проверки root graph прошли 2/2. Полный Ktor HTTP/security bootstrap всё ещё остаётся Spring-backed и требует дальнейшего перехода на graph factories.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
