@@ -274,6 +274,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `7572282` переносит четыре playlist import/export handlers и `PlaylistService` registration в Kotlin adapter; handlers и service остаются root-owned singleton instances. Graph/handler order/import/export API suite прошёл 10/10. В `KtorConfiguration` остаётся 79 `@Bean` объявлений.
 
+Срез `26ed79e` переносит root-owned HLS, cover-art, tag-edit и полный UPnP processor/content-directory/service registration graph в Kotlin adapter. Сохранён qualifier `dispatchingContentDirectory`; HLS, cover-art, TagEdit, DLNA, root graph tests прошли 17/17. В `KtorConfiguration` осталось 63 `@Bean` registration.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
