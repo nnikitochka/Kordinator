@@ -4,7 +4,6 @@ import org.airsonic.player.domain.UserSettings;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Nonnull;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,7 +17,6 @@ import java.util.Set;
 /**
  * Locale resolver implementation which returns the locale selected in the settings.
  */
-@Service
 public class LocaleResolver implements org.springframework.web.servlet.LocaleResolver {
 
     private Set<Locale> locales;

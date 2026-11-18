@@ -5,7 +5,6 @@ import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.PlayStatus;
 import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.TransferStatus;
-import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 
@@ -29,7 +28,6 @@ import java.util.stream.Stream;
  *
  * @see TransferStatus
  */
-@Service
 public class StatusService {
     private MediaFileService mediaFileService;
     private final MediaFolderService mediaFolderService;

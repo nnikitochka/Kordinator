@@ -292,6 +292,17 @@ public class KtorConfiguration {
         return new ServerInfoService(versionService, settingsService);
     }
 
+    @Bean
+    public LocaleResolver localeResolver(SecurityService securityService, SettingsService settingsService) {
+        return new LocaleResolver(securityService, settingsService);
+    }
+
+    @Bean
+    public StatusService statusService(MediaFileService mediaFileService, MediaFolderService mediaFolderService,
+            SettingsService settingsService, TaskSchedulingService taskSchedulingService) {
+        return new StatusService(mediaFileService, mediaFolderService, settingsService, taskSchedulingService);
+    }
+
     @Bean(destroyMethod = "shutdown")
     public TaskSchedulingService taskSchedulingService(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
         TaskSchedulingService service = new TaskSchedulingService();
