@@ -616,10 +616,10 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public TagEditService tagEditService(MetaDataParserFactory metaDataParserFactory,
-            MediaFileService mediaFileService, MediaFolderService mediaFolderService,
+    public TagEditService tagEditService(RuntimeCompositionRoot runtime, MetaDataParserFactory metaDataParserFactory,
+            MediaFileService mediaFileService,
             SecurityService securityService) {
-        return new TagEditService(metaDataParserFactory, mediaFileService, mediaFolderService, securityService);
+        return runtime.createTagEditService(metaDataParserFactory, mediaFileService, securityService);
     }
 
     @Bean

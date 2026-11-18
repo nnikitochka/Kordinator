@@ -136,6 +136,10 @@ class RuntimeCompositionRootGraphTest {
                 mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeResolver);
         assertSame(mediaFileService, runtimeRoot.createMediaFileService(securityService, settingsService,
                 mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeResolver));
+        TagEditService tagEditService = runtimeRoot.createTagEditService(metaDataParserFactory,
+                mediaFileService, securityService);
+        assertSame(tagEditService, runtimeRoot.createTagEditService(metaDataParserFactory,
+                mediaFileService, securityService));
         BookmarkService bookmarkService = runtimeRoot.createBookmarkService(daoGraph.getBookmarkDao(), mediaFileService);
         assertSame(bookmarkService, runtimeRoot.createBookmarkService(daoGraph.getBookmarkDao(), mediaFileService));
         AudioScrobblerService audioScrobblerService =

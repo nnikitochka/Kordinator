@@ -44,6 +44,7 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.CoverArtSearchService coverArtSearchService;
     private org.airsonic.player.service.hls.HlsPlaylistService hlsPlaylistService;
     private org.airsonic.player.service.hls.HlsSegmentService hlsSegmentService;
+    private org.airsonic.player.service.TagEditService tagEditService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -199,6 +200,17 @@ public final class RuntimeCompositionRoot {
             hlsSegmentService.init();
         }
         return hlsSegmentService;
+    }
+
+    public synchronized org.airsonic.player.service.TagEditService createTagEditService(
+            org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory,
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.SecurityService securityService) {
+        if (tagEditService == null) {
+            tagEditService = new org.airsonic.player.service.TagEditService(
+                    metaDataParserFactory, mediaFileService, createMediaFolderService(), securityService);
+        }
+        return tagEditService;
     }
 
     public synchronized org.airsonic.player.dao.PlayerDao createPlayerDao() throws Exception {
