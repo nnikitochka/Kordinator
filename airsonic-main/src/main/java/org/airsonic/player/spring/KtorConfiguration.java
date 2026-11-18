@@ -14,6 +14,7 @@ import org.airsonic.player.service.upnp.PlaylistUpnpProcessor;
 import org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor;
 import org.airsonic.player.service.upnp.RootUpnpProcessor;
 import org.airsonic.player.security.CsrfSecurityRequestMatcher;
+import org.airsonic.player.security.GlobalSecurityConfig;
 import org.airsonic.player.security.MultipleCredsMatchingAuthenticationProvider;
 import org.airsonic.player.theme.CustomThemeResolver;
 import org.airsonic.player.theme.CustomThemeSource;
@@ -226,6 +227,12 @@ public class KtorConfiguration {
     public org.springframework.context.ApplicationListener<org.springframework.boot.context.event.ApplicationReadyEvent>
             runtimeLifecycleStartupListener(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
         return event -> lifecycleRegistry.start();
+    }
+
+    @Bean
+    public org.springframework.context.ApplicationListener<org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent>
+            authenticationFailureListener(GlobalSecurityConfig securityConfig) {
+        return securityConfig::loginFailureListener;
     }
 
     @Bean
