@@ -223,6 +223,12 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public org.springframework.context.ApplicationListener<org.springframework.boot.context.event.ApplicationReadyEvent>
+            runtimeLifecycleStartupListener(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
+        return event -> lifecycleRegistry.start();
+    }
+
+    @Bean
     public CsrfSecurityRequestMatcher csrfSecurityRequestMatcher() {
         return new CsrfSecurityRequestMatcher();
     }
@@ -523,8 +529,11 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public CoverArtAccentColorBackfill coverArtAccentColorBackfill(CoverArtService coverArtService) {
-        return new CoverArtAccentColorBackfill(coverArtService);
+    public CoverArtAccentColorBackfill coverArtAccentColorBackfill(CoverArtService coverArtService,
+            org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
+        CoverArtAccentColorBackfill service = new CoverArtAccentColorBackfill(coverArtService);
+        lifecycleRegistry.registerStartup("coverArtAccentColorBackfill", service::backfillAccentColors);
+        return service;
     }
 
     @Bean
