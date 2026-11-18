@@ -232,6 +232,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `9a2a07a` завершает framework-neutral extraction `SettingsService`: migration helpers теперь принимают обычный property lookup, logging key не зависит от Boot `LogFile`, а upload-path placeholders разрешаются без SpEL через контекстные ключи/индексы списков (поддерживает шаблоны по текущим документированным примерам). `SettingsService` больше не импортирует Spring. `SettingsServiceTestCase`, `CommonsConfigurationPropertySourceTest`, `RuntimeConfigurationLoaderTest` прошли 33/33; `FileUploadIntegrationTest` прошёл 1/1.
 
+Срез `bf73840` удаляет `ServletRequestUtils` из `PlayerService`; необязательный `player` request parameter разбирается напрямую, сохраняя null для отсутствующего значения и ошибку при нечисловом значении. `PlayerDaoTestCase`, queue/jukebox/live-queue integration suites прошли 13/13.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
