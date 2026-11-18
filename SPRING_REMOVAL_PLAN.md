@@ -240,6 +240,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `9b87702` выносит генерацию Spring `GrantedAuthority` в тот же security adapter и убирает из `SecurityService` `SecurityContextHolderAwareRequestWrapper`; имя principal читается из servlet request API, включая request wrapper, уже установленный фильтром. Graph/security/login/credentials/JWT/LDAP suites прошли 28/28. Encoder registry `GlobalSecurityConfig` и остальные SecurityService HTTP/security adapters пока остаются.
 
+Срез `1ef74fc` вводит framework-neutral `CredentialEncoderRegistry` и Spring adapter над существующей таблицей encoder-ов. `SecurityService` больше не обращается к `GlobalSecurityConfig`/`PasswordDecoder` напрямую; `AudioScrobblerService` получает reversible credential decoding через `SecurityService`, а composition root принимает реестр как dependency. Сохранён существующий формат хранения и decoding; `RuntimeCompositionRootGraphTest`, security/login/credentials/scrobble и credential compatibility suites прошли 20/20. Spring adapter реестра и остальные HTTP/security adapters пока остаются.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
