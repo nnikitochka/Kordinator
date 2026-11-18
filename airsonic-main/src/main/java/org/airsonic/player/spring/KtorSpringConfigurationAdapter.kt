@@ -156,4 +156,146 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         importHandlers: List<org.airsonic.player.service.playlist.PlaylistImportHandler>,
     ): org.airsonic.player.service.PlaylistService =
         runtime.createPlaylistService(securityService, settingsService, exportHandlers, importHandlers)
+
+    @Bean
+    override fun hlsPlaylistService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
+    ): org.airsonic.player.service.hls.HlsPlaylistService = runtime.createHlsPlaylistService(jwtSecurityService)
+
+    @Bean
+    override fun hlsSegmentService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        securityService: org.airsonic.player.service.SecurityService,
+        statusService: org.airsonic.player.service.StatusService,
+        settingsService: org.airsonic.player.service.SettingsService,
+        transcodingService: org.airsonic.player.service.TranscodingService,
+    ): org.airsonic.player.service.hls.HlsSegmentService = runtime.createHlsSegmentService(
+        mediaFileService, securityService, statusService, settingsService, transcodingService)
+
+    @Bean
+    override fun coverArtService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        coverArtDao: org.airsonic.player.dao.CoverArtDao,
+    ): org.airsonic.player.service.CoverArtService = runtime.createCoverArtService(coverArtDao)
+
+    @Bean
+    override fun coverArtImageService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        coverArtService: org.airsonic.player.service.CoverArtService,
+        transcodingService: org.airsonic.player.service.TranscodingService,
+        settingsService: org.airsonic.player.service.SettingsService,
+        playlistService: org.airsonic.player.service.PlaylistService,
+        artistDao: org.airsonic.player.dao.ArtistDao,
+        albumDao: org.airsonic.player.dao.AlbumDao,
+    ): org.airsonic.player.service.CoverArtImageService = runtime.createCoverArtImageService(
+        mediaFileService, coverArtService, transcodingService, settingsService, playlistService, artistDao, albumDao)
+
+    @Bean
+    override fun coverArtSearchService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        securityService: org.airsonic.player.service.SecurityService,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        lastFmService: org.airsonic.player.service.LastFmService,
+        coverArtService: org.airsonic.player.service.CoverArtService,
+    ): org.airsonic.player.service.CoverArtSearchService = runtime.createCoverArtSearchService(
+        securityService, mediaFileService, lastFmService, coverArtService)
+
+    @Bean
+    override fun coverArtAccentColorBackfill(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        coverArtService: org.airsonic.player.service.CoverArtService,
+    ): org.airsonic.player.service.CoverArtAccentColorBackfill = runtime.createCoverArtAccentColorBackfill(coverArtService)
+
+    @Bean
+    override fun tagEditService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        metaDataParserFactory: org.airsonic.player.service.metadata.MetaDataParserFactory,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        securityService: org.airsonic.player.service.SecurityService,
+    ): org.airsonic.player.service.TagEditService = runtime.createTagEditService(
+        metaDataParserFactory, mediaFileService, securityService)
+
+    @Bean
+    override fun albumUpnpProcessor(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        albumDao: org.airsonic.player.dao.AlbumDao,
+    ): org.airsonic.player.service.upnp.AlbumUpnpProcessor = runtime.createAlbumUpnpProcessor(albumDao)
+
+    @Bean
+    override fun recentAlbumUpnpProcessor(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        albumDao: org.airsonic.player.dao.AlbumDao,
+    ): org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor = runtime.createRecentAlbumUpnpProcessor(albumDao)
+
+    @Bean
+    override fun artistUpnpProcessor(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        artistDao: org.airsonic.player.dao.ArtistDao,
+    ): org.airsonic.player.service.upnp.ArtistUpnpProcessor = runtime.createArtistUpnpProcessor(artistDao)
+
+    @Bean
+    override fun genreUpnpProcessor(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.upnp.GenreUpnpProcessor = runtime.createGenreUpnpProcessor()
+
+    @Bean
+    override fun mediaFileUpnpProcessor(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileDao: org.airsonic.player.dao.MediaFileDao,
+    ): org.airsonic.player.service.upnp.MediaFileUpnpProcessor = runtime.createMediaFileUpnpProcessor(mediaFileDao)
+
+    @Bean
+    override fun playlistUpnpProcessor(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        playlistService: org.airsonic.player.service.PlaylistService,
+    ): org.airsonic.player.service.upnp.PlaylistUpnpProcessor = runtime.createPlaylistUpnpProcessor(playlistService)
+
+    @Bean
+    override fun rootUpnpProcessor(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        indexManager: org.airsonic.player.service.search.IndexManager,
+    ): org.airsonic.player.service.upnp.RootUpnpProcessor = runtime.createRootUpnpProcessor(indexManager)
+
+    @Bean
+    override fun dispatchingContentDirectory(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        mediaFolderService: org.airsonic.player.service.MediaFolderService,
+        playlistService: org.airsonic.player.service.PlaylistService,
+        searchService: org.airsonic.player.service.SearchService,
+        musicIndexService: org.airsonic.player.service.MusicIndexService,
+        indexManager: org.airsonic.player.service.search.IndexManager,
+        settingsService: org.airsonic.player.service.SettingsService,
+        playerService: org.airsonic.player.service.PlayerService,
+        transcodingService: org.airsonic.player.service.TranscodingService,
+        jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
+    ): org.airsonic.player.service.upnp.DispatchingContentDirectory = runtime.createDispatchingContentDirectory(
+        mediaFileService, mediaFolderService, playlistService, searchService, musicIndexService, indexManager,
+        settingsService, playerService, transcodingService, jwtSecurityService)
+
+    @Bean
+    override fun folderBasedContentDirectory(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        mediaFolderService: org.airsonic.player.service.MediaFolderService,
+        playlistService: org.airsonic.player.service.PlaylistService,
+        indexManager: org.airsonic.player.service.search.IndexManager,
+        settingsService: org.airsonic.player.service.SettingsService,
+        playerService: org.airsonic.player.service.PlayerService,
+        transcodingService: org.airsonic.player.service.TranscodingService,
+        jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
+    ): org.airsonic.player.service.upnp.FolderBasedContentDirectory = runtime.createFolderBasedContentDirectory(
+        mediaFileService, mediaFolderService, playlistService, indexManager, settingsService, playerService,
+        transcodingService, jwtSecurityService)
+
+    @Bean
+    override fun upnpService(
+        settingsService: org.airsonic.player.service.SettingsService,
+        @org.springframework.beans.factory.annotation.Qualifier("dispatchingContentDirectory")
+        contentDirectory: org.airsonic.player.service.upnp.CustomContentDirectory,
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.UPnPService = runtime.createUpnpService(settingsService, contentDirectory)
 }

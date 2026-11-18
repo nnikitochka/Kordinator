@@ -518,24 +518,20 @@ public class KtorConfiguration {
         return runtime.createMetaDataParserFactory();
     }
 
-    @Bean
     public HlsPlaylistService hlsPlaylistService(RuntimeCompositionRoot runtime, JWTSecurityService jwtSecurityService) {
         return runtime.createHlsPlaylistService(jwtSecurityService);
     }
 
-    @Bean
     public HlsSegmentService hlsSegmentService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService, SecurityService securityService,
             StatusService statusService, SettingsService settingsService, TranscodingService transcodingService) {
         return runtime.createHlsSegmentService(mediaFileService, securityService, statusService,
                 settingsService, transcodingService);
     }
 
-    @Bean
     public CoverArtService coverArtService(RuntimeCompositionRoot runtime, CoverArtDao coverArtDao) {
         return runtime.createCoverArtService(coverArtDao);
     }
 
-    @Bean
     public CoverArtImageService coverArtImageService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService,
             CoverArtService coverArtService, TranscodingService transcodingService, SettingsService settingsService,
             PlaylistService playlistService, ArtistDao artistDao, AlbumDao albumDao) {
@@ -543,61 +539,50 @@ public class KtorConfiguration {
                 settingsService, playlistService, artistDao, albumDao);
     }
 
-    @Bean
     public CoverArtSearchService coverArtSearchService(RuntimeCompositionRoot runtime, SecurityService securityService,
             MediaFileService mediaFileService, LastFmService lastFmService, CoverArtService coverArtService) {
         return runtime.createCoverArtSearchService(securityService, mediaFileService, lastFmService, coverArtService);
     }
 
-    @Bean
     public CoverArtAccentColorBackfill coverArtAccentColorBackfill(RuntimeCompositionRoot runtime,
             CoverArtService coverArtService) {
         return runtime.createCoverArtAccentColorBackfill(coverArtService);
     }
 
-    @Bean
     public TagEditService tagEditService(RuntimeCompositionRoot runtime, MetaDataParserFactory metaDataParserFactory,
             MediaFileService mediaFileService,
             SecurityService securityService) {
         return runtime.createTagEditService(metaDataParserFactory, mediaFileService, securityService);
     }
 
-    @Bean
     public AlbumUpnpProcessor albumUpnpProcessor(RuntimeCompositionRoot runtime, AlbumDao albumDao) {
         return runtime.createAlbumUpnpProcessor(albumDao);
     }
 
-    @Bean
     public RecentAlbumUpnpProcessor recentAlbumUpnpProcessor(RuntimeCompositionRoot runtime, AlbumDao albumDao) {
         return runtime.createRecentAlbumUpnpProcessor(albumDao);
     }
 
-    @Bean
     public ArtistUpnpProcessor artistUpnpProcessor(RuntimeCompositionRoot runtime, ArtistDao artistDao) {
         return runtime.createArtistUpnpProcessor(artistDao);
     }
 
-    @Bean
     public GenreUpnpProcessor genreUpnpProcessor(RuntimeCompositionRoot runtime) {
         return runtime.createGenreUpnpProcessor();
     }
 
-    @Bean
     public MediaFileUpnpProcessor mediaFileUpnpProcessor(RuntimeCompositionRoot runtime, MediaFileDao mediaFileDao) {
         return runtime.createMediaFileUpnpProcessor(mediaFileDao);
     }
 
-    @Bean
     public PlaylistUpnpProcessor playlistUpnpProcessor(RuntimeCompositionRoot runtime, PlaylistService playlistService) {
         return runtime.createPlaylistUpnpProcessor(playlistService);
     }
 
-    @Bean
     public RootUpnpProcessor rootUpnpProcessor(RuntimeCompositionRoot runtime, IndexManager indexManager) {
         return runtime.createRootUpnpProcessor(indexManager);
     }
 
-    @Bean
     public DispatchingContentDirectory dispatchingContentDirectory(RuntimeCompositionRoot runtime,
             MediaFileService mediaFileService, MediaFolderService mediaFolderService,
             PlaylistService playlistService, SearchService searchService, MusicIndexService musicIndexService,
@@ -608,7 +593,6 @@ public class KtorConfiguration {
                 jwtSecurityService);
     }
 
-    @Bean
     public FolderBasedContentDirectory folderBasedContentDirectory(RuntimeCompositionRoot runtime,
             MediaFileService mediaFileService,
             MediaFolderService mediaFolderService, PlaylistService playlistService, IndexManager indexManager,
@@ -618,7 +602,6 @@ public class KtorConfiguration {
                 indexManager, settingsService, playerService, transcodingService, jwtSecurityService);
     }
 
-    @Bean
     public UPnPService upnpService(SettingsService settingsService,
             @org.springframework.beans.factory.annotation.Qualifier("dispatchingContentDirectory")
             org.airsonic.player.service.upnp.CustomContentDirectory contentDirectory,
