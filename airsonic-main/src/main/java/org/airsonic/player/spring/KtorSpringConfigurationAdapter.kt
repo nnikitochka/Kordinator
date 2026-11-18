@@ -62,4 +62,56 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     override fun playerDaoPlayQueueFactory(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
     ): org.airsonic.player.dao.PlayerDaoPlayQueueFactory = runtime.createPlayerDaoPlayQueueFactory()
+
+    @Bean
+    override fun analyzerFactory(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.search.AnalyzerFactory = runtime.createAnalyzerFactory()
+
+    @Bean
+    override fun documentFactory(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.search.DocumentFactory = runtime.createDocumentFactory()
+
+    @Bean
+    override fun queryFactory(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.search.QueryFactory = runtime.createQueryFactory()
+
+    @Bean
+    override fun searchServiceUtilities(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+    ): org.airsonic.player.service.search.SearchServiceUtilities = runtime.createSearchServiceUtilities(mediaFileService)
+
+    @Bean
+    override fun indexManager(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.search.IndexManager = runtime.createIndexManager()
+
+    @Bean
+    override fun searchServiceImpl(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+    ): org.airsonic.player.service.search.SearchServiceImpl = runtime.createSearchService(mediaFileService)
+
+    @Bean
+    override fun defaultMetaDataParser(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.metadata.DefaultMetaDataParser = runtime.createDefaultMetaDataParser()
+
+    @Bean
+    override fun ffmpegParser(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.metadata.FFmpegParser = runtime.createFFmpegParser()
+
+    @Bean
+    override fun jaudiotaggerParser(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.metadata.JaudiotaggerParser = runtime.createJaudiotaggerParser()
+
+    @Bean
+    override fun metaDataParserFactory(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.metadata.MetaDataParserFactory = runtime.createMetaDataParserFactory()
 }

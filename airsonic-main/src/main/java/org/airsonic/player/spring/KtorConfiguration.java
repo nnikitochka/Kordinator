@@ -443,32 +443,26 @@ public class KtorConfiguration {
         return runtime.createStatusService(mediaFileService, mediaFolderService, settingsService, taskSchedulingService);
     }
 
-    @Bean
     public AnalyzerFactory analyzerFactory(RuntimeCompositionRoot runtime) {
         return runtime.createAnalyzerFactory();
     }
 
-    @Bean
     public DocumentFactory documentFactory(RuntimeCompositionRoot runtime) {
         return runtime.createDocumentFactory();
     }
 
-    @Bean
     public QueryFactory queryFactory(RuntimeCompositionRoot runtime) {
         return runtime.createQueryFactory();
     }
 
-    @Bean
     public SearchServiceUtilities searchServiceUtilities(RuntimeCompositionRoot runtime, MediaFileService mediaFileService) {
         return runtime.createSearchServiceUtilities(mediaFileService);
     }
 
-    @Bean
     public IndexManager indexManager(RuntimeCompositionRoot runtime) {
         return runtime.createIndexManager();
     }
 
-    @Bean
     public SearchServiceImpl searchServiceImpl(RuntimeCompositionRoot runtime, MediaFileService mediaFileService) {
         return runtime.createSearchService(mediaFileService);
     }
@@ -513,22 +507,18 @@ public class KtorConfiguration {
         return runtime.createPlaylistService(securityService, settingsService, exportHandlers, importHandlers);
     }
 
-    @Bean
     public DefaultMetaDataParser defaultMetaDataParser(RuntimeCompositionRoot runtime) {
         return runtime.createDefaultMetaDataParser();
     }
 
-    @Bean
     public FFmpegParser ffmpegParser(RuntimeCompositionRoot runtime) {
         return runtime.createFFmpegParser();
     }
 
-    @Bean
     public JaudiotaggerParser jaudiotaggerParser(RuntimeCompositionRoot runtime) {
         return runtime.createJaudiotaggerParser();
     }
 
-    @Bean
     public MetaDataParserFactory metaDataParserFactory(RuntimeCompositionRoot runtime) {
         return runtime.createMetaDataParserFactory();
     }
