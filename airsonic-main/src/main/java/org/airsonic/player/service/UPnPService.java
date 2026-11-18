@@ -26,7 +26,6 @@ import org.fourthline.cling.transport.spi.StreamClient;
 import org.fourthline.cling.transport.spi.StreamServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.io.InputStream;
 import java.util.UUID;
@@ -42,7 +41,7 @@ public class UPnPService implements AutoCloseable {
 
     private final AtomicReference<Boolean> running = new AtomicReference<>(false);
 
-    public UPnPService(SettingsService settingsService, @Qualifier("dispatchingContentDirectory") CustomContentDirectory dispatchingContentDirectory) {
+    public UPnPService(SettingsService settingsService, CustomContentDirectory dispatchingContentDirectory) {
         this.settingsService = settingsService;
         this.dispatchingContentDirectory = dispatchingContentDirectory;
     }

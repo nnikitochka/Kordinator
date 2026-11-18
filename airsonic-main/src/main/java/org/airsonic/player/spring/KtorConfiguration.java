@@ -703,11 +703,8 @@ public class KtorConfiguration {
     public UPnPService upnpService(SettingsService settingsService,
             @org.springframework.beans.factory.annotation.Qualifier("dispatchingContentDirectory")
             org.airsonic.player.service.upnp.CustomContentDirectory contentDirectory,
-            org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
-        UPnPService service = new UPnPService(settingsService, contentDirectory);
-        service.init();
-        lifecycleRegistry.registerShutdown("upnpService", service);
-        return service;
+            RuntimeCompositionRoot runtime) {
+        return runtime.createUpnpService(settingsService, contentDirectory);
     }
 
     @Bean

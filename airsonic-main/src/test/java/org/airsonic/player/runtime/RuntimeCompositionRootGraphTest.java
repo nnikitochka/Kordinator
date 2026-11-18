@@ -155,6 +155,12 @@ class RuntimeCompositionRootGraphTest {
         assertSame(coverArtBackfill, config.coverArtAccentColorBackfill(runtimeRoot, coverArtService));
         assertEquals(1, lifecycleRegistry.getStartupItems().stream()
                 .filter(item -> item.name().equals("coverArtAccentColorBackfill")).count());
+        org.airsonic.player.service.upnp.CustomContentDirectory contentDirectory =
+                mock(org.airsonic.player.service.upnp.CustomContentDirectory.class);
+        org.airsonic.player.service.UPnPService upnpService = runtimeRoot.createUpnpService(settingsService,
+                contentDirectory);
+        assertSame(upnpService, runtimeRoot.createUpnpService(settingsService, contentDirectory));
+        assertSame(upnpService, config.upnpService(settingsService, contentDirectory, runtimeRoot));
         org.airsonic.player.i18n.LocaleResolver localeResolver = mock(org.airsonic.player.i18n.LocaleResolver.class);
         MediaFileService mediaFileService = runtimeRoot.createMediaFileService(securityService, settingsService,
                 mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeResolver);
