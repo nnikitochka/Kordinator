@@ -98,7 +98,7 @@ public class CustomLDAPAuthenticatorPostProcessor implements ObjectPostProcessor
             if (user == null) {
                 return AuthorityUtils.NO_AUTHORITIES;
             }
-            return SecurityService.getGrantedAuthorities(user);
+            return SpringUserDetailsServiceAdapter.authorities(user);
         }
     }
 }

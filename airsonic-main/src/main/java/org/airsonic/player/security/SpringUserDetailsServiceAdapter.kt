@@ -1,6 +1,9 @@
 package org.airsonic.player.security
 
 import org.airsonic.player.service.SecurityService
+import org.airsonic.player.domain.User
+import org.springframework.security.core.GrantedAuthority
+import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
@@ -14,6 +17,15 @@ class SpringUserDetailsServiceAdapter(private val security: SecurityService) : U
             ?: throw UsernameNotFoundException("User \"$username\" was not found.")
         val user = security.getUserByName(username, caseSensitive)
             ?: throw UsernameNotFoundException("User \"$username\" was not found.")
-        return SpringUserDetailsAdapter(identity, SecurityService.getGrantedAuthorities(user))
+        return SpringUserDetailsAdapter(identity, authorities(user))
+    }
+
+    companion object {
+        @JvmStatic
+        fun authorities(user: User): List<GrantedAuthority> = buildList {
+            add(SimpleGrantedAuthority("IS_AUTHENTICATED_ANONYMOUSLY"))
+            add(SimpleGrantedAuthority("ROLE_USER"))
+            user.roles.forEach { add(SimpleGrantedAuthority("ROLE_${it.name}")) }
+        }
     }
 }

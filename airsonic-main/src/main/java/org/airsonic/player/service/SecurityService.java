@@ -16,9 +16,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 
 import jakarta.servlet.http.HttpServletRequest;
 import javax.cache.Cache;
@@ -37,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Provides security-related services for authentication and authorization.
@@ -184,15 +180,6 @@ public class SecurityService {
         }
     }
 
-    public static List<GrantedAuthority> getGrantedAuthorities(User user) {
-        return Stream.concat(
-                Stream.of(
-                        new SimpleGrantedAuthority("IS_AUTHENTICATED_ANONYMOUSLY"),
-                        new SimpleGrantedAuthority("ROLE_USER")),
-                user.getRoles().stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role.name())))
-                .collect(Collectors.toList());
-    }
-
     public static String decodeCredentials(UserCredential reversibleCred) {
         PasswordDecoder decoder = (PasswordDecoder) GlobalSecurityConfig.ENCODERS.get(reversibleCred.getEncoder());
         try {
@@ -224,7 +211,7 @@ public class SecurityService {
         if (request.getUserPrincipal() != null && request.getUserPrincipal().getName() != null) {
             return request.getUserPrincipal().getName();
         }
-        return new SecurityContextHolderAwareRequestWrapper(request, null).getRemoteUser();
+        return request.getRemoteUser();
     }
 
     /**

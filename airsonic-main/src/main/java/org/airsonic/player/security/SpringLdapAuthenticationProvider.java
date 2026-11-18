@@ -53,7 +53,7 @@ public final class SpringLdapAuthenticationProvider implements AuthenticationPro
             throw new UsernameNotFoundException("LDAP authentication did not resolve a local user");
         }
         return UsernamePasswordAuthenticationToken.authenticated(user.getUsername(), credentials,
-                SecurityService.getGrantedAuthorities(user));
+                SpringUserDetailsServiceAdapter.authorities(user));
     }
 
     private static boolean hasNamingAuthenticationCause(Throwable throwable) {
