@@ -24,7 +24,6 @@ import java.util.Properties;
 /**
  * Password recovery shared by HTTP clients.
  */
-@org.springframework.stereotype.Service
 public class PasswordRecoveryService {
     private static final Logger LOG = LoggerFactory.getLogger(PasswordRecoveryService.class);
 

@@ -3,7 +3,7 @@ package org.airsonic.player;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.WebApplicationType;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.jmx.JmxAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.MultipartAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration;
@@ -12,15 +12,19 @@ import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.annotation.AdviceMode;
+import org.springframework.context.annotation.Import;
+import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import java.lang.reflect.Method;
 
-@SpringBootApplication(exclude = {
+@SpringBootConfiguration
+@EnableAutoConfiguration(exclude = {
     JmxAutoConfiguration.class,
     MultipartAutoConfiguration.class, // TODO: update to use spring boot builtin multipart support
     ErrorMvcAutoConfiguration.class
 })
+@Import({org.airsonic.player.spring.KtorConfiguration.class, org.airsonic.player.security.GlobalSecurityConfig.class})
 @EnableTransactionManagement(mode = AdviceMode.ASPECTJ)
 public class Application extends SpringBootServletInitializer implements WebServerFactoryCustomizer<ConfigurableServletWebServerFactory> {
 
@@ -28,7 +32,7 @@ public class Application extends SpringBootServletInitializer implements WebServ
 
     private static SpringApplicationBuilder doConfigure(SpringApplicationBuilder application) {
         // Customize the application or call application.sources(...) to add sources
-        // Since our example is itself a @Configuration class (via @SpringBootApplication)
+        // Since this class is itself the explicit Spring Boot configuration source
         // we actually don't need to override this method.
         return application.sources(Application.class).web(WebApplicationType.SERVLET);
     }

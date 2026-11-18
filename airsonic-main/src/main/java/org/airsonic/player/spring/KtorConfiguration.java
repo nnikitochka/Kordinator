@@ -546,6 +546,12 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public PasswordRecoveryService passwordRecoveryService(SettingsService settingsService,
+            SecurityService securityService) {
+        return new PasswordRecoveryService(settingsService, securityService);
+    }
+
+    @Bean
     public DefaultPlaylistExportHandler defaultPlaylistExportHandler(MediaFileDao mediaFileDao,
             MediaFolderService mediaFolderService) {
         return new DefaultPlaylistExportHandler(mediaFileDao, mediaFolderService);
