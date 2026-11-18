@@ -1,16 +1,13 @@
 package org.airsonic.player.service.hls;
 
-import com.auth0.jwt.interfaces.DecodedJWT;
-import com.auth0.jwt.interfaces.Payload;
 import org.airsonic.player.service.VideoPlaybackService;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.Player;
-import org.airsonic.player.security.JWTAuthenticationToken;
+import org.airsonic.player.security.HlsLinkContext;
 import org.airsonic.player.service.JWTSecurityService;
 import org.airsonic.player.service.TranscodingService;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.security.core.Authentication;
 
 import java.awt.Dimension;
 import java.io.PrintWriter;
@@ -32,12 +29,12 @@ public class HlsPlaylistService {
         this.jwtSecurityService = jwtSecurityService;
     }
 
-    public String generate(Authentication authentication, MediaFile mediaFile, Player player,
+    public String generate(HlsLinkContext caller, MediaFile mediaFile, Player player,
             String basePath, String prefixPath, String[] requestedBitRates, String size) {
-        return generate(authentication, mediaFile, player, basePath, prefixPath, requestedBitRates, size, false);
+        return generate(caller, mediaFile, player, basePath, prefixPath, requestedBitRates, size, false);
     }
 
-    public String generate(Authentication authentication, MediaFile mediaFile, Player player,
+    public String generate(HlsLinkContext caller, MediaFile mediaFile, Player player,
             String basePath, String prefixPath, String[] requestedBitRates, String size, boolean signedRestUrls) {
         List<Pair<Integer, Dimension>> bitRates = parseBitRates(requestedBitRates, size).stream()
                 .map(b -> b.getRight() != null ? b
@@ -48,13 +45,13 @@ public class HlsPlaylistService {
             bitRates = Collections.singletonList(
                     Pair.of(VideoPlaybackService.DEFAULT_BIT_RATE, TranscodingService.getSuitableVideoSize(
                             mediaFile.getWidth(), mediaFile.getHeight(), VideoPlaybackService.DEFAULT_BIT_RATE)));
-        Instant linkExpiration = expiration(authentication, signedRestUrls, mediaFile.getDuration());
+        Instant linkExpiration = expiration(caller, signedRestUrls, mediaFile.getDuration());
         StringWriter body = new StringWriter();
         PrintWriter writer = new PrintWriter(body);
         if (bitRates.size() > 1) {
-            generateVariantPlaylist(authentication, basePath, prefixPath, mediaFile.getId(), player, bitRates, writer, signedRestUrls, linkExpiration);
+            generateVariantPlaylist(caller, basePath, prefixPath, mediaFile.getId(), player, bitRates, writer, signedRestUrls, linkExpiration);
         } else {
-            generateNormalPlaylist(authentication, basePath, prefixPath, mediaFile.getId(), player, bitRates.getFirst(),
+            generateNormalPlaylist(caller, basePath, prefixPath, mediaFile.getId(), player, bitRates.getFirst(),
                     Math.round(mediaFile.getDuration()), writer, signedRestUrls, linkExpiration);
         }
         writer.flush();
@@ -96,7 +93,7 @@ public class HlsPlaylistService {
         }
     }
 
-    private void generateVariantPlaylist(Authentication authentication, String basePath, String prefix,
+    private void generateVariantPlaylist(HlsLinkContext caller, String basePath, String prefix,
             int id, Player player, List<Pair<Integer, Dimension>> bitRates, PrintWriter writer, boolean signedRestUrls, Instant linkExpiration) {
         writer.println("#EXTM3U");
         writer.println("#EXT-X-VERSION:1");
@@ -110,13 +107,13 @@ public class HlsPlaylistService {
                     + "&player=" + player.getId()
                     + "&maxBitRate=" + kbps + Optional.ofNullable(bitRate.getRight())
                             .map(d -> "@" + d.width + "x" + d.height).orElse("");
-            writer.print(basePath + signIfNeeded(authentication, url, signedRestUrls, linkExpiration));
+            writer.print(basePath + signIfNeeded(caller, url, signedRestUrls, linkExpiration));
             writer.println();
         }
 //        writer.println("#EXT-X-ENDLIST");
     }
 
-    private void generateNormalPlaylist(Authentication authentication, String basePath, String prefix,
+    private void generateNormalPlaylist(HlsLinkContext caller, String basePath, String prefix,
             int id, Player player, Pair<Integer, Dimension> bitRate, long totalDuration, PrintWriter writer, boolean signedRestUrls, Instant linkExpiration) {
         writer.println("#EXTM3U");
         writer.println("#EXT-X-VERSION:1");
@@ -124,29 +121,26 @@ public class HlsPlaylistService {
 
         for (int i = 0; i < totalDuration / SEGMENT_DURATION; i++) {
             writer.println("#EXTINF:" + SEGMENT_DURATION + ",");
-            writer.println(createStreamUrl(authentication, basePath, prefix, player, id, i, SEGMENT_DURATION, bitRate, signedRestUrls, linkExpiration));
+            writer.println(createStreamUrl(caller, basePath, prefix, player, id, i, SEGMENT_DURATION, bitRate, signedRestUrls, linkExpiration));
         }
 
         long remainder = totalDuration % SEGMENT_DURATION;
         if (remainder > 0) {
             writer.println("#EXTINF:" + remainder + ",");
             writer.println(
-                    createStreamUrl(authentication, basePath, prefix, player, id,
+                    createStreamUrl(caller, basePath, prefix, player, id,
                             (int) (totalDuration / SEGMENT_DURATION),
                             SEGMENT_DURATION, bitRate, signedRestUrls, linkExpiration));
         }
         writer.println("#EXT-X-ENDLIST");
     }
 
-    private Instant expiration(Authentication authentication, boolean signedRestUrls, double duration) {
-        if (authentication instanceof JWTAuthenticationToken) {
-            DecodedJWT token = (DecodedJWT) authentication.getDetails();
-            return Optional.ofNullable(token).map(Payload::getExpiresAt).map(Date::toInstant).orElse(null);
-        }
+    private Instant expiration(HlsLinkContext caller, boolean signedRestUrls, double duration) {
+        if (caller.getJwtAuthenticated()) return caller.getJwtExpiresAt();
         return signedRestUrls ? Instant.now().plusSeconds((long) Math.ceil(duration) + 3600) : null;
     }
 
-    private String createStreamUrl(Authentication authentication,
+    private String createStreamUrl(HlsLinkContext caller,
             String basePath, String prefix,
             Player player,
             int id,
@@ -161,12 +155,12 @@ public class HlsPlaylistService {
                 + "&duration=" + duration
                 + "&maxBitRate=" + bitRate.getLeft()
                 + "&size=" + bitRate.getRight().width + "x" + bitRate.getRight().height;
-        return basePath + signIfNeeded(authentication, url, signedRestUrls, linkExpiration);
+        return basePath + signIfNeeded(caller, url, signedRestUrls, linkExpiration);
     }
 
-    private String signIfNeeded(Authentication authentication, String url, boolean signedRestUrls, Instant linkExpiration) {
-        if (signedRestUrls || authentication instanceof JWTAuthenticationToken) {
-            return jwtSecurityService.addJWTToken(authentication.getName(), url, linkExpiration);
+    private String signIfNeeded(HlsLinkContext caller, String url, boolean signedRestUrls, Instant linkExpiration) {
+        if (signedRestUrls || caller.getJwtAuthenticated()) {
+            return jwtSecurityService.addJWTToken(caller.getUsername(), url, linkExpiration);
         }
         return url;
     }

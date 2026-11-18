@@ -151,6 +151,7 @@ import org.airsonic.player.i18n.LocaleResolver
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.NetworkService
 import org.airsonic.player.security.JWTAuthenticationToken
+import org.airsonic.player.security.HlsLinkContext
 import org.airsonic.player.service.PlayerService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.ShareService
@@ -549,6 +550,12 @@ class AirsonicKtorServlet(
                 serviceRequest(filteredRequest as HttpServletRequest, filteredResponse as HttpServletResponse)
             })
         })
+    }
+
+    private fun hlsLinkContext(authentication: Authentication): HlsLinkContext {
+        val jwt = authentication as? JWTAuthenticationToken
+        val expiration = (jwt?.details as? DecodedJWT)?.expiresAt?.toInstant()
+        return HlsLinkContext(authentication.name, jwt != null, expiration)
     }
 
     private fun serviceRequest(request: HttpServletRequest, response: HttpServletResponse) {
@@ -1673,7 +1680,7 @@ class AirsonicKtorServlet(
                     response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR)
                     return
                 }
-                request.setAttribute(HLS_REQUEST, HlsRestController.Request(auth, media, player,
+                request.setAttribute(HLS_REQUEST, HlsRestController.Request(hlsLinkContext(auth), media, player,
                     NetworkService.getBaseUrl(request), path.removePrefix("/").removeSuffix("/hls.m3u8"),
                     request.getParameterValues("maxBitRate"), request.getParameter("size"), false))
             } else {
@@ -1742,7 +1749,7 @@ class AirsonicKtorServlet(
                 return
             }
             val prefix = "ext/rest-hls"
-            request.setAttribute(HLS_REQUEST, HlsRestController.Request(authentication, mediaFile, player,
+            request.setAttribute(HLS_REQUEST, HlsRestController.Request(hlsLinkContext(authentication), mediaFile, player,
                 NetworkService.getBaseUrl(request), prefix, request.getParameterValues("maxBitRate"),
                 request.getParameter("size")))
         } else if (path in HlsSegmentRestController.PATHS && request.method in setOf("GET", "HEAD")) {

@@ -10,11 +10,11 @@ import io.ktor.server.routing.head
 import io.ktor.server.routing.post
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.Player
+import org.airsonic.player.security.HlsLinkContext
 import org.airsonic.player.service.hls.HlsPlaylistService
-import org.springframework.security.core.Authentication
 
 class HlsRestController(private val playlists: HlsPlaylistService) {
-    data class Request(val authentication: Authentication, val mediaFile: MediaFile, val player: Player,
+    data class Request(val caller: HlsLinkContext, val mediaFile: MediaFile, val player: Player,
                        val basePath: String, val prefix: String, val bitRates: Array<String>?, val size: String?, val signedRestUrls: Boolean = true)
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
@@ -32,7 +32,7 @@ class HlsRestController(private val playlists: HlsPlaylistService) {
     }
 
     private suspend fun respond(call: ApplicationCall, request: Request) {
-        val body = playlists.generate(request.authentication, request.mediaFile, request.player,
+        val body = playlists.generate(request.caller, request.mediaFile, request.player,
             request.basePath, request.prefix, request.bitRates, request.size, request.signedRestUrls)
         call.response.header("Access-Control-Allow-Origin", "*")
         call.respondText(body, ContentType.parse("application/x-mpegurl; charset=UTF-8"))

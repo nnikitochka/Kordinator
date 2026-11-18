@@ -3,11 +3,10 @@ package org.airsonic.player.service.hls;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.Player;
+import org.airsonic.player.security.HlsLinkContext;
 import org.airsonic.player.service.JWTSecurityService;
 import org.airsonic.player.service.SettingsService;
 import org.junit.Test;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 
 import java.time.Instant;
 import java.util.List;
@@ -26,7 +25,7 @@ public class HlsPlaylistServiceUrlTest {
     public void variantUrlsPreservePathQueryOrderingAndSignedClaims() {
         Fixture fixture = new Fixture();
 
-        List<String> urls = fixture.playlists.generate(fixture.authentication, fixture.media, fixture.player,
+        List<String> urls = fixture.playlists.generate(fixture.caller, fixture.media, fixture.player,
                 BASE_URL, "ext/rest-hls", new String[]{"500@321x241", "1000@640x480"}, null, true)
                 .lines().filter(line -> !line.startsWith("#") && !line.isBlank()).collect(Collectors.toList());
 
@@ -39,7 +38,7 @@ public class HlsPlaylistServiceUrlTest {
     public void normalSegmentUrlsPreserveSegmentAndSizingQueryOrder() {
         Fixture fixture = new Fixture();
 
-        List<String> urls = fixture.playlists.generate(fixture.authentication, fixture.media, fixture.player,
+        List<String> urls = fixture.playlists.generate(fixture.caller, fixture.media, fixture.player,
                 BASE_URL, "ext/rest-hls", new String[]{"500@321x241"}, null, true)
                 .lines().filter(line -> !line.startsWith("#") && !line.isBlank()).collect(Collectors.toList());
 
@@ -62,7 +61,7 @@ public class HlsPlaylistServiceUrlTest {
     private static final class Fixture {
         private final Instant expirationStart = Instant.now();
         private final SettingsService settings = mock(SettingsService.class);
-        private final Authentication authentication = new UsernamePasswordAuthenticationToken("listener", "password");
+        private final HlsLinkContext caller = new HlsLinkContext("listener", false, null);
         private final MediaFile media = mock(MediaFile.class);
         private final Player player = mock(Player.class);
         private final HlsPlaylistService playlists;
