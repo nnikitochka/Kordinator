@@ -204,6 +204,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `0cb9f27` переносит `MediaStreamService` и `PlayerDaoPlayQueueFactory` в root; factory теперь единая и повторно используется также при создании `PlayerDao`. Graph, stream/website-stream, HLS и download integration suites прошли 5/5.
 
+Срез `2007a48` переносит playlist import/export handlers и `PlaylistService` под root ownership. `PlaylistService` сохраняет штатную сортировку handlers и однократный `init()`; переходный Spring adapter передаёт handler lists и `PathWatcherService`. Graph, handler-order, playlist import/export service и REST integration suites прошли 11/11.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
