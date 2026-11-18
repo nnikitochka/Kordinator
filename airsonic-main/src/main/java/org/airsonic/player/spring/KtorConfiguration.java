@@ -643,29 +643,24 @@ public class KtorConfiguration {
         return runtime.createDatabaseService(settingsService, databaseDao, taskSchedulingService);
     }
 
-    @Bean
     public JWTSecurityService jwtSecurityService(RuntimeCompositionRoot runtime, SettingsService settingsService) {
         return runtime.createJwtSecurityService(settingsService);
     }
 
-    @Bean
     public SecurityService securityService(RuntimeCompositionRoot runtime, UserDao userDao, SettingsService settingsService,
             MediaFolderService mediaFolderService, CredentialEncoderRegistry credentialEncoders) {
         return runtime.createSecurityService(userDao, settingsService, mediaFolderService, credentialEncoders);
     }
 
-    @Bean
     public CredentialEncoderRegistry credentialEncoderRegistry() {
         return new SpringCredentialEncoderRegistry();
     }
 
-    @Bean
     public org.airsonic.player.service.ConfigurationPropertiesService configurationPropertiesService(
             RuntimeCompositionRoot runtime) {
         return runtime.createConfigurationPropertiesService();
     }
 
-    @Bean
     public SettingsService settingsService(RuntimeCompositionRoot runtime, UserDao userDao, AvatarDao avatarDao,
             javax.cache.CacheManager cacheManager,
             org.airsonic.player.service.ConfigurationPropertiesService properties) {

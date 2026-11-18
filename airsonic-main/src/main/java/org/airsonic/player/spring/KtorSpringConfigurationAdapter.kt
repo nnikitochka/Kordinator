@@ -300,6 +300,40 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     ): org.airsonic.player.service.UPnPService = runtime.createUpnpService(settingsService, contentDirectory)
 
     @Bean
+    override fun jwtSecurityService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        settingsService: org.airsonic.player.service.SettingsService,
+    ): org.airsonic.player.service.JWTSecurityService = runtime.createJwtSecurityService(settingsService)
+
+    @Bean
+    override fun credentialEncoderRegistry(): org.airsonic.player.security.CredentialEncoderRegistry =
+        org.airsonic.player.security.SpringCredentialEncoderRegistry()
+
+    @Bean
+    override fun securityService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        userDao: org.airsonic.player.dao.UserDao,
+        settingsService: org.airsonic.player.service.SettingsService,
+        mediaFolderService: org.airsonic.player.service.MediaFolderService,
+        credentialEncoders: org.airsonic.player.security.CredentialEncoderRegistry,
+    ): org.airsonic.player.service.SecurityService =
+        runtime.createSecurityService(userDao, settingsService, mediaFolderService, credentialEncoders)
+
+    @Bean
+    override fun configurationPropertiesService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.ConfigurationPropertiesService = runtime.createConfigurationPropertiesService()
+
+    @Bean
+    override fun settingsService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        userDao: org.airsonic.player.dao.UserDao,
+        avatarDao: org.airsonic.player.dao.AvatarDao,
+        cacheManager: javax.cache.CacheManager,
+        properties: org.airsonic.player.service.ConfigurationPropertiesService,
+    ): org.airsonic.player.service.SettingsService = runtime.createSettingsService()
+
+    @Bean
     override fun audioScrobblerService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         settingsService: org.airsonic.player.service.SettingsService,
