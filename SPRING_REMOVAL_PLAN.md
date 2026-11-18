@@ -202,6 +202,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `7415ea1` переносит `DownloadService`, Kotlin `UserAdministrationService`, Kotlin `MusicIndexStateService` и `CoverArtImageService` под root ownership; image-service concurrency init выполняется один раз. `RuntimeCompositionRootGraphTest`, `MusicIndexStateServiceTest`, download/website-download, credentials, indexes и cover-art integration suites прошли 8/8.
 
+Срез `0cb9f27` переносит `MediaStreamService` и `PlayerDaoPlayQueueFactory` в root; factory теперь единая и повторно используется также при создании `PlayerDao`. Graph, stream/website-stream, HLS и download integration suites прошли 5/5.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
