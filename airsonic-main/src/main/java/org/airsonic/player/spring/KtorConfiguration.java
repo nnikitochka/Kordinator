@@ -361,76 +361,56 @@ public class KtorConfiguration {
         return new LoggingExceptionResolver();
     }
 
-    @Bean
     public org.airsonic.player.runtime.PersistenceGraph persistenceGraph(RuntimeCompositionRoot runtime,
             javax.sql.DataSource dataSource) {
         return runtime.createPersistenceGraph(dataSource);
     }
 
-    @Bean
     public org.airsonic.player.dao.TransactionManager airsonicTransactionManager(
             org.airsonic.player.runtime.PersistenceGraph persistenceGraph) {
         return persistenceGraph.getTransactionManager();
     }
 
-    @Bean
     public org.airsonic.player.dao.JdbcHelper jdbcHelper(org.airsonic.player.runtime.PersistenceGraph persistenceGraph) {
         return persistenceGraph.getJdbcHelper();
     }
 
-    @Bean
     public org.airsonic.player.runtime.DaoGraph daoGraph(org.airsonic.player.runtime.PersistenceGraph persistenceGraph) {
         return persistenceGraph.getDaos();
     }
 
-    @Bean
     public AlbumDao albumDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getAlbumDao(); }
 
-    @Bean
     public ArtistDao artistDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getArtistDao(); }
 
-    @Bean
     public AvatarDao avatarDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getAvatarDao(); }
 
-    @Bean
     public BookmarkDao bookmarkDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getBookmarkDao(); }
 
-    @Bean
     public CoverArtDao coverArtDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getCoverArtDao(); }
 
-    @Bean
     public DatabaseDao databaseDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getDatabaseDao(); }
 
-    @Bean
     public MediaFileDao mediaFileDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getMediaFileDao(); }
 
-    @Bean
     public MusicFolderDao musicFolderDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getMusicFolderDao(); }
 
-    @Bean
     public PlayQueueDao playQueueDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getPlayQueueDao(); }
 
-    @Bean
     public PlaylistDao playlistDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getPlaylistDao(); }
 
-    @Bean("musicFileInfoDao")
     public RatingDao ratingDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getRatingDao(); }
 
-    @Bean
     public ShareDao shareDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getShareDao(); }
 
-    @Bean
     public TranscodingDao transcodingDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getTranscodingDao(); }
 
-    @Bean
     public UserDao userDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getUserDao(); }
 
-    @Bean
     public PlayerDao playerDao(RuntimeCompositionRoot runtime) throws Exception {
         return runtime.createPlayerDao();
     }
 
-    @Bean
     public PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory(RuntimeCompositionRoot runtime) {
         return runtime.createPlayerDaoPlayQueueFactory();
     }
