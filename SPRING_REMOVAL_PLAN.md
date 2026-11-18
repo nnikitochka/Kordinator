@@ -176,6 +176,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `c0c91c3` добавляет создание singleton `PasswordRecoveryService` через runtime root с явными settings/security dependencies. `RuntimeCompositionRootGraphTest`, `PasswordRecoveryServiceTest` и `PasswordRecoveryIntegrationTest` прошли 7/7. Полный граф и удаление Spring bean projections остаются незавершёнными.
 
+Срез `981c76f` переносит `LyricsService` и `BookmarkService` под root ownership; `RuntimeCompositionRootGraphTest`, `LyricsServiceTest`, `LyricsIntegrationTest`, `BookmarksIntegrationTest` прошли 12/12. Spring projections пока остаются переходным способом выдачи уже созданных singleton-ов.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
