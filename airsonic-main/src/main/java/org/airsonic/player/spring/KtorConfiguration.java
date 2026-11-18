@@ -80,6 +80,7 @@ import org.airsonic.player.service.MusicIndexService;
 import org.airsonic.player.service.DownloadService;
 import org.airsonic.player.service.CoverArtService;
 import org.airsonic.player.service.CoverArtImageService;
+import org.airsonic.player.service.CoverArtAccentColorBackfill;
 import org.airsonic.player.service.DatabaseService;
 import org.airsonic.player.controller.rest.playqueue.PlayQueueController;
 import org.airsonic.player.controller.rest.playqueue.PlayQueuePageController;
@@ -444,6 +445,11 @@ public class KtorConfiguration {
             CoverArtService coverArtService) {
         return new CoverArtSearchService(securityService, mediaFileService, lastFmService, mediaFolderService,
                 coverArtService);
+    }
+
+    @Bean
+    public CoverArtAccentColorBackfill coverArtAccentColorBackfill(CoverArtService coverArtService) {
+        return new CoverArtAccentColorBackfill(coverArtService);
     }
 
     @Bean

@@ -4,14 +4,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Component;
 
 /**
  * On application startup, computes the accent color for cover art rows that were
  * persisted before the accent color feature existed. A regular incremental scan
  * skips unchanged files, so such rows would otherwise stay without a color forever.
  */
-@Component
 public class CoverArtAccentColorBackfill {
     private static final Logger LOG = LoggerFactory.getLogger(CoverArtAccentColorBackfill.class);
 
