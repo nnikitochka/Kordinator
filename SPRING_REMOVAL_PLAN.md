@@ -206,6 +206,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `2007a48` переносит playlist import/export handlers и `PlaylistService` под root ownership. `PlaylistService` сохраняет штатную сортировку handlers и однократный `init()`; переходный Spring adapter передаёт handler lists и `PathWatcherService`. Graph, handler-order, playlist import/export service и REST integration suites прошли 11/11.
 
+Следующий срез переносит `TaskSchedulingService` и `PathWatcherService` под владение `RuntimeCompositionRoot`, включая регистрацию их завершения в `LifecycleRegistry`. Теперь `PlaylistService` получает root-owned watcher напрямую, а Spring beans этих инфраструктурных сервисов только возвращают уже созданные singleton instances. `RuntimeCompositionRootGraphTest`, `PlaylistServiceHandlerOrderTest`, `PathWatchersIntegrationTest`, `ScheduledTasksIntegrationTest` прошли 5/5. HTTP integration tests запускались вне sandbox, поскольку embedded Tomcat требует открыть localhost-порт. Этап 11 остаётся незавершённым: Settings/Scanner и прочие сервисы, Spring event bridges, security/configuration bootstrap и полная framework-neutral сборка остаются в плане.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |

@@ -52,6 +52,8 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.dao.PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory;
     private org.airsonic.player.service.MediaStreamService mediaStreamService;
     private org.airsonic.player.service.PlaylistService playlistService;
+    private org.airsonic.player.service.TaskSchedulingService taskSchedulingService;
+    private org.airsonic.player.service.PathWatcherService pathWatcherService;
     private org.airsonic.player.service.playlist.DefaultPlaylistExportHandler defaultPlaylistExportHandler;
     private org.airsonic.player.service.playlist.DefaultPlaylistImportHandler defaultPlaylistImportHandler;
     private org.airsonic.player.service.playlist.XspfPlaylistExportHandler xspfPlaylistExportHandler;
@@ -80,6 +82,22 @@ public final class RuntimeCompositionRoot {
 
     public LifecycleRegistry getLifecycleRegistry() {
         return lifecycleRegistry;
+    }
+
+    public synchronized org.airsonic.player.service.TaskSchedulingService createTaskSchedulingService() {
+        if (taskSchedulingService == null) {
+            taskSchedulingService = new org.airsonic.player.service.TaskSchedulingService();
+            lifecycleRegistry.registerShutdown("taskSchedulingService", taskSchedulingService);
+        }
+        return taskSchedulingService;
+    }
+
+    public synchronized org.airsonic.player.service.PathWatcherService createPathWatcherService() throws Exception {
+        if (pathWatcherService == null) {
+            pathWatcherService = new org.airsonic.player.service.PathWatcherService();
+            lifecycleRegistry.registerShutdown("pathWatcherService", pathWatcherService);
+        }
+        return pathWatcherService;
     }
 
     public synchronized PersistenceGraph createPersistenceGraph(DataSource dataSource) {
@@ -335,8 +353,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.SecurityService securityService,
             org.airsonic.player.service.SettingsService settingsService,
             java.util.List<org.airsonic.player.service.playlist.PlaylistExportHandler> exportHandlers,
-            java.util.List<org.airsonic.player.service.playlist.PlaylistImportHandler> importHandlers,
-            org.airsonic.player.service.PathWatcherService pathWatcherService) throws java.io.IOException {
+            java.util.List<org.airsonic.player.service.playlist.PlaylistImportHandler> importHandlers) throws Exception {
         if (playlistService == null) {
             if (persistenceGraph == null) {
                 throw new IllegalStateException("Persistence graph must be created before PlaylistService");
@@ -344,7 +361,7 @@ public final class RuntimeCompositionRoot {
             playlistService = new org.airsonic.player.service.PlaylistService(
                     persistenceGraph.getDaos().getMediaFileDao(), persistenceGraph.getDaos().getPlaylistDao(),
                     securityService, settingsService, exportHandlers, importHandlers,
-                    pathWatcherService, createCacheManager());
+                    createPathWatcherService(), createCacheManager());
             playlistService.init();
         }
         return playlistService;

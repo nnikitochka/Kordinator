@@ -186,7 +186,9 @@ class RuntimeCompositionRootGraphTest {
         assertSame(videoPlaybackService, runtimeRoot.createVideoPlaybackService(mediaFileService,
                 captionService, jwtSecurityService, bookmarkService, settingsService));
 
-        TaskSchedulingService scheduler = config.taskSchedulingService(lifecycleRegistry);
+        TaskSchedulingService scheduler = runtimeRoot.createTaskSchedulingService();
+        assertSame(scheduler, config.taskSchedulingService(runtimeRoot));
+        assertSame(scheduler, runtimeRoot.createTaskSchedulingService());
         assertNotNull(scheduler);
         StatusService statusService = runtimeRoot.createStatusService(
                 mediaFileService, mediaFolderService, settingsService, scheduler);
@@ -215,7 +217,9 @@ class RuntimeCompositionRootGraphTest {
                 mediaFileService));
         JukeboxService jukeboxService = runtimeRoot.createJukeboxService(legacyJukebox);
         assertSame(jukeboxService, runtimeRoot.createJukeboxService(legacyJukebox));
-        PathWatcherService pathWatcher = config.pathWatcherService(lifecycleRegistry);
+        PathWatcherService pathWatcher = runtimeRoot.createPathWatcherService();
+        assertSame(pathWatcher, config.pathWatcherService(runtimeRoot));
+        assertSame(pathWatcher, runtimeRoot.createPathWatcherService());
         assertNotNull(pathWatcher);
         List<org.airsonic.player.service.playlist.PlaylistExportHandler> exportHandlers = List.of(
                 runtimeRoot.createDefaultPlaylistExportHandler(mediaFileDao),
@@ -224,9 +228,9 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createDefaultPlaylistImportHandler(mediaFileService, settingsService),
                 runtimeRoot.createXspfPlaylistImportHandler(mediaFileService, settingsService));
         PlaylistService playlistService = runtimeRoot.createPlaylistService(
-                securityService, settingsService, exportHandlers, importHandlers, pathWatcher);
+                securityService, settingsService, exportHandlers, importHandlers);
         assertSame(playlistService, runtimeRoot.createPlaylistService(
-                securityService, settingsService, exportHandlers, importHandlers, pathWatcher));
+                securityService, settingsService, exportHandlers, importHandlers));
         CoverArtImageService coverArtImageService = runtimeRoot.createCoverArtImageService(mediaFileService,
                 coverArtService, transcodingService, settingsService, playlistService, artistDao, albumDao);
         assertSame(coverArtImageService, runtimeRoot.createCoverArtImageService(mediaFileService,

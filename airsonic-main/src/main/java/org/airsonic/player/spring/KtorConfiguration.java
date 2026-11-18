@@ -546,10 +546,8 @@ public class KtorConfiguration {
     public PlaylistService playlistService(RuntimeCompositionRoot runtime, SecurityService securityService,
             SettingsService settingsService,
             java.util.List<org.airsonic.player.service.playlist.PlaylistExportHandler> exportHandlers,
-            java.util.List<org.airsonic.player.service.playlist.PlaylistImportHandler> importHandlers,
-            org.airsonic.player.service.PathWatcherService pathWatcherService) throws java.io.IOException {
-        return runtime.createPlaylistService(securityService, settingsService, exportHandlers, importHandlers,
-                pathWatcherService);
+            java.util.List<org.airsonic.player.service.playlist.PlaylistImportHandler> importHandlers) throws Exception {
+        return runtime.createPlaylistService(securityService, settingsService, exportHandlers, importHandlers);
     }
 
     @Bean
@@ -883,18 +881,14 @@ public class KtorConfiguration {
         return runtime.createPlayerService(playerDao, statusService, securityService, transcodingService);
     }
 
-    @Bean(destroyMethod = "shutdown")
-    public TaskSchedulingService taskSchedulingService(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
-        TaskSchedulingService service = new TaskSchedulingService();
-        lifecycleRegistry.registerShutdown("taskSchedulingService", service);
-        return service;
+    @Bean
+    public TaskSchedulingService taskSchedulingService(RuntimeCompositionRoot runtime) {
+        return runtime.createTaskSchedulingService();
     }
 
-    @Bean(destroyMethod = "close")
-    public org.airsonic.player.service.PathWatcherService pathWatcherService(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) throws Exception {
-        org.airsonic.player.service.PathWatcherService service = new org.airsonic.player.service.PathWatcherService();
-        lifecycleRegistry.registerShutdown("pathWatcherService", service);
-        return service;
+    @Bean
+    public org.airsonic.player.service.PathWatcherService pathWatcherService(RuntimeCompositionRoot runtime) throws Exception {
+        return runtime.createPathWatcherService();
     }
 
     @Bean
