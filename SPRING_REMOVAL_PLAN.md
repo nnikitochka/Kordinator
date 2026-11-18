@@ -192,6 +192,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `e33e9e8` переносит `MediaFileService` под root ownership: он получает тот же `MediaFolderService` и root-owned `CacheManager`; Spring projection больше не создает собственный экземпляр и кэш. Проверки graph assembly и ArtistInfo/artists/video/comments/song/directory/bookmark integration прошли 9/9.
 
+Срез `ee38eed` переводит зависимость `TranscodingService` от `PlayerService` с Spring `@Lazy` на `Supplier<PlayerService>` и root-managed cycle wiring; Spring bean projection использует `ObjectProvider` только как переходный lazy adapter, а сам `TranscodingService` больше не импортирует Spring. `RuntimeCompositionRootGraphTest`, `TranscodingServiceIntTest`, `TranscodingDaoTestCase`, `PlayerDaoTestCase`, `TranscodingSettingsIntegrationTest`, `PlayerSettingsIntegrationTest`, `PlayQueueIntegrationTest`, `JukeboxIntegrationTest` прошли 19/19. `PlayerService.init()` по-прежнему вызывается после Liquibase благодаря существующему `@DependsOn` у временного Spring projection.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
