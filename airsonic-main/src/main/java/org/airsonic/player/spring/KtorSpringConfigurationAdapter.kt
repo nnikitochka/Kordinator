@@ -298,4 +298,58 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         contentDirectory: org.airsonic.player.service.upnp.CustomContentDirectory,
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
     ): org.airsonic.player.service.UPnPService = runtime.createUpnpService(settingsService, contentDirectory)
+
+    @Bean
+    override fun audioScrobblerService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        settingsService: org.airsonic.player.service.SettingsService,
+        securityService: org.airsonic.player.service.SecurityService,
+    ): org.airsonic.player.service.AudioScrobblerService =
+        runtime.createAudioScrobblerService(settingsService, securityService)
+
+    @Bean
+    override fun bookmarkService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        bookmarkDao: org.airsonic.player.dao.BookmarkDao,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+    ): org.airsonic.player.service.BookmarkService = runtime.createBookmarkService(bookmarkDao, mediaFileService)
+
+    @Bean
+    override fun lyricsService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.LyricsService = runtime.createLyricsService()
+
+    @Bean
+    override fun ratingService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        ratingDao: org.airsonic.player.dao.RatingDao,
+        securityService: org.airsonic.player.service.SecurityService,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+    ): org.airsonic.player.service.RatingService = runtime.createRatingService(ratingDao, securityService, mediaFileService)
+
+    @Bean
+    override fun mediaDirectoryService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        ratingService: org.airsonic.player.service.RatingService,
+        securityService: org.airsonic.player.service.SecurityService,
+        settingsService: org.airsonic.player.service.SettingsService,
+    ): org.airsonic.player.service.MediaDirectoryService = runtime.createMediaDirectoryService(
+        mediaFileService, ratingService, securityService, settingsService)
+
+    @Bean
+    override fun musicIndexService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        settingsService: org.airsonic.player.service.SettingsService,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+    ): org.airsonic.player.service.MusicIndexService = runtime.createMusicIndexService(settingsService, mediaFileService)
+
+    @Bean
+    override fun databaseService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        settingsService: org.airsonic.player.service.SettingsService,
+        databaseDao: org.airsonic.player.dao.DatabaseDao,
+        taskSchedulingService: org.airsonic.player.service.TaskSchedulingService,
+    ): org.airsonic.player.service.DatabaseService =
+        runtime.createDatabaseService(settingsService, databaseDao, taskSchedulingService)
 }

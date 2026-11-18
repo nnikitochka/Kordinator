@@ -609,42 +609,35 @@ public class KtorConfiguration {
         return runtime.createUpnpService(settingsService, contentDirectory);
     }
 
-    @Bean
     public AudioScrobblerService audioScrobblerService(RuntimeCompositionRoot runtime, SettingsService settingsService,
             SecurityService securityService) {
         return runtime.createAudioScrobblerService(settingsService, securityService);
     }
 
-    @Bean
     public BookmarkService bookmarkService(RuntimeCompositionRoot runtime, BookmarkDao bookmarkDao,
             MediaFileService mediaFileService) {
         return runtime.createBookmarkService(bookmarkDao, mediaFileService);
     }
 
-    @Bean
     public LyricsService lyricsService(RuntimeCompositionRoot runtime) {
         return runtime.createLyricsService();
     }
 
-    @Bean
     public RatingService ratingService(RuntimeCompositionRoot runtime, RatingDao ratingDao, SecurityService securityService,
             MediaFileService mediaFileService) {
         return runtime.createRatingService(ratingDao, securityService, mediaFileService);
     }
 
-    @Bean
     public MediaDirectoryService mediaDirectoryService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService,
             RatingService ratingService, SecurityService securityService, SettingsService settingsService) {
         return runtime.createMediaDirectoryService(mediaFileService, ratingService, securityService, settingsService);
     }
 
-    @Bean
     public MusicIndexService musicIndexService(RuntimeCompositionRoot runtime, SettingsService settingsService,
             MediaFileService mediaFileService) {
         return runtime.createMusicIndexService(settingsService, mediaFileService);
     }
 
-    @Bean
     public DatabaseService databaseService(RuntimeCompositionRoot runtime, SettingsService settingsService, DatabaseDao databaseDao,
             TaskSchedulingService taskSchedulingService) {
         return runtime.createDatabaseService(settingsService, databaseDao, taskSchedulingService);
