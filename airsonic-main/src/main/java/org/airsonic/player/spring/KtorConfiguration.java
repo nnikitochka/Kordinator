@@ -612,91 +612,59 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public AlbumUpnpProcessor albumUpnpProcessor(AlbumDao albumDao) {
-        AlbumUpnpProcessor processor = new AlbumUpnpProcessor();
-        processor.setAlbumDao(albumDao);
-        return processor;
+    public AlbumUpnpProcessor albumUpnpProcessor(RuntimeCompositionRoot runtime, AlbumDao albumDao) {
+        return runtime.createAlbumUpnpProcessor(albumDao);
     }
 
     @Bean
-    public RecentAlbumUpnpProcessor recentAlbumUpnpProcessor(AlbumDao albumDao) {
-        RecentAlbumUpnpProcessor processor = new RecentAlbumUpnpProcessor();
-        processor.setAlbumDao(albumDao);
-        return processor;
+    public RecentAlbumUpnpProcessor recentAlbumUpnpProcessor(RuntimeCompositionRoot runtime, AlbumDao albumDao) {
+        return runtime.createRecentAlbumUpnpProcessor(albumDao);
     }
 
     @Bean
-    public ArtistUpnpProcessor artistUpnpProcessor(ArtistDao artistDao) {
-        ArtistUpnpProcessor processor = new ArtistUpnpProcessor();
-        processor.setArtistDao(artistDao);
-        return processor;
+    public ArtistUpnpProcessor artistUpnpProcessor(RuntimeCompositionRoot runtime, ArtistDao artistDao) {
+        return runtime.createArtistUpnpProcessor(artistDao);
     }
 
     @Bean
-    public GenreUpnpProcessor genreUpnpProcessor() {
-        return new GenreUpnpProcessor();
+    public GenreUpnpProcessor genreUpnpProcessor(RuntimeCompositionRoot runtime) {
+        return runtime.createGenreUpnpProcessor();
     }
 
     @Bean
-    public MediaFileUpnpProcessor mediaFileUpnpProcessor(MediaFileDao mediaFileDao) {
-        MediaFileUpnpProcessor processor = new MediaFileUpnpProcessor();
-        processor.setMediaFileDao(mediaFileDao);
-        return processor;
+    public MediaFileUpnpProcessor mediaFileUpnpProcessor(RuntimeCompositionRoot runtime, MediaFileDao mediaFileDao) {
+        return runtime.createMediaFileUpnpProcessor(mediaFileDao);
     }
 
     @Bean
-    public PlaylistUpnpProcessor playlistUpnpProcessor(PlaylistService playlistService) {
-        PlaylistUpnpProcessor processor = new PlaylistUpnpProcessor();
-        processor.setPlaylistService(playlistService);
-        return processor;
+    public PlaylistUpnpProcessor playlistUpnpProcessor(RuntimeCompositionRoot runtime, PlaylistService playlistService) {
+        return runtime.createPlaylistUpnpProcessor(playlistService);
     }
 
     @Bean
-    public RootUpnpProcessor rootUpnpProcessor(IndexManager indexManager) {
-        return new RootUpnpProcessor(indexManager);
+    public RootUpnpProcessor rootUpnpProcessor(RuntimeCompositionRoot runtime, IndexManager indexManager) {
+        return runtime.createRootUpnpProcessor(indexManager);
     }
 
     @Bean
-    public DispatchingContentDirectory dispatchingContentDirectory(MediaFileUpnpProcessor mediaFileProcessor,
-            PlaylistUpnpProcessor playlistProcessor,
-            @org.springframework.beans.factory.annotation.Qualifier("albumUpnpProcessor")
-            AlbumUpnpProcessor albumProcessor,
-            RecentAlbumUpnpProcessor recentAlbumProcessor, ArtistUpnpProcessor artistProcessor,
-            GenreUpnpProcessor genreProcessor, RootUpnpProcessor rootProcessor,
+    public DispatchingContentDirectory dispatchingContentDirectory(RuntimeCompositionRoot runtime,
             MediaFileService mediaFileService, MediaFolderService mediaFolderService,
             PlaylistService playlistService, SearchService searchService, MusicIndexService musicIndexService,
-            SettingsService settingsService, PlayerService playerService, TranscodingService transcodingService,
+            IndexManager indexManager, SettingsService settingsService, PlayerService playerService, TranscodingService transcodingService,
             JWTSecurityService jwtSecurityService) {
-        DispatchingContentDirectory directory = new DispatchingContentDirectory(mediaFileProcessor,
-                playlistProcessor, albumProcessor, recentAlbumProcessor, artistProcessor, genreProcessor,
-                rootProcessor, mediaFileService, mediaFolderService, playlistService, searchService,
-                musicIndexService);
-        directory.setSettingsService(settingsService);
-        directory.setPlayerService(playerService);
-        directory.setTranscodingService(transcodingService);
-        directory.setJwtSecurityService(jwtSecurityService);
-        mediaFileProcessor.setDispatchingContentDirectory(directory);
-        playlistProcessor.setDispatchingContentDirectory(directory);
-        albumProcessor.setDispatchingContentDirectory(directory);
-        recentAlbumProcessor.setDispatchingContentDirectory(directory);
-        artistProcessor.setDispatchingContentDirectory(directory);
-        genreProcessor.setDispatchingContentDirectory(directory);
-        rootProcessor.setDispatchingContentDirectory(directory);
-        return directory;
+        return runtime.createDispatchingContentDirectory(mediaFileService, mediaFolderService, playlistService,
+                searchService, musicIndexService, indexManager, settingsService, playerService, transcodingService,
+                jwtSecurityService);
     }
 
     @Bean
-    public FolderBasedContentDirectory folderBasedContentDirectory(MediaFileService mediaFileService,
+    public FolderBasedContentDirectory folderBasedContentDirectory(RuntimeCompositionRoot runtime,
+            MediaFileService mediaFileService,
             MediaFolderService mediaFolderService, PlaylistService playlistService, IndexManager indexManager,
             SettingsService settingsService, PlayerService playerService, TranscodingService transcodingService,
             JWTSecurityService jwtSecurityService) {
-        FolderBasedContentDirectory directory = new FolderBasedContentDirectory(mediaFileService,
-                mediaFolderService, playlistService, indexManager);
-        directory.setSettingsService(settingsService);
-        directory.setPlayerService(playerService);
-        directory.setTranscodingService(transcodingService);
-        directory.setJwtSecurityService(jwtSecurityService);
-        return directory;
+        return runtime.createFolderBasedContentDirectory(mediaFileService, mediaFolderService, playlistService,
+                indexManager, settingsService, playerService, transcodingService, jwtSecurityService);
     }
 
     @Bean

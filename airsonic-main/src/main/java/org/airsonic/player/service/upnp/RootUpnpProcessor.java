@@ -6,8 +6,6 @@ import org.fourthline.cling.support.model.DIDLContent;
 import org.fourthline.cling.support.model.WriteStatus;
 import org.fourthline.cling.support.model.container.Container;
 import org.fourthline.cling.support.model.container.StorageFolder;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import java.util.ArrayList;
 import java.util.List;
 

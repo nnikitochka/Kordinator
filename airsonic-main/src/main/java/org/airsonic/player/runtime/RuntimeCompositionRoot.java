@@ -67,6 +67,15 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.MusicFolderAdministrationService musicFolderAdministrationService;
     private org.airsonic.player.service.CoverArtAccentColorBackfill coverArtAccentColorBackfill;
     private org.airsonic.player.service.UPnPService upnpService;
+    private org.airsonic.player.service.upnp.AlbumUpnpProcessor albumUpnpProcessor;
+    private org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor recentAlbumUpnpProcessor;
+    private org.airsonic.player.service.upnp.ArtistUpnpProcessor artistUpnpProcessor;
+    private org.airsonic.player.service.upnp.GenreUpnpProcessor genreUpnpProcessor;
+    private org.airsonic.player.service.upnp.MediaFileUpnpProcessor mediaFileUpnpProcessor;
+    private org.airsonic.player.service.upnp.PlaylistUpnpProcessor playlistUpnpProcessor;
+    private org.airsonic.player.service.upnp.RootUpnpProcessor rootUpnpProcessor;
+    private org.airsonic.player.service.upnp.DispatchingContentDirectory dispatchingContentDirectory;
+    private org.airsonic.player.service.upnp.FolderBasedContentDirectory folderBasedContentDirectory;
     private org.airsonic.player.service.playlist.DefaultPlaylistExportHandler defaultPlaylistExportHandler;
     private org.airsonic.player.service.playlist.DefaultPlaylistImportHandler defaultPlaylistImportHandler;
     private org.airsonic.player.service.playlist.XspfPlaylistExportHandler xspfPlaylistExportHandler;
@@ -262,6 +271,128 @@ public final class RuntimeCompositionRoot {
         }
         return upnpService;
     }
+
+    public synchronized org.airsonic.player.service.upnp.AlbumUpnpProcessor createAlbumUpnpProcessor(
+            org.airsonic.player.dao.AlbumDao albumDao) {
+        if (albumUpnpProcessor == null) {
+            albumUpnpProcessor = new org.airsonic.player.service.upnp.AlbumUpnpProcessor();
+            albumUpnpProcessor.setAlbumDao(albumDao);
+        }
+        return albumUpnpProcessor;
+    }
+
+    public synchronized org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor createRecentAlbumUpnpProcessor(
+            org.airsonic.player.dao.AlbumDao albumDao) {
+        if (recentAlbumUpnpProcessor == null) {
+            recentAlbumUpnpProcessor = new org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor();
+            recentAlbumUpnpProcessor.setAlbumDao(albumDao);
+        }
+        return recentAlbumUpnpProcessor;
+    }
+
+    public synchronized org.airsonic.player.service.upnp.ArtistUpnpProcessor createArtistUpnpProcessor(
+            org.airsonic.player.dao.ArtistDao artistDao) {
+        if (artistUpnpProcessor == null) {
+            artistUpnpProcessor = new org.airsonic.player.service.upnp.ArtistUpnpProcessor();
+            artistUpnpProcessor.setArtistDao(artistDao);
+        }
+        return artistUpnpProcessor;
+    }
+
+    public synchronized org.airsonic.player.service.upnp.GenreUpnpProcessor createGenreUpnpProcessor() {
+        if (genreUpnpProcessor == null) {
+            genreUpnpProcessor = new org.airsonic.player.service.upnp.GenreUpnpProcessor();
+        }
+        return genreUpnpProcessor;
+    }
+
+    public synchronized org.airsonic.player.service.upnp.MediaFileUpnpProcessor createMediaFileUpnpProcessor(
+            org.airsonic.player.dao.MediaFileDao mediaFileDao) {
+        if (mediaFileUpnpProcessor == null) {
+            mediaFileUpnpProcessor = new org.airsonic.player.service.upnp.MediaFileUpnpProcessor();
+            mediaFileUpnpProcessor.setMediaFileDao(mediaFileDao);
+        }
+        return mediaFileUpnpProcessor;
+    }
+
+    public synchronized org.airsonic.player.service.upnp.PlaylistUpnpProcessor createPlaylistUpnpProcessor(
+            org.airsonic.player.service.PlaylistService playlistService) {
+        if (playlistUpnpProcessor == null) {
+            playlistUpnpProcessor = new org.airsonic.player.service.upnp.PlaylistUpnpProcessor();
+            playlistUpnpProcessor.setPlaylistService(playlistService);
+        }
+        return playlistUpnpProcessor;
+    }
+
+    public synchronized org.airsonic.player.service.upnp.RootUpnpProcessor createRootUpnpProcessor(
+            org.airsonic.player.service.search.IndexManager indexManager) {
+        if (rootUpnpProcessor == null) {
+            rootUpnpProcessor = new org.airsonic.player.service.upnp.RootUpnpProcessor(indexManager);
+        }
+        return rootUpnpProcessor;
+    }
+
+    public synchronized org.airsonic.player.service.upnp.DispatchingContentDirectory createDispatchingContentDirectory(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.service.PlaylistService playlistService,
+            org.airsonic.player.service.SearchService searchService,
+            org.airsonic.player.service.MusicIndexService musicIndexService,
+            org.airsonic.player.service.search.IndexManager indexManager,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.PlayerService playerService,
+            org.airsonic.player.service.TranscodingService transcodingService,
+            org.airsonic.player.service.JWTSecurityService jwtSecurityService) {
+        if (dispatchingContentDirectory == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before UPnP processors");
+            }
+            dispatchingContentDirectory = new org.airsonic.player.service.upnp.DispatchingContentDirectory(
+                    createMediaFileUpnpProcessor(persistenceGraph.getDaos().getMediaFileDao()),
+                    createPlaylistUpnpProcessor(playlistService), createAlbumUpnpProcessor(persistenceGraph.getDaos().getAlbumDao()),
+                    createRecentAlbumUpnpProcessor(persistenceGraph.getDaos().getAlbumDao()),
+                    createArtistUpnpProcessor(persistenceGraph.getDaos().getArtistDao()), createGenreUpnpProcessor(),
+                    createRootUpnpProcessor(indexManager), mediaFileService, mediaFolderService,
+                    playlistService, searchService, musicIndexService);
+            dispatchingContentDirectory.setSettingsService(settingsService);
+            dispatchingContentDirectory.setPlayerService(playerService);
+            dispatchingContentDirectory.setTranscodingService(transcodingService);
+            dispatchingContentDirectory.setJwtSecurityService(jwtSecurityService);
+            createMediaFileUpnpProcessor(persistenceGraph.getDaos().getMediaFileDao())
+                    .setDispatchingContentDirectory(dispatchingContentDirectory);
+            createPlaylistUpnpProcessor(playlistService).setDispatchingContentDirectory(dispatchingContentDirectory);
+            createAlbumUpnpProcessor(persistenceGraph.getDaos().getAlbumDao())
+                    .setDispatchingContentDirectory(dispatchingContentDirectory);
+            createRecentAlbumUpnpProcessor(persistenceGraph.getDaos().getAlbumDao())
+                    .setDispatchingContentDirectory(dispatchingContentDirectory);
+            createArtistUpnpProcessor(persistenceGraph.getDaos().getArtistDao())
+                    .setDispatchingContentDirectory(dispatchingContentDirectory);
+            createGenreUpnpProcessor().setDispatchingContentDirectory(dispatchingContentDirectory);
+            createRootUpnpProcessor(indexManager).setDispatchingContentDirectory(dispatchingContentDirectory);
+        }
+        return dispatchingContentDirectory;
+    }
+
+    public synchronized org.airsonic.player.service.upnp.FolderBasedContentDirectory createFolderBasedContentDirectory(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.service.PlaylistService playlistService,
+            org.airsonic.player.service.search.IndexManager indexManager,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.PlayerService playerService,
+            org.airsonic.player.service.TranscodingService transcodingService,
+            org.airsonic.player.service.JWTSecurityService jwtSecurityService) {
+        if (folderBasedContentDirectory == null) {
+            folderBasedContentDirectory = new org.airsonic.player.service.upnp.FolderBasedContentDirectory(
+                    mediaFileService, mediaFolderService, playlistService, indexManager);
+            folderBasedContentDirectory.setSettingsService(settingsService);
+            folderBasedContentDirectory.setPlayerService(playerService);
+            folderBasedContentDirectory.setTranscodingService(transcodingService);
+            folderBasedContentDirectory.setJwtSecurityService(jwtSecurityService);
+        }
+        return folderBasedContentDirectory;
+    }
+
 
     public synchronized PersistenceGraph createPersistenceGraph(DataSource dataSource) {
         Objects.requireNonNull(dataSource, "dataSource");

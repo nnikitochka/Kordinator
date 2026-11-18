@@ -155,12 +155,6 @@ class RuntimeCompositionRootGraphTest {
         assertSame(coverArtBackfill, config.coverArtAccentColorBackfill(runtimeRoot, coverArtService));
         assertEquals(1, lifecycleRegistry.getStartupItems().stream()
                 .filter(item -> item.name().equals("coverArtAccentColorBackfill")).count());
-        org.airsonic.player.service.upnp.CustomContentDirectory contentDirectory =
-                mock(org.airsonic.player.service.upnp.CustomContentDirectory.class);
-        org.airsonic.player.service.UPnPService upnpService = runtimeRoot.createUpnpService(settingsService,
-                contentDirectory);
-        assertSame(upnpService, runtimeRoot.createUpnpService(settingsService, contentDirectory));
-        assertSame(upnpService, config.upnpService(settingsService, contentDirectory, runtimeRoot));
         org.airsonic.player.i18n.LocaleResolver localeResolver = mock(org.airsonic.player.i18n.LocaleResolver.class);
         MediaFileService mediaFileService = runtimeRoot.createMediaFileService(securityService, settingsService,
                 mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeResolver);
@@ -317,6 +311,37 @@ class RuntimeCompositionRootGraphTest {
                 settingsService, transcodingService, audioScrobblerService, mediaFileService, searchService);
         assertSame(mediaStreamService, runtimeRoot.createMediaStreamService(statusService, securityService,
                 settingsService, transcodingService, audioScrobblerService, mediaFileService, searchService));
+
+        org.airsonic.player.service.upnp.DispatchingContentDirectory dispatchingContentDirectory =
+                runtimeRoot.createDispatchingContentDirectory(mediaFileService, mediaFolderService, playlistService,
+                        searchService, musicIndexService, indexManager, settingsService, playerService,
+                        transcodingService, jwtSecurityService);
+        assertSame(dispatchingContentDirectory, runtimeRoot.createDispatchingContentDirectory(mediaFileService,
+                mediaFolderService, playlistService, searchService, musicIndexService, indexManager,
+                settingsService, playerService, transcodingService, jwtSecurityService));
+        assertSame(dispatchingContentDirectory, config.dispatchingContentDirectory(runtimeRoot, mediaFileService,
+                mediaFolderService, playlistService, searchService, musicIndexService, indexManager,
+                settingsService, playerService, transcodingService, jwtSecurityService));
+        org.airsonic.player.service.UPnPService upnpService = runtimeRoot.createUpnpService(settingsService,
+                dispatchingContentDirectory);
+        assertSame(upnpService, runtimeRoot.createUpnpService(settingsService, dispatchingContentDirectory));
+        assertSame(upnpService, config.upnpService(settingsService, dispatchingContentDirectory, runtimeRoot));
+        assertSame(runtimeRoot.createAlbumUpnpProcessor(albumDao), config.albumUpnpProcessor(runtimeRoot, albumDao));
+        assertSame(runtimeRoot.createRecentAlbumUpnpProcessor(albumDao),
+                config.recentAlbumUpnpProcessor(runtimeRoot, albumDao));
+        assertSame(runtimeRoot.createArtistUpnpProcessor(artistDao), config.artistUpnpProcessor(runtimeRoot, artistDao));
+        assertSame(runtimeRoot.createGenreUpnpProcessor(), config.genreUpnpProcessor(runtimeRoot));
+        assertSame(runtimeRoot.createMediaFileUpnpProcessor(mediaFileDao),
+                config.mediaFileUpnpProcessor(runtimeRoot, mediaFileDao));
+        assertSame(runtimeRoot.createPlaylistUpnpProcessor(playlistService),
+                config.playlistUpnpProcessor(runtimeRoot, playlistService));
+        assertSame(runtimeRoot.createRootUpnpProcessor(indexManager), config.rootUpnpProcessor(runtimeRoot, indexManager));
+        org.airsonic.player.service.upnp.FolderBasedContentDirectory folderDirectory =
+                runtimeRoot.createFolderBasedContentDirectory(mediaFileService, mediaFolderService, playlistService,
+                        indexManager, settingsService, playerService, transcodingService, jwtSecurityService);
+        assertSame(folderDirectory, config.folderBasedContentDirectory(runtimeRoot, mediaFileService,
+                mediaFolderService, playlistService, indexManager, settingsService, playerService,
+                transcodingService, jwtSecurityService));
 
         MetricsManager metricsManager = config.metricsManager(runtimeRoot);
         assertNotNull(metricsManager);
