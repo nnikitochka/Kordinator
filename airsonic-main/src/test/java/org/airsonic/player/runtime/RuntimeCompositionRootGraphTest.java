@@ -276,6 +276,17 @@ class RuntimeCompositionRootGraphTest {
                 indexManager, mediaFileService, mediaFolderService, coverArtService));
         assertSame(mediaScannerService, runtimeRoot.createMediaScannerService(
                 playlistService, settingsService, indexManager, mediaFileService, mediaFolderService, coverArtService));
+        GeneralSettingsAdministrationService generalSettingsAdministrationService =
+                runtimeRoot.createGeneralSettingsAdministrationService(settingsService, playlistService);
+        assertSame(generalSettingsAdministrationService, runtimeRoot.createGeneralSettingsAdministrationService(
+                settingsService, playlistService));
+        MusicFolderAdministrationService musicFolderAdministrationService =
+                runtimeRoot.createMusicFolderAdministrationService(settingsService, mediaScannerService,
+                        mediaFolderService, artistDao, albumDao, mediaFileDao, indexManager, playlistService,
+                        coverArtService);
+        assertSame(musicFolderAdministrationService, runtimeRoot.createMusicFolderAdministrationService(
+                settingsService, mediaScannerService, mediaFolderService, artistDao, albumDao, mediaFileDao,
+                indexManager, playlistService, coverArtService));
         MusicIndexStateService musicIndexStateService = runtimeRoot.createMusicIndexStateService(
                 mediaScannerService, settingsService);
         assertSame(musicIndexStateService,

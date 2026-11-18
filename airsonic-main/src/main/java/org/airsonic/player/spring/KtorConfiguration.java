@@ -921,6 +921,7 @@ public class KtorConfiguration {
 
     @Bean
     public ServletRegistrationBean<ServletApplicationEngine> ktorServletRegistration(
+            RuntimeCompositionRoot runtime,
             SearchController searchController,
             MusicFoldersController musicFoldersController,
             GenresController genresController,
@@ -1025,8 +1026,11 @@ public class KtorConfiguration {
                                 new PlayerSettingsController(playerService, transcodingService, playQueueService, jaxbWriter),
                                 new AdvancedSettingsController(settingsService, jaxbWriter),
                                 new TranscodingSettingsController(transcodingService, settingsService, jaxbWriter),
-                                new GeneralSettingsController(new GeneralSettingsAdministrationService(settingsService, playlistService), jaxbWriter),
-                                new MusicFolderSettingsController(new MusicFolderAdministrationService(settingsService, mediaScannerService, mediaFolderService, artistDao, albumDao, mediaFileDao, indexManager, playlistService, coverArtService), jaxbWriter),
+                                new GeneralSettingsController(runtime.createGeneralSettingsAdministrationService(
+                                        settingsService, playlistService), jaxbWriter),
+                                new MusicFolderSettingsController(runtime.createMusicFolderAdministrationService(
+                                        settingsService, mediaScannerService, mediaFolderService, artistDao, albumDao,
+                                        mediaFileDao, indexManager, playlistService, coverArtService), jaxbWriter),
                                 new PasswordController(securityService, jaxbWriter),
                                 new PlayQueueController(playQueueDao, mediaFileService, responseMapper, jaxbWriter),
                                 new IndexesController(settingsService, mediaFolderService, musicIndexService, musicIndexStateService, mediaFileDao, ratingService, responseMapper, jaxbWriter, playerService),

@@ -63,6 +63,8 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.search.SearchServiceImpl searchService;
     private org.airsonic.player.service.ConfigurationPropertiesService configurationPropertiesService;
     private org.airsonic.player.service.SettingsService settingsService;
+    private org.airsonic.player.service.GeneralSettingsAdministrationService generalSettingsAdministrationService;
+    private org.airsonic.player.service.MusicFolderAdministrationService musicFolderAdministrationService;
     private org.airsonic.player.service.playlist.DefaultPlaylistExportHandler defaultPlaylistExportHandler;
     private org.airsonic.player.service.playlist.DefaultPlaylistImportHandler defaultPlaylistImportHandler;
     private org.airsonic.player.service.playlist.XspfPlaylistExportHandler xspfPlaylistExportHandler;
@@ -208,6 +210,34 @@ public final class RuntimeCompositionRoot {
             settingsService.init();
         }
         return settingsService;
+    }
+
+    public synchronized org.airsonic.player.service.GeneralSettingsAdministrationService
+            createGeneralSettingsAdministrationService(org.airsonic.player.service.SettingsService settingsService,
+                    org.airsonic.player.service.PlaylistService playlistService) {
+        if (generalSettingsAdministrationService == null) {
+            generalSettingsAdministrationService = new org.airsonic.player.service.GeneralSettingsAdministrationService(
+                    settingsService, playlistService);
+        }
+        return generalSettingsAdministrationService;
+    }
+
+    public synchronized org.airsonic.player.service.MusicFolderAdministrationService
+            createMusicFolderAdministrationService(org.airsonic.player.service.SettingsService settingsService,
+                    org.airsonic.player.service.MediaScannerService mediaScannerService,
+                    org.airsonic.player.service.MediaFolderService mediaFolderService,
+                    org.airsonic.player.dao.ArtistDao artistDao,
+                    org.airsonic.player.dao.AlbumDao albumDao,
+                    org.airsonic.player.dao.MediaFileDao mediaFileDao,
+                    org.airsonic.player.service.search.IndexManager indexManager,
+                    org.airsonic.player.service.PlaylistService playlistService,
+                    org.airsonic.player.service.CoverArtService coverArtService) {
+        if (musicFolderAdministrationService == null) {
+            musicFolderAdministrationService = new org.airsonic.player.service.MusicFolderAdministrationService(
+                    settingsService, mediaScannerService, mediaFolderService, artistDao, albumDao, mediaFileDao,
+                    indexManager, playlistService, coverArtService);
+        }
+        return musicFolderAdministrationService;
     }
 
     public synchronized PersistenceGraph createPersistenceGraph(DataSource dataSource) {
