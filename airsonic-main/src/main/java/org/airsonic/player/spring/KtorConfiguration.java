@@ -187,7 +187,6 @@ import org.airsonic.player.service.SearchService;
 import org.airsonic.player.service.ShareService;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.MessageSource;
@@ -197,7 +196,6 @@ import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /** Connects Ktor to the existing servlet container during the migration. */
-@Configuration
 public class KtorConfiguration {
 
     @Bean

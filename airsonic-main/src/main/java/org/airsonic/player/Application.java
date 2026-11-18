@@ -24,7 +24,7 @@ import java.lang.reflect.Method;
     MultipartAutoConfiguration.class, // TODO: update to use spring boot builtin multipart support
     ErrorMvcAutoConfiguration.class
 })
-@Import({org.airsonic.player.spring.KtorConfiguration.class, org.airsonic.player.security.GlobalSecurityConfig.class})
+@Import({org.airsonic.player.spring.KtorSpringConfigurationAdapter.class, org.airsonic.player.security.GlobalSecurityConfig.class})
 @EnableTransactionManagement(mode = AdviceMode.ASPECTJ)
 public class Application extends SpringBootServletInitializer implements WebServerFactoryCustomizer<ConfigurableServletWebServerFactory> {
 
