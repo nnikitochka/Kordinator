@@ -67,6 +67,7 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.MusicFolderAdministrationService musicFolderAdministrationService;
     private org.airsonic.player.service.CoverArtAccentColorBackfill coverArtAccentColorBackfill;
     private org.airsonic.player.service.UPnPService upnpService;
+    private org.airsonic.player.i18n.LocaleService localeService;
     private org.airsonic.player.service.upnp.AlbumUpnpProcessor albumUpnpProcessor;
     private org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor recentAlbumUpnpProcessor;
     private org.airsonic.player.service.upnp.ArtistUpnpProcessor artistUpnpProcessor;
@@ -207,6 +208,14 @@ public final class RuntimeCompositionRoot {
             configurationPropertiesService = org.airsonic.player.service.ConfigurationPropertiesService.getInstance();
         }
         return configurationPropertiesService;
+    }
+
+    public synchronized org.airsonic.player.i18n.LocaleService createLocaleService(
+            org.airsonic.player.service.SettingsService settingsService) {
+        if (localeService == null) {
+            localeService = new org.airsonic.player.i18n.LocaleService(settingsService);
+        }
+        return localeService;
     }
 
     public synchronized org.airsonic.player.service.SettingsService createSettingsService() {
@@ -443,11 +452,11 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.metadata.JaudiotaggerParser parser,
             org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory,
             org.airsonic.player.service.CoverArtService coverArtService,
-            org.airsonic.player.i18n.LocaleResolver localeResolver) {
+            org.airsonic.player.i18n.LocaleService localeService) {
         if (mediaFileService == null) {
             mediaFileService = new org.airsonic.player.service.MediaFileService(
                     securityService, settingsService, mediaFileDao, createMediaFolderService(), albumDao,
-                    parser, metaDataParserFactory, coverArtService, localeResolver, createCacheManager());
+                    parser, metaDataParserFactory, coverArtService, localeService, createCacheManager());
         }
         return mediaFileService;
     }

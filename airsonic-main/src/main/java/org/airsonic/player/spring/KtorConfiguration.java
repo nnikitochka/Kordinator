@@ -166,6 +166,7 @@ import org.airsonic.player.service.metadata.JaudiotaggerParser;
 import org.airsonic.player.service.metadata.MetaDataParser;
 import org.airsonic.player.service.metadata.MetaDataParserFactory;
 import org.airsonic.player.i18n.LocaleResolver;
+import org.airsonic.player.i18n.LocaleService;
 import org.airsonic.player.service.LastFmService;
 import org.airsonic.player.service.JWTSecurityService;
 import org.airsonic.player.service.JukeboxService;
@@ -466,8 +467,13 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public LocaleResolver localeResolver(SecurityService securityService, SettingsService settingsService) {
-        return new LocaleResolver(securityService, settingsService);
+    public LocaleService localeService(RuntimeCompositionRoot runtime, SettingsService settingsService) {
+        return runtime.createLocaleService(settingsService);
+    }
+
+    @Bean
+    public LocaleResolver localeResolver(SecurityService securityService, LocaleService localeService) {
+        return new LocaleResolver(securityService, localeService);
     }
 
     @Bean
@@ -816,9 +822,9 @@ public class KtorConfiguration {
     public MediaFileService mediaFileService(RuntimeCompositionRoot runtime, SecurityService securityService, SettingsService settingsService,
             MediaFileDao mediaFileDao, AlbumDao albumDao,
             JaudiotaggerParser parser, MetaDataParserFactory metaDataParserFactory, CoverArtService coverArtService,
-            LocaleResolver localeResolver) {
+            LocaleService localeService) {
         return runtime.createMediaFileService(securityService, settingsService, mediaFileDao, albumDao,
-                parser, metaDataParserFactory, coverArtService, localeResolver);
+                parser, metaDataParserFactory, coverArtService, localeService);
     }
 
     @Bean
@@ -942,6 +948,7 @@ public class KtorConfiguration {
             IndexManager indexManager,
             TranscodingService transcodingService,
             LocaleResolver localeResolver,
+            LocaleService localeService,
             CoverArtImageService coverArtImageService,
             HlsPlaylistService hlsPlaylistService,
             HlsSegmentService hlsSegmentService,
@@ -967,7 +974,7 @@ public class KtorConfiguration {
                                         mediaFolderService, responseMapper, jaxbWriter, securityService),
                                 new AlbumInfoController(mediaFileService, albumDao, lastFmService, jaxbWriter),
                                 new PlaylistsController(playlistService, mediaFileService, securityService, responseMapper, jaxbWriter,
-                                        mediaFileDao, mediaFolderService, playerService, localeResolver),
+                                        mediaFileDao, mediaFolderService, playerService, localeService),
                                 new UploadController(uploadFileService, statusService, securityService, settingsService, jaxbWriter),
                                 new PlaylistExportController(playlistService, jaxbWriter),
                                 new PlaylistImportController(playlistService, jaxbWriter),
@@ -1009,7 +1016,7 @@ public class KtorConfiguration {
                                 new MorePageController(settingsService, mediaFileService, mediaFolderService, objectMapper),
                                 new LeftPageController(settingsService, mediaFolderService, musicIndexService, musicIndexStateService, mediaScannerService, indexManager, playerService, objectMapper),
                                 new BookmarksPageController(settingsService, objectMapper),
-                                new PlaylistPageController(playlistService, securityService, settingsService, localeResolver, objectMapper),
+                                new PlaylistPageController(playlistService, securityService, settingsService, localeService, objectMapper),
                                 new MainPageController(securityService, settingsService, objectMapper),
                                 new PlaylistsPageController(settingsService, objectMapper),
                                 new HomePageController(settingsService, mediaScannerService, ratingService, securityService,

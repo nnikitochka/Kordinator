@@ -15,7 +15,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.ResourceBundle
-import org.airsonic.player.i18n.LocaleResolver
+import org.airsonic.player.i18n.LocaleService
 import org.airsonic.player.service.PlaylistService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.SettingsService
@@ -25,7 +25,7 @@ class PlaylistPageController(
     private val playlists: PlaylistService,
     private val security: SecurityService,
     private val settings: SettingsService,
-    private val locales: LocaleResolver,
+    private val locales: LocaleService,
     private val json: ObjectMapper,
 ) {
     data class Request(val username: String, val playlistId: Int)

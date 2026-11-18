@@ -19,7 +19,7 @@ import org.airsonic.player.controller.rest.SubsonicResponseMapper
 import org.airsonic.player.controller.rest.error.ErrorCode
 import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.domain.Playlist as DomainPlaylist
-import org.airsonic.player.i18n.LocaleResolver
+import org.airsonic.player.i18n.LocaleService
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.PlayerService
@@ -42,7 +42,7 @@ class PlaylistsController(
     private val mediaFileDao: MediaFileDao,
     private val folders: MediaFolderService,
     private val players: PlayerService,
-    private val locales: LocaleResolver,
+    private val locales: LocaleService,
 ) {
     fun routes(root: Route, request: (ApplicationCall) -> PlaylistsRequest) {
         with(root) {
