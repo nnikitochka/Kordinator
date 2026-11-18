@@ -137,6 +137,12 @@ class RuntimeCompositionRootGraphTest {
         assertSame(securityService, runtimeRoot.createSecurityService(userDao, settingsService, mediaFolderService,
                 credentialEncoders));
         assertNotNull(securityService);
+        org.airsonic.player.i18n.LocaleService localeService = runtimeRoot.createLocaleService(settingsService);
+        assertSame(localeService, runtimeRoot.createLocaleService(settingsService));
+        assertNotNull(runtimeRoot.createDefaultMetaDataParser());
+        assertSame(runtimeRoot.createDefaultMetaDataParser(), runtimeRoot.createDefaultMetaDataParser());
+        assertNotNull(runtimeRoot.createFFmpegParser());
+        assertSame(runtimeRoot.createFFmpegParser(), runtimeRoot.createFFmpegParser());
         org.airsonic.player.service.metadata.JaudiotaggerParser parser = runtimeRoot.createJaudiotaggerParser();
         assertSame(parser, runtimeRoot.createJaudiotaggerParser());
         org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory =
@@ -148,7 +154,6 @@ class RuntimeCompositionRootGraphTest {
         assertSame(coverArtBackfill, runtimeRoot.createCoverArtAccentColorBackfill(coverArtService));
         assertEquals(1, lifecycleRegistry.getStartupItems().stream()
                 .filter(item -> item.name().equals("coverArtAccentColorBackfill")).count());
-        org.airsonic.player.i18n.LocaleService localeService = mock(org.airsonic.player.i18n.LocaleService.class);
         MediaFileService mediaFileService = runtimeRoot.createMediaFileService(securityService, settingsService,
                 mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeService);
         assertSame(mediaFileService, runtimeRoot.createMediaFileService(securityService, settingsService,
