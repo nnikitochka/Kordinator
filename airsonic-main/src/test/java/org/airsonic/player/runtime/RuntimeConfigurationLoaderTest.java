@@ -203,7 +203,7 @@ class RuntimeConfigurationLoaderTest {
         mockEnv.setProperty("spring.datasource.password", "testpass");
         mockEnv.setProperty("management.endpoint.health.status.order", "FATAL,DOWN,UP");
 
-        RuntimeConfiguration adapted = RuntimeConfigurationLoader.fromSpringEnvironment(mockEnv);
+        RuntimeConfiguration adapted = org.airsonic.player.spring.SpringEnvironmentRuntimeConfigurationAdapter.from(mockEnv);
 
         assertEquals("7070", adapted.getProperty("server.port"));
         assertEquals("testuser", adapted.getDatabaseUsername());

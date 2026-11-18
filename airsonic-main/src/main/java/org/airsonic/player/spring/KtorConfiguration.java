@@ -321,7 +321,7 @@ public class KtorConfiguration {
 
     @Bean
     public RuntimeCompositionRoot runtimeCompositionRoot(org.springframework.core.env.Environment env) {
-        return new RuntimeCompositionRoot(org.airsonic.player.runtime.RuntimeConfigurationLoader.fromSpringEnvironment(env));
+        return new RuntimeCompositionRoot(SpringEnvironmentRuntimeConfigurationAdapter.from(env));
     }
 
     @Bean

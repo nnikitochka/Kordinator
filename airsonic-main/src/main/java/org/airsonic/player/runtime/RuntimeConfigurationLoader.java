@@ -235,27 +235,4 @@ public final class RuntimeConfigurationLoader {
         return propertiesToMap(properties);
     }
 
-    public static RuntimeConfiguration fromSpringEnvironment(org.springframework.core.env.Environment env) {
-        if (env == null) {
-            return new RuntimeConfiguration(Collections.emptyMap());
-        }
-        Map<String, String> properties = new LinkedHashMap<>();
-        if (env instanceof org.springframework.core.env.ConfigurableEnvironment) {
-            org.springframework.core.env.ConfigurableEnvironment cEnv = (org.springframework.core.env.ConfigurableEnvironment) env;
-            for (org.springframework.core.env.PropertySource<?> ps : cEnv.getPropertySources()) {
-                if (ps instanceof org.springframework.core.env.EnumerablePropertySource) {
-                    for (String name : ((org.springframework.core.env.EnumerablePropertySource<?>) ps).getPropertyNames()) {
-                        if (!properties.containsKey(name)) {
-                            String val = env.getProperty(name);
-                            if (val != null) {
-                                properties.put(name, val);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return new RuntimeConfiguration(properties, env::getProperty,
-                env.getProperty(RuntimeConfiguration.HEALTH_STATUS_ORDER_KEY, RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER));
-    }
 }
