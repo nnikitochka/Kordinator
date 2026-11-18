@@ -9,8 +9,6 @@ import org.airsonic.player.service.search.IndexManager;
 import org.apache.commons.lang.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 
 
 import java.io.IOException;
@@ -62,7 +60,7 @@ public class MediaScannerService {
             ArtistDao artistDao,
             AlbumDao albumDao,
             TaskSchedulingService taskService,
-            @Value("${MediaScannerParallelism:#{T(java.lang.Runtime).getRuntime().availableProcessors() + 1}}") int scannerParallelism
+            int scannerParallelism
     ) {
         this.playlistService = playlistService;
         this.settingsService = settingsService;

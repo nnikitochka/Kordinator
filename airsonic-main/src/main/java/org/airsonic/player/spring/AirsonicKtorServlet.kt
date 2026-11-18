@@ -253,6 +253,8 @@ class AirsonicKtorServlet(
     metricsManager: MetricsManager,
     settingsService: org.airsonic.player.service.SettingsService,
     csrfRequestMatcher: RequestMatcher,
+    private val themeResolver: org.springframework.web.servlet.ThemeResolver,
+    private val themeSource: org.springframework.ui.context.ThemeSource,
 ) : ServletApplicationEngine() {
     private val proxyRestController = ProxyRestController()
     private val callerContextAdapter = SpringCallerContextAdapter(securityService)
@@ -574,8 +576,8 @@ class AirsonicKtorServlet(
                 .getRequiredWebApplicationContext(request.servletContext)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.getRequestDispatcher("/WEB-INF/jsp/accessDenied.jsp").forward(request, response)
             return
@@ -590,8 +592,8 @@ class AirsonicKtorServlet(
                 .getRequiredWebApplicationContext(request.servletContext)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.getRequestDispatcher("/WEB-INF/jsp/notFound.jsp").forward(request, response)
             return
@@ -610,8 +612,8 @@ class AirsonicKtorServlet(
             val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.getRequestDispatcher("/WEB-INF/jsp/login.jsp").forward(request, response)
             return
@@ -632,8 +634,8 @@ class AirsonicKtorServlet(
             val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.getRequestDispatcher("/WEB-INF/jsp/index.jsp").forward(request, response)
             return
@@ -652,8 +654,8 @@ class AirsonicKtorServlet(
             val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.getRequestDispatcher("/WEB-INF/jsp/right.jsp").forward(request, response)
             return
@@ -672,8 +674,8 @@ class AirsonicKtorServlet(
             val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.getRequestDispatcher("/WEB-INF/jsp/starred.jsp").forward(request, response)
             return
@@ -692,8 +694,8 @@ class AirsonicKtorServlet(
             val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.getRequestDispatcher("/WEB-INF/jsp/editTags.jsp").forward(request, response)
             return
@@ -720,8 +722,8 @@ class AirsonicKtorServlet(
             val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.getRequestDispatcher("/WEB-INF/jsp/changeCoverArt.jsp").forward(request, response)
             return
@@ -740,8 +742,8 @@ class AirsonicKtorServlet(
             val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.getRequestDispatcher("/WEB-INF/jsp/lyrics.jsp").forward(request, response)
             return
@@ -759,8 +761,8 @@ class AirsonicKtorServlet(
                 val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
                 org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
                 request.getRequestDispatcher("/WEB-INF/jsp/bookmarks.jsp").forward(request, response)
                 return
@@ -781,8 +783,8 @@ class AirsonicKtorServlet(
                 val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
                 org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
                 request.getRequestDispatcher("/WEB-INF/jsp/playlist.jsp").forward(request, response)
                 return
@@ -806,8 +808,8 @@ class AirsonicKtorServlet(
                 val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
                 org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
                 request.getRequestDispatcher("/WEB-INF/jsp/mediaMain.jsp").forward(request, response)
                 return
@@ -826,8 +828,8 @@ class AirsonicKtorServlet(
                 val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
                 org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
                 request.getRequestDispatcher("/WEB-INF/jsp/playlists.jsp").forward(request, response)
                 return
@@ -848,8 +850,8 @@ class AirsonicKtorServlet(
                 val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
                 org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
                 request.getRequestDispatcher("/WEB-INF/jsp/left.jsp").forward(request, response)
                 return
@@ -892,8 +894,8 @@ class AirsonicKtorServlet(
                 .getRequiredWebApplicationContext(request.servletContext)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.getRequestDispatcher("/WEB-INF/jsp/more.jsp").forward(request, response)
             return
@@ -942,8 +944,8 @@ class AirsonicKtorServlet(
                 .getRequiredWebApplicationContext(request.servletContext)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.getRequestDispatcher("/WEB-INF/jsp/playQueue.jsp").forward(request, response)
             return
@@ -982,8 +984,8 @@ class AirsonicKtorServlet(
                 .getRequiredWebApplicationContext(request.servletContext)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.getRequestDispatcher("/WEB-INF/jsp/recover.jsp").forward(request, response)
             return
@@ -1097,8 +1099,8 @@ class AirsonicKtorServlet(
                     .getRequiredWebApplicationContext(request.servletContext)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
                 org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
                 request.getRequestDispatcher("/WEB-INF/jsp/externalPlayer.jsp").forward(request, response)
                 return
@@ -1123,8 +1125,8 @@ class AirsonicKtorServlet(
                 .getRequiredWebApplicationContext(request.servletContext)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.setAttribute("playerSettingsAdmin", user.isAdminRole)
             request.setAttribute("personalSettingsUsername", user.username)
@@ -1163,8 +1165,8 @@ class AirsonicKtorServlet(
             val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.getRequestDispatcher("/WEB-INF/jsp/home.jsp").forward(request, response)
             return
@@ -1193,8 +1195,8 @@ class AirsonicKtorServlet(
             val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, context.getBean("themeResolver"))
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, context.getBean("themeSource"))
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
+            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.getRequestDispatcher("/WEB-INF/jsp/search.jsp").forward(request, response)
             return
