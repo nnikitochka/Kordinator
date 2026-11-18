@@ -172,6 +172,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `aa43a63` добавляет в root создание и повторное использование `PlayerDao` поверх того же persistence graph и `MediaFolderService`; `RuntimeCompositionRootGraphTest`, `AirsonicRestApiIntTest`, `PlayQueueIntegrationTest` прошли 3/3. Срез `9efee40` переносит singleton `VersionService` и зависимый `ServerInfoService` в root; Spring projections передают один и тот же `VersionService`, чтобы сохранить подмену/переопределение зависимости и поведение endpoint. `RuntimeCompositionRootGraphTest`, `ServerInfoServiceTest`, `ServerInfoIntegrationTest` прошли 7/7. Этап 11 всё ещё открыт: остальные сервисы, конфигурация, security/jobs/handlers, Spring event bridges и framework-neutral полная сборка графа остаются.
 
+Срез `46095fb` переносит владение `StatusService` в root вместе с его одноразовой регистрацией фоновой cleanup-задачи; Spring bean больше не создаёт параллельный экземпляр и не запускает `cleanup()` самостоятельно. `RuntimeCompositionRootGraphTest`, `StatusServiceTestCase` и `ScheduledTasksIntegrationTest` прошли 6/6. Это пока локальная миграция ownership: планировщик и зависимости `MediaFileService`/settings остаются аргументами graph factory, а полная независимая сборка ещё впереди.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
