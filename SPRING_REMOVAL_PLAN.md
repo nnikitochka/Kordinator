@@ -264,6 +264,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `9c9a48a` убирает `@Configuration` с `KtorConfiguration` и добавляет Kotlin `KtorSpringConfigurationAdapter`, который наследует фабрики и служит явной Spring bootstrap границей; `Application` импортирует adapter. Унаследованные bean factories сохранились: REST API, login, static/error и health HTTP tests прошли 15/15. Методы `@Bean` ещё находятся в фабричном классе и будут поэтапно переноситься/сокращаться; Spring security/bootstrap также остаётся.
 
+Срез `4cc0da2` переносит Spring bean registrations cache manager, metrics и health registry из `KtorConfiguration` в Kotlin `KtorSpringConfigurationAdapter`, напрямую проецируя root-owned instances. REST/login/static/health/cache-statistics integration suite прошёл 16/16. В `KtorConfiguration` остаётся 114 Spring `@Bean` методов; перенос остальных factories продолжается.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
