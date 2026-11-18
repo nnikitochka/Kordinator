@@ -81,6 +81,16 @@ class RuntimeCompositionRootGraphTest {
 
         KtorConfiguration config = new KtorConfiguration();
 
+        org.airsonic.player.service.search.AnalyzerFactory analyzerFactory = runtimeRoot.createAnalyzerFactory();
+        assertSame(analyzerFactory, config.analyzerFactory(runtimeRoot));
+        assertSame(analyzerFactory, runtimeRoot.createAnalyzerFactory());
+        org.airsonic.player.service.search.DocumentFactory documentFactory = runtimeRoot.createDocumentFactory();
+        assertSame(documentFactory, config.documentFactory(runtimeRoot));
+        assertSame(documentFactory, runtimeRoot.createDocumentFactory());
+        org.airsonic.player.service.search.IndexManager indexManager = runtimeRoot.createIndexManager();
+        assertSame(indexManager, config.indexManager(runtimeRoot));
+        assertSame(indexManager, runtimeRoot.createIndexManager());
+
         assertNotNull(userDao);
         assertNotNull(playQueueDao);
         assertNotNull(albumDao);
@@ -246,13 +256,10 @@ class RuntimeCompositionRootGraphTest {
         assertSame(userAdministrationService,
                 runtimeRoot.createUserAdministrationService(securityService, settingsService));
         settingsService.setIndexCreationInterval(-1);
-        org.airsonic.player.service.search.IndexManager indexManager =
-                mock(org.airsonic.player.service.search.IndexManager.class);
         MediaScannerService mediaScannerService = runtimeRoot.createMediaScannerService(
                 playlistService, settingsService, indexManager, mediaFileService, mediaFolderService, coverArtService);
         assertSame(mediaScannerService, config.mediaScannerService(runtimeRoot, playlistService, settingsService,
                 indexManager, mediaFileService, mediaFolderService, coverArtService));
-        verify(indexManager).initializeIndexDirectory();
         assertSame(mediaScannerService, runtimeRoot.createMediaScannerService(
                 playlistService, settingsService, indexManager, mediaFileService, mediaFolderService, coverArtService));
         MusicIndexStateService musicIndexStateService = runtimeRoot.createMusicIndexStateService(

@@ -55,6 +55,9 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.TaskSchedulingService taskSchedulingService;
     private org.airsonic.player.service.PathWatcherService pathWatcherService;
     private org.airsonic.player.service.MediaScannerService mediaScannerService;
+    private org.airsonic.player.service.search.AnalyzerFactory analyzerFactory;
+    private org.airsonic.player.service.search.DocumentFactory documentFactory;
+    private org.airsonic.player.service.search.IndexManager indexManager;
     private org.airsonic.player.service.playlist.DefaultPlaylistExportHandler defaultPlaylistExportHandler;
     private org.airsonic.player.service.playlist.DefaultPlaylistImportHandler defaultPlaylistImportHandler;
     private org.airsonic.player.service.playlist.XspfPlaylistExportHandler xspfPlaylistExportHandler;
@@ -122,6 +125,33 @@ public final class RuntimeCompositionRoot {
             mediaScannerService.init();
         }
         return mediaScannerService;
+    }
+
+    public synchronized org.airsonic.player.service.search.AnalyzerFactory createAnalyzerFactory() {
+        if (analyzerFactory == null) {
+            analyzerFactory = new org.airsonic.player.service.search.AnalyzerFactory();
+        }
+        return analyzerFactory;
+    }
+
+    public synchronized org.airsonic.player.service.search.DocumentFactory createDocumentFactory() {
+        if (documentFactory == null) {
+            documentFactory = new org.airsonic.player.service.search.DocumentFactory();
+        }
+        return documentFactory;
+    }
+
+    public synchronized org.airsonic.player.service.search.IndexManager createIndexManager() {
+        if (indexManager == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before IndexManager");
+            }
+            DaoGraph daos = persistenceGraph.getDaos();
+            indexManager = new org.airsonic.player.service.search.IndexManager(
+                    createAnalyzerFactory(), createDocumentFactory(), daos.getMediaFileDao(),
+                    daos.getArtistDao(), daos.getAlbumDao());
+        }
+        return indexManager;
     }
 
     public synchronized PersistenceGraph createPersistenceGraph(DataSource dataSource) {

@@ -478,13 +478,13 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public AnalyzerFactory analyzerFactory() {
-        return new AnalyzerFactory();
+    public AnalyzerFactory analyzerFactory(RuntimeCompositionRoot runtime) {
+        return runtime.createAnalyzerFactory();
     }
 
     @Bean
-    public DocumentFactory documentFactory() {
-        return new DocumentFactory();
+    public DocumentFactory documentFactory(RuntimeCompositionRoot runtime) {
+        return runtime.createDocumentFactory();
     }
 
     @Bean
@@ -499,9 +499,8 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public IndexManager indexManager(AnalyzerFactory analyzerFactory, DocumentFactory documentFactory,
-            MediaFileDao mediaFileDao, ArtistDao artistDao, AlbumDao albumDao) {
-        return new IndexManager(analyzerFactory, documentFactory, mediaFileDao, artistDao, albumDao);
+    public IndexManager indexManager(RuntimeCompositionRoot runtime) {
+        return runtime.createIndexManager();
     }
 
     @Bean
