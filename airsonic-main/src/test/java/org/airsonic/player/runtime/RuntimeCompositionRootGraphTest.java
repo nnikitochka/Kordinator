@@ -215,6 +215,23 @@ class RuntimeCompositionRootGraphTest {
         JukeboxService jukeboxService = runtimeRoot.createJukeboxService(legacyJukebox);
         assertSame(jukeboxService, runtimeRoot.createJukeboxService(legacyJukebox));
         PlaylistService playlistService = mock(PlaylistService.class);
+        CoverArtImageService coverArtImageService = runtimeRoot.createCoverArtImageService(mediaFileService,
+                coverArtService, transcodingService, settingsService, playlistService, artistDao, albumDao);
+        assertSame(coverArtImageService, runtimeRoot.createCoverArtImageService(mediaFileService,
+                coverArtService, transcodingService, settingsService, playlistService, artistDao, albumDao));
+        DownloadService downloadService = runtimeRoot.createDownloadService(statusService, securityService,
+                playlistService, settingsService, mediaFileService, coverArtService);
+        assertSame(downloadService, runtimeRoot.createDownloadService(statusService, securityService,
+                playlistService, settingsService, mediaFileService, coverArtService));
+        UserAdministrationService userAdministrationService =
+                runtimeRoot.createUserAdministrationService(securityService, settingsService);
+        assertSame(userAdministrationService,
+                runtimeRoot.createUserAdministrationService(securityService, settingsService));
+        MediaScannerService mediaScannerService = mock(MediaScannerService.class);
+        MusicIndexStateService musicIndexStateService = runtimeRoot.createMusicIndexStateService(
+                mediaScannerService, settingsService);
+        assertSame(musicIndexStateService,
+                runtimeRoot.createMusicIndexStateService(mediaScannerService, settingsService));
         SearchService searchService = mock(SearchService.class);
         PlayQueueService playQueueService = runtimeRoot.createPlayQueueService(
                 searchService, jukeboxService, settingsService, mediaFileService,

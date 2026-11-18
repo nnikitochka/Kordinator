@@ -45,6 +45,10 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.hls.HlsPlaylistService hlsPlaylistService;
     private org.airsonic.player.service.hls.HlsSegmentService hlsSegmentService;
     private org.airsonic.player.service.TagEditService tagEditService;
+    private org.airsonic.player.service.DownloadService downloadService;
+    private org.airsonic.player.service.UserAdministrationService userAdministrationService;
+    private org.airsonic.player.service.MusicIndexStateService musicIndexStateService;
+    private org.airsonic.player.service.CoverArtImageService coverArtImageService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -211,6 +215,57 @@ public final class RuntimeCompositionRoot {
                     metaDataParserFactory, mediaFileService, createMediaFolderService(), securityService);
         }
         return tagEditService;
+    }
+
+    public synchronized org.airsonic.player.service.DownloadService createDownloadService(
+            org.airsonic.player.service.StatusService statusService,
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.service.PlaylistService playlistService,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.CoverArtService coverArtService) {
+        if (downloadService == null) {
+            downloadService = new org.airsonic.player.service.DownloadService(statusService, securityService,
+                    playlistService, settingsService, mediaFileService, createMediaFolderService(), coverArtService);
+        }
+        return downloadService;
+    }
+
+    public synchronized org.airsonic.player.service.UserAdministrationService createUserAdministrationService(
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.service.SettingsService settingsService) {
+        if (userAdministrationService == null) {
+            userAdministrationService = new org.airsonic.player.service.UserAdministrationService(
+                    securityService, settingsService, createMediaFolderService());
+        }
+        return userAdministrationService;
+    }
+
+    public synchronized org.airsonic.player.service.MusicIndexStateService createMusicIndexStateService(
+            org.airsonic.player.service.MediaScannerService scanner,
+            org.airsonic.player.service.SettingsService settingsService) {
+        if (musicIndexStateService == null) {
+            musicIndexStateService = new org.airsonic.player.service.MusicIndexStateService(
+                    scanner, settingsService, createMediaFolderService());
+        }
+        return musicIndexStateService;
+    }
+
+    public synchronized org.airsonic.player.service.CoverArtImageService createCoverArtImageService(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.CoverArtService coverArtService,
+            org.airsonic.player.service.TranscodingService transcodingService,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.PlaylistService playlistService,
+            org.airsonic.player.dao.ArtistDao artistDao,
+            org.airsonic.player.dao.AlbumDao albumDao) {
+        if (coverArtImageService == null) {
+            coverArtImageService = new org.airsonic.player.service.CoverArtImageService(
+                    mediaFileService, coverArtService, transcodingService, settingsService, playlistService,
+                    artistDao, albumDao, createJaudiotaggerParser());
+            coverArtImageService.init();
+        }
+        return coverArtImageService;
     }
 
     public synchronized org.airsonic.player.dao.PlayerDao createPlayerDao() throws Exception {

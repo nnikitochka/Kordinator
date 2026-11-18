@@ -591,14 +591,11 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public CoverArtImageService coverArtImageService(MediaFileService mediaFileService,
+    public CoverArtImageService coverArtImageService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService,
             CoverArtService coverArtService, TranscodingService transcodingService, SettingsService settingsService,
-            PlaylistService playlistService, ArtistDao artistDao, AlbumDao albumDao,
-            JaudiotaggerParser jaudiotaggerParser) {
-        CoverArtImageService service = new CoverArtImageService(mediaFileService, coverArtService, transcodingService,
-                settingsService, playlistService, artistDao, albumDao, jaudiotaggerParser);
-        service.init();
-        return service;
+            PlaylistService playlistService, ArtistDao artistDao, AlbumDao albumDao) {
+        return runtime.createCoverArtImageService(mediaFileService, coverArtService, transcodingService,
+                settingsService, playlistService, artistDao, albumDao);
     }
 
     @Bean
@@ -910,21 +907,23 @@ public class KtorConfiguration {
 
 
     @Bean
-    public DownloadService downloadService(StatusService statusService, SecurityService securityService,
+    public DownloadService downloadService(RuntimeCompositionRoot runtime, StatusService statusService, SecurityService securityService,
             PlaylistService playlistService, SettingsService settingsService, MediaFileService mediaFileService,
-            MediaFolderService mediaFolderService, CoverArtService coverArtService) {
-        return new DownloadService(statusService, securityService, playlistService, settingsService, mediaFileService,
-                mediaFolderService, coverArtService);
+            CoverArtService coverArtService) {
+        return runtime.createDownloadService(statusService, securityService, playlistService, settingsService,
+                mediaFileService, coverArtService);
     }
 
     @Bean
-    public UserAdministrationService userAdministrationService(SecurityService securityService, SettingsService settingsService, MediaFolderService mediaFolderService) {
-        return new UserAdministrationService(securityService, settingsService, mediaFolderService);
+    public UserAdministrationService userAdministrationService(RuntimeCompositionRoot runtime,
+            SecurityService securityService, SettingsService settingsService) {
+        return runtime.createUserAdministrationService(securityService, settingsService);
     }
 
     @Bean
-    public MusicIndexStateService musicIndexStateService(MediaScannerService scanner, SettingsService settings, MediaFolderService folders) {
-        return new MusicIndexStateService(scanner, settings, folders);
+    public MusicIndexStateService musicIndexStateService(RuntimeCompositionRoot runtime, MediaScannerService scanner,
+            SettingsService settings) {
+        return runtime.createMusicIndexStateService(scanner, settings);
     }
 
     @Bean
