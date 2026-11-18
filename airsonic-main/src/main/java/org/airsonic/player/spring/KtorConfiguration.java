@@ -485,6 +485,11 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public JWTSecurityService jwtSecurityService(SettingsService settingsService) {
+        return new JWTSecurityService(settingsService);
+    }
+
+    @Bean
     public LastFmService lastFmService(MediaFileDao mediaFileDao, MediaFileService mediaFileService,
             ArtistDao artistDao) {
         return new LastFmService(mediaFileDao, mediaFileService, artistDao);
