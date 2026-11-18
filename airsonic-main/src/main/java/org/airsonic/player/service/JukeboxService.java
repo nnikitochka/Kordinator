@@ -2,12 +2,10 @@ package org.airsonic.player.service;
 
 import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.PlayerTechnology;
-import org.springframework.stereotype.Service;
 
 /**
  * @author Rémi Cocula
  */
-@Service
 public class JukeboxService {
     private final JukeboxLegacySubsonicService jukeboxLegacySubsonicService;
 

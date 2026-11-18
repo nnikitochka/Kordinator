@@ -6,14 +6,12 @@ import org.airsonic.player.service.jukebox.AudioPlayerFactory;
 import org.airsonic.player.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 
 /**
  * Plays music on the local audio device.
  */
-@Service
 public class JukeboxLegacySubsonicService implements AudioPlayer.Listener {
     private static final Logger LOG = LoggerFactory.getLogger(JukeboxLegacySubsonicService.class);
 

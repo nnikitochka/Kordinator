@@ -153,6 +153,7 @@ import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.LastFmService;
 import org.airsonic.player.service.JWTSecurityService;
 import org.airsonic.player.service.JukeboxService;
+import org.airsonic.player.service.JukeboxLegacySubsonicService;
 import org.airsonic.player.service.PlayQueueService;
 import org.airsonic.player.service.BookmarkService;
 import org.airsonic.player.service.MediaFileService;
@@ -520,6 +521,19 @@ public class KtorConfiguration {
             JWTSecurityService jwtSecurityService) {
         return new PlayQueueService(searchService, jukeboxService, settingsService, mediaFileService, lastFmService,
                 ratingService, playlistService, mediaFileDao, mediaFolderService, playQueueDao, jwtSecurityService);
+    }
+
+    @Bean
+    public JukeboxLegacySubsonicService jukeboxLegacySubsonicService(TranscodingService transcodingService,
+            AudioScrobblerService audioScrobblerService, StatusService statusService,
+            SettingsService settingsService, SecurityService securityService, MediaFileService mediaFileService) {
+        return new JukeboxLegacySubsonicService(transcodingService, audioScrobblerService, statusService,
+                settingsService, securityService, mediaFileService);
+    }
+
+    @Bean
+    public JukeboxService jukeboxService(JukeboxLegacySubsonicService legacyJukebox) {
+        return new JukeboxService(legacyJukebox);
     }
 
     @Bean
