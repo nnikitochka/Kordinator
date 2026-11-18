@@ -230,6 +230,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `a6bd21e` удаляет Spring `Environment` constructors и setter из `SettingsService`; runtime API использует `RuntimeConfiguration`/`Function<String,String>`, а `CustomPropertySourceConfigurer` передаёт property lookup только на adapter boundary. `SettingsServiceTestCase`, database/general/personal/advanced/player settings integration tests прошли 18/18. `SettingsService` ещё содержит Spring property-source migration helpers и SpEL/Boot logging API, которые остаются следующими кандидатами на извлечение.
 
+Срез `9a2a07a` завершает framework-neutral extraction `SettingsService`: migration helpers теперь принимают обычный property lookup, logging key не зависит от Boot `LogFile`, а upload-path placeholders разрешаются без SpEL через контекстные ключи/индексы списков (поддерживает шаблоны по текущим документированным примерам). `SettingsService` больше не импортирует Spring. `SettingsServiceTestCase`, `CommonsConfigurationPropertySourceTest`, `RuntimeConfigurationLoaderTest` прошли 33/33; `FileUploadIntegrationTest` прошёл 1/1.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
