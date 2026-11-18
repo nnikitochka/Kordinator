@@ -14,6 +14,7 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.dao.PlayerDao playerDao;
     private org.airsonic.player.service.VersionService versionService;
     private org.airsonic.player.service.ServerInfoService serverInfoService;
+    private org.airsonic.player.service.StatusService statusService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -108,5 +109,18 @@ public final class RuntimeCompositionRoot {
             serverInfoService = new org.airsonic.player.service.ServerInfoService(versions, settingsService);
         }
         return serverInfoService;
+    }
+
+    public synchronized org.airsonic.player.service.StatusService createStatusService(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.TaskSchedulingService taskSchedulingService) {
+        if (statusService == null) {
+            statusService = new org.airsonic.player.service.StatusService(
+                    mediaFileService, mediaFolderService, settingsService, taskSchedulingService);
+            statusService.cleanup();
+        }
+        return statusService;
     }
 }

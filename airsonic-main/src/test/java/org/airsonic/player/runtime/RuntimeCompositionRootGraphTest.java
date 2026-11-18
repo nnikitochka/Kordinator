@@ -17,6 +17,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 class RuntimeCompositionRootGraphTest {
 
@@ -125,6 +126,11 @@ class RuntimeCompositionRootGraphTest {
 
         TaskSchedulingService scheduler = config.taskSchedulingService(lifecycleRegistry);
         assertNotNull(scheduler);
+        MediaFileService mediaFileService = mock(MediaFileService.class);
+        StatusService statusService = runtimeRoot.createStatusService(
+                mediaFileService, mediaFolderService, settingsService, scheduler);
+        assertSame(statusService, runtimeRoot.createStatusService(
+                mediaFileService, mediaFolderService, settingsService, scheduler));
 
         PathWatcherService pathWatcher = config.pathWatcherService(lifecycleRegistry);
         assertNotNull(pathWatcher);

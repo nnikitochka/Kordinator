@@ -471,11 +471,10 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public StatusService statusService(MediaFileService mediaFileService, MediaFolderService mediaFolderService,
-            SettingsService settingsService, TaskSchedulingService taskSchedulingService) {
-        StatusService service = new StatusService(mediaFileService, mediaFolderService, settingsService, taskSchedulingService);
-        service.cleanup();
-        return service;
+    public StatusService statusService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService,
+            MediaFolderService mediaFolderService, SettingsService settingsService,
+            TaskSchedulingService taskSchedulingService) {
+        return runtime.createStatusService(mediaFileService, mediaFolderService, settingsService, taskSchedulingService);
     }
 
     @Bean
