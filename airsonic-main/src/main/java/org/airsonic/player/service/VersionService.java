@@ -14,7 +14,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.net.URL;
@@ -33,7 +32,6 @@ import java.util.function.Function;
  * Provides version-related services, including functionality for determining whether a newer
  * version of Airsonic is available.
  */
-@Service
 public class VersionService {
     private static final Logger LOG = LoggerFactory.getLogger(VersionService.class);
 

@@ -2,12 +2,10 @@ package org.airsonic.player.service
 
 import org.apache.commons.io.input.ReversedLinesFileReader
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Service
 import java.io.IOException
 import java.nio.charset.Charset
 import java.nio.file.Paths
 
-@Service
 class ServerInfoService(private val versions: VersionService, private val settings: SettingsService) {
     fun snapshot(serverInfo: String): Map<String, Any?> {
         val latest = when {

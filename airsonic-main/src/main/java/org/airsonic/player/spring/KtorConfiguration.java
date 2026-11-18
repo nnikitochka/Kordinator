@@ -282,6 +282,16 @@ public class KtorConfiguration {
         return new PlayerDaoPlayQueueFactory(mediaFolderService);
     }
 
+    @Bean
+    public VersionService versionService() throws java.io.IOException {
+        return new VersionService();
+    }
+
+    @Bean
+    public ServerInfoService serverInfoService(VersionService versionService, SettingsService settingsService) {
+        return new ServerInfoService(versionService, settingsService);
+    }
+
     @Bean(destroyMethod = "shutdown")
     public TaskSchedulingService taskSchedulingService(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
         TaskSchedulingService service = new TaskSchedulingService();

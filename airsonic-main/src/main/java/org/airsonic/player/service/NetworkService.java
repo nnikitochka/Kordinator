@@ -3,7 +3,6 @@ package org.airsonic.player.service;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -12,7 +11,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-@Service
 public class NetworkService {
     private static final String X_FORWARDED_SERVER = "X-Forwarded-Server";
     private static final String X_FORWARDED_PROTO = "X-Forwarded-Proto";
