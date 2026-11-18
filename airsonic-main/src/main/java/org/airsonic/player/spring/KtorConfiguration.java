@@ -197,6 +197,73 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public JAXBWriter subsonicJaxbWriter() {
+        return new JAXBWriter();
+    }
+
+    @Bean
+    public RestPlayerResolver restPlayerResolver(PlayerService playerService) {
+        return new RestPlayerResolver(playerService);
+    }
+
+    @Bean
+    public org.airsonic.player.controller.rest.genres.GenresService subsonicGenresService(MediaFileDao mediaFileDao) {
+        return new org.airsonic.player.controller.rest.genres.GenresService(() -> mediaFileDao.getGenres(false));
+    }
+
+    @Bean
+    public GenresController subsonicGenresController(
+            org.airsonic.player.controller.rest.genres.GenresService genresService, JAXBWriter subsonicJaxbWriter) {
+        return new GenresController(genresService, subsonicJaxbWriter);
+    }
+
+    @Bean
+    public ArtistsController subsonicArtistsController(
+            ArtistDao artistDao, AlbumDao albumDao, MusicIndexService musicIndexService, SettingsService settingsService,
+            MediaFolderService mediaFolderService, SubsonicResponseMapper subsonicResponseMapper,
+            JAXBWriter subsonicJaxbWriter) {
+        return new ArtistsController(artistDao, albumDao, musicIndexService, settingsService, mediaFolderService,
+                subsonicResponseMapper, subsonicJaxbWriter);
+    }
+
+    @Bean
+    public org.airsonic.player.controller.rest.music.folder.MusicFoldersService subsonicMusicFoldersService(
+            MediaFolderService mediaFolderService) {
+        return new org.airsonic.player.controller.rest.music.folder.MusicFoldersService(
+                mediaFolderService::getMusicFoldersForUser);
+    }
+
+    @Bean
+    public MusicFoldersController subsonicMusicFoldersController(
+            org.airsonic.player.controller.rest.music.folder.MusicFoldersService musicFoldersService,
+            JAXBWriter subsonicJaxbWriter) {
+        return new MusicFoldersController(musicFoldersService, subsonicJaxbWriter);
+    }
+
+    @Bean
+    public SubsonicResponseMapper subsonicResponseMapper(
+            MediaFileService mediaFileService, MediaFileDao mediaFileDao, RatingService ratingService,
+            CoverArtService coverArtService, TranscodingService transcodingService, AlbumDao albumDao,
+            ArtistDao artistDao, JAXBWriter subsonicJaxbWriter) {
+        return new SubsonicResponseMapper(mediaFileService, mediaFileDao, ratingService, coverArtService,
+                transcodingService, albumDao, artistDao, subsonicJaxbWriter);
+    }
+
+    @Bean
+    public SearchController subsonicSearchController(
+            org.airsonic.player.controller.rest.search.SearchService searchService, JAXBWriter subsonicJaxbWriter) {
+        return new SearchController(searchService, subsonicJaxbWriter);
+    }
+
+    @Bean
+    public org.airsonic.player.controller.rest.search.SearchService subsonicSearchService(
+            SearchService searchService, MediaFolderService mediaFolderService,
+            SubsonicResponseMapper subsonicResponseMapper, JAXBWriter subsonicJaxbWriter) {
+        return new org.airsonic.player.controller.rest.search.SearchService(
+                searchService, mediaFolderService, subsonicResponseMapper, subsonicJaxbWriter);
+    }
+
+    @Bean
     public org.springframework.boot.web.server.ErrorPageRegistrar ktorErrorPageRegistrar(
             org.springframework.boot.autoconfigure.web.ServerProperties serverProperties) {
         return factory -> factory.addErrorPages(new org.springframework.boot.web.server.ErrorPage(serverProperties.getError().getPath()));
