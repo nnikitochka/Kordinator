@@ -114,4 +114,46 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     override fun metaDataParserFactory(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
     ): org.airsonic.player.service.metadata.MetaDataParserFactory = runtime.createMetaDataParserFactory()
+
+    @Bean
+    override fun defaultPlaylistExportHandler(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileDao: org.airsonic.player.dao.MediaFileDao,
+    ): org.airsonic.player.service.playlist.DefaultPlaylistExportHandler =
+        runtime.createDefaultPlaylistExportHandler(mediaFileDao)
+
+    @Bean
+    override fun defaultPlaylistImportHandler(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        settingsService: org.airsonic.player.service.SettingsService,
+    ): org.airsonic.player.service.playlist.DefaultPlaylistImportHandler =
+        runtime.createDefaultPlaylistImportHandler(mediaFileService, settingsService)
+
+    @Bean
+    override fun xspfPlaylistExportHandler(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileDao: org.airsonic.player.dao.MediaFileDao,
+        playlistDao: org.airsonic.player.dao.PlaylistDao,
+        coverArtService: org.airsonic.player.service.CoverArtService,
+    ): org.airsonic.player.service.playlist.XspfPlaylistExportHandler =
+        runtime.createXspfPlaylistExportHandler(mediaFileDao, playlistDao, coverArtService)
+
+    @Bean
+    override fun xspfPlaylistImportHandler(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        settingsService: org.airsonic.player.service.SettingsService,
+    ): org.airsonic.player.service.playlist.XspfPlaylistImportHandler =
+        runtime.createXspfPlaylistImportHandler(mediaFileService, settingsService)
+
+    @Bean
+    override fun playlistService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        securityService: org.airsonic.player.service.SecurityService,
+        settingsService: org.airsonic.player.service.SettingsService,
+        exportHandlers: List<org.airsonic.player.service.playlist.PlaylistExportHandler>,
+        importHandlers: List<org.airsonic.player.service.playlist.PlaylistImportHandler>,
+    ): org.airsonic.player.service.PlaylistService =
+        runtime.createPlaylistService(securityService, settingsService, exportHandlers, importHandlers)
 }

@@ -473,33 +473,28 @@ public class KtorConfiguration {
         return runtime.createPasswordRecoveryService(settingsService, securityService);
     }
 
-    @Bean
     public DefaultPlaylistExportHandler defaultPlaylistExportHandler(RuntimeCompositionRoot runtime,
             MediaFileDao mediaFileDao) {
         return runtime.createDefaultPlaylistExportHandler(mediaFileDao);
     }
 
-    @Bean
     public DefaultPlaylistImportHandler defaultPlaylistImportHandler(RuntimeCompositionRoot runtime,
             MediaFileService mediaFileService,
             SettingsService settingsService) {
         return runtime.createDefaultPlaylistImportHandler(mediaFileService, settingsService);
     }
 
-    @Bean
     public XspfPlaylistExportHandler xspfPlaylistExportHandler(RuntimeCompositionRoot runtime,
             MediaFileDao mediaFileDao, PlaylistDao playlistDao, CoverArtService coverArtService) {
         return runtime.createXspfPlaylistExportHandler(mediaFileDao, playlistDao, coverArtService);
     }
 
-    @Bean
     public XspfPlaylistImportHandler xspfPlaylistImportHandler(RuntimeCompositionRoot runtime,
             MediaFileService mediaFileService,
             SettingsService settingsService) {
         return runtime.createXspfPlaylistImportHandler(mediaFileService, settingsService);
     }
 
-    @Bean
     public PlaylistService playlistService(RuntimeCompositionRoot runtime, SecurityService securityService,
             SettingsService settingsService,
             java.util.List<org.airsonic.player.service.playlist.PlaylistExportHandler> exportHandlers,
