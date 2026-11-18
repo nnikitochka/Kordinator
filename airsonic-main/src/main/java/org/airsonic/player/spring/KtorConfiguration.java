@@ -599,11 +599,9 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public CoverArtAccentColorBackfill coverArtAccentColorBackfill(CoverArtService coverArtService,
-            org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
-        CoverArtAccentColorBackfill service = new CoverArtAccentColorBackfill(coverArtService);
-        lifecycleRegistry.registerStartup("coverArtAccentColorBackfill", service::backfillAccentColors);
-        return service;
+    public CoverArtAccentColorBackfill coverArtAccentColorBackfill(RuntimeCompositionRoot runtime,
+            CoverArtService coverArtService) {
+        return runtime.createCoverArtAccentColorBackfill(coverArtService);
     }
 
     @Bean

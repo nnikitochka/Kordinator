@@ -10,6 +10,9 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 class RuntimeCompositionRootTest {
 
@@ -43,5 +46,22 @@ class RuntimeCompositionRootTest {
                 new KtorConfiguration().serverHealthStatusAggregator(runtime);
 
         assertEquals(new Status("FATAL"), aggregator.getAggregateStatus(Set.of(Status.DOWN, new Status("FATAL"))));
+    }
+
+    @Test
+    void ownsCoverArtBackfillAndRegistersItsStartupActionOnce() {
+        LifecycleRegistry lifecycle = new LifecycleRegistry();
+        RuntimeCompositionRoot runtime = new RuntimeCompositionRoot(
+                new RuntimeConfiguration("DOWN,UP"), lifecycle);
+        org.airsonic.player.service.CoverArtService coverArtService = mock(org.airsonic.player.service.CoverArtService.class);
+
+        org.airsonic.player.service.CoverArtAccentColorBackfill backfill =
+                runtime.createCoverArtAccentColorBackfill(coverArtService);
+        assertSame(backfill, runtime.createCoverArtAccentColorBackfill(coverArtService));
+        assertEquals(1, lifecycle.getStartupItems().size());
+
+        lifecycle.start();
+
+        verify(coverArtService).backfillAccentColors();
     }
 }

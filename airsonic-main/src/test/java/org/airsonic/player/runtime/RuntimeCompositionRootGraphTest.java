@@ -150,6 +150,11 @@ class RuntimeCompositionRootGraphTest {
         assertSame(metaDataParserFactory, runtimeRoot.createMetaDataParserFactory());
         CoverArtService coverArtService = runtimeRoot.createCoverArtService(daoGraph.getCoverArtDao());
         assertSame(coverArtService, runtimeRoot.createCoverArtService(daoGraph.getCoverArtDao()));
+        CoverArtAccentColorBackfill coverArtBackfill = runtimeRoot.createCoverArtAccentColorBackfill(coverArtService);
+        assertSame(coverArtBackfill, runtimeRoot.createCoverArtAccentColorBackfill(coverArtService));
+        assertSame(coverArtBackfill, config.coverArtAccentColorBackfill(runtimeRoot, coverArtService));
+        assertEquals(1, lifecycleRegistry.getStartupItems().stream()
+                .filter(item -> item.name().equals("coverArtAccentColorBackfill")).count());
         org.airsonic.player.i18n.LocaleResolver localeResolver = mock(org.airsonic.player.i18n.LocaleResolver.class);
         MediaFileService mediaFileService = runtimeRoot.createMediaFileService(securityService, settingsService,
                 mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeResolver);

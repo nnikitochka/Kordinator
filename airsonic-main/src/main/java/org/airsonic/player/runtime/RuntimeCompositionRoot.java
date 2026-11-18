@@ -65,6 +65,7 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.SettingsService settingsService;
     private org.airsonic.player.service.GeneralSettingsAdministrationService generalSettingsAdministrationService;
     private org.airsonic.player.service.MusicFolderAdministrationService musicFolderAdministrationService;
+    private org.airsonic.player.service.CoverArtAccentColorBackfill coverArtAccentColorBackfill;
     private org.airsonic.player.service.playlist.DefaultPlaylistExportHandler defaultPlaylistExportHandler;
     private org.airsonic.player.service.playlist.DefaultPlaylistImportHandler defaultPlaylistImportHandler;
     private org.airsonic.player.service.playlist.XspfPlaylistExportHandler xspfPlaylistExportHandler;
@@ -238,6 +239,16 @@ public final class RuntimeCompositionRoot {
                     indexManager, playlistService, coverArtService);
         }
         return musicFolderAdministrationService;
+    }
+
+    public synchronized org.airsonic.player.service.CoverArtAccentColorBackfill createCoverArtAccentColorBackfill(
+            org.airsonic.player.service.CoverArtService coverArtService) {
+        if (coverArtAccentColorBackfill == null) {
+            coverArtAccentColorBackfill = new org.airsonic.player.service.CoverArtAccentColorBackfill(coverArtService);
+            lifecycleRegistry.registerStartup("coverArtAccentColorBackfill",
+                    coverArtAccentColorBackfill::backfillAccentColors);
+        }
+        return coverArtAccentColorBackfill;
     }
 
     public synchronized PersistenceGraph createPersistenceGraph(DataSource dataSource) {
