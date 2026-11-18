@@ -6,8 +6,6 @@ import org.airsonic.player.service.PlaylistService;
 import org.fourthline.cling.support.model.DIDLContent;
 import org.fourthline.cling.support.model.container.Container;
 import org.fourthline.cling.support.model.container.PlaylistContainer;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
@@ -15,9 +13,7 @@ import java.util.List;
  * @author Allen Petersen
  * @version $Id$
  */
-@Component
 public class PlaylistUpnpProcessor extends UpnpContentProcessor <Playlist, MediaFile> {
-    @Autowired
     private PlaylistService playlistService;
 
     public PlaylistUpnpProcessor() {

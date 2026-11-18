@@ -11,12 +11,10 @@ import org.fourthline.cling.support.model.item.Item;
 import org.fourthline.cling.support.model.item.MusicTrack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.net.URI;
 import java.util.Arrays;
 
-@Service
 public class DispatchingContentDirectory extends CustomContentDirectory {
 
     private static final Logger LOG = LoggerFactory.getLogger(DispatchingContentDirectory.class);

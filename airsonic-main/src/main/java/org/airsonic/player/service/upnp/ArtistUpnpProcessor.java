@@ -4,12 +4,9 @@ import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.domain.Album;
 import org.airsonic.player.domain.Artist;
 import org.airsonic.player.domain.MusicFolder;
-import org.airsonic.player.service.SearchService;
 import org.fourthline.cling.support.model.DIDLContent;
 import org.fourthline.cling.support.model.container.Container;
 import org.fourthline.cling.support.model.container.MusicArtist;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
@@ -17,14 +14,9 @@ import java.util.List;
  * @author Allen Petersen
  * @version $Id$
  */
-@Service
 public class ArtistUpnpProcessor extends UpnpContentProcessor <Artist, Album> {
 
-    @Autowired
     private ArtistDao artistDao;
-
-    @Autowired
-    SearchService searchService;
 
     public ArtistUpnpProcessor() {
         setRootId(DispatchingContentDirectory.CONTAINER_ID_ARTIST_PREFIX);

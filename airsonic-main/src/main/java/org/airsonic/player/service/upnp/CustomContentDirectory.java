@@ -19,7 +19,6 @@ import org.fourthline.cling.support.model.DIDLContent;
 import org.fourthline.cling.support.model.Res;
 import org.fourthline.cling.support.model.SortCriterion;
 import org.seamless.util.MimeType;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @version $Id: TagBasedContentDirectory.java 3739 2013-12-03 11:55:01Z sindre_mehus $
@@ -28,13 +27,9 @@ public abstract class CustomContentDirectory extends AbstractContentDirectorySer
 
     protected static final String CONTAINER_ID_ROOT = "0";
 
-    @Autowired
     protected SettingsService settingsService;
-    @Autowired
     private PlayerService playerService;
-    @Autowired
     private TranscodingService transcodingService;
-    @Autowired
     protected JWTSecurityService jwtSecurityService;
 
     public CustomContentDirectory() {

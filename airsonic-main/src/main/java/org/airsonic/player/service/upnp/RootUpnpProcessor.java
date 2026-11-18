@@ -7,7 +7,6 @@ import org.fourthline.cling.support.model.WriteStatus;
 import org.fourthline.cling.support.model.container.Container;
 import org.fourthline.cling.support.model.container.StorageFolder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +15,6 @@ import java.util.List;
  * @author Allen Petersen
  * @version $Id$
  */
-@Component
 public class RootUpnpProcessor extends UpnpContentProcessor <Container, Container> {
     final IndexManager indexManager;
 

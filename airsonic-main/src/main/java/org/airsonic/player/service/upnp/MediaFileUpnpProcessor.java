@@ -11,8 +11,6 @@ import org.fourthline.cling.support.model.container.Container;
 import org.fourthline.cling.support.model.container.MusicAlbum;
 import org.fourthline.cling.support.model.item.Item;
 import org.fourthline.cling.support.model.item.MusicTrack;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.net.URI;
 import java.util.Arrays;
@@ -24,10 +22,8 @@ import static java.util.stream.Collectors.toList;
  * @author Allen Petersen
  * @version $Id$
  */
-@Service
 public class MediaFileUpnpProcessor extends UpnpContentProcessor <MediaFile, MediaFile> {
 
-    @Autowired
     MediaFileDao mediaFileDao;
 
     public MediaFileUpnpProcessor() {

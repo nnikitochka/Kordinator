@@ -10,8 +10,6 @@ import org.fourthline.cling.support.model.DIDLContent;
 import org.fourthline.cling.support.model.SortCriterion;
 import org.fourthline.cling.support.model.container.Container;
 import org.fourthline.cling.support.model.container.StorageFolder;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 
 import java.lang.reflect.ParameterizedType;
 import java.util.List;
@@ -22,8 +20,6 @@ import java.util.List;
  */
 public abstract class UpnpContentProcessor<T extends Object, U extends Object> {
 
-    @Autowired
-    @Lazy // the content directory depends on the processors, and the processors resolve it at browse time
     private DispatchingContentDirectory dispatchingContentDirectory;
 
     protected String rootTitle;

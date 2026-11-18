@@ -5,7 +5,6 @@ import org.airsonic.player.util.Util;
 import org.fourthline.cling.support.model.BrowseResult;
 import org.fourthline.cling.support.model.DIDLContent;
 import org.fourthline.cling.support.model.SortCriterion;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
@@ -13,7 +12,6 @@ import java.util.List;
  * @author Allen Petersen
  * @version $Id$
  */
-@Service
 public class RecentAlbumUpnpProcessor extends AlbumUpnpProcessor {
     private final static int RECENT_COUNT = 50;
 

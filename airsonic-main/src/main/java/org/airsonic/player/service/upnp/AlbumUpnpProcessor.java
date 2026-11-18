@@ -8,15 +8,12 @@ import org.airsonic.player.domain.CoverArtScheme;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.User;
-import org.airsonic.player.service.SearchService;
 import org.fourthline.cling.support.model.BrowseResult;
 import org.fourthline.cling.support.model.DIDLContent;
 import org.fourthline.cling.support.model.PersonWithRole;
 import org.fourthline.cling.support.model.SortCriterion;
 import org.fourthline.cling.support.model.container.Container;
 import org.fourthline.cling.support.model.container.MusicAlbum;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,17 +22,12 @@ import java.util.List;
  * @author Allen Petersen
  * @version $Id$
  */
-@Service
 public class AlbumUpnpProcessor extends UpnpContentProcessor <Album, MediaFile> {
 
     public static final String ALL_BY_ARTIST = "allByArtist";
     public static final String ALL_RECENT = "allRecent";
 
-    @Autowired
     AlbumDao albumDao;
-
-    @Autowired
-    SearchService searchService;
 
     public AlbumUpnpProcessor() {
         setRootId(DispatchingContentDirectory.CONTAINER_ID_ALBUM_PREFIX);

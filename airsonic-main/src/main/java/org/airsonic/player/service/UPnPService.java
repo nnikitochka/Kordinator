@@ -27,7 +27,6 @@ import org.fourthline.cling.transport.spi.StreamServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 
@@ -35,7 +34,6 @@ import java.io.InputStream;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Service
 public class UPnPService {
     private static final Logger LOG = LoggerFactory.getLogger(UPnPService.class);
 

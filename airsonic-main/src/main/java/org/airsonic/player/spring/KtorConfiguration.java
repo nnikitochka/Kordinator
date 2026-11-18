@@ -3,6 +3,16 @@ package org.airsonic.player.spring;
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
 import org.airsonic.player.service.LyricsService;
 import org.airsonic.player.service.TagEditService;
+import org.airsonic.player.service.UPnPService;
+import org.airsonic.player.service.upnp.AlbumUpnpProcessor;
+import org.airsonic.player.service.upnp.ArtistUpnpProcessor;
+import org.airsonic.player.service.upnp.DispatchingContentDirectory;
+import org.airsonic.player.service.upnp.FolderBasedContentDirectory;
+import org.airsonic.player.service.upnp.GenreUpnpProcessor;
+import org.airsonic.player.service.upnp.MediaFileUpnpProcessor;
+import org.airsonic.player.service.upnp.PlaylistUpnpProcessor;
+import org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor;
+import org.airsonic.player.service.upnp.RootUpnpProcessor;
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController;
 import org.airsonic.player.controller.rest.tags.TagEditController;
 import org.airsonic.player.controller.rest.tags.TagEditorPageController;
@@ -457,6 +467,101 @@ public class KtorConfiguration {
             MediaFileService mediaFileService, MediaFolderService mediaFolderService,
             SecurityService securityService) {
         return new TagEditService(metaDataParserFactory, mediaFileService, mediaFolderService, securityService);
+    }
+
+    @Bean
+    public AlbumUpnpProcessor albumUpnpProcessor(AlbumDao albumDao) {
+        AlbumUpnpProcessor processor = new AlbumUpnpProcessor();
+        processor.setAlbumDao(albumDao);
+        return processor;
+    }
+
+    @Bean
+    public RecentAlbumUpnpProcessor recentAlbumUpnpProcessor(AlbumDao albumDao) {
+        RecentAlbumUpnpProcessor processor = new RecentAlbumUpnpProcessor();
+        processor.setAlbumDao(albumDao);
+        return processor;
+    }
+
+    @Bean
+    public ArtistUpnpProcessor artistUpnpProcessor(ArtistDao artistDao) {
+        ArtistUpnpProcessor processor = new ArtistUpnpProcessor();
+        processor.setArtistDao(artistDao);
+        return processor;
+    }
+
+    @Bean
+    public GenreUpnpProcessor genreUpnpProcessor() {
+        return new GenreUpnpProcessor();
+    }
+
+    @Bean
+    public MediaFileUpnpProcessor mediaFileUpnpProcessor(MediaFileDao mediaFileDao) {
+        MediaFileUpnpProcessor processor = new MediaFileUpnpProcessor();
+        processor.setMediaFileDao(mediaFileDao);
+        return processor;
+    }
+
+    @Bean
+    public PlaylistUpnpProcessor playlistUpnpProcessor(PlaylistService playlistService) {
+        PlaylistUpnpProcessor processor = new PlaylistUpnpProcessor();
+        processor.setPlaylistService(playlistService);
+        return processor;
+    }
+
+    @Bean
+    public RootUpnpProcessor rootUpnpProcessor(IndexManager indexManager) {
+        return new RootUpnpProcessor(indexManager);
+    }
+
+    @Bean
+    public DispatchingContentDirectory dispatchingContentDirectory(MediaFileUpnpProcessor mediaFileProcessor,
+            PlaylistUpnpProcessor playlistProcessor,
+            @org.springframework.beans.factory.annotation.Qualifier("albumUpnpProcessor")
+            AlbumUpnpProcessor albumProcessor,
+            RecentAlbumUpnpProcessor recentAlbumProcessor, ArtistUpnpProcessor artistProcessor,
+            GenreUpnpProcessor genreProcessor, RootUpnpProcessor rootProcessor,
+            MediaFileService mediaFileService, MediaFolderService mediaFolderService,
+            PlaylistService playlistService, SearchService searchService, MusicIndexService musicIndexService,
+            SettingsService settingsService, PlayerService playerService, TranscodingService transcodingService,
+            JWTSecurityService jwtSecurityService) {
+        DispatchingContentDirectory directory = new DispatchingContentDirectory(mediaFileProcessor,
+                playlistProcessor, albumProcessor, recentAlbumProcessor, artistProcessor, genreProcessor,
+                rootProcessor, mediaFileService, mediaFolderService, playlistService, searchService,
+                musicIndexService);
+        directory.setSettingsService(settingsService);
+        directory.setPlayerService(playerService);
+        directory.setTranscodingService(transcodingService);
+        directory.setJwtSecurityService(jwtSecurityService);
+        mediaFileProcessor.setDispatchingContentDirectory(directory);
+        playlistProcessor.setDispatchingContentDirectory(directory);
+        albumProcessor.setDispatchingContentDirectory(directory);
+        recentAlbumProcessor.setDispatchingContentDirectory(directory);
+        artistProcessor.setDispatchingContentDirectory(directory);
+        genreProcessor.setDispatchingContentDirectory(directory);
+        rootProcessor.setDispatchingContentDirectory(directory);
+        return directory;
+    }
+
+    @Bean
+    public FolderBasedContentDirectory folderBasedContentDirectory(MediaFileService mediaFileService,
+            MediaFolderService mediaFolderService, PlaylistService playlistService, IndexManager indexManager,
+            SettingsService settingsService, PlayerService playerService, TranscodingService transcodingService,
+            JWTSecurityService jwtSecurityService) {
+        FolderBasedContentDirectory directory = new FolderBasedContentDirectory(mediaFileService,
+                mediaFolderService, playlistService, indexManager);
+        directory.setSettingsService(settingsService);
+        directory.setPlayerService(playerService);
+        directory.setTranscodingService(transcodingService);
+        directory.setJwtSecurityService(jwtSecurityService);
+        return directory;
+    }
+
+    @Bean
+    public UPnPService upnpService(SettingsService settingsService,
+            @org.springframework.beans.factory.annotation.Qualifier("dispatchingContentDirectory")
+            org.airsonic.player.service.upnp.CustomContentDirectory contentDirectory) {
+        return new UPnPService(settingsService, contentDirectory);
     }
 
     @Bean
