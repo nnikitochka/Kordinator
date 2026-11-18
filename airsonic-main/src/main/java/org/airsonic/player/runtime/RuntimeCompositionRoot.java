@@ -31,6 +31,8 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.ShareService shareService;
     private org.airsonic.player.service.UploadFileService uploadFileService;
     private org.airsonic.player.service.AudioScrobblerService audioScrobblerService;
+    private org.airsonic.player.service.CaptionService captionService;
+    private org.airsonic.player.service.VideoPlaybackService videoPlaybackService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -307,5 +309,31 @@ public final class RuntimeCompositionRoot {
             audioScrobblerService = new org.airsonic.player.service.AudioScrobblerService(settingsService, securityService);
         }
         return audioScrobblerService;
+    }
+
+    public synchronized org.airsonic.player.service.CaptionService createCaptionService(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory,
+            org.airsonic.player.service.JWTSecurityService jwtSecurityService) {
+        if (captionService == null) {
+            captionService = new org.airsonic.player.service.CaptionService(
+                    mediaFileService, mediaFolderService, settingsService, metaDataParserFactory, jwtSecurityService);
+        }
+        return captionService;
+    }
+
+    public synchronized org.airsonic.player.service.VideoPlaybackService createVideoPlaybackService(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.CaptionService captionService,
+            org.airsonic.player.service.JWTSecurityService jwtSecurityService,
+            org.airsonic.player.service.BookmarkService bookmarkService,
+            org.airsonic.player.service.SettingsService settingsService) {
+        if (videoPlaybackService == null) {
+            videoPlaybackService = new org.airsonic.player.service.VideoPlaybackService(
+                    mediaFileService, captionService, jwtSecurityService, bookmarkService, settingsService);
+        }
+        return videoPlaybackService;
     }
 }

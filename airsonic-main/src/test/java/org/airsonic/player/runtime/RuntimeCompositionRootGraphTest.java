@@ -153,6 +153,16 @@ class RuntimeCompositionRootGraphTest {
         assertSame(lastFmService, runtimeRoot.createLastFmService(mediaFileDao, mediaFileService, artistDao));
         ShareService shareService = runtimeRoot.createShareService(daoGraph.getShareDao(), mediaFileService, jwtSecurityService);
         assertSame(shareService, runtimeRoot.createShareService(daoGraph.getShareDao(), mediaFileService, jwtSecurityService));
+        org.airsonic.player.service.metadata.MetaDataParserFactory parserFactory =
+                mock(org.airsonic.player.service.metadata.MetaDataParserFactory.class);
+        CaptionService captionService = runtimeRoot.createCaptionService(mediaFileService, mediaFolderService,
+                settingsService, parserFactory, jwtSecurityService);
+        assertSame(captionService, runtimeRoot.createCaptionService(mediaFileService, mediaFolderService,
+                settingsService, parserFactory, jwtSecurityService));
+        VideoPlaybackService videoPlaybackService = runtimeRoot.createVideoPlaybackService(mediaFileService,
+                captionService, jwtSecurityService, bookmarkService, settingsService);
+        assertSame(videoPlaybackService, runtimeRoot.createVideoPlaybackService(mediaFileService,
+                captionService, jwtSecurityService, bookmarkService, settingsService));
 
         TaskSchedulingService scheduler = config.taskSchedulingService(lifecycleRegistry);
         assertNotNull(scheduler);

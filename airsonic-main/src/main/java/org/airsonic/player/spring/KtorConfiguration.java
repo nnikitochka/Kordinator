@@ -851,18 +851,18 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public CaptionService captionService(MediaFileService mediaFileService, MediaFolderService mediaFolderService,
+    public CaptionService captionService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService, MediaFolderService mediaFolderService,
             SettingsService settingsService, MetaDataParserFactory metaDataParserFactory,
             JWTSecurityService jwtSecurityService) {
-        return new CaptionService(mediaFileService, mediaFolderService, settingsService, metaDataParserFactory,
-                jwtSecurityService);
+        return runtime.createCaptionService(mediaFileService, mediaFolderService, settingsService,
+                metaDataParserFactory, jwtSecurityService);
     }
 
     @Bean
-    public VideoPlaybackService videoPlaybackService(MediaFileService mediaFileService, CaptionService captionService,
+    public VideoPlaybackService videoPlaybackService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService, CaptionService captionService,
             JWTSecurityService jwtSecurityService, BookmarkService bookmarkService, SettingsService settingsService) {
-        return new VideoPlaybackService(mediaFileService, captionService, jwtSecurityService, bookmarkService,
-                settingsService);
+        return runtime.createVideoPlaybackService(mediaFileService, captionService, jwtSecurityService,
+                bookmarkService, settingsService);
     }
 
     @Bean
