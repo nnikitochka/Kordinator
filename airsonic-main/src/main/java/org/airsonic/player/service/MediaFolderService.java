@@ -9,7 +9,6 @@ import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import javax.cache.CacheManager;
 
@@ -26,7 +25,6 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
-@Service
 public class MediaFolderService {
     private static final Logger LOG = LoggerFactory.getLogger(MediaFolderService.class);
 

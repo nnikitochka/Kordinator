@@ -18,7 +18,6 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -38,7 +37,6 @@ import java.util.stream.Stream;
  *
  * @author Sindre Mehus
  */
-@Service
 public class MediaFileService {
     private static final Logger LOG = LoggerFactory.getLogger(MediaFileService.class);
 

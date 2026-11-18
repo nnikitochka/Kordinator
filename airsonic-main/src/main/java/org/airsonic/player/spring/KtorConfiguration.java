@@ -493,6 +493,21 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public MediaFolderService mediaFolderService(MusicFolderDao musicFolderDao, MediaFileDao mediaFileDao,
+            javax.cache.CacheManager cacheManager) {
+        return new MediaFolderService(musicFolderDao, mediaFileDao, cacheManager);
+    }
+
+    @Bean
+    public MediaFileService mediaFileService(SecurityService securityService, SettingsService settingsService,
+            MediaFileDao mediaFileDao, MediaFolderService mediaFolderService, AlbumDao albumDao,
+            JaudiotaggerParser parser, MetaDataParserFactory metaDataParserFactory, CoverArtService coverArtService,
+            LocaleResolver localeResolver, javax.cache.CacheManager cacheManager) {
+        return new MediaFileService(securityService, settingsService, mediaFileDao, mediaFolderService, albumDao,
+                parser, metaDataParserFactory, coverArtService, localeResolver, cacheManager);
+    }
+
+    @Bean
     public TranscodingService transcodingService(TranscodingDao transcodingDao, SettingsService settingsService,
             MediaFolderService mediaFolderService, @Lazy PlayerService playerService) {
         return new TranscodingService(transcodingDao, settingsService, mediaFolderService, playerService);
