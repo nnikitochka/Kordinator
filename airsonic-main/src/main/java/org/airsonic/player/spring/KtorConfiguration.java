@@ -574,17 +574,15 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public HlsPlaylistService hlsPlaylistService(JWTSecurityService jwtSecurityService) {
-        return new HlsPlaylistService(jwtSecurityService);
+    public HlsPlaylistService hlsPlaylistService(RuntimeCompositionRoot runtime, JWTSecurityService jwtSecurityService) {
+        return runtime.createHlsPlaylistService(jwtSecurityService);
     }
 
     @Bean
-    public HlsSegmentService hlsSegmentService(MediaFileService mediaFileService, SecurityService securityService,
+    public HlsSegmentService hlsSegmentService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService, SecurityService securityService,
             StatusService statusService, SettingsService settingsService, TranscodingService transcodingService) {
-        HlsSegmentService service = new HlsSegmentService(mediaFileService, securityService, statusService,
+        return runtime.createHlsSegmentService(mediaFileService, securityService, statusService,
                 settingsService, transcodingService);
-        service.init();
-        return service;
     }
 
     @Bean

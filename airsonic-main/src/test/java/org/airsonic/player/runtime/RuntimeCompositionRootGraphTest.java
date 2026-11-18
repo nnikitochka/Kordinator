@@ -169,12 +169,13 @@ class RuntimeCompositionRootGraphTest {
                 securityService, mediaFileService, lastFmService, coverArtService);
         assertSame(coverArtSearchService, runtimeRoot.createCoverArtSearchService(
                 securityService, mediaFileService, lastFmService, coverArtService));
-        org.airsonic.player.service.metadata.MetaDataParserFactory parserFactory =
-                mock(org.airsonic.player.service.metadata.MetaDataParserFactory.class);
+        org.airsonic.player.service.hls.HlsPlaylistService hlsPlaylistService =
+                runtimeRoot.createHlsPlaylistService(jwtSecurityService);
+        assertSame(hlsPlaylistService, runtimeRoot.createHlsPlaylistService(jwtSecurityService));
         CaptionService captionService = runtimeRoot.createCaptionService(mediaFileService, mediaFolderService,
-                settingsService, parserFactory, jwtSecurityService);
+                settingsService, metaDataParserFactory, jwtSecurityService);
         assertSame(captionService, runtimeRoot.createCaptionService(mediaFileService, mediaFolderService,
-                settingsService, parserFactory, jwtSecurityService));
+                settingsService, metaDataParserFactory, jwtSecurityService));
         VideoPlaybackService videoPlaybackService = runtimeRoot.createVideoPlaybackService(mediaFileService,
                 captionService, jwtSecurityService, bookmarkService, settingsService);
         assertSame(videoPlaybackService, runtimeRoot.createVideoPlaybackService(mediaFileService,
@@ -190,6 +191,11 @@ class RuntimeCompositionRootGraphTest {
                 daoGraph.getTranscodingDao(), settingsService, mediaFolderService);
         assertSame(transcodingService, runtimeRoot.createTranscodingService(
                 daoGraph.getTranscodingDao(), settingsService, mediaFolderService));
+        org.airsonic.player.service.hls.HlsSegmentService hlsSegmentService =
+                runtimeRoot.createHlsSegmentService(mediaFileService, securityService, statusService,
+                        settingsService, transcodingService);
+        assertSame(hlsSegmentService, runtimeRoot.createHlsSegmentService(mediaFileService, securityService,
+                statusService, settingsService, transcodingService));
         PlayerDao playerServiceDao = mock(PlayerDao.class);
         PlayerService playerService = runtimeRoot.createPlayerService(playerServiceDao, statusService,
                 securityService, transcodingService);

@@ -42,6 +42,8 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory;
     private org.airsonic.player.service.CoverArtService coverArtService;
     private org.airsonic.player.service.CoverArtSearchService coverArtSearchService;
+    private org.airsonic.player.service.hls.HlsPlaylistService hlsPlaylistService;
+    private org.airsonic.player.service.hls.HlsSegmentService hlsSegmentService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -175,6 +177,28 @@ public final class RuntimeCompositionRoot {
                     securityService, mediaFileService, lastFmService, createMediaFolderService(), coverArtService);
         }
         return coverArtSearchService;
+    }
+
+    public synchronized org.airsonic.player.service.hls.HlsPlaylistService createHlsPlaylistService(
+            org.airsonic.player.service.JWTSecurityService jwtSecurityService) {
+        if (hlsPlaylistService == null) {
+            hlsPlaylistService = new org.airsonic.player.service.hls.HlsPlaylistService(jwtSecurityService);
+        }
+        return hlsPlaylistService;
+    }
+
+    public synchronized org.airsonic.player.service.hls.HlsSegmentService createHlsSegmentService(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.service.StatusService statusService,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.TranscodingService transcodingService) {
+        if (hlsSegmentService == null) {
+            hlsSegmentService = new org.airsonic.player.service.hls.HlsSegmentService(
+                    mediaFileService, securityService, statusService, settingsService, transcodingService);
+            hlsSegmentService.init();
+        }
+        return hlsSegmentService;
     }
 
     public synchronized org.airsonic.player.dao.PlayerDao createPlayerDao() throws Exception {
