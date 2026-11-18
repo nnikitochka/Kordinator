@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
-import org.springframework.stereotype.Service;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -43,7 +42,6 @@ import java.util.stream.Stream;
  * Provides services for loading and saving playlists to and from persistent storage.
  * @see PlayQueue
  */
-@Service
 public class PlaylistService {
     private static final Logger LOG = LoggerFactory.getLogger(PlaylistService.class);
     private final MediaFileDao mediaFileDao;
@@ -56,6 +54,7 @@ public class PlaylistService {
     private final Cache<Integer, Playlist> playlistCache;
     private final Cache<Integer, Object> playlistUsersCache;
 
+    @Autowired
     public PlaylistService(
             MediaFileDao mediaFileDao,
             PlaylistDao playlistDao,
@@ -68,7 +67,6 @@ public class PlaylistService {
         this(mediaFileDao, playlistDao, securityService, settingsService, exportHandlers, importHandlers, pathWatcherService, null);
     }
 
-    @Autowired
     public PlaylistService(
             MediaFileDao mediaFileDao,
             PlaylistDao playlistDao,

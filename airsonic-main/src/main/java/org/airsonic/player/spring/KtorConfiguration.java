@@ -375,6 +375,17 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public PlaylistService playlistService(MediaFileDao mediaFileDao, PlaylistDao playlistDao,
+            SecurityService securityService, SettingsService settingsService,
+            java.util.List<org.airsonic.player.service.playlist.PlaylistExportHandler> exportHandlers,
+            java.util.List<org.airsonic.player.service.playlist.PlaylistImportHandler> importHandlers,
+            org.airsonic.player.service.PathWatcherService pathWatcherService,
+            javax.cache.CacheManager cacheManager) {
+        return new PlaylistService(mediaFileDao, playlistDao, securityService, settingsService, exportHandlers,
+                importHandlers, pathWatcherService, cacheManager);
+    }
+
+    @Bean
     public DefaultMetaDataParser defaultMetaDataParser(MediaFolderService mediaFolderService) {
         return new DefaultMetaDataParser(mediaFolderService);
     }
