@@ -198,6 +198,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `b8fd67d` переносит `HlsPlaylistService` и `HlsSegmentService` под root ownership; очистка HLS-сессий по-прежнему запускается один раз при создании сегментного сервиса. Graph, playlist/controller HLS tests, `HlsPlaybackIntegrationTest`, `HlsIntegrationTest` прошли 8/8.
 
+Срез `73a5872` переносит `TagEditService` под root ownership; media-folder dependency берётся из того же root graph, остальные зависимости передаются явно. `RuntimeCompositionRootGraphTest`, `TagEditServiceTest`, `TagEditIntegrationTest` прошли 4/4.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
