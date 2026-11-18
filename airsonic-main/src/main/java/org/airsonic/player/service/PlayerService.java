@@ -8,7 +8,6 @@ import org.airsonic.player.domain.User.Role;
 import org.airsonic.player.util.StringUtil;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.web.bind.ServletRequestUtils;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -73,7 +72,7 @@ public class PlayerService {
 
         // Find by 'player' request parameter.
         if (player == null) {
-            player = getPlayerById(ServletRequestUtils.getIntParameter(request, "player"));
+            player = getPlayerById(getIntegerParameter(request, "player"));
         }
 
         // Find in session context.
@@ -139,6 +138,11 @@ public class PlayerService {
         }
 
         return player;
+    }
+
+    private static Integer getIntegerParameter(HttpServletRequest request, String name) {
+        String value = request.getParameter(name);
+        return value == null ? null : Integer.valueOf(value);
     }
 
     private boolean populatePlayer(Player player, String username, HttpServletRequest request, boolean isStreamRequest) {
