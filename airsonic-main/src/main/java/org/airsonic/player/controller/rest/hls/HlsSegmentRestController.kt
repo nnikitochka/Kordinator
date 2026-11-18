@@ -49,14 +49,14 @@ class HlsSegmentRestController(private val segments: HlsSegmentService) {
         call.response.header("Content-Disposition", "inline; filename=\"f.ts\"")
         val contentType = ContentType.parse("video/MP2T")
         if (head) {
-            resource.inputStream.close()
+            resource.left.close()
             call.respond(object : OutgoingContent.NoContent() {
                 override val contentType = contentType
-                override val contentLength = resource.contentLength()
+                override val contentLength = resource.right
             })
         } else {
-            call.respondOutputStream(contentType, contentLength = resource.contentLength()) {
-                resource.inputStream.use { it.copyTo(this) }
+            call.respondOutputStream(contentType, contentLength = resource.right) {
+                resource.left.use { it.copyTo(this) }
             }
         }
     }
