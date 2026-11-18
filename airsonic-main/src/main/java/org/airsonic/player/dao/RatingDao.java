@@ -2,7 +2,6 @@ package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
-import org.springframework.stereotype.Repository;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,7 +11,6 @@ import java.util.Map;
 /**
  * Provides database services for ratings.
  */
-@Repository("musicFileInfoDao")
 public class RatingDao extends AbstractDao {
     public RatingDao(JdbcHelper jdbcHelper) {
         super(jdbcHelper);

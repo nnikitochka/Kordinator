@@ -8,7 +8,6 @@ import org.airsonic.player.domain.RandomSearchCriteria;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +23,6 @@ import java.util.stream.IntStream;
 /**
  * Provides database services for media files.
  */
-@Repository
 public class MediaFileDao extends AbstractDao {
     public MediaFileDao(JdbcHelper jdbcHelper) {
         super(jdbcHelper);

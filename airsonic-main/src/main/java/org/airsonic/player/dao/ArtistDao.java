@@ -2,7 +2,6 @@ package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.Artist;
 import org.airsonic.player.domain.MusicFolder;
-import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,7 +13,6 @@ import java.util.*;
 /**
  * Provides database services for artists.
  */
-@Repository
 public class ArtistDao extends AbstractDao {
     public ArtistDao(JdbcHelper jdbcHelper) {
         super(jdbcHelper);

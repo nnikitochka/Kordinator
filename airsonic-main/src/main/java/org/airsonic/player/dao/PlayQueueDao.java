@@ -1,7 +1,6 @@
 package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.SavedPlayQueue;
-import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
@@ -17,7 +16,6 @@ import java.util.stream.Collectors;
 /**
  * Provides database services for play queues
  */
-@Repository
 public class PlayQueueDao extends AbstractDao {
     public PlayQueueDao(JdbcHelper jdbcHelper) {
         super(jdbcHelper);

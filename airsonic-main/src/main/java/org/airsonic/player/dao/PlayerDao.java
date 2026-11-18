@@ -3,7 +3,6 @@ package org.airsonic.player.dao;
 import org.airsonic.player.domain.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Repository;
 
 import jakarta.annotation.PostConstruct;
 
@@ -17,7 +16,6 @@ import java.util.*;
 /**
  * Provides player-related database services.
  */
-@Repository
 public class PlayerDao extends AbstractDao {
     private static final Logger LOG = LoggerFactory.getLogger(PlayerDao.class);
     private static final String INSERT_COLUMNS = "name, type, username, ip_address, auto_control_enabled, m3u_bom_enabled, " +

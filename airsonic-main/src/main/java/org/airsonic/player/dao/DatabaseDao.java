@@ -3,13 +3,11 @@ package org.airsonic.player.dao;
 import org.airsonic.player.util.LambdaUtils.ThrowingBiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Repository;
 
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.util.function.Consumer;
 
-@Repository
 public class DatabaseDao extends AbstractDao {
     public DatabaseDao(JdbcHelper jdbcHelper) {
         super(jdbcHelper);

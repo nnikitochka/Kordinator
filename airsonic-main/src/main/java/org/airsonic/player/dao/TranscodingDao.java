@@ -3,7 +3,6 @@ package org.airsonic.player.dao;
 import org.airsonic.player.domain.Transcoding;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
@@ -16,7 +15,6 @@ import java.util.List;
 /**
  * Provides database services for transcoding configurations.
  */
-@Repository
 public class TranscodingDao extends AbstractDao {
     public TranscodingDao(JdbcHelper jdbcHelper) {
         super(jdbcHelper);

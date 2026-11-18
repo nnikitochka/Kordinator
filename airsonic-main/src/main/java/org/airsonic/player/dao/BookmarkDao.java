@@ -2,7 +2,6 @@ package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.Bookmark;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Repository;
 
 import jakarta.annotation.PostConstruct;
 import java.sql.ResultSet;
@@ -16,7 +15,6 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Provides database services for media file bookmarks.
  */
-@Repository
 public class BookmarkDao extends AbstractDao {
 
     private static final String INSERT_COLUMNS = "media_file_id, position_millis, username, comment, created, changed";

@@ -2,7 +2,6 @@ package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.Share;
-import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
@@ -21,7 +20,6 @@ import java.util.stream.Collectors;
 /**
  * Provides database services for shared media.
  */
-@Repository
 public class ShareDao extends AbstractDao {
     public ShareDao(JdbcHelper jdbcHelper) {
         super(jdbcHelper);

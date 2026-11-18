@@ -2,7 +2,6 @@ package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.CoverArt;
 import org.airsonic.player.domain.CoverArt.EntityType;
-import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +14,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-@Repository
 public class CoverArtDao extends AbstractDao {
     public CoverArtDao(JdbcHelper jdbcHelper) {
         super(jdbcHelper);

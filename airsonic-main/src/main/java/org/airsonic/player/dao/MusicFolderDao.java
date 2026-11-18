@@ -5,7 +5,6 @@ import org.airsonic.player.domain.MusicFolder;
 import org.apache.commons.lang3.EnumUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +24,6 @@ import java.util.Optional;
 /**
  * Provides database services for music folders.
  */
-@Repository
 public class MusicFolderDao extends AbstractDao {
     public MusicFolderDao(JdbcHelper jdbcHelper) {
         super(jdbcHelper);

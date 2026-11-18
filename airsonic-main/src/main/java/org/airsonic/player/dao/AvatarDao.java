@@ -3,7 +3,6 @@ package org.airsonic.player.dao;
 import org.airsonic.player.domain.Avatar;
 import org.airsonic.player.service.SettingsService;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,7 +15,6 @@ import java.util.Optional;
 /**
  * Provides database services for avatars.
  */
-@Repository
 public class AvatarDao extends AbstractDao {
     public AvatarDao(JdbcHelper jdbcHelper) {
         super(jdbcHelper);

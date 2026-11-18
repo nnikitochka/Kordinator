@@ -4,7 +4,6 @@ import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.Playlist;
 import org.airsonic.player.util.LambdaUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.PostConstruct;
@@ -20,7 +19,6 @@ import java.util.stream.Stream;
 /**
  * Provides database services for playlists.
  */
-@Repository
 public class PlaylistDao extends AbstractDao {
     public PlaylistDao(JdbcHelper jdbcHelper) {
         super(jdbcHelper);

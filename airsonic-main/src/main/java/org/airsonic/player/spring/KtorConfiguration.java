@@ -32,6 +32,13 @@ import org.airsonic.player.controller.rest.stream.StreamRestController;
 import org.airsonic.player.service.MediaStreamService;
 import org.airsonic.player.service.TranscodingService;
 import org.airsonic.player.dao.PlayerDaoPlayQueueFactory;
+import org.airsonic.player.dao.AvatarDao;
+import org.airsonic.player.dao.BookmarkDao;
+import org.airsonic.player.dao.CoverArtDao;
+import org.airsonic.player.dao.DatabaseDao;
+import org.airsonic.player.dao.MusicFolderDao;
+import org.airsonic.player.dao.PlayerDao;
+import org.airsonic.player.dao.PlaylistDao;
 import org.airsonic.player.controller.rest.cover.CoverArtRestController;
 import org.airsonic.player.controller.rest.avatar.AvatarRestController;
 import org.airsonic.player.controller.rest.proxy.ProxyRestController;
@@ -123,6 +130,10 @@ import org.airsonic.player.controller.rest.SubsonicResponseMapper;
 import org.airsonic.player.dao.AlbumDao;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.dao.ArtistDao;
+import org.airsonic.player.dao.RatingDao;
+import org.airsonic.player.dao.ShareDao;
+import org.airsonic.player.dao.TranscodingDao;
+import org.airsonic.player.dao.UserDao;
 import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.LastFmService;
 import org.airsonic.player.service.JWTSecurityService;
@@ -187,6 +198,83 @@ public class KtorConfiguration {
     public org.airsonic.player.dao.JdbcHelper jdbcHelper(javax.sql.DataSource dataSource,
             org.airsonic.player.dao.TransactionManager transactionManager) {
         return new org.airsonic.player.dao.JdbcHelper(dataSource, transactionManager);
+    }
+
+    @Bean
+    public AlbumDao albumDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
+        return new AlbumDao(jdbcHelper);
+    }
+
+    @Bean
+    public ArtistDao artistDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
+        return new ArtistDao(jdbcHelper);
+    }
+
+    @Bean
+    public AvatarDao avatarDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
+        return new AvatarDao(jdbcHelper);
+    }
+
+    @Bean
+    public BookmarkDao bookmarkDao(org.airsonic.player.dao.JdbcHelper jdbcHelper,
+            org.airsonic.player.dao.TransactionManager transactionManager) {
+        return new BookmarkDao(jdbcHelper, transactionManager);
+    }
+
+    @Bean
+    public CoverArtDao coverArtDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
+        return new CoverArtDao(jdbcHelper);
+    }
+
+    @Bean
+    public DatabaseDao databaseDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
+        return new DatabaseDao(jdbcHelper);
+    }
+
+    @Bean
+    public MediaFileDao mediaFileDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
+        return new MediaFileDao(jdbcHelper);
+    }
+
+    @Bean
+    public MusicFolderDao musicFolderDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
+        return new MusicFolderDao(jdbcHelper);
+    }
+
+    @Bean
+    public PlayQueueDao playQueueDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
+        return new PlayQueueDao(jdbcHelper);
+    }
+
+    @Bean
+    public PlayerDao playerDao(PlayerDaoPlayQueueFactory playQueueFactory,
+            org.airsonic.player.dao.JdbcHelper jdbcHelper) {
+        return new PlayerDao(playQueueFactory, jdbcHelper);
+    }
+
+    @Bean
+    public PlaylistDao playlistDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
+        return new PlaylistDao(jdbcHelper);
+    }
+
+    @Bean("musicFileInfoDao")
+    public RatingDao ratingDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
+        return new RatingDao(jdbcHelper);
+    }
+
+    @Bean
+    public ShareDao shareDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
+        return new ShareDao(jdbcHelper);
+    }
+
+    @Bean
+    public TranscodingDao transcodingDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
+        return new TranscodingDao(jdbcHelper);
+    }
+
+    @Bean
+    public UserDao userDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
+        return new UserDao(jdbcHelper);
     }
 
     @Bean(destroyMethod = "shutdown")

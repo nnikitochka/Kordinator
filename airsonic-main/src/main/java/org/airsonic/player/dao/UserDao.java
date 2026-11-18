@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableMap;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.domain.UserCredential.App;
 import org.airsonic.player.util.Util;
-import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
@@ -24,7 +23,6 @@ import java.util.stream.Collectors;
 /**
  * Provides user-related database services.
  */
-@Repository
 @Transactional
 public class UserDao extends AbstractDao {
     public UserDao(JdbcHelper jdbcHelper) {
