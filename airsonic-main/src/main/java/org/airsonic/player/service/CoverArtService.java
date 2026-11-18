@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.airsonic.player.cache.CacheHelper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -27,7 +26,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-@Service
 public class CoverArtService {
     private static final Logger LOG = LoggerFactory.getLogger(CoverArtService.class);
     final CoverArtDao coverArtDao;

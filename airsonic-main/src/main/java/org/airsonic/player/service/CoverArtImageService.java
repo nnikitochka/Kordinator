@@ -14,7 +14,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.jaudiotagger.tag.images.Artwork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import javax.imageio.IIOImage;
@@ -33,7 +32,6 @@ import java.util.concurrent.Semaphore;
 /**
  * Produces and caches cover art images.
  */
-@Service
 public class CoverArtImageService {
     public static final String ALBUM_COVERART_PREFIX = "al-";
     public static final String ARTIST_COVERART_PREFIX = "ar-";

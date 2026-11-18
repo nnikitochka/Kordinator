@@ -408,6 +408,29 @@ public class KtorConfiguration {
                 transcodingService);
     }
 
+    @Bean
+    public CoverArtService coverArtService(CoverArtDao coverArtDao, MediaFolderService mediaFolderService,
+            JaudiotaggerParser jaudiotaggerParser, javax.cache.CacheManager cacheManager) {
+        return new CoverArtService(coverArtDao, mediaFolderService, jaudiotaggerParser, cacheManager);
+    }
+
+    @Bean
+    public CoverArtImageService coverArtImageService(MediaFileService mediaFileService,
+            CoverArtService coverArtService, TranscodingService transcodingService, SettingsService settingsService,
+            PlaylistService playlistService, ArtistDao artistDao, AlbumDao albumDao,
+            JaudiotaggerParser jaudiotaggerParser) {
+        return new CoverArtImageService(mediaFileService, coverArtService, transcodingService, settingsService,
+                playlistService, artistDao, albumDao, jaudiotaggerParser);
+    }
+
+    @Bean
+    public CoverArtSearchService coverArtSearchService(SecurityService securityService,
+            MediaFileService mediaFileService, LastFmService lastFmService, MediaFolderService mediaFolderService,
+            CoverArtService coverArtService) {
+        return new CoverArtSearchService(securityService, mediaFileService, lastFmService, mediaFolderService,
+                coverArtService);
+    }
+
     @Bean(destroyMethod = "shutdown")
     public TaskSchedulingService taskSchedulingService(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
         TaskSchedulingService service = new TaskSchedulingService();
