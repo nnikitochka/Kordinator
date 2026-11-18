@@ -10,16 +10,15 @@ import org.airsonic.player.service.SettingsService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent;
 import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -45,7 +44,9 @@ import org.springframework.web.cors.CorsConfigurationSource;
 
 import jakarta.servlet.DispatcherType;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -199,12 +200,13 @@ public class GlobalSecurityConfig {
         }
     }
 
-    @Autowired
-    public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
+    @Bean
+    public AuthenticationManager authenticationManager() {
+        List<AuthenticationProvider> providers = new ArrayList<>();
         if (settingsService.isLdapEnabled()) {
             LdapDirectoryAuthenticator directory = new JndiLdapDirectoryAuthenticator(settingsService);
             LdapAuthenticator ldap = new LdapAuthenticator(securityService, settingsService, directory);
-            auth.authenticationProvider(new SpringLdapAuthenticationProvider(ldap));
+            providers.add(new SpringLdapAuthenticationProvider(ldap));
         }
         String jwtKey = settingsService.getJWTKey();
         if (StringUtils.isBlank(jwtKey)) {
@@ -214,13 +216,9 @@ public class GlobalSecurityConfig {
             settingsService.save();
         }
         JWTAuthenticationProvider jwtAuth = new JWTAuthenticationProvider(jwtKey);
-        auth.authenticationProvider(jwtAuth);
-        auth.authenticationProvider(multipleCredsProvider);
-    }
-
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
+        providers.add(jwtAuth);
+        providers.add(multipleCredsProvider);
+        return new ProviderManager(providers);
     }
 
     @Bean
