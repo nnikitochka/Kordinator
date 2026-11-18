@@ -6,7 +6,6 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.search.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
@@ -16,7 +15,6 @@ import java.util.stream.Collectors;
 import static org.airsonic.player.service.search.IndexType.*;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
-@Service
 public class SearchServiceImpl implements SearchService {
 
     private static final Logger LOG = LoggerFactory.getLogger(SearchServiceImpl.class);

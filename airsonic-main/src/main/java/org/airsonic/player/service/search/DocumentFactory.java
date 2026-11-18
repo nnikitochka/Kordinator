@@ -14,7 +14,6 @@ import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.util.BytesRef;
-import org.springframework.stereotype.Component;
 
 import java.util.function.BiConsumer;
 
@@ -23,7 +22,6 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 /**
  * A factory that generates the documents to be stored in the index.
  */
-@Component
 public class DocumentFactory {
 
     private static final FieldType TYPE_ID;

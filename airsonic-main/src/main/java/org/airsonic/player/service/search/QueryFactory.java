@@ -15,7 +15,6 @@ import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.WildcardQuery;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,7 +34,6 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
  * On the other hand, the generated queries are relatively small by version.
  * Therefore, test cases of this class are useful for large version upgrades.
  **/
-@Component
 public class QueryFactory {
 
     private static final String ASTERISK = "*";

@@ -14,7 +14,6 @@ import org.apache.lucene.search.SearcherManager;
 import org.apache.lucene.store.FSDirectory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -38,7 +37,6 @@ import java.util.stream.Stream;
  * Although the interface of SearchService is left to maintain the legacy implementation,
  * it is desirable that methods of index operations other than search essentially use this class directly.
  */
-@Component
 public class IndexManager {
     private static final Logger LOG = LoggerFactory.getLogger(IndexManager.class);
 

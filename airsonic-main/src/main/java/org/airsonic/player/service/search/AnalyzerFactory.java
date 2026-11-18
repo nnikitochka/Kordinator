@@ -12,7 +12,6 @@ import org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilterFactory;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.analysis.pattern.PatternReplaceFilterFactory;
 import org.apache.lucene.analysis.standard.StandardTokenizerFactory;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -26,7 +25,6 @@ import java.util.Map;
  * Analyzer can be closed but is a reuse premise.
  * It is held in this class.
  */
-@Component
 public final class AnalyzerFactory {
 
     private static final String STOP_WORDS = "org/airsonic/player/service/search/analysis/stopwords.txt";

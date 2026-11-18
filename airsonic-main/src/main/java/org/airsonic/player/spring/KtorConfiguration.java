@@ -97,7 +97,6 @@ import org.airsonic.player.service.UPnPService;
 import org.airsonic.player.controller.rest.settings.CredentialsManagementController;
 import org.airsonic.player.service.GeneralSettingsAdministrationService;
 import org.airsonic.player.service.MusicFolderAdministrationService;
-import org.airsonic.player.service.search.IndexManager;
 import org.airsonic.player.controller.rest.users.PasswordController;
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.runtime.RuntimeCompositionRoot;
@@ -134,6 +133,12 @@ import org.airsonic.player.dao.RatingDao;
 import org.airsonic.player.dao.ShareDao;
 import org.airsonic.player.dao.TranscodingDao;
 import org.airsonic.player.dao.UserDao;
+import org.airsonic.player.service.search.AnalyzerFactory;
+import org.airsonic.player.service.search.DocumentFactory;
+import org.airsonic.player.service.search.IndexManager;
+import org.airsonic.player.service.search.QueryFactory;
+import org.airsonic.player.service.search.SearchServiceImpl;
+import org.airsonic.player.service.search.SearchServiceUtilities;
 import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.LastFmService;
 import org.airsonic.player.service.JWTSecurityService;
@@ -301,6 +306,39 @@ public class KtorConfiguration {
     public StatusService statusService(MediaFileService mediaFileService, MediaFolderService mediaFolderService,
             SettingsService settingsService, TaskSchedulingService taskSchedulingService) {
         return new StatusService(mediaFileService, mediaFolderService, settingsService, taskSchedulingService);
+    }
+
+    @Bean
+    public AnalyzerFactory analyzerFactory() {
+        return new AnalyzerFactory();
+    }
+
+    @Bean
+    public DocumentFactory documentFactory() {
+        return new DocumentFactory();
+    }
+
+    @Bean
+    public QueryFactory queryFactory(AnalyzerFactory analyzerFactory) {
+        return new QueryFactory(analyzerFactory);
+    }
+
+    @Bean
+    public SearchServiceUtilities searchServiceUtilities(ArtistDao artistDao, AlbumDao albumDao,
+            MediaFileService mediaFileService) {
+        return new SearchServiceUtilities(artistDao, albumDao, mediaFileService);
+    }
+
+    @Bean
+    public IndexManager indexManager(AnalyzerFactory analyzerFactory, DocumentFactory documentFactory,
+            MediaFileDao mediaFileDao, ArtistDao artistDao, AlbumDao albumDao) {
+        return new IndexManager(analyzerFactory, documentFactory, mediaFileDao, artistDao, albumDao);
+    }
+
+    @Bean
+    public SearchServiceImpl searchServiceImpl(QueryFactory queryFactory, IndexManager indexManager,
+            SearchServiceUtilities searchServiceUtilities) {
+        return new SearchServiceImpl(queryFactory, indexManager, searchServiceUtilities);
     }
 
     @Bean(destroyMethod = "shutdown")

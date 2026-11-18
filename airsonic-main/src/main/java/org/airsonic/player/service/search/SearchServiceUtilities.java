@@ -10,7 +10,6 @@ import org.airsonic.player.domain.SearchResult;
 import org.airsonic.player.service.MediaFileService;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.lucene.document.Document;
-import org.springframework.stereotype.Component;
 
 import java.util.Collection;
 import java.util.List;
@@ -27,7 +26,6 @@ import java.util.function.Function;
  * Exception handling is not termination,
  * so do not include exception handling in this class.
  */
-@Component
 public class SearchServiceUtilities {
 
     /* Search by id only. */
