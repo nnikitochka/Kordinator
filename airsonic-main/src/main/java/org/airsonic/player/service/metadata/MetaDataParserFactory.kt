@@ -1,12 +1,10 @@
 package org.airsonic.player.service.metadata
 
-import org.springframework.stereotype.Component
 import java.nio.file.Path
 
 /**
  * Factory for creating meta-data parsers.
  */
-@Component
 class MetaDataParserFactory(
     parsers: MutableList<MetaDataParser>
 ) {

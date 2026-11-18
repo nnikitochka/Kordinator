@@ -14,7 +14,6 @@ import org.jaudiotagger.tag.images.Artwork;
 import org.jaudiotagger.tag.reference.PictureTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,7 +27,6 @@ import java.util.logging.LogManager;
  *
  * @author Sindre Mehus
  */
-@Service
 public class JaudiotaggerParser extends MetaDataParser {
     private static final Logger LOG = LoggerFactory.getLogger(JaudiotaggerParser.class);
     private MediaFolderService mediaFolderService;

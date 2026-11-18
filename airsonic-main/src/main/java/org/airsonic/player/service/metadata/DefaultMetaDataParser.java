@@ -2,7 +2,6 @@ package org.airsonic.player.service.metadata;
 
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.service.MediaFolderService;
-import org.springframework.stereotype.Service;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,7 +11,6 @@ import java.nio.file.Path;
  *
  * @author Sindre Mehus
  */
-@Service
 public class DefaultMetaDataParser extends MetaDataParser {
 
     private MediaFolderService mediaFolderService;

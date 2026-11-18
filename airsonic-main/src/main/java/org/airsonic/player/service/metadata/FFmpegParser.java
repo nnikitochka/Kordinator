@@ -10,7 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.io.BufferedInputStream;
 import java.nio.file.Files;
@@ -25,7 +24,6 @@ import java.util.Optional;
  * <p/>
  * Currently duration, bitrate and dimension are supported.
  */
-@Service("ffmpegParser")
 public class FFmpegParser extends MetaDataParser {
     private static final Logger LOG = LoggerFactory.getLogger(FFmpegParser.class);
     private static final String[] FFPROBE_OPTIONS = {

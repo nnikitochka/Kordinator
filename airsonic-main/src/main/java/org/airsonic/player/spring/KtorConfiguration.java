@@ -143,6 +143,11 @@ import org.airsonic.player.service.playlist.DefaultPlaylistExportHandler;
 import org.airsonic.player.service.playlist.DefaultPlaylistImportHandler;
 import org.airsonic.player.service.playlist.XspfPlaylistExportHandler;
 import org.airsonic.player.service.playlist.XspfPlaylistImportHandler;
+import org.airsonic.player.service.metadata.DefaultMetaDataParser;
+import org.airsonic.player.service.metadata.FFmpegParser;
+import org.airsonic.player.service.metadata.JaudiotaggerParser;
+import org.airsonic.player.service.metadata.MetaDataParser;
+import org.airsonic.player.service.metadata.MetaDataParserFactory;
 import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.LastFmService;
 import org.airsonic.player.service.JWTSecurityService;
@@ -367,6 +372,28 @@ public class KtorConfiguration {
     public XspfPlaylistImportHandler xspfPlaylistImportHandler(MediaFileService mediaFileService,
             SettingsService settingsService) {
         return new XspfPlaylistImportHandler(mediaFileService, settingsService);
+    }
+
+    @Bean
+    public DefaultMetaDataParser defaultMetaDataParser(MediaFolderService mediaFolderService) {
+        return new DefaultMetaDataParser(mediaFolderService);
+    }
+
+    @Bean
+    public FFmpegParser ffmpegParser(MediaFolderService mediaFolderService) {
+        return new FFmpegParser(mediaFolderService);
+    }
+
+    @Bean
+    public JaudiotaggerParser jaudiotaggerParser(MediaFolderService mediaFolderService) {
+        return new JaudiotaggerParser(mediaFolderService);
+    }
+
+    @Bean
+    public MetaDataParserFactory metaDataParserFactory(DefaultMetaDataParser defaultMetaDataParser,
+            FFmpegParser ffmpegParser, JaudiotaggerParser jaudiotaggerParser) {
+        return new MetaDataParserFactory(new java.util.ArrayList<MetaDataParser>(
+                java.util.List.of(jaudiotaggerParser, ffmpegParser, defaultMetaDataParser)));
     }
 
     @Bean(destroyMethod = "shutdown")
