@@ -194,6 +194,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `ee38eed` переводит зависимость `TranscodingService` от `PlayerService` с Spring `@Lazy` на `Supplier<PlayerService>` и root-managed cycle wiring; Spring bean projection использует `ObjectProvider` только как переходный lazy adapter, а сам `TranscodingService` больше не импортирует Spring. `RuntimeCompositionRootGraphTest`, `TranscodingServiceIntTest`, `TranscodingDaoTestCase`, `PlayerDaoTestCase`, `TranscodingSettingsIntegrationTest`, `PlayerSettingsIntegrationTest`, `PlayQueueIntegrationTest`, `JukeboxIntegrationTest` прошли 19/19. `PlayerService.init()` по-прежнему вызывается после Liquibase благодаря существующему `@DependsOn` у временного Spring projection.
 
+Срез `407cb43` переносит parser factory graph (`DefaultMetaDataParser`, `FFmpegParser`, `JaudiotaggerParser`, `MetaDataParserFactory`) и singleton `CoverArtService`/`CoverArtSearchService` в root; `MediaFileService` использует те же root-owned parser/cache instances. `RuntimeCompositionRootGraphTest`, `MetaDataFactoryTestCase`, `CoverArtServiceAccentColorTest`, `CoverArtRestIntegrationTest`, `CoverArtActionsIntegrationTest` прошли 8/8.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
