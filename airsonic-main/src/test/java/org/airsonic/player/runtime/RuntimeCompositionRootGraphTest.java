@@ -51,13 +51,14 @@ class RuntimeCompositionRootGraphTest {
         dataSource.setUser("sa");
         dataSource.setPassword("");
 
-        JdbcFactory jdbcFactory = new JdbcFactory();
-        TransactionManager txManager = jdbcFactory.transactionManager(dataSource);
-        JdbcHelper jdbcHelper = jdbcFactory.jdbcHelper(dataSource, txManager);
+        PersistenceGraph persistence = runtimeRoot.createPersistenceGraph(dataSource);
+        assertSame(persistence, runtimeRoot.createPersistenceGraph(dataSource));
+        TransactionManager txManager = persistence.getTransactionManager();
+        JdbcHelper jdbcHelper = persistence.getJdbcHelper();
         assertNotNull(txManager);
         assertNotNull(jdbcHelper);
 
-        DaoGraph daoGraph = new DaoFactory().create(jdbcHelper, txManager);
+        DaoGraph daoGraph = persistence.getDaos();
         UserDao userDao = daoGraph.getUserDao();
         PlayQueueDao playQueueDao = daoGraph.getPlayQueueDao();
         AlbumDao albumDao = daoGraph.getAlbumDao();
