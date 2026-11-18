@@ -382,13 +382,13 @@ public class KtorConfiguration {
 
     @Bean
     public org.airsonic.player.dao.TransactionManager airsonicTransactionManager(javax.sql.DataSource dataSource) {
-        return new org.airsonic.player.dao.TransactionManager(dataSource);
+        return new org.airsonic.player.runtime.JdbcFactory().transactionManager(dataSource);
     }
 
     @Bean
     public org.airsonic.player.dao.JdbcHelper jdbcHelper(javax.sql.DataSource dataSource,
             org.airsonic.player.dao.TransactionManager transactionManager) {
-        return new org.airsonic.player.dao.JdbcHelper(dataSource, transactionManager);
+        return new org.airsonic.player.runtime.JdbcFactory().jdbcHelper(dataSource, transactionManager);
     }
 
     @Bean
