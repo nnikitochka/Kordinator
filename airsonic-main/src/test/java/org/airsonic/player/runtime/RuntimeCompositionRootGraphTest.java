@@ -120,6 +120,10 @@ class RuntimeCompositionRootGraphTest {
         // Security & scheduling services
         SecurityService securityService = config.securityService(userDao, settingsService, mediaFolderService, cacheManager);
         assertNotNull(securityService);
+        PasswordRecoveryService passwordRecoveryService =
+                runtimeRoot.createPasswordRecoveryService(settingsService, securityService);
+        assertSame(passwordRecoveryService,
+                runtimeRoot.createPasswordRecoveryService(settingsService, securityService));
 
         JWTSecurityService jwtSecurityService = config.jwtSecurityService(settingsService);
         assertNotNull(jwtSecurityService);

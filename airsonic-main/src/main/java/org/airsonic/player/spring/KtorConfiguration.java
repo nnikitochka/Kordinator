@@ -511,9 +511,9 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public PasswordRecoveryService passwordRecoveryService(SettingsService settingsService,
+    public PasswordRecoveryService passwordRecoveryService(RuntimeCompositionRoot runtime, SettingsService settingsService,
             SecurityService securityService) {
-        return new PasswordRecoveryService(settingsService, securityService);
+        return runtime.createPasswordRecoveryService(settingsService, securityService);
     }
 
     @Bean

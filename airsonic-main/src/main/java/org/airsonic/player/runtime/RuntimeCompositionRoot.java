@@ -15,6 +15,7 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.VersionService versionService;
     private org.airsonic.player.service.ServerInfoService serverInfoService;
     private org.airsonic.player.service.StatusService statusService;
+    private org.airsonic.player.service.PasswordRecoveryService passwordRecoveryService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -122,5 +123,15 @@ public final class RuntimeCompositionRoot {
             statusService.cleanup();
         }
         return statusService;
+    }
+
+    public synchronized org.airsonic.player.service.PasswordRecoveryService createPasswordRecoveryService(
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.SecurityService securityService) {
+        if (passwordRecoveryService == null) {
+            passwordRecoveryService = new org.airsonic.player.service.PasswordRecoveryService(
+                    settingsService, securityService);
+        }
+        return passwordRecoveryService;
     }
 }
