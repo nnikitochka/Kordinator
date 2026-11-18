@@ -212,10 +212,7 @@ public class KtorConfiguration {
 
     @Bean(destroyMethod = "close")
     public org.airsonic.player.monitor.MetricsManager metricsManager(RuntimeCompositionRoot runtime) {
-        org.airsonic.player.monitor.MetricsManager manager =
-                new org.airsonic.player.monitor.MetricsManager(runtime.getConfiguration());
-        runtime.getLifecycleRegistry().registerShutdown("metricsManager", manager);
-        return manager;
+        return runtime.createMetricsManager();
     }
 
     @Bean

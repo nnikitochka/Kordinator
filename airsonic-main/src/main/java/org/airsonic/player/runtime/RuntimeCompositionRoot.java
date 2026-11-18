@@ -82,6 +82,7 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.playlist.XspfPlaylistExportHandler xspfPlaylistExportHandler;
     private org.airsonic.player.service.playlist.XspfPlaylistImportHandler xspfPlaylistImportHandler;
     private org.airsonic.player.health.HealthContributorRegistry healthContributorRegistry;
+    private org.airsonic.player.monitor.MetricsManager metricsManager;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -106,6 +107,14 @@ public final class RuntimeCompositionRoot {
 
     public LifecycleRegistry getLifecycleRegistry() {
         return lifecycleRegistry;
+    }
+
+    public synchronized org.airsonic.player.monitor.MetricsManager createMetricsManager() {
+        if (metricsManager == null) {
+            metricsManager = new org.airsonic.player.monitor.MetricsManager(configuration);
+            lifecycleRegistry.registerShutdown("metricsManager", metricsManager);
+        }
+        return metricsManager;
     }
 
     public synchronized org.airsonic.player.health.HealthContributorRegistry createHealthContributorRegistry(

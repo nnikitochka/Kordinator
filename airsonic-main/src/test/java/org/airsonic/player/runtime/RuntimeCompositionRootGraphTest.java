@@ -2,6 +2,7 @@ package org.airsonic.player.runtime;
 
 import org.airsonic.player.dao.*;
 import org.airsonic.player.service.*;
+import org.airsonic.player.monitor.MetricsManager;
 import org.hsqldb.jdbc.JDBCDataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -216,6 +217,9 @@ class RuntimeCompositionRootGraphTest {
         TaskSchedulingService scheduler = runtimeRoot.createTaskSchedulingService();
         assertSame(scheduler, runtimeRoot.createTaskSchedulingService());
         assertNotNull(scheduler);
+        MetricsManager metricsManager = runtimeRoot.createMetricsManager();
+        assertSame(metricsManager, runtimeRoot.createMetricsManager());
+        assertTrue(lifecycleRegistry.getShutdownItems().stream().anyMatch(item -> item.name().equals("metricsManager")));
         StatusService statusService = runtimeRoot.createStatusService(
                 mediaFileService, mediaFolderService, settingsService, scheduler);
         assertSame(statusService, runtimeRoot.createStatusService(
