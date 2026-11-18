@@ -126,6 +126,11 @@ class RuntimeCompositionRootGraphTest {
         SecurityService securityService = runtimeRoot.createSecurityService(userDao, settingsService, mediaFolderService);
         assertSame(securityService, runtimeRoot.createSecurityService(userDao, settingsService, mediaFolderService));
         assertNotNull(securityService);
+        AudioScrobblerService audioScrobblerService =
+                runtimeRoot.createAudioScrobblerService(settingsService, securityService);
+        assertSame(audioScrobblerService, runtimeRoot.createAudioScrobblerService(settingsService, securityService));
+        UploadFileService uploadFileService = runtimeRoot.createUploadFileService(securityService);
+        assertSame(uploadFileService, runtimeRoot.createUploadFileService(securityService));
         RatingService ratingService = runtimeRoot.createRatingService(daoGraph.getRatingDao(), securityService,
                 mediaFileService);
         assertSame(ratingService, runtimeRoot.createRatingService(daoGraph.getRatingDao(), securityService,
@@ -144,6 +149,10 @@ class RuntimeCompositionRootGraphTest {
         JWTSecurityService jwtSecurityService = runtimeRoot.createJwtSecurityService(settingsService);
         assertSame(jwtSecurityService, runtimeRoot.createJwtSecurityService(settingsService));
         assertNotNull(jwtSecurityService);
+        LastFmService lastFmService = runtimeRoot.createLastFmService(mediaFileDao, mediaFileService, artistDao);
+        assertSame(lastFmService, runtimeRoot.createLastFmService(mediaFileDao, mediaFileService, artistDao));
+        ShareService shareService = runtimeRoot.createShareService(daoGraph.getShareDao(), mediaFileService, jwtSecurityService);
+        assertSame(shareService, runtimeRoot.createShareService(daoGraph.getShareDao(), mediaFileService, jwtSecurityService));
 
         TaskSchedulingService scheduler = config.taskSchedulingService(lifecycleRegistry);
         assertNotNull(scheduler);
@@ -152,7 +161,6 @@ class RuntimeCompositionRootGraphTest {
         assertSame(statusService, runtimeRoot.createStatusService(
                 mediaFileService, mediaFolderService, settingsService, scheduler));
         TranscodingService transcodingService = mock(TranscodingService.class);
-        AudioScrobblerService audioScrobblerService = mock(AudioScrobblerService.class);
         JukeboxLegacySubsonicService legacyJukebox = runtimeRoot.createJukeboxLegacySubsonicService(
                 transcodingService, audioScrobblerService, statusService, settingsService, securityService,
                 mediaFileService);
@@ -163,7 +171,6 @@ class RuntimeCompositionRootGraphTest {
         assertSame(jukeboxService, runtimeRoot.createJukeboxService(legacyJukebox));
         PlaylistService playlistService = mock(PlaylistService.class);
         SearchService searchService = mock(SearchService.class);
-        LastFmService lastFmService = mock(LastFmService.class);
         PlayQueueService playQueueService = runtimeRoot.createPlayQueueService(
                 searchService, jukeboxService, settingsService, mediaFileService,
                 lastFmService, ratingService, playlistService, mediaFileDao, mediaFolderService,

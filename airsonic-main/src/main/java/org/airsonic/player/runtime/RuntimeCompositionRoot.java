@@ -27,6 +27,10 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.JukeboxLegacySubsonicService jukeboxLegacySubsonicService;
     private org.airsonic.player.service.JukeboxService jukeboxService;
     private org.airsonic.player.service.PlayQueueService playQueueService;
+    private org.airsonic.player.service.LastFmService lastFmService;
+    private org.airsonic.player.service.ShareService shareService;
+    private org.airsonic.player.service.UploadFileService uploadFileService;
+    private org.airsonic.player.service.AudioScrobblerService audioScrobblerService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -265,5 +269,43 @@ public final class RuntimeCompositionRoot {
                     ratingService, playlistService, mediaFileDao, mediaFolderService, playQueueDao, jwtSecurityService);
         }
         return playQueueService;
+    }
+
+    public synchronized org.airsonic.player.service.LastFmService createLastFmService(
+            org.airsonic.player.dao.MediaFileDao mediaFileDao,
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.dao.ArtistDao artistDao) {
+        if (lastFmService == null) {
+            lastFmService = new org.airsonic.player.service.LastFmService(mediaFileDao, mediaFileService, artistDao);
+            lastFmService.init();
+        }
+        return lastFmService;
+    }
+
+    public synchronized org.airsonic.player.service.ShareService createShareService(
+            org.airsonic.player.dao.ShareDao shareDao,
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.JWTSecurityService jwtSecurityService) {
+        if (shareService == null) {
+            shareService = new org.airsonic.player.service.ShareService(shareDao, mediaFileService, jwtSecurityService);
+        }
+        return shareService;
+    }
+
+    public synchronized org.airsonic.player.service.UploadFileService createUploadFileService(
+            org.airsonic.player.service.SecurityService securityService) {
+        if (uploadFileService == null) {
+            uploadFileService = new org.airsonic.player.service.UploadFileService(securityService);
+        }
+        return uploadFileService;
+    }
+
+    public synchronized org.airsonic.player.service.AudioScrobblerService createAudioScrobblerService(
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.SecurityService securityService) {
+        if (audioScrobblerService == null) {
+            audioScrobblerService = new org.airsonic.player.service.AudioScrobblerService(settingsService, securityService);
+        }
+        return audioScrobblerService;
     }
 }

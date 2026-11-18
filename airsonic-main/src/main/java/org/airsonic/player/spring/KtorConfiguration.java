@@ -729,9 +729,9 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public AudioScrobblerService audioScrobblerService(SettingsService settingsService,
+    public AudioScrobblerService audioScrobblerService(RuntimeCompositionRoot runtime, SettingsService settingsService,
             SecurityService securityService) {
-        return new AudioScrobblerService(settingsService, securityService);
+        return runtime.createAudioScrobblerService(settingsService, securityService);
     }
 
     @Bean
@@ -834,22 +834,20 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public LastFmService lastFmService(MediaFileDao mediaFileDao, MediaFileService mediaFileService,
+    public LastFmService lastFmService(RuntimeCompositionRoot runtime, MediaFileDao mediaFileDao, MediaFileService mediaFileService,
             ArtistDao artistDao) {
-        LastFmService service = new LastFmService(mediaFileDao, mediaFileService, artistDao);
-        service.init();
-        return service;
+        return runtime.createLastFmService(mediaFileDao, mediaFileService, artistDao);
     }
 
     @Bean
-    public ShareService shareService(ShareDao shareDao, MediaFileService mediaFileService,
+    public ShareService shareService(RuntimeCompositionRoot runtime, ShareDao shareDao, MediaFileService mediaFileService,
             JWTSecurityService jwtSecurityService) {
-        return new ShareService(shareDao, mediaFileService, jwtSecurityService);
+        return runtime.createShareService(shareDao, mediaFileService, jwtSecurityService);
     }
 
     @Bean
-    public UploadFileService uploadFileService(SecurityService securityService) {
-        return new UploadFileService(securityService);
+    public UploadFileService uploadFileService(RuntimeCompositionRoot runtime, SecurityService securityService) {
+        return runtime.createUploadFileService(securityService);
     }
 
     @Bean
