@@ -25,7 +25,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
-import org.springframework.stereotype.Service;
 
 import jakarta.servlet.http.HttpServletRequest;
 import javax.cache.Cache;
@@ -51,7 +50,6 @@ import java.util.stream.Stream;
  *
  * @author Sindre Mehus
  */
-@Service
 public class SecurityService implements UserDetailsService {
     private static final Logger LOG = LoggerFactory.getLogger(SecurityService.class);
 

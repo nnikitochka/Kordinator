@@ -490,6 +490,12 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public SecurityService securityService(UserDao userDao, SettingsService settingsService,
+            MediaFolderService mediaFolderService, javax.cache.CacheManager cacheManager) {
+        return new SecurityService(userDao, settingsService, mediaFolderService, cacheManager);
+    }
+
+    @Bean
     public LastFmService lastFmService(MediaFileDao mediaFileDao, MediaFileService mediaFileService,
             ArtistDao artistDao) {
         return new LastFmService(mediaFileDao, mediaFileService, artistDao);
