@@ -222,6 +222,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `e9eab7c` переносит lifecycle `UPnPService` в root: сервис инициализируется один раз, а остановка регистрируется в `LifecycleRegistry`; Spring bean стал projection. Убран Spring `@Qualifier` из конструктора `UPnPService`. `RuntimeCompositionRootTest`, `RuntimeCompositionRootGraphTest`, `DLNASettingsIntegrationTest` прошли 7/7. UPnP processors и content-directory graph пока ещё создаются в Spring-конфигурации.
 
+Срез `50d3c2c` переносит все UPnP processors (`Album`, `RecentAlbum`, `Artist`, `Genre`, `MediaFile`, `Playlist`, `Root`) и обе content directories в root; root связывает их обратно с dispatcher и передаёт общие settings/player/transcoding/JWT dependencies. Spring factories возвращают те же root-owned instances, единственная неиспользуемая Spring import удалена из `RootUpnpProcessor`. Graph, DLNA integration и UPnP URL tests прошли 10/10.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
