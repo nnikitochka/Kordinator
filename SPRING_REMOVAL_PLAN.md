@@ -228,6 +228,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `71f8a0a` удаляет неиспользуемый Spring `@Autowired` import из `PlayQueueService` и Spring `@Nullable` из публичного helper-а `PlaylistService`; playlist/queue integration и service regression tests прошли 9/9. Оба класса больше не имеют прямых Spring imports.
 
+Срез `a6bd21e` удаляет Spring `Environment` constructors и setter из `SettingsService`; runtime API использует `RuntimeConfiguration`/`Function<String,String>`, а `CustomPropertySourceConfigurer` передаёт property lookup только на adapter boundary. `SettingsServiceTestCase`, database/general/personal/advanced/player settings integration tests прошли 18/18. `SettingsService` ещё содержит Spring property-source migration helpers и SpEL/Boot logging API, которые остаются следующими кандидатами на извлечение.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
