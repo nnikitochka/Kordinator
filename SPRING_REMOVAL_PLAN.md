@@ -242,6 +242,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `1ef74fc` вводит framework-neutral `CredentialEncoderRegistry` и Spring adapter над существующей таблицей encoder-ов. `SecurityService` больше не обращается к `GlobalSecurityConfig`/`PasswordDecoder` напрямую; `AudioScrobblerService` получает reversible credential decoding через `SecurityService`, а composition root принимает реестр как dependency. Сохранён существующий формат хранения и decoding; `RuntimeCompositionRootGraphTest`, security/login/credentials/scrobble и credential compatibility suites прошли 20/20. Spring adapter реестра и остальные HTTP/security adapters пока остаются.
 
+Срез `fbc9c25` убирает Spring Security `Authentication` и `JWTAuthenticationToken` из `MediaStreamService`: сервис получает нейтральный boolean-факт JWT-аутентификации, который REST boundary вычисляет из текущего токена. `RuntimeCompositionRootGraphTest`, `MediaStreamServiceTestCase`, stream/HLS playback, HLS endpoint и public-share интеграции прошли 8/8. Spring `AccessDeniedException` в stream service и Authentication adapters в HLS остаются отдельными задачами.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
