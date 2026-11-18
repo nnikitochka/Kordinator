@@ -51,28 +51,29 @@ class RuntimeCompositionRootGraphTest {
         dataSource.setUser("sa");
         dataSource.setPassword("");
 
-        KtorConfiguration config = new KtorConfiguration();
-
-        TransactionManager txManager = config.airsonicTransactionManager(dataSource);
-        JdbcHelper jdbcHelper = config.jdbcHelper(dataSource, txManager);
+        JdbcFactory jdbcFactory = new JdbcFactory();
+        TransactionManager txManager = jdbcFactory.transactionManager(dataSource);
+        JdbcHelper jdbcHelper = jdbcFactory.jdbcHelper(dataSource, txManager);
         assertNotNull(txManager);
         assertNotNull(jdbcHelper);
 
-        // DAOs without service dependencies
-        UserDao userDao = config.userDao(jdbcHelper);
-        PlayQueueDao playQueueDao = config.playQueueDao(jdbcHelper);
-        AlbumDao albumDao = config.albumDao(jdbcHelper);
-        ArtistDao artistDao = config.artistDao(jdbcHelper);
-        AvatarDao avatarDao = config.avatarDao(jdbcHelper);
-        BookmarkDao bookmarkDao = config.bookmarkDao(jdbcHelper, txManager);
-        CoverArtDao coverArtDao = config.coverArtDao(jdbcHelper);
-        DatabaseDao databaseDao = config.databaseDao(jdbcHelper);
-        MediaFileDao mediaFileDao = config.mediaFileDao(jdbcHelper);
-        MusicFolderDao musicFolderDao = config.musicFolderDao(jdbcHelper);
-        PlaylistDao playlistDao = config.playlistDao(jdbcHelper);
-        RatingDao ratingDao = config.ratingDao(jdbcHelper);
-        ShareDao shareDao = config.shareDao(jdbcHelper);
-        TranscodingDao transcodingDao = config.transcodingDao(jdbcHelper);
+        DaoGraph daoGraph = new DaoFactory().create(jdbcHelper, txManager);
+        UserDao userDao = daoGraph.getUserDao();
+        PlayQueueDao playQueueDao = daoGraph.getPlayQueueDao();
+        AlbumDao albumDao = daoGraph.getAlbumDao();
+        ArtistDao artistDao = daoGraph.getArtistDao();
+        AvatarDao avatarDao = daoGraph.getAvatarDao();
+        BookmarkDao bookmarkDao = daoGraph.getBookmarkDao();
+        CoverArtDao coverArtDao = daoGraph.getCoverArtDao();
+        DatabaseDao databaseDao = daoGraph.getDatabaseDao();
+        MediaFileDao mediaFileDao = daoGraph.getMediaFileDao();
+        MusicFolderDao musicFolderDao = daoGraph.getMusicFolderDao();
+        PlaylistDao playlistDao = daoGraph.getPlaylistDao();
+        RatingDao ratingDao = daoGraph.getRatingDao();
+        ShareDao shareDao = daoGraph.getShareDao();
+        TranscodingDao transcodingDao = daoGraph.getTranscodingDao();
+
+        KtorConfiguration config = new KtorConfiguration();
 
         assertNotNull(userDao);
         assertNotNull(playQueueDao);

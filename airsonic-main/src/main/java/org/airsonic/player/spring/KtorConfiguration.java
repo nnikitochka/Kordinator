@@ -392,58 +392,52 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public AlbumDao albumDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
-        return new AlbumDao(jdbcHelper);
+    public org.airsonic.player.runtime.DaoGraph daoGraph(org.airsonic.player.dao.JdbcHelper jdbcHelper,
+            org.airsonic.player.dao.TransactionManager transactionManager) {
+        return new org.airsonic.player.runtime.DaoFactory().create(jdbcHelper, transactionManager);
     }
 
     @Bean
-    public ArtistDao artistDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
-        return new ArtistDao(jdbcHelper);
-    }
+    public AlbumDao albumDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getAlbumDao(); }
 
     @Bean
-    public AvatarDao avatarDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
-        return new AvatarDao(jdbcHelper);
-    }
+    public ArtistDao artistDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getArtistDao(); }
 
     @Bean
-    public BookmarkDao bookmarkDao(org.airsonic.player.dao.JdbcHelper jdbcHelper,
-            org.airsonic.player.dao.TransactionManager transactionManager) throws Exception {
-        BookmarkDao dao = new BookmarkDao(jdbcHelper, transactionManager);
-        dao.register();
-        return dao;
-    }
+    public AvatarDao avatarDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getAvatarDao(); }
 
     @Bean
-    public CoverArtDao coverArtDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) throws Exception {
-        CoverArtDao dao = new CoverArtDao(jdbcHelper);
-        dao.register();
-        return dao;
-    }
+    public BookmarkDao bookmarkDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getBookmarkDao(); }
 
     @Bean
-    public DatabaseDao databaseDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
-        return new DatabaseDao(jdbcHelper);
-    }
+    public CoverArtDao coverArtDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getCoverArtDao(); }
 
     @Bean
-    public MediaFileDao mediaFileDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
-        return new MediaFileDao(jdbcHelper);
-    }
+    public DatabaseDao databaseDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getDatabaseDao(); }
 
     @Bean
-    public MusicFolderDao musicFolderDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) throws Exception {
-        MusicFolderDao dao = new MusicFolderDao(jdbcHelper);
-        dao.register();
-        return dao;
-    }
+    public MediaFileDao mediaFileDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getMediaFileDao(); }
 
     @Bean
-    public PlayQueueDao playQueueDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) throws Exception {
-        PlayQueueDao dao = new PlayQueueDao(jdbcHelper);
-        dao.register();
-        return dao;
-    }
+    public MusicFolderDao musicFolderDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getMusicFolderDao(); }
+
+    @Bean
+    public PlayQueueDao playQueueDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getPlayQueueDao(); }
+
+    @Bean
+    public PlaylistDao playlistDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getPlaylistDao(); }
+
+    @Bean("musicFileInfoDao")
+    public RatingDao ratingDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getRatingDao(); }
+
+    @Bean
+    public ShareDao shareDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getShareDao(); }
+
+    @Bean
+    public TranscodingDao transcodingDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getTranscodingDao(); }
+
+    @Bean
+    public UserDao userDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getUserDao(); }
 
     @Bean
     public PlayerDao playerDao(PlayerDaoPlayQueueFactory playQueueFactory,
@@ -451,37 +445,6 @@ public class KtorConfiguration {
         PlayerDao dao = new PlayerDao(playQueueFactory, jdbcHelper);
         dao.register();
         return dao;
-    }
-
-    @Bean
-    public PlaylistDao playlistDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) throws Exception {
-        PlaylistDao dao = new PlaylistDao(jdbcHelper);
-        dao.register();
-        return dao;
-    }
-
-    @Bean("musicFileInfoDao")
-    public RatingDao ratingDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
-        return new RatingDao(jdbcHelper);
-    }
-
-    @Bean
-    public ShareDao shareDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) throws Exception {
-        ShareDao dao = new ShareDao(jdbcHelper);
-        dao.register();
-        return dao;
-    }
-
-    @Bean
-    public TranscodingDao transcodingDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) throws Exception {
-        TranscodingDao dao = new TranscodingDao(jdbcHelper);
-        dao.register();
-        return dao;
-    }
-
-    @Bean
-    public UserDao userDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
-        return new UserDao(jdbcHelper);
     }
 
     @Bean
