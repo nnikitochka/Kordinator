@@ -152,6 +152,7 @@ import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.NetworkService
 import org.airsonic.player.security.JWTAuthenticationToken
 import org.airsonic.player.security.HlsLinkContext
+import org.airsonic.player.security.AuthorizationDeniedException
 import org.airsonic.player.service.PlayerService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.ShareService
@@ -1403,6 +1404,12 @@ class AirsonicKtorServlet(
                     val disposition = download?.let { ContentDisposition.builder("attachment").filename(it.filename, StandardCharsets.UTF_8).build().toString() }
                     val type = download?.let { StringUtil.getMimeType(FilenameUtils.getExtension(it.filename)) }
                     request.setAttribute(DOWNLOAD_REQUEST, DownloadRequest(params, download, contentDisposition = disposition, contentType = type))
+                } catch (e: AuthorizationDeniedException) {
+                    if (path.endsWith(".view")) {
+                        response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                        return
+                    }
+                    request.setAttribute(DOWNLOAD_REQUEST, DownloadRequest(params, null, ErrorCode.GENERIC, "Request processing failed: $e"))
                 } catch (e: AccessDeniedException) {
                     if (path.endsWith(".view")) {
                         response.sendError(HttpServletResponse.SC_FORBIDDEN)

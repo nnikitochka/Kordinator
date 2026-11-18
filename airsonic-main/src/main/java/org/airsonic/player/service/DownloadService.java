@@ -9,11 +9,11 @@ import org.airsonic.player.util.FileUtil;
 import org.airsonic.player.util.LambdaUtils;
 import org.airsonic.player.util.StringUtil;
 import org.airsonic.player.security.CallerContext;
+import org.airsonic.player.security.AuthorizationDeniedException;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.access.AccessDeniedException;
 import java.io.*;
 import java.nio.file.*;
 import java.nio.charset.StandardCharsets;
@@ -73,7 +73,7 @@ public class DownloadService {
 
         if (mediaFile != null) {
             if (!securityService.isFolderAccessAllowed(mediaFile, callerContext)) {
-                throw new AccessDeniedException("Access to file " + mediaFile.getId() + " is forbidden for user " + user.getUsername());
+                throw new AuthorizationDeniedException("Access to file " + mediaFile.getId() + " is forbidden for user " + user.getUsername());
             }
             if (mediaFile.isFile()) {
                 response = prepareResponse(Collections.singletonList(mediaFile), null, statusSupplier, statusCloser, additionalFiles);

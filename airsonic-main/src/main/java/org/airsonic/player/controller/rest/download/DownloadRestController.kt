@@ -27,6 +27,7 @@ import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.PlaylistService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.security.CallerContext
+import org.airsonic.player.security.AuthorizationDeniedException
 import org.airsonic.player.util.StringUtil
 import org.apache.commons.io.FilenameUtils
 import org.slf4j.LoggerFactory
@@ -64,6 +65,8 @@ class DownloadRestController(
         val prepared = try {
             withContext(Dispatchers.IO) { prepareWebsite(r) }
         } catch (e: CancellationException) { throw e
+        } catch (_: AuthorizationDeniedException) {
+            DownloadRequest(r.parameters, null, ErrorCode.NOT_AUTHORIZED, "Music folder access denied")
         } catch (e: Exception) {
             LOG.warn("Website download failed", e)
             DownloadRequest(r.parameters, null, ErrorCode.GENERIC, "Download failed")
