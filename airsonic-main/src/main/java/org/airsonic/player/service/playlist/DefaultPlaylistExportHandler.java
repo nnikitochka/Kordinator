@@ -10,11 +10,9 @@ import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.util.StringUtil;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Component
 public class DefaultPlaylistExportHandler implements PlaylistExportHandler {
 
     private final MediaFileDao mediaFileDao;

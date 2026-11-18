@@ -13,14 +13,12 @@ import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.Playlist;
 import org.airsonic.player.service.CoverArtService;
 import org.airsonic.player.service.MediaFolderService;
-import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-@Component
 public class XspfPlaylistExportHandler implements PlaylistExportHandler {
 
     private final MediaFileDao mediaFileDao;

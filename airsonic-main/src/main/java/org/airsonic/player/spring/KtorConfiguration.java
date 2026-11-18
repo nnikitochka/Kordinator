@@ -139,6 +139,10 @@ import org.airsonic.player.service.search.IndexManager;
 import org.airsonic.player.service.search.QueryFactory;
 import org.airsonic.player.service.search.SearchServiceImpl;
 import org.airsonic.player.service.search.SearchServiceUtilities;
+import org.airsonic.player.service.playlist.DefaultPlaylistExportHandler;
+import org.airsonic.player.service.playlist.DefaultPlaylistImportHandler;
+import org.airsonic.player.service.playlist.XspfPlaylistExportHandler;
+import org.airsonic.player.service.playlist.XspfPlaylistImportHandler;
 import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.service.LastFmService;
 import org.airsonic.player.service.JWTSecurityService;
@@ -339,6 +343,30 @@ public class KtorConfiguration {
     public SearchServiceImpl searchServiceImpl(QueryFactory queryFactory, IndexManager indexManager,
             SearchServiceUtilities searchServiceUtilities) {
         return new SearchServiceImpl(queryFactory, indexManager, searchServiceUtilities);
+    }
+
+    @Bean
+    public DefaultPlaylistExportHandler defaultPlaylistExportHandler(MediaFileDao mediaFileDao,
+            MediaFolderService mediaFolderService) {
+        return new DefaultPlaylistExportHandler(mediaFileDao, mediaFolderService);
+    }
+
+    @Bean
+    public DefaultPlaylistImportHandler defaultPlaylistImportHandler(MediaFileService mediaFileService,
+            SettingsService settingsService) {
+        return new DefaultPlaylistImportHandler(mediaFileService, settingsService);
+    }
+
+    @Bean
+    public XspfPlaylistExportHandler xspfPlaylistExportHandler(MediaFileDao mediaFileDao, PlaylistDao playlistDao,
+            MediaFolderService mediaFolderService, CoverArtService coverArtService) {
+        return new XspfPlaylistExportHandler(mediaFileDao, playlistDao, mediaFolderService, coverArtService);
+    }
+
+    @Bean
+    public XspfPlaylistImportHandler xspfPlaylistImportHandler(MediaFileService mediaFileService,
+            SettingsService settingsService) {
+        return new XspfPlaylistImportHandler(mediaFileService, settingsService);
     }
 
     @Bean(destroyMethod = "shutdown")

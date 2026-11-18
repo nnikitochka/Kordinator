@@ -7,13 +7,11 @@ import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.SettingsService;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-@Component
 public class XspfPlaylistImportHandler extends PlaylistImportHandler {
 
     public XspfPlaylistImportHandler(MediaFileService mediaFileService, SettingsService settingsService) {
