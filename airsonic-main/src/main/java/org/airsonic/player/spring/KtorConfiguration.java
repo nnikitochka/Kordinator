@@ -816,9 +816,15 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public org.airsonic.player.service.ConfigurationPropertiesService configurationPropertiesService() {
+        return org.airsonic.player.service.ConfigurationPropertiesService.getInstance();
+    }
+
+    @Bean
     public SettingsService settingsService(UserDao userDao, AvatarDao avatarDao,
-            org.springframework.core.env.Environment environment, javax.cache.CacheManager cacheManager) {
-        SettingsService service = new SettingsService(userDao, avatarDao, environment, cacheManager);
+            org.springframework.core.env.Environment environment, javax.cache.CacheManager cacheManager,
+            org.airsonic.player.service.ConfigurationPropertiesService properties) {
+        SettingsService service = new SettingsService(userDao, avatarDao, environment, cacheManager, properties);
         service.init();
         return service;
     }
@@ -1010,6 +1016,7 @@ public class KtorConfiguration {
             javax.sql.DataSource dataSource,
             SecurityService securityService,
             SettingsService settingsService,
+            org.airsonic.player.service.ConfigurationPropertiesService properties,
             VersionService versionService,
             MusicIndexService musicIndexService,
             AudioScrobblerService audioScrobblerService,
@@ -1070,7 +1077,8 @@ public class KtorConfiguration {
                                 new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),
                                 new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, transcodingService, jaxbWriter),
                                 new DLNASettingsController(settingsService, upnpService, jaxbWriter),
-                                new DatabaseSettingsController(settingsService, databaseService, statusService, securityService, jaxbWriter),
+                                new DatabaseSettingsController(settingsService, databaseService, statusService, securityService, jaxbWriter,
+                                        properties),
                                 new CredentialsManagementController(securityService, settingsService, jaxbWriter, transactionManager),
                                 new PersonalSettingsController(settingsService, securityService, jaxbWriter),
                                 new PlayerSettingsController(playerService, transcodingService, playQueueService, jaxbWriter),

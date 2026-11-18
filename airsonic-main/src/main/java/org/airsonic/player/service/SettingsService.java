@@ -242,6 +242,7 @@ public class SettingsService {
             );
 
     private final Cache<String, UserSettings> userSettingsCache;
+    private final ConfigurationPropertiesService properties;
 
     public SettingsService(UserDao userDao, AvatarDao avatarDao, Environment env) {
         this(userDao, avatarDao, env, null);
@@ -249,9 +250,15 @@ public class SettingsService {
 
     public SettingsService(UserDao userDao, AvatarDao avatarDao, Environment env,
                            CacheManager cacheManager) {
+        this(userDao, avatarDao, env, cacheManager, ConfigurationPropertiesService.getInstance());
+    }
+
+    public SettingsService(UserDao userDao, AvatarDao avatarDao, Environment env,
+                           CacheManager cacheManager, ConfigurationPropertiesService properties) {
         this.userDao = userDao;
         this.avatarDao = avatarDao;
         this.env = env;
+        this.properties = Objects.requireNonNull(properties);
         this.userSettingsCache = cacheManager != null ? cacheManager.getCache("userSettingsCache", String.class, UserSettings.class) : null;
     }
 
@@ -470,7 +477,7 @@ public class SettingsService {
 
     public void save() {
         this.setLong(KEY_SETTINGS_CHANGED, System.currentTimeMillis());
-        ConfigurationPropertiesService.getInstance().save();
+        properties.save();
     }
 
     private static void ensureDirectoryPresent(Path home) {
@@ -501,9 +508,9 @@ public class SettingsService {
 
     private void setProperty(String key, Object value) {
         if (value == null) {
-            ConfigurationPropertiesService.getInstance().clearProperty(key);
+            properties.clearProperty(key);
         } else {
-            ConfigurationPropertiesService.getInstance().setProperty(key, value);
+            properties.setProperty(key, value);
         }
         settingsCache.remove(key);
     }

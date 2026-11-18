@@ -37,7 +37,8 @@ import kotlin.coroutines.cancellation.CancellationException
  */
 class DatabaseSettingsController(
     private val settings: SettingsService, private val database: DatabaseService,
-    private val statuses: StatusService, private val security: SecurityService, private val writer: JAXBWriter
+    private val statuses: StatusService, private val security: SecurityService, private val writer: JAXBWriter,
+    private val properties: ConfigurationPropertiesService
 ) {
     private val exportMutex = Mutex()
 
@@ -118,7 +119,7 @@ class DatabaseSettingsController(
     }
 
     private fun configured(key: String, fallback: String?): String? =
-        ConfigurationPropertiesService.getInstance().configuration.getString(key, fallback)
+        properties.configuration.getString(key, fallback)
 
     @Synchronized
     private fun read() = DatabaseSettings().apply {
@@ -135,7 +136,7 @@ class DatabaseSettingsController(
                 password == SettingsService.getDefaultJDBCPassword() -> "BUILTIN"
             else -> "EXTERNAL"
         }
-        mysqlVarcharMaxlength = ConfigurationPropertiesService.getInstance().configuration.getInt(
+        mysqlVarcharMaxlength = properties.configuration.getInt(
             "spring.liquibase.parameters.mysqlVarcharLimit", settings.databaseMysqlVarcharMaxlength)
         dbBackupInterval = settings.dbBackupInterval; dbBackupRetentionCount = settings.dbBackupRetentionCount
         backuppable = database.backuppable()
