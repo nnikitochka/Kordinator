@@ -16,6 +16,7 @@ import org.airsonic.player.domain.Player
 import org.airsonic.player.domain.User
 import org.airsonic.player.security.CallerContext
 import org.airsonic.player.security.JWTAuthenticationToken
+import org.airsonic.player.security.AuthorizationDeniedException
 import org.airsonic.player.service.hls.HlsSegmentService
 import org.springframework.security.core.Authentication
 import java.util.concurrent.TimeoutException
@@ -42,6 +43,12 @@ class HlsSegmentRestController(private val segments: HlsSegmentService) {
             }
         } catch (e: TimeoutException) {
             call.respond(HttpStatusCode.ServiceUnavailable)
+            return
+        } catch (_: AuthorizationDeniedException) {
+            call.respond(HttpStatusCode.Forbidden)
+            return
+        } catch (_: NoSuchElementException) {
+            call.respond(HttpStatusCode.NotFound)
             return
         }
         val resource = result

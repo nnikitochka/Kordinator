@@ -13,10 +13,10 @@ import org.airsonic.player.io.PipeStreams.PipedOutputStream
 import org.airsonic.player.io.PlayQueueInputStream
 import org.airsonic.player.io.ShoutCastOutputStream
 import org.airsonic.player.security.CallerContext
+import org.airsonic.player.security.AuthorizationDeniedException
 import org.airsonic.player.util.FileUtil
 import org.airsonic.player.util.StringUtil
 import org.slf4j.LoggerFactory
-import org.springframework.security.access.AccessDeniedException
 import java.awt.Dimension
 import java.io.FilterInputStream
 import java.io.InputStream
@@ -45,7 +45,7 @@ class MediaStreamService(
              maxBitRate: Optional<Int>, id: Optional<Int>, path: Optional<String>, offsetSeconds: Double?,
              request: VideoOptions, icyMetadata: String?, notModified: BiPredicate<String?, Long>): Result? {
         if (!jwtAuthentication && !user.isStreamRole) {
-            throw AccessDeniedException("Streaming is forbidden for user ${user.username}")
+            throw AuthorizationDeniedException("Streaming is forbidden for user ${user.username}")
         }
         var expectedSize: Long? = null
         var outputSuffix = suffix
@@ -57,7 +57,7 @@ class MediaStreamService(
         var byteOffset: Long? = null
         if (file != null) {
             if (!jwtAuthentication && !securityService.isFolderAccessAllowed(file, callerContext)) {
-                throw AccessDeniedException("Access to file ${file.id} is forbidden for user ${user.username}")
+                throw AuthorizationDeniedException("Access to file ${file.id} is forbidden for user ${user.username}")
             }
             player.playQueue.index = player.playQueue.files.indexOf(file)
             val queue = playQueueFactory.createPlayQueue()

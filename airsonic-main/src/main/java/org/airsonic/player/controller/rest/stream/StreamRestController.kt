@@ -18,6 +18,7 @@ import org.airsonic.player.domain.Player
 import org.airsonic.player.domain.User
 import org.airsonic.player.security.CallerContext
 import org.airsonic.player.security.JWTAuthenticationToken
+import org.airsonic.player.security.AuthorizationDeniedException
 import org.springframework.security.core.Authentication
 import java.util.Optional
 import java.util.function.BiPredicate
@@ -54,6 +55,9 @@ class StreamRestController(private val streams: MediaStreamService) {
                 request.offset, request.video, request.icyMetadata, request.notModified)
         } catch (_: NumberFormatException) {
             call.respond(HttpStatusCode.BadRequest)
+            return
+        } catch (_: AuthorizationDeniedException) {
+            call.respond(HttpStatusCode.Forbidden)
             return
         }
         if (result == null) {

@@ -6,6 +6,7 @@ import org.airsonic.player.domain.TransferStatus;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.io.PipeStreams.MonitoredInputStream;
 import org.airsonic.player.security.CallerContext;
+import org.airsonic.player.security.AuthorizationDeniedException;
 import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
@@ -15,12 +16,11 @@ import org.airsonic.player.util.FileUtil;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.acls.model.NotFoundException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
@@ -54,11 +54,11 @@ public class HlsSegmentService {
             int segmentIndex, int maxBitRate, String size, Integer duration, Integer audioTrack, boolean enforceFolderAccess, boolean countPlay) throws Exception {
         MediaFile mediaFile = this.mediaFileService.getMediaFile(id);
         if (mediaFile == null) {
-            throw new NotFoundException("Media file not found: " + id);
+            throw new NoSuchElementException("Media file not found: " + id);
         }
         if ((enforceFolderAccess || !jwtAuthentication)
                 && !securityService.isFolderAccessAllowed(mediaFile, callerContext)) {
-            throw new AccessDeniedException("Access to file " + id + " is forbidden for user " + user.getUsername());
+            throw new AuthorizationDeniedException("Access to file " + id + " is forbidden for user " + user.getUsername());
         }
         TransferStatus status = this.statusService.createStreamStatus(player);
         status.setMediaFile(mediaFile);
