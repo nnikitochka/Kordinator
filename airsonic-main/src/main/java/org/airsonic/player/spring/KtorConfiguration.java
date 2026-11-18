@@ -450,8 +450,8 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory(MediaFolderService mediaFolderService) {
-        return new PlayerDaoPlayQueueFactory(mediaFolderService);
+    public PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory(RuntimeCompositionRoot runtime) {
+        return runtime.createPlayerDaoPlayQueueFactory();
     }
 
     @Bean
@@ -927,11 +927,11 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public MediaStreamService mediaStreamService(StatusService statusService, SecurityService securityService,
+    public MediaStreamService mediaStreamService(RuntimeCompositionRoot runtime, StatusService statusService, SecurityService securityService,
             SettingsService settingsService, TranscodingService transcodingService, AudioScrobblerService audioScrobblerService,
-            MediaFileService mediaFileService, SearchService searchService, PlayerDaoPlayQueueFactory playQueueFactory) {
-        return new MediaStreamService(statusService, securityService, settingsService, transcodingService,
-                audioScrobblerService, mediaFileService, searchService, playQueueFactory);
+            MediaFileService mediaFileService, SearchService searchService) {
+        return runtime.createMediaStreamService(statusService, securityService, settingsService, transcodingService,
+                audioScrobblerService, mediaFileService, searchService);
     }
 
     @Bean

@@ -49,6 +49,8 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.UserAdministrationService userAdministrationService;
     private org.airsonic.player.service.MusicIndexStateService musicIndexStateService;
     private org.airsonic.player.service.CoverArtImageService coverArtImageService;
+    private org.airsonic.player.dao.PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory;
+    private org.airsonic.player.service.MediaStreamService mediaStreamService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -268,17 +270,39 @@ public final class RuntimeCompositionRoot {
         return coverArtImageService;
     }
 
+    public synchronized org.airsonic.player.service.MediaStreamService createMediaStreamService(
+            org.airsonic.player.service.StatusService statusService,
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.TranscodingService transcodingService,
+            org.airsonic.player.service.AudioScrobblerService audioScrobblerService,
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.SearchService searchService) {
+        if (mediaStreamService == null) {
+            mediaStreamService = new org.airsonic.player.service.MediaStreamService(
+                    statusService, securityService, settingsService, transcodingService, audioScrobblerService,
+                    mediaFileService, searchService, createPlayerDaoPlayQueueFactory());
+        }
+        return mediaStreamService;
+    }
+
     public synchronized org.airsonic.player.dao.PlayerDao createPlayerDao() throws Exception {
         if (persistenceGraph == null) {
             throw new IllegalStateException("Persistence graph must be created before PlayerDao");
         }
         if (playerDao == null) {
-            org.airsonic.player.dao.PlayerDaoPlayQueueFactory queueFactory =
-                    new org.airsonic.player.dao.PlayerDaoPlayQueueFactory(createMediaFolderService());
+            org.airsonic.player.dao.PlayerDaoPlayQueueFactory queueFactory = createPlayerDaoPlayQueueFactory();
             playerDao = new org.airsonic.player.dao.PlayerDao(queueFactory, persistenceGraph.getJdbcHelper());
             playerDao.register();
         }
         return playerDao;
+    }
+
+    public synchronized org.airsonic.player.dao.PlayerDaoPlayQueueFactory createPlayerDaoPlayQueueFactory() {
+        if (playerDaoPlayQueueFactory == null) {
+            playerDaoPlayQueueFactory = new org.airsonic.player.dao.PlayerDaoPlayQueueFactory(createMediaFolderService());
+        }
+        return playerDaoPlayQueueFactory;
     }
 
     public synchronized org.airsonic.player.service.VersionService createVersionService() throws java.io.IOException {

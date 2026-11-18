@@ -241,6 +241,13 @@ class RuntimeCompositionRootGraphTest {
                 searchService, jukeboxService, settingsService, mediaFileService,
                 lastFmService, ratingService, playlistService, mediaFileDao, mediaFolderService,
                 playQueueDao, jwtSecurityService));
+        org.airsonic.player.dao.PlayerDaoPlayQueueFactory playQueueFactory =
+                runtimeRoot.createPlayerDaoPlayQueueFactory();
+        assertSame(playQueueFactory, runtimeRoot.createPlayerDaoPlayQueueFactory());
+        MediaStreamService mediaStreamService = runtimeRoot.createMediaStreamService(statusService, securityService,
+                settingsService, transcodingService, audioScrobblerService, mediaFileService, searchService);
+        assertSame(mediaStreamService, runtimeRoot.createMediaStreamService(statusService, securityService,
+                settingsService, transcodingService, audioScrobblerService, mediaFileService, searchService));
 
         PathWatcherService pathWatcher = config.pathWatcherService(lifecycleRegistry);
         assertNotNull(pathWatcher);
