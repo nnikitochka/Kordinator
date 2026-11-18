@@ -218,6 +218,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `1e1292e` переносит `GeneralSettingsAdministrationService` и `MusicFolderAdministrationService` под root ownership; servlet factory берёт те же singleton instances при создании REST controllers. Для MusicFolder service root получает DAO/index instances из servlet factory, сохраняя прокси и наблюдаемость Spring test adapters. `RuntimeCompositionRootGraphTest`, `GeneralSettingsIntegrationTest` и `MusicFolderSettingsIntegrationTest` прошли 3/3.
 
+Срез `cebcbcc` переносит `CoverArtAccentColorBackfill` под root ownership: callback для его однократного startup-запуска регистрирует `RuntimeCompositionRoot`, а Spring bean только возвращает root-owned instance. `RuntimeCompositionRootTest` и `RuntimeCompositionRootGraphTest` прошли 6/6; unit проверяет регистрацию/вызов startup callback, graph test — singleton projection. В graph test backfill не находит таблицу в HSQLDB без Liquibase и штатно логирует warning через существующую обработку ошибки.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
