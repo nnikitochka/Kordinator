@@ -234,6 +234,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `bf73840` удаляет `ServletRequestUtils` из `PlayerService`; необязательный `player` request parameter разбирается напрямую, сохраняя null для отсутствующего значения и ошибку при нечисловом значении. `PlayerDaoTestCase`, queue/jukebox/live-queue integration suites прошли 13/13.
 
+Срез `98d19f7` выделяет root-owned Kotlin `LocaleService` для выбора пользовательской/серверной локали. `MediaFileService` и playlist controllers больше не зависят от Spring MVC `LocaleResolver`; сохранён отдельный тонкий `LocaleResolver` servlet adapter для locale request attributes/JSP. Graph, REST, artists, playlists и upload tests прошли 11/11.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
