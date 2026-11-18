@@ -216,6 +216,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `4515133` переносит создание `SettingsService` в root и использует `RuntimeConfiguration` для fallback property lookup; root передаёт те же DAO graph, cache и `ConfigurationPropertiesService`. Spring projection сохраняет DAO/cache параметры как bootstrap dependencies, чтобы `PersistenceGraph` инициализировался прежде SettingsService. Graph/settings unit tests прошли 14/14, settings REST integration suites — 8/8. `ConfigurationPropertiesService` пока берётся из legacy singleton, потому что Spring environment bootstrap ещё публикует его как property source; `SettingsService` сохраняет Spring adapter constructor/static migration helpers для следующих срезов.
 
+Срез `1e1292e` переносит `GeneralSettingsAdministrationService` и `MusicFolderAdministrationService` под root ownership; servlet factory берёт те же singleton instances при создании REST controllers. Для MusicFolder service root получает DAO/index instances из servlet factory, сохраняя прокси и наблюдаемость Spring test adapters. `RuntimeCompositionRootGraphTest`, `GeneralSettingsIntegrationTest` и `MusicFolderSettingsIntegrationTest` прошли 3/3.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
