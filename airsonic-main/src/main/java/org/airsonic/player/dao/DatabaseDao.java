@@ -11,6 +11,10 @@ import java.util.function.Consumer;
 
 @Repository
 public class DatabaseDao extends AbstractDao {
+    public DatabaseDao(JdbcHelper jdbcHelper) {
+        super(jdbcHelper);
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(DatabaseDao.class);
 
     public boolean exportDB(Path tempWorkingDir, ThrowingBiFunction<Path, Connection, Boolean, Exception> exportFunction) throws Exception {

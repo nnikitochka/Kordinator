@@ -5,8 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import jakarta.annotation.PostConstruct;
-import javax.sql.DataSource;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -35,16 +33,8 @@ public class BookmarkDao extends AbstractDao {
     private final BookmarkRowMapper bookmarkRowMapper = new BookmarkRowMapper();
 
     @Autowired
-    public BookmarkDao(DataSource dataSource) {
-        setDataSource(dataSource);
-        this.transactionManager = new TransactionManager(dataSource);
-        for (int i = 0; i < LOCK_STRIPES; i++) {
-            locks[i] = new ReentrantLock();
-        }
-    }
-
-    public BookmarkDao(TransactionManager transactionManager) {
-        setDataSource(transactionManager.getDataSource());
+    public BookmarkDao(JdbcHelper jdbcHelper, TransactionManager transactionManager) {
+        super(jdbcHelper);
         this.transactionManager = transactionManager;
         for (int i = 0; i < LOCK_STRIPES; i++) {
             locks[i] = new ReentrantLock();

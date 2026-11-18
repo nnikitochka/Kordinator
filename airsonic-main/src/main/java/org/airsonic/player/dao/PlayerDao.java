@@ -29,7 +29,8 @@ public class PlayerDao extends AbstractDao {
     private final PlayerRowMapper rowMapper = new PlayerRowMapper();
     private final Map<Integer, PlayQueue> playlists = Collections.synchronizedMap(new HashMap<>());
 
-    public PlayerDao(PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory) {
+    public PlayerDao(PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory, JdbcHelper jdbcHelper) {
+        super(jdbcHelper);
         this.playerDaoPlayQueueFactory = playerDaoPlayQueueFactory;
     }
 

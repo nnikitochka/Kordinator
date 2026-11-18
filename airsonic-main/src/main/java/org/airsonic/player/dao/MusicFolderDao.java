@@ -27,6 +27,10 @@ import java.util.Optional;
  */
 @Repository
 public class MusicFolderDao extends AbstractDao {
+    public MusicFolderDao(JdbcHelper jdbcHelper) {
+        super(jdbcHelper);
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(MusicFolderDao.class);
     private static final String INSERT_COLUMNS = "path, name, type, enabled, changed";
     private static final String QUERY_COLUMNS = "id, " + INSERT_COLUMNS;

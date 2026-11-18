@@ -26,6 +26,10 @@ import java.util.stream.IntStream;
  */
 @Repository
 public class MediaFileDao extends AbstractDao {
+    public MediaFileDao(JdbcHelper jdbcHelper) {
+        super(jdbcHelper);
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(MediaFileDao.class);
     private static final String INSERT_COLUMNS = "path, folder_id, type, format, title, album, artist, album_artist, disc_number, " +
                                                 "track_number, year, genre, bit_rate, variable_bit_rate, duration, file_size, width, height, " +

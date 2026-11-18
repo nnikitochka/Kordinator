@@ -26,7 +26,7 @@ public class PlayerDaoTestCase extends DaoTestCaseBean2 {
 
     @Before
     public void setUp() {
-        getJdbcTemplate().execute("delete from player");
+        getJdbcHelper().update("delete from player");
     }
 
     @Test

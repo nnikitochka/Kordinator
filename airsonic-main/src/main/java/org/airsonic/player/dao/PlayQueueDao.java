@@ -19,6 +19,10 @@ import java.util.stream.Collectors;
  */
 @Repository
 public class PlayQueueDao extends AbstractDao {
+    public PlayQueueDao(JdbcHelper jdbcHelper) {
+        super(jdbcHelper);
+    }
+
     private static final String INSERT_COLUMNS = "username, current_media_file_id, position_millis, changed, changed_by";
     private static final String QUERY_COLUMNS = "id, " + INSERT_COLUMNS;
     private final PlayQueueMapper rowMapper = new PlayQueueMapper();

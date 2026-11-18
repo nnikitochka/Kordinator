@@ -6,10 +6,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 
-import javax.sql.DataSource;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.invoke.MethodHandle;
@@ -31,39 +28,20 @@ import java.util.stream.Stream;
 public class AbstractDao {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractDao.class);
 
-    @Autowired(required = false)
-    DataSource dataSource;
-
-    // Transitional compatibility for legacy DAO test fixtures; production DAO
-    // operations use the instance-scoped JdbcHelper below.
-    @Autowired(required = false)
-    JdbcTemplate jdbcTemplate;
-
     private JdbcHelper jdbcHelper;
 
-    public void setDataSource(DataSource dataSource) {
-        this.dataSource = dataSource;
-        if (dataSource != null) {
-            this.jdbcHelper = new JdbcHelper(dataSource);
-        }
+    protected AbstractDao() {
     }
 
-    public void setJdbcHelper(JdbcHelper jdbcHelper) {
-        this.jdbcHelper = jdbcHelper;
+    protected AbstractDao(JdbcHelper jdbcHelper) {
+        this.jdbcHelper = Objects.requireNonNull(jdbcHelper, "jdbcHelper");
     }
 
     public JdbcHelper getJdbcHelper() {
-        if (jdbcHelper == null && dataSource != null) {
-            jdbcHelper = new JdbcHelper(dataSource);
-        }
         if (jdbcHelper == null) {
             throw new IllegalStateException("JdbcHelper is not initialized for " + getClass().getName());
         }
         return jdbcHelper;
-    }
-
-    public JdbcTemplate getJdbcTemplate() {
-        return jdbcTemplate;
     }
 
     protected static String questionMarks(String columns) {

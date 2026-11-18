@@ -39,6 +39,10 @@ class JdbcHelperTest {
     }
 
     static class TestDao extends AbstractDao {
+        TestDao(JdbcHelper jdbcHelper) {
+            super(jdbcHelper);
+        }
+
         void initialize() throws Exception {
             registerInserts("dao_item", "id", List.of("name"), DaoRecord.class);
         }
@@ -136,11 +140,9 @@ class JdbcHelperTest {
         createDaoTable(firstDataSource);
         createDaoTable(secondDataSource);
 
-        TestDao firstDao = new TestDao();
-        firstDao.setDataSource(firstDataSource);
+        TestDao firstDao = new TestDao(new JdbcHelper(firstDataSource));
         firstDao.initialize();
-        TestDao secondDao = new TestDao();
-        secondDao.setDataSource(secondDataSource);
+        TestDao secondDao = new TestDao(new JdbcHelper(secondDataSource));
         secondDao.initialize();
 
         Integer firstId = firstDao.insertRecord(new DaoRecord("first"));

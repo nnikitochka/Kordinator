@@ -41,7 +41,7 @@ public class BookmarkDaoTestCase extends DaoTestCaseBean2 {
 
     @Before
     public void setUp() {
-        getJdbcTemplate().execute("delete from bookmark");
+        getJdbcHelper().update("delete from bookmark");
 
         Instant now = Instant.now();
         MusicFolder folder = new MusicFolder(java.nio.file.Paths.get("/bookmark-test-" + UUID.randomUUID()), "Bookmark test",
@@ -58,9 +58,9 @@ public class BookmarkDaoTestCase extends DaoTestCaseBean2 {
 
     @After
     public void tearDown() {
-        getJdbcTemplate().update("delete from bookmark where media_file_id=?", mediaFileId);
-        getJdbcTemplate().update("delete from media_file where id=?", mediaFileId);
-        getJdbcTemplate().update("delete from music_folder where id=?", musicFolderId);
+        getJdbcHelper().update("delete from bookmark where media_file_id=?", mediaFileId);
+        getJdbcHelper().update("delete from media_file where id=?", mediaFileId);
+        getJdbcHelper().update("delete from music_folder where id=?", musicFolderId);
     }
 
     @Test

@@ -19,6 +19,10 @@ import java.util.*;
  */
 @Repository
 public class AlbumDao extends AbstractDao {
+    public AlbumDao(JdbcHelper jdbcHelper) {
+        super(jdbcHelper);
+    }
+
     private static final String INSERT_COLUMNS = "path, name, artist, song_count, duration, " +
                                           "year, genre, play_count, last_played, comment, created, last_scanned, present, " +
                                           "folder_id, mb_release_id";

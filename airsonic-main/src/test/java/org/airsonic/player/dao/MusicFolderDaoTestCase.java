@@ -24,7 +24,7 @@ public class MusicFolderDaoTestCase extends DaoTestCaseBean2 {
 
     @Before
     public void setUp() {
-        getJdbcTemplate().execute("delete from music_folder");
+        getJdbcHelper().update("delete from music_folder");
     }
 
     @Test

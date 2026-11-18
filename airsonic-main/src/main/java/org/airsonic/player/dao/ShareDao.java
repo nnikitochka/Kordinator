@@ -23,6 +23,10 @@ import java.util.stream.Collectors;
  */
 @Repository
 public class ShareDao extends AbstractDao {
+    public ShareDao(JdbcHelper jdbcHelper) {
+        super(jdbcHelper);
+    }
+
     private static final String INSERT_COLUMNS = "name, description, username, created, expires, last_visited, visit_count";
     private static final String QUERY_COLUMNS = "id, " + INSERT_COLUMNS;
 

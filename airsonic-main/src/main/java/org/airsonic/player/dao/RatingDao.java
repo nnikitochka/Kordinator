@@ -14,6 +14,10 @@ import java.util.Map;
  */
 @Repository("musicFileInfoDao")
 public class RatingDao extends AbstractDao {
+    public RatingDao(JdbcHelper jdbcHelper) {
+        super(jdbcHelper);
+    }
+
 
     /**
      * Returns paths for the highest rated albums.

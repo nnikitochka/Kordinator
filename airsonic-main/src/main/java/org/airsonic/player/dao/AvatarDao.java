@@ -18,6 +18,10 @@ import java.util.Optional;
  */
 @Repository
 public class AvatarDao extends AbstractDao {
+    public AvatarDao(JdbcHelper jdbcHelper) {
+        super(jdbcHelper);
+    }
+
 
     private static final String INSERT_COLUMNS = "name, created_date, mime_type, width, height, path";
     private static final String QUERY_COLUMNS = "id, " + INSERT_COLUMNS;

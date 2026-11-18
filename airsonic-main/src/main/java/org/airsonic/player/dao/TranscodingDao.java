@@ -18,6 +18,10 @@ import java.util.List;
  */
 @Repository
 public class TranscodingDao extends AbstractDao {
+    public TranscodingDao(JdbcHelper jdbcHelper) {
+        super(jdbcHelper);
+    }
+
 
     private static final Logger LOG = LoggerFactory.getLogger(TranscodingDao.class);
     private static final String INSERT_COLUMNS = "name, source_formats, target_format, step1, step2, step3, default_active";

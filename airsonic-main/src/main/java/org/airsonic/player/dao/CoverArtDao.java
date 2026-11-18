@@ -17,6 +17,10 @@ import java.util.Optional;
 
 @Repository
 public class CoverArtDao extends AbstractDao {
+    public CoverArtDao(JdbcHelper jdbcHelper) {
+        super(jdbcHelper);
+    }
+
     private static final String COLUMNS = "entity_id, entity_type, path, folder_id, overridden, created, updated, accent_color";
 
     private final CoverArtRowMapper coverArtRowMapper = new CoverArtRowMapper();

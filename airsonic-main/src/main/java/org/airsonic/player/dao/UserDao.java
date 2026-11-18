@@ -27,6 +27,10 @@ import java.util.stream.Collectors;
 @Repository
 @Transactional
 public class UserDao extends AbstractDao {
+    public UserDao(JdbcHelper jdbcHelper) {
+        super(jdbcHelper);
+    }
+
 
     private static final String USER_COLUMNS = "username, email, ldap_authenticated, bytes_streamed, bytes_downloaded, bytes_uploaded, roles";
     private static final String USER_SETTINGS_COLUMNS = "username, settings";

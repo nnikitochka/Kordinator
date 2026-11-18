@@ -178,6 +178,17 @@ public class KtorConfiguration {
         return registry;
     }
 
+    @Bean
+    public org.airsonic.player.dao.TransactionManager airsonicTransactionManager(javax.sql.DataSource dataSource) {
+        return new org.airsonic.player.dao.TransactionManager(dataSource);
+    }
+
+    @Bean
+    public org.airsonic.player.dao.JdbcHelper jdbcHelper(javax.sql.DataSource dataSource,
+            org.airsonic.player.dao.TransactionManager transactionManager) {
+        return new org.airsonic.player.dao.JdbcHelper(dataSource, transactionManager);
+    }
+
     @Bean(destroyMethod = "shutdown")
     public TaskSchedulingService taskSchedulingService(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
         TaskSchedulingService service = new TaskSchedulingService();
@@ -291,7 +302,8 @@ public class KtorConfiguration {
             UploadFileService uploadFileService,
             org.springframework.boot.autoconfigure.web.ServerProperties serverProperties,
             org.airsonic.player.monitor.MetricsManager metricsManager,
-            org.springframework.security.web.util.matcher.RequestMatcher csrfRequestMatcher
+            org.springframework.security.web.util.matcher.RequestMatcher csrfRequestMatcher,
+            org.airsonic.player.dao.TransactionManager transactionManager
     ) {
         ServletRegistrationBean<ServletApplicationEngine> registration =
                 new ServletRegistrationBean<>(
@@ -322,7 +334,7 @@ public class KtorConfiguration {
                                 new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, transcodingService, jaxbWriter),
                                 new DLNASettingsController(settingsService, upnpService, jaxbWriter),
                                 new DatabaseSettingsController(settingsService, databaseService, statusService, securityService, jaxbWriter),
-                                new CredentialsManagementController(securityService, settingsService, jaxbWriter, new org.airsonic.player.dao.TransactionManager(dataSource)),
+                                new CredentialsManagementController(securityService, settingsService, jaxbWriter, transactionManager),
                                 new PersonalSettingsController(settingsService, securityService, jaxbWriter),
                                 new PlayerSettingsController(playerService, transcodingService, playQueueService, jaxbWriter),
                                 new AdvancedSettingsController(settingsService, jaxbWriter),

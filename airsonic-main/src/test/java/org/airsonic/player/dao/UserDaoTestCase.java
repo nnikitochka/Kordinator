@@ -37,8 +37,8 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
 
     @Before
     public void setUp() {
-        getJdbcTemplate().execute("delete from user_credentials");
-        getJdbcTemplate().execute("delete from users");
+        getJdbcHelper().update("delete from user_credentials");
+        getJdbcHelper().update("delete from users");
     }
 
     @Test

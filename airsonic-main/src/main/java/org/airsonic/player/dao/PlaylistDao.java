@@ -22,6 +22,10 @@ import java.util.stream.Stream;
  */
 @Repository
 public class PlaylistDao extends AbstractDao {
+    public PlaylistDao(JdbcHelper jdbcHelper) {
+        super(jdbcHelper);
+    }
+
     private static final String INSERT_COLUMNS = "username, is_public, name, comment, file_count, duration, " +
                                                 "created, changed, imported_from";
     private static final String QUERY_COLUMNS = "id, " + INSERT_COLUMNS;
