@@ -27,16 +27,32 @@ class LifecycleRegistryTest {
     }
 
     @Test
-    void startupContinuesEvenIfOneActionThrows() {
+    void startupFailureClosesResourcesAndStopsFurtherActions() {
         LifecycleRegistry registry = new LifecycleRegistry();
         List<String> executionOrder = new ArrayList<>();
 
+        registry.registerShutdown("first", () -> executionOrder.add("close-1"));
+        registry.registerShutdown("second", () -> executionOrder.add("close-2"));
         registry.registerStartup("ok-1", 1, () -> executionOrder.add("ok-1"));
         registry.registerStartup("failing", 2, () -> { throw new RuntimeException("boom"); });
         registry.registerStartup("ok-2", 3, () -> executionOrder.add("ok-2"));
 
-        assertDoesNotThrow(() -> registry.start());
-        assertEquals(List.of("ok-1", "ok-2"), executionOrder);
+        assertThrows(RuntimeException.class, registry::start);
+        assertEquals(List.of("ok-1", "close-2", "close-1"), executionOrder);
+        assertTrue(registry.isShutdownComplete());
+        assertThrows(IllegalStateException.class, registry::start);
+    }
+
+    @Test
+    void startupCannotRunTwiceOrAfterShutdown() {
+        LifecycleRegistry registry = new LifecycleRegistry();
+        AtomicInteger count = new AtomicInteger();
+        registry.registerStartup("once", count::incrementAndGet);
+        registry.start();
+        assertThrows(IllegalStateException.class, registry::start);
+        registry.shutdown();
+        assertThrows(IllegalStateException.class, registry::start);
+        assertEquals(1, count.get());
     }
 
     @Test

@@ -23,6 +23,7 @@ public class LifecycleRegistry implements AutoCloseable {
     private final List<LifecycleItem> shutdownItems = new CopyOnWriteArrayList<>();
     private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
     private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
+    private final AtomicBoolean started = new AtomicBoolean(false);
 
     /**
      * Register a startup callback.
@@ -76,6 +77,9 @@ public class LifecycleRegistry implements AutoCloseable {
      * Run all registered startup callbacks in ascending order.
      */
     public void start() {
+        if (shuttingDown.get() || !started.compareAndSet(false, true)) {
+            throw new IllegalStateException("Lifecycle has already started or is shutting down");
+        }
         LOG.info("Running {} startup lifecycle items...", startupItems.size());
         List<StartupItem> sorted = new ArrayList<>(startupItems);
         sorted.sort(Comparator.comparingInt(StartupItem::order));
@@ -83,8 +87,10 @@ public class LifecycleRegistry implements AutoCloseable {
             try {
                 LOG.info("Executing startup action: {}", item.name());
                 item.action().run();
-            } catch (Throwable t) {
+            } catch (RuntimeException | Error t) {
                 LOG.error("Error executing startup action '{}'", item.name(), t);
+                shutdown();
+                throw t;
             }
         }
     }
