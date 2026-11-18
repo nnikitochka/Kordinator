@@ -17,6 +17,7 @@ import org.airsonic.player.service.MediaStreamService
 import org.airsonic.player.domain.Player
 import org.airsonic.player.domain.User
 import org.airsonic.player.security.CallerContext
+import org.airsonic.player.security.JWTAuthenticationToken
 import org.springframework.security.core.Authentication
 import java.util.Optional
 import java.util.function.BiPredicate
@@ -48,7 +49,7 @@ class StreamRestController(private val streams: MediaStreamService) {
 
     private suspend fun respond(call: ApplicationCall, request: Request, head: Boolean) {
         val result = try {
-            streams.open(request.authentication, request.callerContext, request.player, request.user, request.format, request.suffix,
+            streams.open(request.authentication is JWTAuthenticationToken, request.callerContext, request.player, request.user, request.format, request.suffix,
                 Optional.ofNullable(request.bitRate), Optional.ofNullable(request.id), Optional.ofNullable(request.path),
                 request.offset, request.video, request.icyMetadata, request.notModified)
         } catch (_: NumberFormatException) {

@@ -12,13 +12,11 @@ import org.airsonic.player.io.PipeStreams.PipedInputStream
 import org.airsonic.player.io.PipeStreams.PipedOutputStream
 import org.airsonic.player.io.PlayQueueInputStream
 import org.airsonic.player.io.ShoutCastOutputStream
-import org.airsonic.player.security.JWTAuthenticationToken
 import org.airsonic.player.security.CallerContext
 import org.airsonic.player.util.FileUtil
 import org.airsonic.player.util.StringUtil
 import org.slf4j.LoggerFactory
 import org.springframework.security.access.AccessDeniedException
-import org.springframework.security.core.Authentication
 import java.awt.Dimension
 import java.io.FilterInputStream
 import java.io.InputStream
@@ -43,10 +41,10 @@ class MediaStreamService(
     data class VideoOptions(val maxBitRate: String?, val timeOffset: String?, val duration: String?, val size: String?)
     data class Result(val stream: InputStream, val length: Long?, val contentType: String, val headers: Map<String, List<String>>)
 
-    fun open(authentication: Authentication, callerContext: CallerContext, player: Player, user: User, format: String?, suffix: String?,
+    fun open(jwtAuthentication: Boolean, callerContext: CallerContext, player: Player, user: User, format: String?, suffix: String?,
              maxBitRate: Optional<Int>, id: Optional<Int>, path: Optional<String>, offsetSeconds: Double?,
              request: VideoOptions, icyMetadata: String?, notModified: BiPredicate<String?, Long>): Result? {
-        if (authentication !is JWTAuthenticationToken && !user.isStreamRole) {
+        if (!jwtAuthentication && !user.isStreamRole) {
             throw AccessDeniedException("Streaming is forbidden for user ${user.username}")
         }
         var expectedSize: Long? = null
@@ -58,7 +56,7 @@ class MediaStreamService(
         }
         var byteOffset: Long? = null
         if (file != null) {
-            if (authentication !is JWTAuthenticationToken && !securityService.isFolderAccessAllowed(file, callerContext)) {
+            if (!jwtAuthentication && !securityService.isFolderAccessAllowed(file, callerContext)) {
                 throw AccessDeniedException("Access to file ${file.id} is forbidden for user ${user.username}")
             }
             player.playQueue.index = player.playQueue.files.indexOf(file)
