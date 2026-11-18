@@ -8,8 +8,6 @@ import org.airsonic.player.domain.User;
 import org.airsonic.player.domain.UserSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import javax.cache.CacheManager;
 import javax.cache.Caching;
@@ -18,13 +16,11 @@ import javax.cache.spi.CachingProvider;
 import java.util.OptionalLong;
 import java.util.concurrent.TimeUnit;
 
-@Configuration
 public class CacheConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(CacheConfiguration.class);
 
-    @Bean
-    public CacheManager jCacheCacheManager() {
+    public CacheManager createCacheManager() {
         CachingProvider provider = Caching.getCachingProvider("com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider");
         CacheManager manager = provider.getCacheManager();
 

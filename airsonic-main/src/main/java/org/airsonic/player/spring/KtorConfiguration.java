@@ -192,6 +192,11 @@ import org.springframework.context.annotation.Lazy;
 public class KtorConfiguration {
 
     @Bean
+    public javax.cache.CacheManager jCacheCacheManager() {
+        return new CacheConfiguration().createCacheManager();
+    }
+
+    @Bean
     public org.springframework.boot.web.server.ErrorPageRegistrar ktorErrorPageRegistrar(
             org.springframework.boot.autoconfigure.web.ServerProperties serverProperties) {
         return factory -> factory.addErrorPages(new org.springframework.boot.web.server.ErrorPage(serverProperties.getError().getPath()));
