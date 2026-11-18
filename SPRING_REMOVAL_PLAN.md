@@ -262,6 +262,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `0efc44a` переносит `MetricsManager` и его shutdown регистрацию из `KtorConfiguration` в `RuntimeCompositionRoot`. Графовый тест проверяет singleton и обратное включение в lifecycle; вместе с health framework/HTTP и graph tests прошёл набор 11/11.
 
+Срез `9c9a48a` убирает `@Configuration` с `KtorConfiguration` и добавляет Kotlin `KtorSpringConfigurationAdapter`, который наследует фабрики и служит явной Spring bootstrap границей; `Application` импортирует adapter. Унаследованные bean factories сохранились: REST API, login, static/error и health HTTP tests прошли 15/15. Методы `@Bean` ещё находятся в фабричном классе и будут поэтапно переноситься/сокращаться; Spring security/bootstrap также остаётся.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
