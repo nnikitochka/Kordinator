@@ -11,6 +11,7 @@ public final class RuntimeCompositionRoot {
     private PersistenceGraph persistenceGraph;
     private javax.cache.CacheManager cacheManager;
     private org.airsonic.player.service.MediaFolderService mediaFolderService;
+    private org.airsonic.player.service.MediaFileService mediaFileService;
     private org.airsonic.player.dao.PlayerDao playerDao;
     private org.airsonic.player.service.VersionService versionService;
     private org.airsonic.player.service.ServerInfoService serverInfoService;
@@ -98,6 +99,23 @@ public final class RuntimeCompositionRoot {
                     createCacheManager());
         }
         return mediaFolderService;
+    }
+
+    public synchronized org.airsonic.player.service.MediaFileService createMediaFileService(
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.dao.MediaFileDao mediaFileDao,
+            org.airsonic.player.dao.AlbumDao albumDao,
+            org.airsonic.player.service.metadata.JaudiotaggerParser parser,
+            org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory,
+            org.airsonic.player.service.CoverArtService coverArtService,
+            org.airsonic.player.i18n.LocaleResolver localeResolver) {
+        if (mediaFileService == null) {
+            mediaFileService = new org.airsonic.player.service.MediaFileService(
+                    securityService, settingsService, mediaFileDao, createMediaFolderService(), albumDao,
+                    parser, metaDataParserFactory, coverArtService, localeResolver, createCacheManager());
+        }
+        return mediaFileService;
     }
 
     public synchronized org.airsonic.player.dao.PlayerDao createPlayerDao() throws Exception {

@@ -871,12 +871,12 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public MediaFileService mediaFileService(SecurityService securityService, SettingsService settingsService,
-            MediaFileDao mediaFileDao, MediaFolderService mediaFolderService, AlbumDao albumDao,
+    public MediaFileService mediaFileService(RuntimeCompositionRoot runtime, SecurityService securityService, SettingsService settingsService,
+            MediaFileDao mediaFileDao, AlbumDao albumDao,
             JaudiotaggerParser parser, MetaDataParserFactory metaDataParserFactory, CoverArtService coverArtService,
-            LocaleResolver localeResolver, javax.cache.CacheManager cacheManager) {
-        return new MediaFileService(securityService, settingsService, mediaFileDao, mediaFolderService, albumDao,
-                parser, metaDataParserFactory, coverArtService, localeResolver, cacheManager);
+            LocaleResolver localeResolver) {
+        return runtime.createMediaFileService(securityService, settingsService, mediaFileDao, albumDao,
+                parser, metaDataParserFactory, coverArtService, localeResolver);
     }
 
     @Bean

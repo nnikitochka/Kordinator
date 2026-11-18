@@ -100,9 +100,6 @@ class RuntimeCompositionRootGraphTest {
         assertNotNull(cacheManager);
         LyricsService lyricsService = runtimeRoot.createLyricsService();
         assertSame(lyricsService, runtimeRoot.createLyricsService());
-        MediaFileService mediaFileService = mock(MediaFileService.class);
-        BookmarkService bookmarkService = runtimeRoot.createBookmarkService(daoGraph.getBookmarkDao(), mediaFileService);
-        assertSame(bookmarkService, runtimeRoot.createBookmarkService(daoGraph.getBookmarkDao(), mediaFileService));
 
         ConfigurationPropertiesService properties = config.configurationPropertiesService();
         assertNotNull(properties);
@@ -126,6 +123,18 @@ class RuntimeCompositionRootGraphTest {
         SecurityService securityService = runtimeRoot.createSecurityService(userDao, settingsService, mediaFolderService);
         assertSame(securityService, runtimeRoot.createSecurityService(userDao, settingsService, mediaFolderService));
         assertNotNull(securityService);
+        org.airsonic.player.service.metadata.JaudiotaggerParser parser =
+                mock(org.airsonic.player.service.metadata.JaudiotaggerParser.class);
+        org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory =
+                mock(org.airsonic.player.service.metadata.MetaDataParserFactory.class);
+        CoverArtService coverArtService = mock(CoverArtService.class);
+        org.airsonic.player.i18n.LocaleResolver localeResolver = mock(org.airsonic.player.i18n.LocaleResolver.class);
+        MediaFileService mediaFileService = runtimeRoot.createMediaFileService(securityService, settingsService,
+                mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeResolver);
+        assertSame(mediaFileService, runtimeRoot.createMediaFileService(securityService, settingsService,
+                mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeResolver));
+        BookmarkService bookmarkService = runtimeRoot.createBookmarkService(daoGraph.getBookmarkDao(), mediaFileService);
+        assertSame(bookmarkService, runtimeRoot.createBookmarkService(daoGraph.getBookmarkDao(), mediaFileService));
         AudioScrobblerService audioScrobblerService =
                 runtimeRoot.createAudioScrobblerService(settingsService, securityService);
         assertSame(audioScrobblerService, runtimeRoot.createAudioScrobblerService(settingsService, securityService));
