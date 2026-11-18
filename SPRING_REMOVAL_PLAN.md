@@ -248,6 +248,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `08f046b` добавляет Kotlin `HlsLinkContext` с именем пользователя, JWT-фактом и сроком токена; servlet boundary переводит Spring Authentication в этот контекст, а `HlsPlaylistService` и Ktor REST controller больше не зависят от Spring Security types. Сохранены subject, path claims, и сроки подписи REST/JWT HLS ссылок; HLS service/URL/controller/playback/endpoint и graph suite прошли 8/8. Spring HTTP/security boundary остаётся в servlet и route request factories, а HlsSegmentService ещё использует Spring Resource и исключения.
 
+Срез `21a95e7` убирает Spring `Resource`/`PathResource` из `HlsSegmentService`: сервис возвращает уже ограниченный `InputStream` и длину сегмента, Ktor boundary пишет поток напрямую. Graph/HLS controller/playback/endpoint regression suite прошёл 4/4. Ошибки авторизации/отсутствующего сегмента в HLS service ещё используют Spring exceptions.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
