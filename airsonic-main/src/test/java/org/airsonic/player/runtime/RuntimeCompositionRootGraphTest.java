@@ -98,6 +98,11 @@ class RuntimeCompositionRootGraphTest {
         CacheManager cacheManager = runtimeRoot.createCacheManager();
         assertSame(cacheManager, runtimeRoot.createCacheManager());
         assertNotNull(cacheManager);
+        LyricsService lyricsService = runtimeRoot.createLyricsService();
+        assertSame(lyricsService, runtimeRoot.createLyricsService());
+        MediaFileService mediaFileService = mock(MediaFileService.class);
+        BookmarkService bookmarkService = runtimeRoot.createBookmarkService(daoGraph.getBookmarkDao(), mediaFileService);
+        assertSame(bookmarkService, runtimeRoot.createBookmarkService(daoGraph.getBookmarkDao(), mediaFileService));
 
         ConfigurationPropertiesService properties = config.configurationPropertiesService();
         assertNotNull(properties);
@@ -130,7 +135,6 @@ class RuntimeCompositionRootGraphTest {
 
         TaskSchedulingService scheduler = config.taskSchedulingService(lifecycleRegistry);
         assertNotNull(scheduler);
-        MediaFileService mediaFileService = mock(MediaFileService.class);
         StatusService statusService = runtimeRoot.createStatusService(
                 mediaFileService, mediaFolderService, settingsService, scheduler);
         assertSame(statusService, runtimeRoot.createStatusService(

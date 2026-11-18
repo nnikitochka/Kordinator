@@ -16,6 +16,8 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.ServerInfoService serverInfoService;
     private org.airsonic.player.service.StatusService statusService;
     private org.airsonic.player.service.PasswordRecoveryService passwordRecoveryService;
+    private org.airsonic.player.service.LyricsService lyricsService;
+    private org.airsonic.player.service.BookmarkService bookmarkService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -133,5 +135,21 @@ public final class RuntimeCompositionRoot {
                     settingsService, securityService);
         }
         return passwordRecoveryService;
+    }
+
+    public synchronized org.airsonic.player.service.LyricsService createLyricsService() {
+        if (lyricsService == null) {
+            lyricsService = new org.airsonic.player.service.LyricsService();
+        }
+        return lyricsService;
+    }
+
+    public synchronized org.airsonic.player.service.BookmarkService createBookmarkService(
+            org.airsonic.player.dao.BookmarkDao bookmarkDao,
+            org.airsonic.player.service.MediaFileService mediaFileService) {
+        if (bookmarkService == null) {
+            bookmarkService = new org.airsonic.player.service.BookmarkService(bookmarkDao, mediaFileService);
+        }
+        return bookmarkService;
     }
 }

@@ -735,13 +735,14 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public BookmarkService bookmarkService(BookmarkDao bookmarkDao, MediaFileService mediaFileService) {
-        return new BookmarkService(bookmarkDao, mediaFileService);
+    public BookmarkService bookmarkService(RuntimeCompositionRoot runtime, BookmarkDao bookmarkDao,
+            MediaFileService mediaFileService) {
+        return runtime.createBookmarkService(bookmarkDao, mediaFileService);
     }
 
     @Bean
-    public LyricsService lyricsService() {
-        return new LyricsService();
+    public LyricsService lyricsService(RuntimeCompositionRoot runtime) {
+        return runtime.createLyricsService();
     }
 
     @Bean
