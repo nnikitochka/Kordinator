@@ -36,6 +36,12 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.VideoPlaybackService videoPlaybackService;
     private org.airsonic.player.service.TranscodingService transcodingService;
     private org.airsonic.player.service.PlayerService playerService;
+    private org.airsonic.player.service.metadata.DefaultMetaDataParser defaultMetaDataParser;
+    private org.airsonic.player.service.metadata.FFmpegParser ffmpegParser;
+    private org.airsonic.player.service.metadata.JaudiotaggerParser jaudiotaggerParser;
+    private org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory;
+    private org.airsonic.player.service.CoverArtService coverArtService;
+    private org.airsonic.player.service.CoverArtSearchService coverArtSearchService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -118,6 +124,57 @@ public final class RuntimeCompositionRoot {
                     parser, metaDataParserFactory, coverArtService, localeResolver, createCacheManager());
         }
         return mediaFileService;
+    }
+
+    public synchronized org.airsonic.player.service.metadata.DefaultMetaDataParser createDefaultMetaDataParser() {
+        if (defaultMetaDataParser == null) {
+            defaultMetaDataParser = new org.airsonic.player.service.metadata.DefaultMetaDataParser(createMediaFolderService());
+        }
+        return defaultMetaDataParser;
+    }
+
+    public synchronized org.airsonic.player.service.metadata.FFmpegParser createFFmpegParser() {
+        if (ffmpegParser == null) {
+            ffmpegParser = new org.airsonic.player.service.metadata.FFmpegParser(createMediaFolderService());
+        }
+        return ffmpegParser;
+    }
+
+    public synchronized org.airsonic.player.service.metadata.JaudiotaggerParser createJaudiotaggerParser() {
+        if (jaudiotaggerParser == null) {
+            jaudiotaggerParser = new org.airsonic.player.service.metadata.JaudiotaggerParser(createMediaFolderService());
+        }
+        return jaudiotaggerParser;
+    }
+
+    public synchronized org.airsonic.player.service.metadata.MetaDataParserFactory createMetaDataParserFactory() {
+        if (metaDataParserFactory == null) {
+            metaDataParserFactory = new org.airsonic.player.service.metadata.MetaDataParserFactory(
+                    new java.util.ArrayList<>(java.util.List.of(
+                            createJaudiotaggerParser(), createFFmpegParser(), createDefaultMetaDataParser())));
+        }
+        return metaDataParserFactory;
+    }
+
+    public synchronized org.airsonic.player.service.CoverArtService createCoverArtService(
+            org.airsonic.player.dao.CoverArtDao coverArtDao) {
+        if (coverArtService == null) {
+            coverArtService = new org.airsonic.player.service.CoverArtService(
+                    coverArtDao, createMediaFolderService(), createJaudiotaggerParser(), createCacheManager());
+        }
+        return coverArtService;
+    }
+
+    public synchronized org.airsonic.player.service.CoverArtSearchService createCoverArtSearchService(
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.LastFmService lastFmService,
+            org.airsonic.player.service.CoverArtService coverArtService) {
+        if (coverArtSearchService == null) {
+            coverArtSearchService = new org.airsonic.player.service.CoverArtSearchService(
+                    securityService, mediaFileService, lastFmService, createMediaFolderService(), coverArtService);
+        }
+        return coverArtSearchService;
     }
 
     public synchronized org.airsonic.player.dao.PlayerDao createPlayerDao() throws Exception {

@@ -124,11 +124,13 @@ class RuntimeCompositionRootGraphTest {
         SecurityService securityService = runtimeRoot.createSecurityService(userDao, settingsService, mediaFolderService);
         assertSame(securityService, runtimeRoot.createSecurityService(userDao, settingsService, mediaFolderService));
         assertNotNull(securityService);
-        org.airsonic.player.service.metadata.JaudiotaggerParser parser =
-                mock(org.airsonic.player.service.metadata.JaudiotaggerParser.class);
+        org.airsonic.player.service.metadata.JaudiotaggerParser parser = runtimeRoot.createJaudiotaggerParser();
+        assertSame(parser, runtimeRoot.createJaudiotaggerParser());
         org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory =
-                mock(org.airsonic.player.service.metadata.MetaDataParserFactory.class);
-        CoverArtService coverArtService = mock(CoverArtService.class);
+                runtimeRoot.createMetaDataParserFactory();
+        assertSame(metaDataParserFactory, runtimeRoot.createMetaDataParserFactory());
+        CoverArtService coverArtService = runtimeRoot.createCoverArtService(daoGraph.getCoverArtDao());
+        assertSame(coverArtService, runtimeRoot.createCoverArtService(daoGraph.getCoverArtDao()));
         org.airsonic.player.i18n.LocaleResolver localeResolver = mock(org.airsonic.player.i18n.LocaleResolver.class);
         MediaFileService mediaFileService = runtimeRoot.createMediaFileService(securityService, settingsService,
                 mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeResolver);
@@ -163,6 +165,10 @@ class RuntimeCompositionRootGraphTest {
         assertSame(lastFmService, runtimeRoot.createLastFmService(mediaFileDao, mediaFileService, artistDao));
         ShareService shareService = runtimeRoot.createShareService(daoGraph.getShareDao(), mediaFileService, jwtSecurityService);
         assertSame(shareService, runtimeRoot.createShareService(daoGraph.getShareDao(), mediaFileService, jwtSecurityService));
+        CoverArtSearchService coverArtSearchService = runtimeRoot.createCoverArtSearchService(
+                securityService, mediaFileService, lastFmService, coverArtService);
+        assertSame(coverArtSearchService, runtimeRoot.createCoverArtSearchService(
+                securityService, mediaFileService, lastFmService, coverArtService));
         org.airsonic.player.service.metadata.MetaDataParserFactory parserFactory =
                 mock(org.airsonic.player.service.metadata.MetaDataParserFactory.class);
         CaptionService captionService = runtimeRoot.createCaptionService(mediaFileService, mediaFolderService,

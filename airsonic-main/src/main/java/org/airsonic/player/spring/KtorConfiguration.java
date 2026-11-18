@@ -554,25 +554,23 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public DefaultMetaDataParser defaultMetaDataParser(MediaFolderService mediaFolderService) {
-        return new DefaultMetaDataParser(mediaFolderService);
+    public DefaultMetaDataParser defaultMetaDataParser(RuntimeCompositionRoot runtime) {
+        return runtime.createDefaultMetaDataParser();
     }
 
     @Bean
-    public FFmpegParser ffmpegParser(MediaFolderService mediaFolderService) {
-        return new FFmpegParser(mediaFolderService);
+    public FFmpegParser ffmpegParser(RuntimeCompositionRoot runtime) {
+        return runtime.createFFmpegParser();
     }
 
     @Bean
-    public JaudiotaggerParser jaudiotaggerParser(MediaFolderService mediaFolderService) {
-        return new JaudiotaggerParser(mediaFolderService);
+    public JaudiotaggerParser jaudiotaggerParser(RuntimeCompositionRoot runtime) {
+        return runtime.createJaudiotaggerParser();
     }
 
     @Bean
-    public MetaDataParserFactory metaDataParserFactory(DefaultMetaDataParser defaultMetaDataParser,
-            FFmpegParser ffmpegParser, JaudiotaggerParser jaudiotaggerParser) {
-        return new MetaDataParserFactory(new java.util.ArrayList<MetaDataParser>(
-                java.util.List.of(jaudiotaggerParser, ffmpegParser, defaultMetaDataParser)));
+    public MetaDataParserFactory metaDataParserFactory(RuntimeCompositionRoot runtime) {
+        return runtime.createMetaDataParserFactory();
     }
 
     @Bean
@@ -590,9 +588,8 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public CoverArtService coverArtService(CoverArtDao coverArtDao, MediaFolderService mediaFolderService,
-            JaudiotaggerParser jaudiotaggerParser, javax.cache.CacheManager cacheManager) {
-        return new CoverArtService(coverArtDao, mediaFolderService, jaudiotaggerParser, cacheManager);
+    public CoverArtService coverArtService(RuntimeCompositionRoot runtime, CoverArtDao coverArtDao) {
+        return runtime.createCoverArtService(coverArtDao);
     }
 
     @Bean
@@ -607,11 +604,9 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public CoverArtSearchService coverArtSearchService(SecurityService securityService,
-            MediaFileService mediaFileService, LastFmService lastFmService, MediaFolderService mediaFolderService,
-            CoverArtService coverArtService) {
-        return new CoverArtSearchService(securityService, mediaFileService, lastFmService, mediaFolderService,
-                coverArtService);
+    public CoverArtSearchService coverArtSearchService(RuntimeCompositionRoot runtime, SecurityService securityService,
+            MediaFileService mediaFileService, LastFmService lastFmService, CoverArtService coverArtService) {
+        return runtime.createCoverArtSearchService(securityService, mediaFileService, lastFmService, coverArtService);
     }
 
     @Bean
