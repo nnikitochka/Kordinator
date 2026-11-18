@@ -17,7 +17,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.lang.Nullable;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -95,7 +94,7 @@ public class PlaylistService {
         this.playlistUsersCache = cacheManager != null ? cacheManager.getCache("playlistUsersCache", Integer.class, Object.class) : null;
     }
 
-    public static void notNull(@Nullable Object object, String message) {
+    public static void notNull(Object object, String message) {
         if (object == null) {
             throw new IllegalArgumentException(message);
         }

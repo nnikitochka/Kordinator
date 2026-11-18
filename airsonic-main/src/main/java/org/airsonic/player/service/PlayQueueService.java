@@ -11,8 +11,6 @@ import org.airsonic.player.domain.PlayQueue.RepeatStatus;
 import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.RandomSearchCriteria;
 import org.airsonic.player.domain.SavedPlayQueue;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
