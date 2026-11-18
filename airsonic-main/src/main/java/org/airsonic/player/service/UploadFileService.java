@@ -15,14 +15,12 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 import java.io.*;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
 import java.util.*;
 
 /** File storage and archive extraction shared by the Ktor upload endpoint. */
-@Service
 public class UploadFileService {
     private static final Logger LOG = LoggerFactory.getLogger(UploadFileService.class);
     private static final Set<String> ARCHIVES = Set.of("zip", "7z", "rar", "cpio", "jar", "tar");

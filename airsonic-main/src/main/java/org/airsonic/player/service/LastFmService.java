@@ -9,7 +9,6 @@ import org.airsonic.player.domain.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 
@@ -25,7 +24,6 @@ import java.util.stream.Collectors;
  * @author Sindre Mehus
  * @version $Id$
  */
-@Service
 public class LastFmService {
 
     private static final String LAST_FM_KEY = "ece4499898a9440896dfdce5dab26bbf";

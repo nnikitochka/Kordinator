@@ -21,7 +21,6 @@ import org.airsonic.player.util.LegacyHsqlMigrationUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 
@@ -49,7 +48,6 @@ import java.util.zip.ZipOutputStream;
 
 import static java.util.stream.Collectors.joining;
 
-@Service
 public class DatabaseService {
     private static final Logger LOG = LoggerFactory.getLogger(DatabaseService.class);
 

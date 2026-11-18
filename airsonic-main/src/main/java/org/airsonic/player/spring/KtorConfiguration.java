@@ -80,6 +80,7 @@ import org.airsonic.player.service.MusicIndexService;
 import org.airsonic.player.service.DownloadService;
 import org.airsonic.player.service.CoverArtService;
 import org.airsonic.player.service.CoverArtImageService;
+import org.airsonic.player.service.DatabaseService;
 import org.airsonic.player.controller.rest.playqueue.PlayQueueController;
 import org.airsonic.player.controller.rest.playqueue.PlayQueuePageController;
 import org.airsonic.player.dao.PlayQueueDao;
@@ -475,6 +476,29 @@ public class KtorConfiguration {
     @Bean
     public MusicIndexService musicIndexService(SettingsService settingsService, MediaFileService mediaFileService) {
         return new MusicIndexService(settingsService, mediaFileService);
+    }
+
+    @Bean
+    public DatabaseService databaseService(SettingsService settingsService, DatabaseDao databaseDao,
+            TaskSchedulingService taskSchedulingService) {
+        return new DatabaseService(settingsService, databaseDao, taskSchedulingService);
+    }
+
+    @Bean
+    public LastFmService lastFmService(MediaFileDao mediaFileDao, MediaFileService mediaFileService,
+            ArtistDao artistDao) {
+        return new LastFmService(mediaFileDao, mediaFileService, artistDao);
+    }
+
+    @Bean
+    public ShareService shareService(ShareDao shareDao, MediaFileService mediaFileService,
+            JWTSecurityService jwtSecurityService) {
+        return new ShareService(shareDao, mediaFileService, jwtSecurityService);
+    }
+
+    @Bean
+    public UploadFileService uploadFileService(SecurityService securityService) {
+        return new UploadFileService(securityService);
     }
 
     @Bean

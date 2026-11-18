@@ -9,7 +9,6 @@ import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -25,7 +24,6 @@ import static java.util.stream.Collectors.toList;
  *
  * @see Share
  */
-@Service
 public class ShareService {
 
     private static final Logger LOG = LoggerFactory.getLogger(ShareService.class);
