@@ -370,4 +370,18 @@ class RuntimeCompositionRootGraphTest {
         assertTrue(cacheManager.isClosed(), "Runtime lifecycle should close its cache manager");
         assertTrue(lifecycleRegistry.isShutdownComplete(), "Lifecycle should be marked as completed");
     }
+
+    @Test
+    void healthContributorsAreOwnedByCompositionRoot() {
+        RuntimeCompositionRoot runtimeRoot = new RuntimeCompositionRoot();
+        JDBCDataSource dataSource = new JDBCDataSource();
+
+        org.airsonic.player.health.HealthContributorRegistry registry =
+                runtimeRoot.createHealthContributorRegistry(dataSource);
+
+        assertSame(registry, runtimeRoot.createHealthContributorRegistry(dataSource));
+        assertNotNull(registry.getContributor("db"));
+        assertNotNull(registry.getContributor("diskSpace"));
+        assertNotNull(registry.getContributor("ping"));
+    }
 }

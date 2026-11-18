@@ -312,15 +312,8 @@ public class KtorConfiguration {
     // Keep the health contributors independent of Actuator HTTP endpoint exposure.
     @Bean
     public org.airsonic.player.health.HealthContributorRegistry serverHealthContributors(
-            javax.sql.DataSource dataSource,
-            SettingsService settingsService) {
-        org.airsonic.player.health.DefaultHealthContributorRegistry registry =
-                new org.airsonic.player.health.DefaultHealthContributorRegistry();
-        registry.registerContributor("db", new org.airsonic.player.health.DatabaseHealthIndicator(dataSource));
-        registry.registerContributor("diskSpace", new org.airsonic.player.health.DiskSpaceHealthIndicator(
-                settingsService.getAirsonicHome()));
-        registry.registerContributor("ping", new org.airsonic.player.health.PingHealthIndicator());
-        return registry;
+            RuntimeCompositionRoot runtime, javax.sql.DataSource dataSource) {
+        return runtime.createHealthContributorRegistry(dataSource);
     }
 
     @Bean

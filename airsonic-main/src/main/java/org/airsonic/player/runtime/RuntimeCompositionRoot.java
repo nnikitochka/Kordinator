@@ -81,6 +81,7 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.playlist.DefaultPlaylistImportHandler defaultPlaylistImportHandler;
     private org.airsonic.player.service.playlist.XspfPlaylistExportHandler xspfPlaylistExportHandler;
     private org.airsonic.player.service.playlist.XspfPlaylistImportHandler xspfPlaylistImportHandler;
+    private org.airsonic.player.health.HealthContributorRegistry healthContributorRegistry;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -105,6 +106,20 @@ public final class RuntimeCompositionRoot {
 
     public LifecycleRegistry getLifecycleRegistry() {
         return lifecycleRegistry;
+    }
+
+    public synchronized org.airsonic.player.health.HealthContributorRegistry createHealthContributorRegistry(
+            DataSource dataSource) {
+        if (healthContributorRegistry == null) {
+            org.airsonic.player.health.DefaultHealthContributorRegistry registry =
+                    new org.airsonic.player.health.DefaultHealthContributorRegistry();
+            registry.registerContributor("db", new org.airsonic.player.health.DatabaseHealthIndicator(dataSource));
+            registry.registerContributor("diskSpace", new org.airsonic.player.health.DiskSpaceHealthIndicator(
+                    org.airsonic.player.service.SettingsService.getAirsonicHome()));
+            registry.registerContributor("ping", new org.airsonic.player.health.PingHealthIndicator());
+            healthContributorRegistry = registry;
+        }
+        return healthContributorRegistry;
     }
 
     public synchronized org.airsonic.player.service.TaskSchedulingService createTaskSchedulingService() {
