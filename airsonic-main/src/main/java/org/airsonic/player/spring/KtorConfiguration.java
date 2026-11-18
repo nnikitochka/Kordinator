@@ -517,40 +517,39 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public DefaultPlaylistExportHandler defaultPlaylistExportHandler(MediaFileDao mediaFileDao,
-            MediaFolderService mediaFolderService) {
-        return new DefaultPlaylistExportHandler(mediaFileDao, mediaFolderService);
+    public DefaultPlaylistExportHandler defaultPlaylistExportHandler(RuntimeCompositionRoot runtime,
+            MediaFileDao mediaFileDao) {
+        return runtime.createDefaultPlaylistExportHandler(mediaFileDao);
     }
 
     @Bean
-    public DefaultPlaylistImportHandler defaultPlaylistImportHandler(MediaFileService mediaFileService,
+    public DefaultPlaylistImportHandler defaultPlaylistImportHandler(RuntimeCompositionRoot runtime,
+            MediaFileService mediaFileService,
             SettingsService settingsService) {
-        return new DefaultPlaylistImportHandler(mediaFileService, settingsService);
+        return runtime.createDefaultPlaylistImportHandler(mediaFileService, settingsService);
     }
 
     @Bean
-    public XspfPlaylistExportHandler xspfPlaylistExportHandler(MediaFileDao mediaFileDao, PlaylistDao playlistDao,
-            MediaFolderService mediaFolderService, CoverArtService coverArtService) {
-        return new XspfPlaylistExportHandler(mediaFileDao, playlistDao, mediaFolderService, coverArtService);
+    public XspfPlaylistExportHandler xspfPlaylistExportHandler(RuntimeCompositionRoot runtime,
+            MediaFileDao mediaFileDao, PlaylistDao playlistDao, CoverArtService coverArtService) {
+        return runtime.createXspfPlaylistExportHandler(mediaFileDao, playlistDao, coverArtService);
     }
 
     @Bean
-    public XspfPlaylistImportHandler xspfPlaylistImportHandler(MediaFileService mediaFileService,
+    public XspfPlaylistImportHandler xspfPlaylistImportHandler(RuntimeCompositionRoot runtime,
+            MediaFileService mediaFileService,
             SettingsService settingsService) {
-        return new XspfPlaylistImportHandler(mediaFileService, settingsService);
+        return runtime.createXspfPlaylistImportHandler(mediaFileService, settingsService);
     }
 
     @Bean
-    public PlaylistService playlistService(MediaFileDao mediaFileDao, PlaylistDao playlistDao,
-            SecurityService securityService, SettingsService settingsService,
+    public PlaylistService playlistService(RuntimeCompositionRoot runtime, SecurityService securityService,
+            SettingsService settingsService,
             java.util.List<org.airsonic.player.service.playlist.PlaylistExportHandler> exportHandlers,
             java.util.List<org.airsonic.player.service.playlist.PlaylistImportHandler> importHandlers,
-            org.airsonic.player.service.PathWatcherService pathWatcherService,
-            javax.cache.CacheManager cacheManager) throws java.io.IOException {
-        PlaylistService service = new PlaylistService(mediaFileDao, playlistDao, securityService, settingsService,
-                exportHandlers, importHandlers, pathWatcherService, cacheManager);
-        service.init();
-        return service;
+            org.airsonic.player.service.PathWatcherService pathWatcherService) throws java.io.IOException {
+        return runtime.createPlaylistService(securityService, settingsService, exportHandlers, importHandlers,
+                pathWatcherService);
     }
 
     @Bean

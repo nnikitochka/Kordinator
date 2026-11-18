@@ -51,6 +51,11 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.CoverArtImageService coverArtImageService;
     private org.airsonic.player.dao.PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory;
     private org.airsonic.player.service.MediaStreamService mediaStreamService;
+    private org.airsonic.player.service.PlaylistService playlistService;
+    private org.airsonic.player.service.playlist.DefaultPlaylistExportHandler defaultPlaylistExportHandler;
+    private org.airsonic.player.service.playlist.DefaultPlaylistImportHandler defaultPlaylistImportHandler;
+    private org.airsonic.player.service.playlist.XspfPlaylistExportHandler xspfPlaylistExportHandler;
+    private org.airsonic.player.service.playlist.XspfPlaylistImportHandler xspfPlaylistImportHandler;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -284,6 +289,65 @@ public final class RuntimeCompositionRoot {
                     mediaFileService, searchService, createPlayerDaoPlayQueueFactory());
         }
         return mediaStreamService;
+    }
+
+    public synchronized org.airsonic.player.service.playlist.DefaultPlaylistExportHandler createDefaultPlaylistExportHandler(
+            org.airsonic.player.dao.MediaFileDao mediaFileDao) {
+        if (defaultPlaylistExportHandler == null) {
+            defaultPlaylistExportHandler = new org.airsonic.player.service.playlist.DefaultPlaylistExportHandler(
+                    mediaFileDao, createMediaFolderService());
+        }
+        return defaultPlaylistExportHandler;
+    }
+
+    public synchronized org.airsonic.player.service.playlist.DefaultPlaylistImportHandler createDefaultPlaylistImportHandler(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.SettingsService settingsService) {
+        if (defaultPlaylistImportHandler == null) {
+            defaultPlaylistImportHandler = new org.airsonic.player.service.playlist.DefaultPlaylistImportHandler(
+                    mediaFileService, settingsService);
+        }
+        return defaultPlaylistImportHandler;
+    }
+
+    public synchronized org.airsonic.player.service.playlist.XspfPlaylistExportHandler createXspfPlaylistExportHandler(
+            org.airsonic.player.dao.MediaFileDao mediaFileDao,
+            org.airsonic.player.dao.PlaylistDao playlistDao,
+            org.airsonic.player.service.CoverArtService coverArtService) {
+        if (xspfPlaylistExportHandler == null) {
+            xspfPlaylistExportHandler = new org.airsonic.player.service.playlist.XspfPlaylistExportHandler(
+                    mediaFileDao, playlistDao, createMediaFolderService(), coverArtService);
+        }
+        return xspfPlaylistExportHandler;
+    }
+
+    public synchronized org.airsonic.player.service.playlist.XspfPlaylistImportHandler createXspfPlaylistImportHandler(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.SettingsService settingsService) {
+        if (xspfPlaylistImportHandler == null) {
+            xspfPlaylistImportHandler = new org.airsonic.player.service.playlist.XspfPlaylistImportHandler(
+                    mediaFileService, settingsService);
+        }
+        return xspfPlaylistImportHandler;
+    }
+
+    public synchronized org.airsonic.player.service.PlaylistService createPlaylistService(
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.service.SettingsService settingsService,
+            java.util.List<org.airsonic.player.service.playlist.PlaylistExportHandler> exportHandlers,
+            java.util.List<org.airsonic.player.service.playlist.PlaylistImportHandler> importHandlers,
+            org.airsonic.player.service.PathWatcherService pathWatcherService) throws java.io.IOException {
+        if (playlistService == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before PlaylistService");
+            }
+            playlistService = new org.airsonic.player.service.PlaylistService(
+                    persistenceGraph.getDaos().getMediaFileDao(), persistenceGraph.getDaos().getPlaylistDao(),
+                    securityService, settingsService, exportHandlers, importHandlers,
+                    pathWatcherService, createCacheManager());
+            playlistService.init();
+        }
+        return playlistService;
     }
 
     public synchronized org.airsonic.player.dao.PlayerDao createPlayerDao() throws Exception {

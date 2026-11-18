@@ -13,6 +13,7 @@ import org.springframework.core.env.StandardEnvironment;
 
 import javax.cache.CacheManager;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -214,7 +215,18 @@ class RuntimeCompositionRootGraphTest {
                 mediaFileService));
         JukeboxService jukeboxService = runtimeRoot.createJukeboxService(legacyJukebox);
         assertSame(jukeboxService, runtimeRoot.createJukeboxService(legacyJukebox));
-        PlaylistService playlistService = mock(PlaylistService.class);
+        PathWatcherService pathWatcher = config.pathWatcherService(lifecycleRegistry);
+        assertNotNull(pathWatcher);
+        List<org.airsonic.player.service.playlist.PlaylistExportHandler> exportHandlers = List.of(
+                runtimeRoot.createDefaultPlaylistExportHandler(mediaFileDao),
+                runtimeRoot.createXspfPlaylistExportHandler(mediaFileDao, playlistDao, coverArtService));
+        List<org.airsonic.player.service.playlist.PlaylistImportHandler> importHandlers = List.of(
+                runtimeRoot.createDefaultPlaylistImportHandler(mediaFileService, settingsService),
+                runtimeRoot.createXspfPlaylistImportHandler(mediaFileService, settingsService));
+        PlaylistService playlistService = runtimeRoot.createPlaylistService(
+                securityService, settingsService, exportHandlers, importHandlers, pathWatcher);
+        assertSame(playlistService, runtimeRoot.createPlaylistService(
+                securityService, settingsService, exportHandlers, importHandlers, pathWatcher));
         CoverArtImageService coverArtImageService = runtimeRoot.createCoverArtImageService(mediaFileService,
                 coverArtService, transcodingService, settingsService, playlistService, artistDao, albumDao);
         assertSame(coverArtImageService, runtimeRoot.createCoverArtImageService(mediaFileService,
@@ -248,9 +260,6 @@ class RuntimeCompositionRootGraphTest {
                 settingsService, transcodingService, audioScrobblerService, mediaFileService, searchService);
         assertSame(mediaStreamService, runtimeRoot.createMediaStreamService(statusService, securityService,
                 settingsService, transcodingService, audioScrobblerService, mediaFileService, searchService));
-
-        PathWatcherService pathWatcher = config.pathWatcherService(lifecycleRegistry);
-        assertNotNull(pathWatcher);
 
         MetricsManager metricsManager = config.metricsManager(runtimeRoot);
         assertNotNull(metricsManager);
