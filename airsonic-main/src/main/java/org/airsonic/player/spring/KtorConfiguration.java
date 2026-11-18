@@ -502,6 +502,17 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public MediaScannerService mediaScannerService(PlaylistService playlistService, SettingsService settingsService,
+            IndexManager indexManager, MediaFileService mediaFileService, MediaFolderService mediaFolderService,
+            CoverArtService coverArtService, MediaFileDao mediaFileDao, ArtistDao artistDao, AlbumDao albumDao,
+            TaskSchedulingService taskSchedulingService,
+            @org.springframework.beans.factory.annotation.Value("${MediaScannerParallelism:#{T(java.lang.Runtime).getRuntime().availableProcessors() + 1}}") int scannerParallelism) {
+        return new MediaScannerService(playlistService, settingsService, indexManager, mediaFileService,
+                mediaFolderService, coverArtService, mediaFileDao, artistDao, albumDao, taskSchedulingService,
+                scannerParallelism);
+    }
+
+    @Bean
     public LastFmService lastFmService(MediaFileDao mediaFileDao, MediaFileService mediaFileService,
             ArtistDao artistDao) {
         return new LastFmService(mediaFileDao, mediaFileService, artistDao);

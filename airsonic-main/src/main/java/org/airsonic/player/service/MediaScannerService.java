@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 
@@ -33,7 +32,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Provides services for scanning the music library.
  */
-@Service
 public class MediaScannerService {
     private static final Logger LOG = LoggerFactory.getLogger(MediaScannerService.class);
 
