@@ -46,7 +46,9 @@ class RuntimeCompositionRootGraphTest {
     @Test
     void assemblesGraphExplicitlyAndManagesLifecycleWithoutSpringContext() throws Exception {
         LifecycleRegistry lifecycleRegistry = new LifecycleRegistry();
-        RuntimeConfiguration runtimeConfig = new RuntimeConfiguration("DOWN, UP");
+        RuntimeConfiguration runtimeConfig = new RuntimeConfiguration(java.util.Map.of(
+                RuntimeConfiguration.HEALTH_STATUS_ORDER_KEY, "DOWN, UP",
+                "MediaScannerParallelism", "2"));
         RuntimeCompositionRoot runtimeRoot = new RuntimeCompositionRoot(runtimeConfig, lifecycleRegistry);
 
         JDBCDataSource dataSource = new JDBCDataSource();
@@ -243,7 +245,16 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createUserAdministrationService(securityService, settingsService);
         assertSame(userAdministrationService,
                 runtimeRoot.createUserAdministrationService(securityService, settingsService));
-        MediaScannerService mediaScannerService = mock(MediaScannerService.class);
+        settingsService.setIndexCreationInterval(-1);
+        org.airsonic.player.service.search.IndexManager indexManager =
+                mock(org.airsonic.player.service.search.IndexManager.class);
+        MediaScannerService mediaScannerService = runtimeRoot.createMediaScannerService(
+                playlistService, settingsService, indexManager, mediaFileService, mediaFolderService, coverArtService);
+        assertSame(mediaScannerService, config.mediaScannerService(runtimeRoot, playlistService, settingsService,
+                indexManager, mediaFileService, mediaFolderService, coverArtService));
+        verify(indexManager).initializeIndexDirectory();
+        assertSame(mediaScannerService, runtimeRoot.createMediaScannerService(
+                playlistService, settingsService, indexManager, mediaFileService, mediaFolderService, coverArtService));
         MusicIndexStateService musicIndexStateService = runtimeRoot.createMusicIndexStateService(
                 mediaScannerService, settingsService);
         assertSame(musicIndexStateService,

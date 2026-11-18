@@ -54,6 +54,7 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.PlaylistService playlistService;
     private org.airsonic.player.service.TaskSchedulingService taskSchedulingService;
     private org.airsonic.player.service.PathWatcherService pathWatcherService;
+    private org.airsonic.player.service.MediaScannerService mediaScannerService;
     private org.airsonic.player.service.playlist.DefaultPlaylistExportHandler defaultPlaylistExportHandler;
     private org.airsonic.player.service.playlist.DefaultPlaylistImportHandler defaultPlaylistImportHandler;
     private org.airsonic.player.service.playlist.XspfPlaylistExportHandler xspfPlaylistExportHandler;
@@ -98,6 +99,29 @@ public final class RuntimeCompositionRoot {
             lifecycleRegistry.registerShutdown("pathWatcherService", pathWatcherService);
         }
         return pathWatcherService;
+    }
+
+    public synchronized org.airsonic.player.service.MediaScannerService createMediaScannerService(
+            org.airsonic.player.service.PlaylistService playlistService,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.search.IndexManager indexManager,
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.service.CoverArtService coverArtService) {
+        if (mediaScannerService == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before MediaScannerService");
+            }
+            int scannerParallelism = configuration.getIntProperty("MediaScannerParallelism",
+                    Runtime.getRuntime().availableProcessors() + 1);
+            DaoGraph daos = persistenceGraph.getDaos();
+            mediaScannerService = new org.airsonic.player.service.MediaScannerService(
+                    playlistService, settingsService, indexManager, mediaFileService, mediaFolderService,
+                    coverArtService, daos.getMediaFileDao(), daos.getArtistDao(), daos.getAlbumDao(),
+                    createTaskSchedulingService(), scannerParallelism);
+            mediaScannerService.init();
+        }
+        return mediaScannerService;
     }
 
     public synchronized PersistenceGraph createPersistenceGraph(DataSource dataSource) {
