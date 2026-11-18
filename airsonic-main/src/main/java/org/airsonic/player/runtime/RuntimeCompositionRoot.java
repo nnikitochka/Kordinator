@@ -21,6 +21,8 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.RatingService ratingService;
     private org.airsonic.player.service.MediaDirectoryService mediaDirectoryService;
     private org.airsonic.player.service.MusicIndexService musicIndexService;
+    private org.airsonic.player.service.SecurityService securityService;
+    private org.airsonic.player.service.JWTSecurityService jwtSecurityService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -185,5 +187,24 @@ public final class RuntimeCompositionRoot {
             musicIndexService = new org.airsonic.player.service.MusicIndexService(settingsService, mediaFileService);
         }
         return musicIndexService;
+    }
+
+    public synchronized org.airsonic.player.service.SecurityService createSecurityService(
+            org.airsonic.player.dao.UserDao userDao,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService) {
+        if (securityService == null) {
+            securityService = new org.airsonic.player.service.SecurityService(
+                    userDao, settingsService, mediaFolderService, createCacheManager());
+        }
+        return securityService;
+    }
+
+    public synchronized org.airsonic.player.service.JWTSecurityService createJwtSecurityService(
+            org.airsonic.player.service.SettingsService settingsService) {
+        if (jwtSecurityService == null) {
+            jwtSecurityService = new org.airsonic.player.service.JWTSecurityService(settingsService);
+        }
+        return jwtSecurityService;
     }
 }

@@ -772,14 +772,14 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public JWTSecurityService jwtSecurityService(SettingsService settingsService) {
-        return new JWTSecurityService(settingsService);
+    public JWTSecurityService jwtSecurityService(RuntimeCompositionRoot runtime, SettingsService settingsService) {
+        return runtime.createJwtSecurityService(settingsService);
     }
 
     @Bean
-    public SecurityService securityService(UserDao userDao, SettingsService settingsService,
-            MediaFolderService mediaFolderService, javax.cache.CacheManager cacheManager) {
-        return new SecurityService(userDao, settingsService, mediaFolderService, cacheManager);
+    public SecurityService securityService(RuntimeCompositionRoot runtime, UserDao userDao, SettingsService settingsService,
+            MediaFolderService mediaFolderService) {
+        return runtime.createSecurityService(userDao, settingsService, mediaFolderService);
     }
 
     @Bean

@@ -123,7 +123,8 @@ class RuntimeCompositionRootGraphTest {
         assertNotNull(playerDao);
 
         // Security & scheduling services
-        SecurityService securityService = config.securityService(userDao, settingsService, mediaFolderService, cacheManager);
+        SecurityService securityService = runtimeRoot.createSecurityService(userDao, settingsService, mediaFolderService);
+        assertSame(securityService, runtimeRoot.createSecurityService(userDao, settingsService, mediaFolderService));
         assertNotNull(securityService);
         RatingService ratingService = runtimeRoot.createRatingService(daoGraph.getRatingDao(), securityService,
                 mediaFileService);
@@ -140,7 +141,8 @@ class RuntimeCompositionRootGraphTest {
         assertSame(passwordRecoveryService,
                 runtimeRoot.createPasswordRecoveryService(settingsService, securityService));
 
-        JWTSecurityService jwtSecurityService = config.jwtSecurityService(settingsService);
+        JWTSecurityService jwtSecurityService = runtimeRoot.createJwtSecurityService(settingsService);
+        assertSame(jwtSecurityService, runtimeRoot.createJwtSecurityService(settingsService));
         assertNotNull(jwtSecurityService);
 
         TaskSchedulingService scheduler = config.taskSchedulingService(lifecycleRegistry);
