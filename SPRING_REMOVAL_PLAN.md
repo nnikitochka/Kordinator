@@ -168,6 +168,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срезы `515bc56`, `af87f89`: общие `TransactionManager`/`JdbcHelper` перенесены в Kotlin runtime `JdbcFactory`; 14 независимых от service слоя DAO создаются в `DaoFactory` и собираются в `DaoGraph`. `KtorConfiguration` пока публикует те же singleton DAO через временные bean projections; `PlayerDao` остаётся отдельным, поскольку требует `MediaFolderService`. `RuntimeCompositionRootGraphTest`, `JdbcHelperTest` и `ServerHealthIntegrationTest` прошли 10/10. Полный сервисный граф и lifecycle ownership ресурсов ещё не вынесены из Spring.
 
+Срезы `b6dd087`, `a2e34c2`, `6f06fed`: `RuntimeCompositionRoot` теперь создаёт и повторно отдаёт единый `PersistenceGraph` с transaction manager, `JdbcHelper` и DAO graph; Spring bean projections берут те же объекты из root. Тот же root создаёт единый CacheManager и закрывает его через `LifecycleRegistry`; DataSource регистрируется для закрытия, если он реализует `AutoCloseable`. Graph test проверяет идентичность повторно запрошенных графа/кеша и закрытие кеша. `RuntimeCompositionRootGraphTest`, `JdbcHelperTest`, `ServerHealthIntegrationTest`, `CacheStatisticsIntegrationTest`, `AirsonicRestApiIntTest` прошли в своих наборах (9/9, 3/3). Полный service/controller graph всё ещё строится в Spring, поэтому этап открыт.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
