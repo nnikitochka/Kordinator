@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.annotation.PostConstruct;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,7 +25,6 @@ public class TranscodingDao extends AbstractDao {
     private static final String QUERY_COLUMNS = "id, " + INSERT_COLUMNS;
     private final TranscodingRowMapper rowMapper = new TranscodingRowMapper();
 
-    @PostConstruct
     public void register() throws Exception {
         registerInserts("transcoding", "id", Arrays.asList(INSERT_COLUMNS.split(", ")), Transcoding.class);
     }

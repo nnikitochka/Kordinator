@@ -4,7 +4,6 @@ import org.airsonic.player.domain.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.PostConstruct;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -32,7 +31,6 @@ public class PlayerDao extends AbstractDao {
         this.playerDaoPlayQueueFactory = playerDaoPlayQueueFactory;
     }
 
-    @PostConstruct
     public void register() throws Exception {
         registerInserts("player", "id", Arrays.asList(INSERT_COLUMNS.split(", ")), Player.class);
     }

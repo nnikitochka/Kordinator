@@ -1,9 +1,7 @@
 package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.Bookmark;
-import org.springframework.beans.factory.annotation.Autowired;
 
-import jakarta.annotation.PostConstruct;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -30,7 +28,6 @@ public class BookmarkDao extends AbstractDao {
     private final ReentrantLock[] locks = new ReentrantLock[LOCK_STRIPES];
     private final BookmarkRowMapper bookmarkRowMapper = new BookmarkRowMapper();
 
-    @Autowired
     public BookmarkDao(JdbcHelper jdbcHelper, TransactionManager transactionManager) {
         super(jdbcHelper);
         this.transactionManager = transactionManager;
@@ -39,7 +36,6 @@ public class BookmarkDao extends AbstractDao {
         }
     }
 
-    @PostConstruct
     public void register() throws Exception {
         registerInserts("bookmark", "id", Arrays.asList(INSERT_COLUMNS.split(", ")), Bookmark.class);
     }

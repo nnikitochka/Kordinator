@@ -3,7 +3,6 @@ package org.airsonic.player.dao;
 import org.airsonic.player.domain.SavedPlayQueue;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.annotation.PostConstruct;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -25,7 +24,6 @@ public class PlayQueueDao extends AbstractDao {
     private static final String QUERY_COLUMNS = "id, " + INSERT_COLUMNS;
     private final PlayQueueMapper rowMapper = new PlayQueueMapper();
 
-    @PostConstruct
     public void register() throws Exception {
         registerInserts("play_queue", "id", Arrays.asList(INSERT_COLUMNS.split(", ")), SavedPlayQueue.class);
     }

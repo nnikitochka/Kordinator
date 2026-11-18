@@ -4,7 +4,6 @@ import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.Share;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.annotation.PostConstruct;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -31,7 +30,6 @@ public class ShareDao extends AbstractDao {
     private final ShareRowMapper shareRowMapper = new ShareRowMapper();
     private final ShareFileRowMapper shareFileRowMapper = new ShareFileRowMapper();
 
-    @PostConstruct
     public void register() throws Exception {
         registerInserts("share", "id", Arrays.asList(INSERT_COLUMNS.split(", ")), Share.class);
     }

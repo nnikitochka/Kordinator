@@ -287,13 +287,17 @@ public class KtorConfiguration {
 
     @Bean
     public BookmarkDao bookmarkDao(org.airsonic.player.dao.JdbcHelper jdbcHelper,
-            org.airsonic.player.dao.TransactionManager transactionManager) {
-        return new BookmarkDao(jdbcHelper, transactionManager);
+            org.airsonic.player.dao.TransactionManager transactionManager) throws Exception {
+        BookmarkDao dao = new BookmarkDao(jdbcHelper, transactionManager);
+        dao.register();
+        return dao;
     }
 
     @Bean
-    public CoverArtDao coverArtDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
-        return new CoverArtDao(jdbcHelper);
+    public CoverArtDao coverArtDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) throws Exception {
+        CoverArtDao dao = new CoverArtDao(jdbcHelper);
+        dao.register();
+        return dao;
     }
 
     @Bean
@@ -307,24 +311,32 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public MusicFolderDao musicFolderDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
-        return new MusicFolderDao(jdbcHelper);
+    public MusicFolderDao musicFolderDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) throws Exception {
+        MusicFolderDao dao = new MusicFolderDao(jdbcHelper);
+        dao.register();
+        return dao;
     }
 
     @Bean
-    public PlayQueueDao playQueueDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
-        return new PlayQueueDao(jdbcHelper);
+    public PlayQueueDao playQueueDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) throws Exception {
+        PlayQueueDao dao = new PlayQueueDao(jdbcHelper);
+        dao.register();
+        return dao;
     }
 
     @Bean
     public PlayerDao playerDao(PlayerDaoPlayQueueFactory playQueueFactory,
-            org.airsonic.player.dao.JdbcHelper jdbcHelper) {
-        return new PlayerDao(playQueueFactory, jdbcHelper);
+            org.airsonic.player.dao.JdbcHelper jdbcHelper) throws Exception {
+        PlayerDao dao = new PlayerDao(playQueueFactory, jdbcHelper);
+        dao.register();
+        return dao;
     }
 
     @Bean
-    public PlaylistDao playlistDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
-        return new PlaylistDao(jdbcHelper);
+    public PlaylistDao playlistDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) throws Exception {
+        PlaylistDao dao = new PlaylistDao(jdbcHelper);
+        dao.register();
+        return dao;
     }
 
     @Bean("musicFileInfoDao")
@@ -333,13 +345,17 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public ShareDao shareDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
-        return new ShareDao(jdbcHelper);
+    public ShareDao shareDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) throws Exception {
+        ShareDao dao = new ShareDao(jdbcHelper);
+        dao.register();
+        return dao;
     }
 
     @Bean
-    public TranscodingDao transcodingDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) {
-        return new TranscodingDao(jdbcHelper);
+    public TranscodingDao transcodingDao(org.airsonic.player.dao.JdbcHelper jdbcHelper) throws Exception {
+        TranscodingDao dao = new TranscodingDao(jdbcHelper);
+        dao.register();
+        return dao;
     }
 
     @Bean

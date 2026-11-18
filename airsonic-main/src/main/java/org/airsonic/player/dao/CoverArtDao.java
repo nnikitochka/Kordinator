@@ -5,7 +5,6 @@ import org.airsonic.player.domain.CoverArt.EntityType;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.annotation.PostConstruct;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -23,7 +22,6 @@ public class CoverArtDao extends AbstractDao {
 
     private final CoverArtRowMapper coverArtRowMapper = new CoverArtRowMapper();
 
-    @PostConstruct
     public void register() throws Exception {
         registerInserts("cover_art", null, Arrays.asList(COLUMNS.split(", ")), CoverArt.class);
     }

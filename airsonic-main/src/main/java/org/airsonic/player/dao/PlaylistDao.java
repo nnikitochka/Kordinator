@@ -6,7 +6,6 @@ import org.airsonic.player.util.LambdaUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.annotation.PostConstruct;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -30,7 +29,6 @@ public class PlaylistDao extends AbstractDao {
     private final PlaylistMapper rowMapper = new PlaylistMapper();
     private final static Comparator<Playlist> sorter = Comparator.comparing(Playlist::getName);
 
-    @PostConstruct
     public void register() throws Exception {
         registerInserts("playlist", "id", Arrays.asList(INSERT_COLUMNS.split(", ")), Playlist.class);
     }
