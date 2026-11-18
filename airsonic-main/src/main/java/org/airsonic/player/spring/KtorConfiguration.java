@@ -277,6 +277,11 @@ public class KtorConfiguration {
         return new UserDao(jdbcHelper);
     }
 
+    @Bean
+    public PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory(MediaFolderService mediaFolderService) {
+        return new PlayerDaoPlayQueueFactory(mediaFolderService);
+    }
+
     @Bean(destroyMethod = "shutdown")
     public TaskSchedulingService taskSchedulingService(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
         TaskSchedulingService service = new TaskSchedulingService();
