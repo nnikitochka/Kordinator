@@ -8,8 +8,6 @@ import org.airsonic.player.domain.User.Role;
 import org.airsonic.player.util.StringUtil;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.stereotype.Service;
 import org.springframework.web.bind.ServletRequestUtils;
 
 import jakarta.annotation.PostConstruct;
@@ -28,8 +26,6 @@ import java.util.Set;
  * @author Sindre Mehus
  * @see Player
  */
-@Service
-@DependsOn("liquibase")
 public class PlayerService {
 
     private static final String COOKIE_NAME = "player";

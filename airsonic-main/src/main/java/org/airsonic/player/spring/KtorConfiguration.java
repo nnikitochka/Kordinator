@@ -166,6 +166,8 @@ import org.airsonic.player.service.ShareService;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.annotation.Lazy;
 
 /** Connects Ktor to the existing servlet container during the migration. */
 @Configuration
@@ -488,6 +490,19 @@ public class KtorConfiguration {
             JWTSecurityService jwtSecurityService, BookmarkService bookmarkService, SettingsService settingsService) {
         return new VideoPlaybackService(mediaFileService, captionService, jwtSecurityService, bookmarkService,
                 settingsService);
+    }
+
+    @Bean
+    public TranscodingService transcodingService(TranscodingDao transcodingDao, SettingsService settingsService,
+            MediaFolderService mediaFolderService, @Lazy PlayerService playerService) {
+        return new TranscodingService(transcodingDao, settingsService, mediaFolderService, playerService);
+    }
+
+    @Bean
+    @DependsOn("liquibase")
+    public PlayerService playerService(PlayerDao playerDao, StatusService statusService,
+            SecurityService securityService, TranscodingService transcodingService) {
+        return new PlayerService(playerDao, statusService, securityService, transcodingService);
     }
 
     @Bean(destroyMethod = "shutdown")
