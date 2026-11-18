@@ -186,6 +186,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.MessageSource;
+import org.springframework.validation.Validator;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /** Connects Ktor to the existing servlet container during the migration. */
 @Configuration
@@ -194,6 +199,37 @@ public class KtorConfiguration {
     @Bean
     public javax.cache.CacheManager jCacheCacheManager() {
         return new CacheConfiguration().createCacheManager();
+    }
+
+    @Bean
+    public LegacyViewSuffixHandlerMapping legacyViewSuffixHandlerMapping() {
+        return new LegacyViewSuffixHandlerMapping();
+    }
+
+    @Bean(destroyMethod = "close")
+    public org.airsonic.player.monitor.MetricsManager metricsManager(RuntimeCompositionRoot runtime) {
+        org.airsonic.player.monitor.MetricsManager manager =
+                new org.airsonic.player.monitor.MetricsManager(runtime.getConfiguration());
+        runtime.getLifecycleRegistry().registerShutdown("metricsManager", manager);
+        return manager;
+    }
+
+    @Bean
+    public WebMvcConfigurer servletMvcCompatibility(MessageSource messageSource) {
+        return new WebMvcConfigurer() {
+            @Override
+            public void configurePathMatch(PathMatchConfigurer configurer) {
+                // Spring 6 changed trailing-slash matching; preserve existing URL behavior during migration.
+                configurer.setUseTrailingSlashMatch(true);
+            }
+
+            @Override
+            public Validator getValidator() {
+                LocalValidatorFactoryBean factory = new LocalValidatorFactoryBean();
+                factory.setValidationMessageSource(messageSource);
+                return factory;
+            }
+        };
     }
 
     @Bean
