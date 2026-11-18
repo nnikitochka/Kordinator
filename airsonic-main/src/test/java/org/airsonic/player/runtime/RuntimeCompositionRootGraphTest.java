@@ -151,6 +151,27 @@ class RuntimeCompositionRootGraphTest {
                 mediaFileService, mediaFolderService, settingsService, scheduler);
         assertSame(statusService, runtimeRoot.createStatusService(
                 mediaFileService, mediaFolderService, settingsService, scheduler));
+        TranscodingService transcodingService = mock(TranscodingService.class);
+        AudioScrobblerService audioScrobblerService = mock(AudioScrobblerService.class);
+        JukeboxLegacySubsonicService legacyJukebox = runtimeRoot.createJukeboxLegacySubsonicService(
+                transcodingService, audioScrobblerService, statusService, settingsService, securityService,
+                mediaFileService);
+        assertSame(legacyJukebox, runtimeRoot.createJukeboxLegacySubsonicService(
+                transcodingService, audioScrobblerService, statusService, settingsService, securityService,
+                mediaFileService));
+        JukeboxService jukeboxService = runtimeRoot.createJukeboxService(legacyJukebox);
+        assertSame(jukeboxService, runtimeRoot.createJukeboxService(legacyJukebox));
+        PlaylistService playlistService = mock(PlaylistService.class);
+        SearchService searchService = mock(SearchService.class);
+        LastFmService lastFmService = mock(LastFmService.class);
+        PlayQueueService playQueueService = runtimeRoot.createPlayQueueService(
+                searchService, jukeboxService, settingsService, mediaFileService,
+                lastFmService, ratingService, playlistService, mediaFileDao, mediaFolderService,
+                playQueueDao, jwtSecurityService);
+        assertSame(playQueueService, runtimeRoot.createPlayQueueService(
+                searchService, jukeboxService, settingsService, mediaFileService,
+                lastFmService, ratingService, playlistService, mediaFileDao, mediaFolderService,
+                playQueueDao, jwtSecurityService));
 
         PathWatcherService pathWatcher = config.pathWatcherService(lifecycleRegistry);
         assertNotNull(pathWatcher);

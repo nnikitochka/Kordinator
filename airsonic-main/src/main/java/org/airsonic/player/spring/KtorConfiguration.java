@@ -809,26 +809,28 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public PlayQueueService playQueueService(SearchService searchService, JukeboxService jukeboxService,
+    public PlayQueueService playQueueService(RuntimeCompositionRoot runtime, SearchService searchService, JukeboxService jukeboxService,
             SettingsService settingsService, MediaFileService mediaFileService, LastFmService lastFmService,
             RatingService ratingService, PlaylistService playlistService, MediaFileDao mediaFileDao,
             MediaFolderService mediaFolderService, PlayQueueDao playQueueDao,
             JWTSecurityService jwtSecurityService) {
-        return new PlayQueueService(searchService, jukeboxService, settingsService, mediaFileService, lastFmService,
-                ratingService, playlistService, mediaFileDao, mediaFolderService, playQueueDao, jwtSecurityService);
+        return runtime.createPlayQueueService(searchService, jukeboxService, settingsService, mediaFileService,
+                lastFmService, ratingService, playlistService, mediaFileDao, mediaFolderService, playQueueDao,
+                jwtSecurityService);
     }
 
     @Bean
-    public JukeboxLegacySubsonicService jukeboxLegacySubsonicService(TranscodingService transcodingService,
+    public JukeboxLegacySubsonicService jukeboxLegacySubsonicService(RuntimeCompositionRoot runtime,
+            TranscodingService transcodingService,
             AudioScrobblerService audioScrobblerService, StatusService statusService,
             SettingsService settingsService, SecurityService securityService, MediaFileService mediaFileService) {
-        return new JukeboxLegacySubsonicService(transcodingService, audioScrobblerService, statusService,
+        return runtime.createJukeboxLegacySubsonicService(transcodingService, audioScrobblerService, statusService,
                 settingsService, securityService, mediaFileService);
     }
 
     @Bean
-    public JukeboxService jukeboxService(JukeboxLegacySubsonicService legacyJukebox) {
-        return new JukeboxService(legacyJukebox);
+    public JukeboxService jukeboxService(RuntimeCompositionRoot runtime, JukeboxLegacySubsonicService legacyJukebox) {
+        return runtime.createJukeboxService(legacyJukebox);
     }
 
     @Bean

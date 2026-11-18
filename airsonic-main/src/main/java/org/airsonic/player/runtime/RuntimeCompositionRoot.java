@@ -24,6 +24,9 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.SecurityService securityService;
     private org.airsonic.player.service.JWTSecurityService jwtSecurityService;
     private org.airsonic.player.service.DatabaseService databaseService;
+    private org.airsonic.player.service.JukeboxLegacySubsonicService jukeboxLegacySubsonicService;
+    private org.airsonic.player.service.JukeboxService jukeboxService;
+    private org.airsonic.player.service.PlayQueueService playQueueService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -219,5 +222,48 @@ public final class RuntimeCompositionRoot {
             databaseService.init();
         }
         return databaseService;
+    }
+
+    public synchronized org.airsonic.player.service.JukeboxLegacySubsonicService createJukeboxLegacySubsonicService(
+            org.airsonic.player.service.TranscodingService transcodingService,
+            org.airsonic.player.service.AudioScrobblerService audioScrobblerService,
+            org.airsonic.player.service.StatusService statusService,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.service.MediaFileService mediaFileService) {
+        if (jukeboxLegacySubsonicService == null) {
+            jukeboxLegacySubsonicService = new org.airsonic.player.service.JukeboxLegacySubsonicService(
+                    transcodingService, audioScrobblerService, statusService, settingsService,
+                    securityService, mediaFileService);
+        }
+        return jukeboxLegacySubsonicService;
+    }
+
+    public synchronized org.airsonic.player.service.JukeboxService createJukeboxService(
+            org.airsonic.player.service.JukeboxLegacySubsonicService legacyJukebox) {
+        if (jukeboxService == null) {
+            jukeboxService = new org.airsonic.player.service.JukeboxService(legacyJukebox);
+        }
+        return jukeboxService;
+    }
+
+    public synchronized org.airsonic.player.service.PlayQueueService createPlayQueueService(
+            org.airsonic.player.service.SearchService searchService,
+            org.airsonic.player.service.JukeboxService jukeboxService,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.LastFmService lastFmService,
+            org.airsonic.player.service.RatingService ratingService,
+            org.airsonic.player.service.PlaylistService playlistService,
+            org.airsonic.player.dao.MediaFileDao mediaFileDao,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.dao.PlayQueueDao playQueueDao,
+            org.airsonic.player.service.JWTSecurityService jwtSecurityService) {
+        if (playQueueService == null) {
+            playQueueService = new org.airsonic.player.service.PlayQueueService(
+                    searchService, jukeboxService, settingsService, mediaFileService, lastFmService,
+                    ratingService, playlistService, mediaFileDao, mediaFolderService, playQueueDao, jwtSecurityService);
+        }
+        return playQueueService;
     }
 }
