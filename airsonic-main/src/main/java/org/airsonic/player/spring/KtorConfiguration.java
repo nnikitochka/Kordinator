@@ -16,6 +16,7 @@ import org.airsonic.player.service.upnp.RootUpnpProcessor;
 import org.airsonic.player.security.CsrfSecurityRequestMatcher;
 import org.airsonic.player.security.GlobalSecurityConfig;
 import org.airsonic.player.security.MultipleCredsMatchingAuthenticationProvider;
+import org.airsonic.player.security.SpringUserDetailsServiceAdapter;
 import org.airsonic.player.theme.CustomThemeResolver;
 import org.airsonic.player.theme.CustomThemeSource;
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController;
@@ -351,12 +352,18 @@ public class KtorConfiguration {
 
     @Bean
     public MultipleCredsMatchingAuthenticationProvider multipleCredsMatchingAuthenticationProvider(
-            SecurityService securityService, @Lazy org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
+            SecurityService securityService, SpringUserDetailsServiceAdapter userDetailsService,
+            @Lazy org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
         MultipleCredsMatchingAuthenticationProvider provider = new MultipleCredsMatchingAuthenticationProvider();
         provider.setSecurityService(securityService);
-        provider.setUserDetailsService(securityService);
+        provider.setUserDetailsService(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
         return provider;
+    }
+
+    @Bean
+    public SpringUserDetailsServiceAdapter springUserDetailsServiceAdapter(SecurityService securityService) {
+        return new SpringUserDetailsServiceAdapter(securityService);
     }
 
     @Bean(name = "themeResolver")

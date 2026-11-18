@@ -124,13 +124,18 @@ public class GlobalSecurityConfig {
 
     private final SecurityService securityService;
 
+    private final SpringUserDetailsServiceAdapter userDetailsService;
+
     final SettingsService settingsService;
 
     final MultipleCredsMatchingAuthenticationProvider multipleCredsProvider;
 
-    public GlobalSecurityConfig(CsrfSecurityRequestMatcher csrfSecurityRequestMatcher, SecurityService securityService, SettingsService settingsService, MultipleCredsMatchingAuthenticationProvider multipleCredsProvider) {
+    public GlobalSecurityConfig(CsrfSecurityRequestMatcher csrfSecurityRequestMatcher, SecurityService securityService,
+            SpringUserDetailsServiceAdapter userDetailsService, SettingsService settingsService,
+            MultipleCredsMatchingAuthenticationProvider multipleCredsProvider) {
         this.csrfSecurityRequestMatcher = csrfSecurityRequestMatcher;
         this.securityService = securityService;
+        this.userDetailsService = userDetailsService;
         this.settingsService = settingsService;
         this.multipleCredsProvider = multipleCredsProvider;
     }
@@ -305,7 +310,7 @@ public class GlobalSecurityConfig {
                         .logoutSuccessUrl("/login?logout"))
                 .rememberMe(rememberMe -> rememberMe
                         .key(rememberMeKey)
-                        .userDetailsService(securityService));
+                        .userDetailsService(userDetailsService));
         return http.build();
     }
 

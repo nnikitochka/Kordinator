@@ -10,19 +10,14 @@ import org.airsonic.player.security.GlobalSecurityConfig;
 import org.airsonic.player.security.CallerContext;
 import org.airsonic.player.security.AuthorizationPolicy;
 import org.airsonic.player.security.PasswordDecoder;
-import org.airsonic.player.security.SpringUserDetailsAdapter;
 import org.airsonic.player.security.UserIdentity;
 import org.airsonic.player.cache.CacheHelper;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestWrapper;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -49,7 +44,7 @@ import java.util.stream.Stream;
  *
  * @author Sindre Mehus
  */
-public class SecurityService implements UserDetailsService {
+public class SecurityService {
     private static final Logger LOG = LoggerFactory.getLogger(SecurityService.class);
 
     private UserDao userDao;
@@ -70,31 +65,11 @@ public class SecurityService implements UserDetailsService {
         this.userCache = cacheManager != null ? cacheManager.getCache("userCache", String.class, User.class) : null;
     }
 
-    /**
-     * Locates the user based on the username.
-     *
-     * @param username The username
-     * @return A fully populated user record (never <code>null</code>)
-     * @throws UsernameNotFoundException if the user could not be found or the user has no GrantedAuthority.
-     * @throws DataAccessException       If user could not be found for a repository-specific reason.
-     */
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
-        return loadUserByUsername(username, true);
-    }
-
-    public UserDetails loadUserByUsername(String username, boolean caseSensitive)
-            throws UsernameNotFoundException, DataAccessException {
-        return new SpringUserDetailsAdapter(loadUserIdentity(username, caseSensitive),
-                getGrantedAuthorities(getUserByName(username, caseSensitive)));
-    }
-
-    /** Loads identity data without exposing Spring Security types. */
-    public UserIdentity loadUserIdentity(String username, boolean caseSensitive)
-            throws UsernameNotFoundException, DataAccessException {
+    /** Loads identity data without exposing web-framework types. */
+    public UserIdentity findUserIdentity(String username, boolean caseSensitive) {
         User user = getUserByName(username, caseSensitive);
         if (user == null) {
-            throw new UsernameNotFoundException("User \"" + username + "\" was not found.");
+            return null;
         }
 
         return new UserIdentity(user.getUsername(), getCredentials(user.getUsername(), App.AIRSONIC), user.getRoles());
