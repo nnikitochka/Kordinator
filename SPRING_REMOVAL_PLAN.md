@@ -184,6 +184,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `5cbf0ae` переносит создание `DatabaseService` и однократный запуск `init()` в runtime root. Проверены `RuntimeCompositionRootGraphTest`, `DatabaseStatusTest`, `LegacyDatabaseStartupTestCase`, `DatabaseSettingsIntegrationTest` — 4/4. Scheduled backup продолжает пользоваться root-owned lifecycle scheduler; остальные database backup/restore services ещё нужно включить в граф.
 
+Срез `364c27b` переносит `JukeboxLegacySubsonicService`, `JukeboxService` и `PlayQueueService` под root ownership; инициализация и поведение живой очереди не менялись. `RuntimeCompositionRootGraphTest`, `PlayQueueBroadcastTest`, `JukeboxServiceUnitTest`, `JukeboxQueueIntegrationTest`, `PlayQueueIntegrationTest`, `JukeboxIntegrationTest` прошли 19/19.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
