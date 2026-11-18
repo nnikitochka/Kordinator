@@ -198,7 +198,7 @@ public class KtorConfiguration {
 
     @Bean
     public javax.cache.CacheManager jCacheCacheManager() {
-        return new CacheConfiguration().createCacheManager();
+        return new org.airsonic.player.runtime.CacheFactory().createCacheManager();
     }
 
     @Bean
