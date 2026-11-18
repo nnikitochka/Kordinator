@@ -15,7 +15,6 @@ import org.jaudiotagger.tag.images.Artwork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.PostConstruct;
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
@@ -60,7 +59,6 @@ public class CoverArtImageService {
         this.jaudiotaggerParser = jaudiotaggerParser;
     }
 
-    @PostConstruct
     public void init() {
         semaphore = new Semaphore(settingsService.getCoverArtConcurrency());
     }

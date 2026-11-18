@@ -22,7 +22,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.PostConstruct;
 
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -73,7 +72,6 @@ public class DatabaseService {
     public OperationStatus getExportStatus() { return exportStatus; }
     public OperationStatus getImportStatus() { return importStatus; }
 
-    @PostConstruct
     public void init() {
         try {
             schedule();

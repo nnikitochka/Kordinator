@@ -23,7 +23,6 @@ import org.springframework.lang.Nullable;
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 
-import jakarta.annotation.PostConstruct;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -104,7 +103,6 @@ public class PlaylistService {
         }
     }
 
-    @PostConstruct
     public void init() throws IOException {
         addPlaylistFolderWatcher();
     }

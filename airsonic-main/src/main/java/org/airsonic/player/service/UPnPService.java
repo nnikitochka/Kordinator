@@ -28,13 +28,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 
-import jakarta.annotation.PostConstruct;
-
 import java.io.InputStream;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class UPnPService {
+public class UPnPService implements AutoCloseable {
     private static final Logger LOG = LoggerFactory.getLogger(UPnPService.class);
 
     private UpnpService upnpService;
@@ -49,14 +47,17 @@ public class UPnPService {
         this.dispatchingContentDirectory = dispatchingContentDirectory;
     }
 
-    @PostConstruct
     public void init() {
         if (settingsService.isDlnaEnabled()) {
             ensureServiceStarted();
             // Start DLNA media server?
             setMediaServerEnabled(true);
         }
-        Runtime.getRuntime().addShutdownHook(new Thread(this::ensureServiceStopped));
+    }
+
+    @Override
+    public void close() {
+        ensureServiceStopped();
     }
 
     public void ensureServiceStarted() {

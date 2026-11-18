@@ -386,7 +386,9 @@ public class KtorConfiguration {
     @Bean
     public StatusService statusService(MediaFileService mediaFileService, MediaFolderService mediaFolderService,
             SettingsService settingsService, TaskSchedulingService taskSchedulingService) {
-        return new StatusService(mediaFileService, mediaFolderService, settingsService, taskSchedulingService);
+        StatusService service = new StatusService(mediaFileService, mediaFolderService, settingsService, taskSchedulingService);
+        service.cleanup();
+        return service;
     }
 
     @Bean
@@ -452,9 +454,11 @@ public class KtorConfiguration {
             java.util.List<org.airsonic.player.service.playlist.PlaylistExportHandler> exportHandlers,
             java.util.List<org.airsonic.player.service.playlist.PlaylistImportHandler> importHandlers,
             org.airsonic.player.service.PathWatcherService pathWatcherService,
-            javax.cache.CacheManager cacheManager) {
-        return new PlaylistService(mediaFileDao, playlistDao, securityService, settingsService, exportHandlers,
-                importHandlers, pathWatcherService, cacheManager);
+            javax.cache.CacheManager cacheManager) throws java.io.IOException {
+        PlaylistService service = new PlaylistService(mediaFileDao, playlistDao, securityService, settingsService,
+                exportHandlers, importHandlers, pathWatcherService, cacheManager);
+        service.init();
+        return service;
     }
 
     @Bean
@@ -487,8 +491,10 @@ public class KtorConfiguration {
     @Bean
     public HlsSegmentService hlsSegmentService(MediaFileService mediaFileService, SecurityService securityService,
             StatusService statusService, SettingsService settingsService, TranscodingService transcodingService) {
-        return new HlsSegmentService(mediaFileService, securityService, statusService, settingsService,
-                transcodingService);
+        HlsSegmentService service = new HlsSegmentService(mediaFileService, securityService, statusService,
+                settingsService, transcodingService);
+        service.init();
+        return service;
     }
 
     @Bean
@@ -502,8 +508,10 @@ public class KtorConfiguration {
             CoverArtService coverArtService, TranscodingService transcodingService, SettingsService settingsService,
             PlaylistService playlistService, ArtistDao artistDao, AlbumDao albumDao,
             JaudiotaggerParser jaudiotaggerParser) {
-        return new CoverArtImageService(mediaFileService, coverArtService, transcodingService, settingsService,
-                playlistService, artistDao, albumDao, jaudiotaggerParser);
+        CoverArtImageService service = new CoverArtImageService(mediaFileService, coverArtService, transcodingService,
+                settingsService, playlistService, artistDao, albumDao, jaudiotaggerParser);
+        service.init();
+        return service;
     }
 
     @Bean
@@ -617,8 +625,12 @@ public class KtorConfiguration {
     @Bean
     public UPnPService upnpService(SettingsService settingsService,
             @org.springframework.beans.factory.annotation.Qualifier("dispatchingContentDirectory")
-            org.airsonic.player.service.upnp.CustomContentDirectory contentDirectory) {
-        return new UPnPService(settingsService, contentDirectory);
+            org.airsonic.player.service.upnp.CustomContentDirectory contentDirectory,
+            org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
+        UPnPService service = new UPnPService(settingsService, contentDirectory);
+        service.init();
+        lifecycleRegistry.registerShutdown("upnpService", service);
+        return service;
     }
 
     @Bean
@@ -657,7 +669,9 @@ public class KtorConfiguration {
     @Bean
     public DatabaseService databaseService(SettingsService settingsService, DatabaseDao databaseDao,
             TaskSchedulingService taskSchedulingService) {
-        return new DatabaseService(settingsService, databaseDao, taskSchedulingService);
+        DatabaseService service = new DatabaseService(settingsService, databaseDao, taskSchedulingService);
+        service.init();
+        return service;
     }
 
     @Bean
@@ -674,7 +688,9 @@ public class KtorConfiguration {
     @Bean
     public SettingsService settingsService(UserDao userDao, AvatarDao avatarDao,
             org.springframework.core.env.Environment environment, javax.cache.CacheManager cacheManager) {
-        return new SettingsService(userDao, avatarDao, environment, cacheManager);
+        SettingsService service = new SettingsService(userDao, avatarDao, environment, cacheManager);
+        service.init();
+        return service;
     }
 
     @Bean
@@ -683,9 +699,11 @@ public class KtorConfiguration {
             CoverArtService coverArtService, MediaFileDao mediaFileDao, ArtistDao artistDao, AlbumDao albumDao,
             TaskSchedulingService taskSchedulingService,
             @org.springframework.beans.factory.annotation.Value("${MediaScannerParallelism:#{T(java.lang.Runtime).getRuntime().availableProcessors() + 1}}") int scannerParallelism) {
-        return new MediaScannerService(playlistService, settingsService, indexManager, mediaFileService,
+        MediaScannerService service = new MediaScannerService(playlistService, settingsService, indexManager, mediaFileService,
                 mediaFolderService, coverArtService, mediaFileDao, artistDao, albumDao, taskSchedulingService,
                 scannerParallelism);
+        service.init();
+        return service;
     }
 
     @Bean
@@ -714,7 +732,9 @@ public class KtorConfiguration {
     @Bean
     public LastFmService lastFmService(MediaFileDao mediaFileDao, MediaFileService mediaFileService,
             ArtistDao artistDao) {
-        return new LastFmService(mediaFileDao, mediaFileService, artistDao);
+        LastFmService service = new LastFmService(mediaFileDao, mediaFileService, artistDao);
+        service.init();
+        return service;
     }
 
     @Bean
@@ -768,7 +788,9 @@ public class KtorConfiguration {
     @DependsOn("liquibase")
     public PlayerService playerService(PlayerDao playerDao, StatusService statusService,
             SecurityService securityService, TranscodingService transcodingService) {
-        return new PlayerService(playerDao, statusService, securityService, transcodingService);
+        PlayerService service = new PlayerService(playerDao, statusService, securityService, transcodingService);
+        service.init();
+        return service;
     }
 
     @Bean(destroyMethod = "shutdown")

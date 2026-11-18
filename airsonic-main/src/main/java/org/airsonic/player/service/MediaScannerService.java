@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
-import jakarta.annotation.PostConstruct;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -78,7 +77,6 @@ public class MediaScannerService {
         this.scannerParallelism = scannerParallelism;
     }
 
-    @PostConstruct
     public void init() {
         indexManager.initializeIndexDirectory();
         schedule();

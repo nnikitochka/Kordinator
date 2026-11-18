@@ -10,7 +10,6 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.PostConstruct;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -40,7 +39,6 @@ public class LastFmService {
         this.artistDao = artistDao;
     }
 
-    @PostConstruct
     public void init() {
         Caller caller = Caller.getInstance();
         caller.setUserAgent("Airsonic");

@@ -10,7 +10,6 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.ServletRequestUtils;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -43,7 +42,6 @@ public class PlayerService {
         this.transcodingService = transcodingService;
     }
 
-    @PostConstruct
     public void init() {
         playerDao.deleteOldPlayers(60);
     }

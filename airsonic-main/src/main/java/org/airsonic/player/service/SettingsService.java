@@ -20,7 +20,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 
-import jakarta.annotation.PostConstruct;
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 
@@ -461,9 +460,8 @@ public class SettingsService {
 
     /**
      * Register in service locator so that non-Spring objects can access me.
-     * This method is invoked automatically by Spring.
+     * Explicit startup initialization for the server instance.
      */
-    @PostConstruct
     public void init() {
         logServerInfo();
     }

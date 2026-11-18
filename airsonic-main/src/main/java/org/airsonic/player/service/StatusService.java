@@ -6,7 +6,6 @@ import org.airsonic.player.domain.PlayStatus;
 import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.TransferStatus;
 
-import jakarta.annotation.PostConstruct;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -41,7 +40,6 @@ public class StatusService {
         this.taskService = taskService;
     }
 
-    @PostConstruct
     public void cleanup() {
         taskService.scheduleFixedDelayTask("remote-playstatus-cleanup", this::cleanupRemotePlays, Instant.now().plus(3, ChronoUnit.HOURS), Duration.ofHours(3), true);
     }

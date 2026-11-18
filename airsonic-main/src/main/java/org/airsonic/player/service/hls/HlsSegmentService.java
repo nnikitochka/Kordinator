@@ -21,7 +21,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.acls.model.NotFoundException;
 import org.springframework.security.core.Authentication;
-import jakarta.annotation.PostConstruct;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Map;
@@ -49,7 +48,6 @@ public class HlsSegmentService {
         this.transcodingService = transcodingService;
     }
 
-    @PostConstruct
     public void init() {
         FileUtil.delete(HlsSession.getHlsRootDirectory());
     }
