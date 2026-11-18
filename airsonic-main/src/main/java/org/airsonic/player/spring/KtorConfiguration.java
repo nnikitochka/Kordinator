@@ -199,18 +199,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class KtorConfiguration {
 
     @Bean
-    public javax.cache.CacheManager jCacheCacheManager(RuntimeCompositionRoot runtime) {
-        return runtime.createCacheManager();
-    }
-
-    @Bean
     public LegacyViewSuffixHandlerMapping legacyViewSuffixHandlerMapping() {
         return new LegacyViewSuffixHandlerMapping();
-    }
-
-    @Bean(destroyMethod = "close")
-    public org.airsonic.player.monitor.MetricsManager metricsManager(RuntimeCompositionRoot runtime) {
-        return runtime.createMetricsManager();
     }
 
     @Bean
@@ -302,13 +292,6 @@ public class KtorConfiguration {
     public org.springframework.boot.web.server.ErrorPageRegistrar ktorErrorPageRegistrar(
             org.springframework.boot.autoconfigure.web.ServerProperties serverProperties) {
         return factory -> factory.addErrorPages(new org.springframework.boot.web.server.ErrorPage(serverProperties.getError().getPath()));
-    }
-
-    // Keep the health contributors independent of Actuator HTTP endpoint exposure.
-    @Bean
-    public org.airsonic.player.health.HealthContributorRegistry serverHealthContributors(
-            RuntimeCompositionRoot runtime, javax.sql.DataSource dataSource) {
-        return runtime.createHealthContributorRegistry(dataSource);
     }
 
     @Bean
