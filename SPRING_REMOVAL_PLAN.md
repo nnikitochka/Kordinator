@@ -254,6 +254,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `9ad577a` переводит `DownloadService` на общий `AuthorizationDeniedException`; Ktor website download мапит его в Subsonic NOT_AUTHORIZED, а legacy `.view` servlet boundary сохраняет HTTP 403 для denied ACL. `DownloadIntegrationTest`, `WebsiteDownloadIntegrationTest` и graph test прошли 3/3. Первичный прогон выявил и помог восстановить прежний `.view` 403 контракт.
 
+Срез `2c4a5b8` перемещает `HealthContributorRegistry` под владение `RuntimeCompositionRoot`; Spring bean теперь только возвращает singleton из root. `RuntimeCompositionRootGraphTest` проверяет единственность и набор db/disk/ping contributors; health framework, graph и server health HTTP tests прошли 11/11.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
