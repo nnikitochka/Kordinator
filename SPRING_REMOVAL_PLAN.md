@@ -270,6 +270,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 После этого среза в `KtorConfiguration` осталось 94 `@Bean` объявления; все 20 moved registrations переехали в adapter без изменения bean names, включая alias `musicFileInfoDao`.
 
+Срез `aad6f9a` переносит Spring registrations root-owned search и metadata factories в Kotlin adapter: analyzer/document/query/index/search utilities/services и metadata parsers/factory. Search/metadata/tag/index/directory/graph suite прошёл 29/29. В базовой фабрике осталось 84 `@Bean` регистрации; следующим шагом выносятся другие root-owned services и handlers.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
