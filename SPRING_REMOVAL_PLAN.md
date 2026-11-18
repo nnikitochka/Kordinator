@@ -238,6 +238,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `aa7a580` отделяет Spring `UserDetailsService` от root-owned `SecurityService`: новый Kotlin `SpringUserDetailsServiceAdapter` преобразует нейтральный `UserIdentity` в `SpringUserDetailsAdapter`; authentication provider и remember-me используют его, а `SecurityService` больше не реализует Spring интерфейс и не бросает Spring username-not-found exception. Graph/security/login/credentials/JWT tests прошли 12/12. Остальные request-context/authority adapters SecurityService ещё требуют разборки.
 
+Срез `9b87702` выносит генерацию Spring `GrantedAuthority` в тот же security adapter и убирает из `SecurityService` `SecurityContextHolderAwareRequestWrapper`; имя principal читается из servlet request API, включая request wrapper, уже установленный фильтром. Graph/security/login/credentials/JWT/LDAP suites прошли 28/28. Encoder registry `GlobalSecurityConfig` и остальные SecurityService HTTP/security adapters пока остаются.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
