@@ -19,7 +19,6 @@ import org.springframework.boot.logging.LogFile;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import javax.cache.Cache;
@@ -45,7 +44,6 @@ import java.util.stream.Stream;
  *
  * @author Sindre Mehus
  */
-@Service
 public class SettingsService {
     // Airsonic home directory.
     private static final Path AIRSONIC_HOME_WINDOWS = Paths.get("c:/airsonic");

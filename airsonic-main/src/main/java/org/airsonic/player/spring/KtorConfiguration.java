@@ -496,6 +496,12 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public SettingsService settingsService(UserDao userDao, AvatarDao avatarDao,
+            org.springframework.core.env.Environment environment, javax.cache.CacheManager cacheManager) {
+        return new SettingsService(userDao, avatarDao, environment, cacheManager);
+    }
+
+    @Bean
     public LastFmService lastFmService(MediaFileDao mediaFileDao, MediaFileService mediaFileService,
             ArtistDao artistDao) {
         return new LastFmService(mediaFileDao, mediaFileService, artistDao);
