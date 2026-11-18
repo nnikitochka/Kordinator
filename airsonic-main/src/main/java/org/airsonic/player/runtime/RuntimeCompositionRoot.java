@@ -18,6 +18,9 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.PasswordRecoveryService passwordRecoveryService;
     private org.airsonic.player.service.LyricsService lyricsService;
     private org.airsonic.player.service.BookmarkService bookmarkService;
+    private org.airsonic.player.service.RatingService ratingService;
+    private org.airsonic.player.service.MediaDirectoryService mediaDirectoryService;
+    private org.airsonic.player.service.MusicIndexService musicIndexService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -151,5 +154,36 @@ public final class RuntimeCompositionRoot {
             bookmarkService = new org.airsonic.player.service.BookmarkService(bookmarkDao, mediaFileService);
         }
         return bookmarkService;
+    }
+
+    public synchronized org.airsonic.player.service.RatingService createRatingService(
+            org.airsonic.player.dao.RatingDao ratingDao,
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.service.MediaFileService mediaFileService) {
+        if (ratingService == null) {
+            ratingService = new org.airsonic.player.service.RatingService(ratingDao, securityService, mediaFileService);
+        }
+        return ratingService;
+    }
+
+    public synchronized org.airsonic.player.service.MediaDirectoryService createMediaDirectoryService(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.RatingService ratingService,
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.service.SettingsService settingsService) {
+        if (mediaDirectoryService == null) {
+            mediaDirectoryService = new org.airsonic.player.service.MediaDirectoryService(
+                    mediaFileService, ratingService, securityService, settingsService);
+        }
+        return mediaDirectoryService;
+    }
+
+    public synchronized org.airsonic.player.service.MusicIndexService createMusicIndexService(
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.MediaFileService mediaFileService) {
+        if (musicIndexService == null) {
+            musicIndexService = new org.airsonic.player.service.MusicIndexService(settingsService, mediaFileService);
+        }
+        return musicIndexService;
     }
 }

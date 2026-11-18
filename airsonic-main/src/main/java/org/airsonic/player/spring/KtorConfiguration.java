@@ -746,20 +746,21 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public RatingService ratingService(RatingDao ratingDao, SecurityService securityService,
+    public RatingService ratingService(RuntimeCompositionRoot runtime, RatingDao ratingDao, SecurityService securityService,
             MediaFileService mediaFileService) {
-        return new RatingService(ratingDao, securityService, mediaFileService);
+        return runtime.createRatingService(ratingDao, securityService, mediaFileService);
     }
 
     @Bean
-    public MediaDirectoryService mediaDirectoryService(MediaFileService mediaFileService,
+    public MediaDirectoryService mediaDirectoryService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService,
             RatingService ratingService, SecurityService securityService, SettingsService settingsService) {
-        return new MediaDirectoryService(mediaFileService, ratingService, securityService, settingsService);
+        return runtime.createMediaDirectoryService(mediaFileService, ratingService, securityService, settingsService);
     }
 
     @Bean
-    public MusicIndexService musicIndexService(SettingsService settingsService, MediaFileService mediaFileService) {
-        return new MusicIndexService(settingsService, mediaFileService);
+    public MusicIndexService musicIndexService(RuntimeCompositionRoot runtime, SettingsService settingsService,
+            MediaFileService mediaFileService) {
+        return runtime.createMusicIndexService(settingsService, mediaFileService);
     }
 
     @Bean
