@@ -455,13 +455,14 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public VersionService versionService() throws java.io.IOException {
-        return new VersionService();
+    public VersionService versionService(RuntimeCompositionRoot runtime) throws java.io.IOException {
+        return runtime.createVersionService();
     }
 
     @Bean
-    public ServerInfoService serverInfoService(VersionService versionService, SettingsService settingsService) {
-        return new ServerInfoService(versionService, settingsService);
+    public ServerInfoService serverInfoService(RuntimeCompositionRoot runtime, VersionService versionService,
+            SettingsService settingsService) {
+        return runtime.createServerInfoService(versionService, settingsService);
     }
 
     @Bean

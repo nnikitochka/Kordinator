@@ -104,6 +104,10 @@ class RuntimeCompositionRootGraphTest {
         StandardEnvironment environment = new StandardEnvironment();
         SettingsService settingsService = config.settingsService(userDao, avatarDao, environment, cacheManager, properties);
         assertNotNull(settingsService);
+        VersionService versionService = runtimeRoot.createVersionService();
+        assertSame(versionService, runtimeRoot.createVersionService());
+        ServerInfoService serverInfoService = runtimeRoot.createServerInfoService(versionService, settingsService);
+        assertSame(serverInfoService, runtimeRoot.createServerInfoService(versionService, settingsService));
 
         // MediaFolderService and PlayerDao
         assertNotNull(mediaFolderService);

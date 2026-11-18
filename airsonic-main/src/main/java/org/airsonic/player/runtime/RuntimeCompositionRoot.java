@@ -12,6 +12,8 @@ public final class RuntimeCompositionRoot {
     private javax.cache.CacheManager cacheManager;
     private org.airsonic.player.service.MediaFolderService mediaFolderService;
     private org.airsonic.player.dao.PlayerDao playerDao;
+    private org.airsonic.player.service.VersionService versionService;
+    private org.airsonic.player.service.ServerInfoService serverInfoService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -90,5 +92,21 @@ public final class RuntimeCompositionRoot {
             playerDao.register();
         }
         return playerDao;
+    }
+
+    public synchronized org.airsonic.player.service.VersionService createVersionService() throws java.io.IOException {
+        if (versionService == null) {
+            versionService = new org.airsonic.player.service.VersionService();
+        }
+        return versionService;
+    }
+
+    public synchronized org.airsonic.player.service.ServerInfoService createServerInfoService(
+            org.airsonic.player.service.VersionService versions,
+            org.airsonic.player.service.SettingsService settingsService) {
+        if (serverInfoService == null) {
+            serverInfoService = new org.airsonic.player.service.ServerInfoService(versions, settingsService);
+        }
+        return serverInfoService;
     }
 }
