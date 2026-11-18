@@ -475,6 +475,21 @@ public class KtorConfiguration {
         return new MusicIndexService(settingsService, mediaFileService);
     }
 
+    @Bean
+    public CaptionService captionService(MediaFileService mediaFileService, MediaFolderService mediaFolderService,
+            SettingsService settingsService, MetaDataParserFactory metaDataParserFactory,
+            JWTSecurityService jwtSecurityService) {
+        return new CaptionService(mediaFileService, mediaFolderService, settingsService, metaDataParserFactory,
+                jwtSecurityService);
+    }
+
+    @Bean
+    public VideoPlaybackService videoPlaybackService(MediaFileService mediaFileService, CaptionService captionService,
+            JWTSecurityService jwtSecurityService, BookmarkService bookmarkService, SettingsService settingsService) {
+        return new VideoPlaybackService(mediaFileService, captionService, jwtSecurityService, bookmarkService,
+                settingsService);
+    }
+
     @Bean(destroyMethod = "shutdown")
     public TaskSchedulingService taskSchedulingService(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
         TaskSchedulingService service = new TaskSchedulingService();

@@ -4,10 +4,8 @@ import com.google.common.io.MoreFiles
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.User
 import org.airsonic.player.util.StringUtil
-import org.springframework.stereotype.Service
 
 /** Prepares video playback data without depending on an HTTP controller or view. */
-@Service
 class VideoPlaybackService(
     private val files: MediaFileService,
     private val captions: CaptionService,
