@@ -140,8 +140,12 @@ class RuntimeCompositionRootGraphTest {
         assertNotNull(playerDao);
 
         // Security & scheduling services
-        SecurityService securityService = runtimeRoot.createSecurityService(userDao, settingsService, mediaFolderService);
-        assertSame(securityService, runtimeRoot.createSecurityService(userDao, settingsService, mediaFolderService));
+        org.airsonic.player.security.CredentialEncoderRegistry credentialEncoders =
+                mock(org.airsonic.player.security.CredentialEncoderRegistry.class);
+        SecurityService securityService = runtimeRoot.createSecurityService(userDao, settingsService, mediaFolderService,
+                credentialEncoders);
+        assertSame(securityService, runtimeRoot.createSecurityService(userDao, settingsService, mediaFolderService,
+                credentialEncoders));
         assertNotNull(securityService);
         org.airsonic.player.service.metadata.JaudiotaggerParser parser = runtimeRoot.createJaudiotaggerParser();
         assertSame(parser, runtimeRoot.createJaudiotaggerParser());

@@ -17,6 +17,8 @@ import org.airsonic.player.security.CsrfSecurityRequestMatcher;
 import org.airsonic.player.security.GlobalSecurityConfig;
 import org.airsonic.player.security.MultipleCredsMatchingAuthenticationProvider;
 import org.airsonic.player.security.SpringUserDetailsServiceAdapter;
+import org.airsonic.player.security.CredentialEncoderRegistry;
+import org.airsonic.player.security.SpringCredentialEncoderRegistry;
 import org.airsonic.player.theme.CustomThemeResolver;
 import org.airsonic.player.theme.CustomThemeSource;
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController;
@@ -736,8 +738,13 @@ public class KtorConfiguration {
 
     @Bean
     public SecurityService securityService(RuntimeCompositionRoot runtime, UserDao userDao, SettingsService settingsService,
-            MediaFolderService mediaFolderService) {
-        return runtime.createSecurityService(userDao, settingsService, mediaFolderService);
+            MediaFolderService mediaFolderService, CredentialEncoderRegistry credentialEncoders) {
+        return runtime.createSecurityService(userDao, settingsService, mediaFolderService, credentialEncoders);
+    }
+
+    @Bean
+    public CredentialEncoderRegistry credentialEncoderRegistry() {
+        return new SpringCredentialEncoderRegistry();
     }
 
     @Bean

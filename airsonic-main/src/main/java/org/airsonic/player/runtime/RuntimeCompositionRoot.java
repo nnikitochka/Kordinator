@@ -778,10 +778,11 @@ public final class RuntimeCompositionRoot {
     public synchronized org.airsonic.player.service.SecurityService createSecurityService(
             org.airsonic.player.dao.UserDao userDao,
             org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService) {
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.security.CredentialEncoderRegistry credentialEncoders) {
         if (securityService == null) {
             securityService = new org.airsonic.player.service.SecurityService(
-                    userDao, settingsService, mediaFolderService, createCacheManager());
+                    userDao, settingsService, mediaFolderService, createCacheManager(), credentialEncoders);
         }
         return securityService;
     }

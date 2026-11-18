@@ -59,7 +59,7 @@ public class AudioScrobblerService {
             if (lastFMScrobbler == null) {
                 lastFMScrobbler = new LastFMScrobbler();
             }
-            String decoded = SecurityService.decodeCredentials(cred);
+            String decoded = securityService.decodeCredentials(cred);
             if (decoded != null) {
                 lastFMScrobbler.register(mediaFile, cred.getAppUsername(), decoded, submission, time);
             }
@@ -70,7 +70,7 @@ public class AudioScrobblerService {
             if (listenBrainzScrobbler == null) {
                 listenBrainzScrobbler = new ListenBrainzScrobbler();
             }
-            String decoded = SecurityService.decodeCredentials(cred);
+            String decoded = securityService.decodeCredentials(cred);
             if (decoded != null) {
                 listenBrainzScrobbler.register(mediaFile, userSettings.getListenBrainzUrl(), decoded, submission, time);
             }

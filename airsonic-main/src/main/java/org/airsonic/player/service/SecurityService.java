@@ -6,10 +6,9 @@ import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.domain.UserCredential;
 import org.airsonic.player.domain.UserCredential.App;
-import org.airsonic.player.security.GlobalSecurityConfig;
 import org.airsonic.player.security.CallerContext;
 import org.airsonic.player.security.AuthorizationPolicy;
-import org.airsonic.player.security.PasswordDecoder;
+import org.airsonic.player.security.CredentialEncoderRegistry;
 import org.airsonic.player.security.UserIdentity;
 import org.airsonic.player.cache.CacheHelper;
 import org.apache.commons.io.FilenameUtils;
@@ -48,17 +47,15 @@ public class SecurityService {
     private final MediaFolderService mediaFolderService;
     private final Cache<String, User> userCache;
     private final AuthorizationPolicy authorizationPolicy = new AuthorizationPolicy();
-
-    public SecurityService(UserDao userDao, SettingsService settingsService, MediaFolderService mediaFolderService) {
-        this(userDao, settingsService, mediaFolderService, null);
-    }
+    private final CredentialEncoderRegistry credentialEncoders;
 
     public SecurityService(UserDao userDao, SettingsService settingsService, MediaFolderService mediaFolderService,
-                           CacheManager cacheManager) {
+                           CacheManager cacheManager, CredentialEncoderRegistry credentialEncoders) {
         this.userDao = userDao;
         this.settingsService = settingsService;
         this.mediaFolderService = mediaFolderService;
         this.userCache = cacheManager != null ? cacheManager.getCache("userCache", String.class, User.class) : null;
+        this.credentialEncoders = credentialEncoders;
     }
 
     /** Loads identity data without exposing web-framework types. */
@@ -75,14 +72,12 @@ public class SecurityService {
             boolean reencodePlaintextNewCreds) {
         if (!StringUtils.equals(newCreds.getEncoder(), oldCreds.getEncoder()) || reencodePlaintextNewCreds) {
             if (reencodePlaintextNewCreds) {
-                newCreds.setCredential(GlobalSecurityConfig.ENCODERS.get(newCreds.getEncoder()).encode(newCreds.getCredential()));
-            } else if (GlobalSecurityConfig.DECODABLE_ENCODERS.contains(oldCreds.getEncoder())) {
+                newCreds.setCredential(credentialEncoders.encode(newCreds.getEncoder(), newCreds.getCredential()));
+            } else if (credentialEncoders.isDecodable(oldCreds.getEncoder())) {
                 try {
-                    // decode using original creds decoder
-                    PasswordDecoder decoder = (PasswordDecoder) GlobalSecurityConfig.ENCODERS.get(oldCreds.getEncoder());
-                    newCreds.setCredential(decoder.decode(oldCreds.getCredential()));
+                    newCreds.setCredential(credentialEncoders.decode(oldCreds.getEncoder(), oldCreds.getCredential()));
                     // reencode
-                    newCreds.setCredential(GlobalSecurityConfig.ENCODERS.get(newCreds.getEncoder()).encode(newCreds.getCredential()));
+                    newCreds.setCredential(credentialEncoders.encode(newCreds.getEncoder(), newCreds.getCredential()));
                 } catch (Exception e) {
                     LOG.warn("Could not update credentials for user {}", oldCreds.getUsername(), e);
                     // Do not try and save it
@@ -102,7 +97,7 @@ public class SecurityService {
     }
 
     public boolean createCredential(UserCredential newCreds) {
-        newCreds.setCredential(GlobalSecurityConfig.ENCODERS.get(newCreds.getEncoder()).encode(newCreds.getCredential()));
+        newCreds.setCredential(credentialEncoders.encode(newCreds.getEncoder(), newCreds.getCredential()));
         return userDao.createCredential(newCreds);
     }
 
@@ -126,7 +121,7 @@ public class SecurityService {
 
     public Map<App, UserCredential> getDecodableCredsForApps(String username, App... apps) {
         return getCredentials(username, apps).parallelStream()
-                .filter(c -> GlobalSecurityConfig.DECODABLE_ENCODERS.contains(c.getEncoder()))
+                .filter(c -> credentialEncoders.isDecodable(c.getEncoder()))
                 .filter(c -> c.getExpiration() == null || c.getExpiration().isAfter(Instant.now()))
                 .collect(Collectors.groupingByConcurrent(
                         UserCredential::getApp,
@@ -136,11 +131,11 @@ public class SecurityService {
 
     public boolean checkDefaultAdminCredsPresent() {
         return userDao.getCredentials(User.USERNAME_ADMIN, App.AIRSONIC).parallelStream()
-                .anyMatch(c -> GlobalSecurityConfig.ENCODERS.get(c.getEncoder()).matches(User.USERNAME_ADMIN, c.getCredential()));
+                .anyMatch(c -> credentialEncoders.matches(c.getEncoder(), User.USERNAME_ADMIN, c.getCredential()));
     }
 
     public boolean checkOpenCredsPresent() {
-        return GlobalSecurityConfig.OPENTEXT_ENCODERS.parallelStream()
+        return credentialEncoders.openTextEncoderNames().parallelStream()
                 .mapToInt(userDao::getCredentialCountByEncoder)
                 .anyMatch(i -> i > 0);
     }
@@ -180,10 +175,9 @@ public class SecurityService {
         }
     }
 
-    public static String decodeCredentials(UserCredential reversibleCred) {
-        PasswordDecoder decoder = (PasswordDecoder) GlobalSecurityConfig.ENCODERS.get(reversibleCred.getEncoder());
+    public String decodeCredentials(UserCredential reversibleCred) {
         try {
-            return decoder.decode(reversibleCred.getCredential());
+            return credentialEncoders.decode(reversibleCred.getEncoder(), reversibleCred.getCredential());
         } catch (Exception e) {
             LOG.warn("Could not decode credentials for user {}, app {}", reversibleCred.getUsername(), reversibleCred.getApp(), e);
             return null;
@@ -298,7 +292,7 @@ public class SecurityService {
         UserCredential uc = new UserCredential(
                 user.getUsername(),
                 user.getUsername(),
-                GlobalSecurityConfig.ENCODERS.get(defaultEncoder).encode(credential),
+                credentialEncoders.encode(defaultEncoder, credential),
                 defaultEncoder,
                 App.AIRSONIC,
                 comment);
