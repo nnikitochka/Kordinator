@@ -6,7 +6,6 @@ import org.airsonic.player.domain.UserCredential.App;
 import org.airsonic.player.domain.UserSettings;
 import org.airsonic.player.service.scrobbler.LastFMScrobbler;
 import org.airsonic.player.service.scrobbler.ListenBrainzScrobbler;
-import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.EnumSet;
@@ -16,7 +15,6 @@ import java.util.Map;
  * Provides services for "audioscrobbling", which is the process of
  * registering what songs are played at website.
  */
-@Service
 public class AudioScrobblerService {
     private LastFMScrobbler lastFMScrobbler;
     private ListenBrainzScrobbler listenBrainzScrobbler;

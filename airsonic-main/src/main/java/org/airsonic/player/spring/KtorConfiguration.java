@@ -442,6 +442,28 @@ public class KtorConfiguration {
                 coverArtService);
     }
 
+    @Bean
+    public AudioScrobblerService audioScrobblerService(SettingsService settingsService,
+            SecurityService securityService) {
+        return new AudioScrobblerService(settingsService, securityService);
+    }
+
+    @Bean
+    public BookmarkService bookmarkService(BookmarkDao bookmarkDao, MediaFileService mediaFileService) {
+        return new BookmarkService(bookmarkDao, mediaFileService);
+    }
+
+    @Bean
+    public LyricsService lyricsService() {
+        return new LyricsService();
+    }
+
+    @Bean
+    public RatingService ratingService(RatingDao ratingDao, SecurityService securityService,
+            MediaFileService mediaFileService) {
+        return new RatingService(ratingDao, securityService, mediaFileService);
+    }
+
     @Bean(destroyMethod = "shutdown")
     public TaskSchedulingService taskSchedulingService(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
         TaskSchedulingService service = new TaskSchedulingService();

@@ -3,7 +3,6 @@ package org.airsonic.player.service;
 import org.airsonic.player.dao.RatingDao;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -11,7 +10,6 @@ import java.util.stream.Collectors;
 /**
  * Provides services for user ratings.
  */
-@Service
 public class RatingService {
     private RatingDao ratingDao;
     private SecurityService securityService;

@@ -5,12 +5,10 @@ import org.airsonic.player.domain.Bookmark;
 import org.airsonic.player.domain.MediaFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
 
-@Service
 public class BookmarkService {
     private static final Logger LOG = LoggerFactory.getLogger(BookmarkService.class);
     private final BookmarkDao dao;

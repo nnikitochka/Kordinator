@@ -16,7 +16,6 @@ import org.jdom2.Namespace;
 import org.jdom2.input.SAXBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -31,7 +30,6 @@ import static org.airsonic.player.util.XMLUtil.createSAXBuilder;
  * See http://www.chartlyrics.com/api.aspx for details.
  *
  */
-@Service
 public class LyricsService {
     private static final Logger LOG = LoggerFactory.getLogger(LyricsService.class);
     private final Fetcher fetcher;
