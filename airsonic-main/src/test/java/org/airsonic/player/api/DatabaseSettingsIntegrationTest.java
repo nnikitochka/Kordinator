@@ -55,7 +55,7 @@ public class DatabaseSettingsIntegrationTest {
             SettingsService.KEY_DATABASE_URL, SettingsService.getDefaultJDBCUrl(),
             SettingsService.KEY_DATABASE_USERNAME, SettingsService.getDefaultJDBCUsername(),
             SettingsService.KEY_DATABASE_PASSWORD, SettingsService.getDefaultJDBCPassword())));
-        settings.setEnvironment(editable); settings.resetDatabaseToDefault();
+        settings.setPropertyLookup(editable::getProperty); settings.resetDatabaseToDefault();
         User member = new User("db-member", null);
         member.setRoles(Set.of(User.Role.SETTINGS)); security.createUser(member, "secret", "test");
         assertFalse(context.containsBean("databaseSettingsController"));

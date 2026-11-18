@@ -53,7 +53,7 @@ public class CustomPropertySourceConfigurer implements
         event.getEnvironment().getPropertySources().addLast(new CommonsConfigurationPropertySource("airsonic-properties", ConfigurationPropertiesService.getInstance().getConfiguration()));
 
         // Set default constants - only set if vars are blank so their PS need to be set first (or blank vars will get picked up first on look up)
-        SettingsService.setDefaultConstants(event.getEnvironment(), DEFAULT_CONSTANTS);
+        SettingsService.setDefaultConstants(event.getEnvironment()::getProperty, DEFAULT_CONSTANTS);
         event.getEnvironment().getPropertySources().addFirst(new MapPropertySource("default-constants", DEFAULT_CONSTANTS));
     }
 

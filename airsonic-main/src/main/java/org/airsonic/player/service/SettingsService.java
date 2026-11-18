@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.airsonic.player.cache.CacheHelper;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.logging.LogFile;
-import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.airsonic.player.runtime.RuntimeConfiguration;
@@ -245,20 +244,6 @@ public class SettingsService {
     private final Cache<String, UserSettings> userSettingsCache;
     private final ConfigurationPropertiesService properties;
 
-    public SettingsService(UserDao userDao, AvatarDao avatarDao, Environment env) {
-        this(userDao, avatarDao, env, null);
-    }
-
-    public SettingsService(UserDao userDao, AvatarDao avatarDao, Environment env,
-                           CacheManager cacheManager) {
-        this(userDao, avatarDao, env, cacheManager, ConfigurationPropertiesService.getInstance());
-    }
-
-    public SettingsService(UserDao userDao, AvatarDao avatarDao, Environment env,
-                           CacheManager cacheManager, ConfigurationPropertiesService properties) {
-        this(userDao, avatarDao, env::getProperty, cacheManager, properties);
-    }
-
     public SettingsService(UserDao userDao, AvatarDao avatarDao, RuntimeConfiguration configuration,
                            CacheManager cacheManager, ConfigurationPropertiesService properties) {
         this(userDao, avatarDao, configuration::getProperty, cacheManager, properties);
@@ -347,31 +332,32 @@ public class SettingsService {
         cps.save();
     }
 
-    public static void setDefaultConstants(Environment env, Map<String, Object> defaultConstants) {
+    public static void setDefaultConstants(Function<String, String> propertyLookup,
+                                           Map<String, Object> defaultConstants) {
         // if jndi is set, everything datasource-related is ignored
-        if (StringUtils.isBlank(env.getProperty(KEY_DATABASE_URL))) {
+        if (StringUtils.isBlank(propertyLookup.apply(KEY_DATABASE_URL))) {
             defaultConstants.put(KEY_DATABASE_URL, getDefaultJDBCUrl());
         }
-        if (StringUtils.isBlank(env.getProperty(KEY_DATABASE_USERNAME))) {
+        if (StringUtils.isBlank(propertyLookup.apply(KEY_DATABASE_USERNAME))) {
             defaultConstants.put(KEY_DATABASE_USERNAME, getDefaultJDBCUsername());
         }
-        if (StringUtils.isBlank(env.getProperty(KEY_DATABASE_PASSWORD))) {
+        if (StringUtils.isBlank(propertyLookup.apply(KEY_DATABASE_PASSWORD))) {
             defaultConstants.put(KEY_DATABASE_PASSWORD, getDefaultJDBCPassword());
         }
-        if (StringUtils.isBlank(env.getProperty(KEY_DATABASE_MIGRATION_ROLLBACK_FILE))) {
+        if (StringUtils.isBlank(propertyLookup.apply(KEY_DATABASE_MIGRATION_ROLLBACK_FILE))) {
             defaultConstants.put(
                     KEY_DATABASE_MIGRATION_ROLLBACK_FILE,
                     getAirsonicHome().toAbsolutePath().resolve("rollback.sql").toFile());
         }
-        if (StringUtils.isBlank(env.getProperty(KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH))) {
+        if (StringUtils.isBlank(propertyLookup.apply(KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH))) {
             defaultConstants.put(
                     KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH,
                     DEFAULT_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH.toString());
         }
-        if (StringUtils.isBlank(env.getProperty(KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_MUSIC_FOLDER))) {
+        if (StringUtils.isBlank(propertyLookup.apply(KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_MUSIC_FOLDER))) {
             defaultConstants.put(KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_MUSIC_FOLDER, Util.getDefaultMusicFolder());
         }
-        if (StringUtils.isBlank(env.getProperty(LogFile.FILE_NAME_PROPERTY))) {
+        if (StringUtils.isBlank(propertyLookup.apply(LogFile.FILE_NAME_PROPERTY))) {
             defaultConstants.put(LogFile.FILE_NAME_PROPERTY, getDefaultLogFile());
         }
     }
@@ -1510,8 +1496,8 @@ public class SettingsService {
         setBoolean(KEY_PREFER_NONDECODABLE_PASSWORDS, preference);
     }
 
-    public void setEnvironment(Environment env) {
-        this.environmentPropertyLookup = env::getProperty;
+    public void setPropertyLookup(Function<String, String> propertyLookup) {
+        this.environmentPropertyLookup = Objects.requireNonNull(propertyLookup);
     }
 
     public void resetDatabaseToDefault() {

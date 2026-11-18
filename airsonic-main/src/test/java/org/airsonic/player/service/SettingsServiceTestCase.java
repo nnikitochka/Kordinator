@@ -54,7 +54,9 @@ public class SettingsServiceTestCase {
     }
 
     private SettingsService newSettingsService() {
-        SettingsService settingsService = new SettingsService(mock(UserDao.class), mock(AvatarDao.class), env);
+        SettingsService settingsService = new SettingsService(mock(UserDao.class), mock(AvatarDao.class),
+                new org.airsonic.player.runtime.RuntimeConfiguration(Collections.emptyMap(),
+                        key -> env.getProperty(key), null), null, ConfigurationPropertiesService.getInstance());
         env.getPropertySources().addFirst(new ConfigurationPropertySource("airsonic-pre-init-configs", ConfigurationPropertiesService.getInstance().getConfiguration()));
         return settingsService;
     }
