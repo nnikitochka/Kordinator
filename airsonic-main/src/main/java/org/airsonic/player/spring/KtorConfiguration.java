@@ -453,6 +453,13 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public TagEditService tagEditService(MetaDataParserFactory metaDataParserFactory,
+            MediaFileService mediaFileService, MediaFolderService mediaFolderService,
+            SecurityService securityService) {
+        return new TagEditService(metaDataParserFactory, mediaFileService, mediaFolderService, securityService);
+    }
+
+    @Bean
     public AudioScrobblerService audioScrobblerService(SettingsService settingsService,
             SecurityService securityService) {
         return new AudioScrobblerService(settingsService, securityService);
