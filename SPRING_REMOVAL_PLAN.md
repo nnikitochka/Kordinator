@@ -180,6 +180,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `538711d` переносит создание и singleton ownership `RatingService`, `MediaDirectoryService` и `MusicIndexService` в root с явными зависимостями. `RuntimeCompositionRootGraphTest`, `MusicIndexServiceTestCase`, `RatingIntegrationTest`, `MusicDirectoryIntegrationTest` прошли 5/5. Оставшиеся media services и полная framework-neutral сборка графа требуют дальнейшей работы.
 
+Срез `335009f` переносит в root `SecurityService` (с единственным root-owned CacheManager) и `JWTSecurityService`, а Spring methods становятся projections. `RuntimeCompositionRootGraphTest`, `SecurityServiceTestCase`, `JWTSecurityServiceTest`, `LoginPageIntegrationTest`, `RatingIntegrationTest` прошли 32/32. Authentication providers/filter adapters и остальные сервисы остаются.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
