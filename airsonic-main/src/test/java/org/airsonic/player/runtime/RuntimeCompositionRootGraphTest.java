@@ -1,9 +1,7 @@
 package org.airsonic.player.runtime;
 
 import org.airsonic.player.dao.*;
-import org.airsonic.player.monitor.MetricsManager;
 import org.airsonic.player.service.*;
-import org.airsonic.player.spring.KtorConfiguration;
 import org.hsqldb.jdbc.JDBCDataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -79,19 +77,13 @@ class RuntimeCompositionRootGraphTest {
         ShareDao shareDao = daoGraph.getShareDao();
         TranscodingDao transcodingDao = daoGraph.getTranscodingDao();
 
-        KtorConfiguration config = new KtorConfiguration();
-
         org.airsonic.player.service.search.AnalyzerFactory analyzerFactory = runtimeRoot.createAnalyzerFactory();
-        assertSame(analyzerFactory, config.analyzerFactory(runtimeRoot));
         assertSame(analyzerFactory, runtimeRoot.createAnalyzerFactory());
         org.airsonic.player.service.search.DocumentFactory documentFactory = runtimeRoot.createDocumentFactory();
-        assertSame(documentFactory, config.documentFactory(runtimeRoot));
         assertSame(documentFactory, runtimeRoot.createDocumentFactory());
         org.airsonic.player.service.search.IndexManager indexManager = runtimeRoot.createIndexManager();
-        assertSame(indexManager, config.indexManager(runtimeRoot));
         assertSame(indexManager, runtimeRoot.createIndexManager());
         org.airsonic.player.service.search.QueryFactory queryFactory = runtimeRoot.createQueryFactory();
-        assertSame(queryFactory, config.queryFactory(runtimeRoot));
         assertSame(queryFactory, runtimeRoot.createQueryFactory());
         assertNotNull(userDao);
         assertNotNull(playQueueDao);
@@ -118,12 +110,10 @@ class RuntimeCompositionRootGraphTest {
         assertSame(lyricsService, runtimeRoot.createLyricsService());
 
         ConfigurationPropertiesService properties = runtimeRoot.createConfigurationPropertiesService();
-        assertSame(properties, config.configurationPropertiesService(runtimeRoot));
         assertSame(properties, runtimeRoot.createConfigurationPropertiesService());
         assertNotNull(properties);
 
         SettingsService settingsService = runtimeRoot.createSettingsService();
-        assertSame(settingsService, config.settingsService(runtimeRoot, userDao, avatarDao, cacheManager, properties));
         assertSame(settingsService, runtimeRoot.createSettingsService());
         assertEquals(5, settingsService.getIndexCreationInterval());
         assertNotNull(settingsService);
@@ -156,7 +146,6 @@ class RuntimeCompositionRootGraphTest {
         assertSame(coverArtService, runtimeRoot.createCoverArtService(daoGraph.getCoverArtDao()));
         CoverArtAccentColorBackfill coverArtBackfill = runtimeRoot.createCoverArtAccentColorBackfill(coverArtService);
         assertSame(coverArtBackfill, runtimeRoot.createCoverArtAccentColorBackfill(coverArtService));
-        assertSame(coverArtBackfill, config.coverArtAccentColorBackfill(runtimeRoot, coverArtService));
         assertEquals(1, lifecycleRegistry.getStartupItems().stream()
                 .filter(item -> item.name().equals("coverArtAccentColorBackfill")).count());
         org.airsonic.player.i18n.LocaleService localeService = mock(org.airsonic.player.i18n.LocaleService.class);
@@ -166,11 +155,9 @@ class RuntimeCompositionRootGraphTest {
                 mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeService));
         org.airsonic.player.service.search.SearchServiceUtilities searchServiceUtilities =
                 runtimeRoot.createSearchServiceUtilities(mediaFileService);
-        assertSame(searchServiceUtilities, config.searchServiceUtilities(runtimeRoot, mediaFileService));
         assertSame(searchServiceUtilities, runtimeRoot.createSearchServiceUtilities(mediaFileService));
         org.airsonic.player.service.search.SearchServiceImpl searchService =
                 runtimeRoot.createSearchService(mediaFileService);
-        assertSame(searchService, config.searchServiceImpl(runtimeRoot, mediaFileService));
         assertSame(searchService, runtimeRoot.createSearchService(mediaFileService));
         TagEditService tagEditService = runtimeRoot.createTagEditService(metaDataParserFactory,
                 mediaFileService, securityService);
@@ -222,7 +209,6 @@ class RuntimeCompositionRootGraphTest {
                 captionService, jwtSecurityService, bookmarkService, settingsService));
 
         TaskSchedulingService scheduler = runtimeRoot.createTaskSchedulingService();
-        assertSame(scheduler, config.taskSchedulingService(runtimeRoot));
         assertSame(scheduler, runtimeRoot.createTaskSchedulingService());
         assertNotNull(scheduler);
         StatusService statusService = runtimeRoot.createStatusService(
@@ -253,7 +239,6 @@ class RuntimeCompositionRootGraphTest {
         JukeboxService jukeboxService = runtimeRoot.createJukeboxService(legacyJukebox);
         assertSame(jukeboxService, runtimeRoot.createJukeboxService(legacyJukebox));
         PathWatcherService pathWatcher = runtimeRoot.createPathWatcherService();
-        assertSame(pathWatcher, config.pathWatcherService(runtimeRoot));
         assertSame(pathWatcher, runtimeRoot.createPathWatcherService());
         assertNotNull(pathWatcher);
         List<org.airsonic.player.service.playlist.PlaylistExportHandler> exportHandlers = List.of(
@@ -281,8 +266,6 @@ class RuntimeCompositionRootGraphTest {
         settingsService.setIndexCreationInterval(-1);
         MediaScannerService mediaScannerService = runtimeRoot.createMediaScannerService(
                 playlistService, settingsService, indexManager, mediaFileService, mediaFolderService, coverArtService);
-        assertSame(mediaScannerService, config.mediaScannerService(runtimeRoot, playlistService, settingsService,
-                indexManager, mediaFileService, mediaFolderService, coverArtService));
         assertSame(mediaScannerService, runtimeRoot.createMediaScannerService(
                 playlistService, settingsService, indexManager, mediaFileService, mediaFolderService, coverArtService));
         GeneralSettingsAdministrationService generalSettingsAdministrationService =
@@ -323,32 +306,20 @@ class RuntimeCompositionRootGraphTest {
         assertSame(dispatchingContentDirectory, runtimeRoot.createDispatchingContentDirectory(mediaFileService,
                 mediaFolderService, playlistService, searchService, musicIndexService, indexManager,
                 settingsService, playerService, transcodingService, jwtSecurityService));
-        assertSame(dispatchingContentDirectory, config.dispatchingContentDirectory(runtimeRoot, mediaFileService,
-                mediaFolderService, playlistService, searchService, musicIndexService, indexManager,
-                settingsService, playerService, transcodingService, jwtSecurityService));
         org.airsonic.player.service.UPnPService upnpService = runtimeRoot.createUpnpService(settingsService,
                 dispatchingContentDirectory);
         assertSame(upnpService, runtimeRoot.createUpnpService(settingsService, dispatchingContentDirectory));
-        assertSame(upnpService, config.upnpService(settingsService, dispatchingContentDirectory, runtimeRoot));
-        assertSame(runtimeRoot.createAlbumUpnpProcessor(albumDao), config.albumUpnpProcessor(runtimeRoot, albumDao));
-        assertSame(runtimeRoot.createRecentAlbumUpnpProcessor(albumDao),
-                config.recentAlbumUpnpProcessor(runtimeRoot, albumDao));
-        assertSame(runtimeRoot.createArtistUpnpProcessor(artistDao), config.artistUpnpProcessor(runtimeRoot, artistDao));
-        assertSame(runtimeRoot.createGenreUpnpProcessor(), config.genreUpnpProcessor(runtimeRoot));
-        assertSame(runtimeRoot.createMediaFileUpnpProcessor(mediaFileDao),
-                config.mediaFileUpnpProcessor(runtimeRoot, mediaFileDao));
-        assertSame(runtimeRoot.createPlaylistUpnpProcessor(playlistService),
-                config.playlistUpnpProcessor(runtimeRoot, playlistService));
-        assertSame(runtimeRoot.createRootUpnpProcessor(indexManager), config.rootUpnpProcessor(runtimeRoot, indexManager));
+        runtimeRoot.createAlbumUpnpProcessor(albumDao);
+        runtimeRoot.createRecentAlbumUpnpProcessor(albumDao);
+        runtimeRoot.createArtistUpnpProcessor(artistDao);
+        runtimeRoot.createGenreUpnpProcessor();
+        runtimeRoot.createMediaFileUpnpProcessor(mediaFileDao);
+        runtimeRoot.createPlaylistUpnpProcessor(playlistService);
+        runtimeRoot.createRootUpnpProcessor(indexManager);
         org.airsonic.player.service.upnp.FolderBasedContentDirectory folderDirectory =
                 runtimeRoot.createFolderBasedContentDirectory(mediaFileService, mediaFolderService, playlistService,
                         indexManager, settingsService, playerService, transcodingService, jwtSecurityService);
-        assertSame(folderDirectory, config.folderBasedContentDirectory(runtimeRoot, mediaFileService,
-                mediaFolderService, playlistService, indexManager, settingsService, playerService,
-                transcodingService, jwtSecurityService));
-
-        MetricsManager metricsManager = config.metricsManager(runtimeRoot);
-        assertNotNull(metricsManager);
+        assertNotNull(folderDirectory);
 
         DatabaseService databaseService = runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler);
         assertSame(databaseService, runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler));
