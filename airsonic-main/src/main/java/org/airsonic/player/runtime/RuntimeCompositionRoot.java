@@ -11,6 +11,7 @@ public final class RuntimeCompositionRoot {
     private PersistenceGraph persistenceGraph;
     private javax.cache.CacheManager cacheManager;
     private org.airsonic.player.service.MediaFolderService mediaFolderService;
+    private org.airsonic.player.dao.PlayerDao playerDao;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -76,5 +77,18 @@ public final class RuntimeCompositionRoot {
                     createCacheManager());
         }
         return mediaFolderService;
+    }
+
+    public synchronized org.airsonic.player.dao.PlayerDao createPlayerDao() throws Exception {
+        if (persistenceGraph == null) {
+            throw new IllegalStateException("Persistence graph must be created before PlayerDao");
+        }
+        if (playerDao == null) {
+            org.airsonic.player.dao.PlayerDaoPlayQueueFactory queueFactory =
+                    new org.airsonic.player.dao.PlayerDaoPlayQueueFactory(createMediaFolderService());
+            playerDao = new org.airsonic.player.dao.PlayerDao(queueFactory, persistenceGraph.getJdbcHelper());
+            playerDao.register();
+        }
+        return playerDao;
     }
 }

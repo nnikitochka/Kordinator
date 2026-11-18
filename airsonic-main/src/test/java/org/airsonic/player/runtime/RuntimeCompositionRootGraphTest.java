@@ -108,8 +108,8 @@ class RuntimeCompositionRootGraphTest {
         // MediaFolderService and PlayerDao
         assertNotNull(mediaFolderService);
 
-        PlayerDaoPlayQueueFactory playQueueFactory = config.playerDaoPlayQueueFactory(mediaFolderService);
-        PlayerDao playerDao = config.playerDao(playQueueFactory, jdbcHelper);
+        PlayerDao playerDao = runtimeRoot.createPlayerDao();
+        assertSame(playerDao, runtimeRoot.createPlayerDao());
         assertNotNull(playerDao);
 
         // Security & scheduling services

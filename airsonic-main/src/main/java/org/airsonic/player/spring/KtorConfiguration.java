@@ -445,11 +445,8 @@ public class KtorConfiguration {
     public UserDao userDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getUserDao(); }
 
     @Bean
-    public PlayerDao playerDao(PlayerDaoPlayQueueFactory playQueueFactory,
-            org.airsonic.player.dao.JdbcHelper jdbcHelper) throws Exception {
-        PlayerDao dao = new PlayerDao(playQueueFactory, jdbcHelper);
-        dao.register();
-        return dao;
+    public PlayerDao playerDao(RuntimeCompositionRoot runtime) throws Exception {
+        return runtime.createPlayerDao();
     }
 
     @Bean
