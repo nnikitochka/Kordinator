@@ -166,6 +166,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срезы `c06c185`, `6bca3b6`, `c01cc0f`: тест создаёт часть графа через `KtorConfiguration` и проверяет вызовы lifecycle, но не подтверждает полный framework-neutral graph. `LifecycleRegistry` прекращает startup при исключении, закрывает ресурсы в обратном порядке и запрещает повторный запуск; lifecycle, graph и health tests прошли 9/9. Фабрика JCache перенесена в Kotlin `runtime.CacheFactory`; cache statistics и частичная сборка графа прошли 2/2. Критерии полного графа остаются открытыми.
 
+Срезы `515bc56`, `af87f89`: общие `TransactionManager`/`JdbcHelper` перенесены в Kotlin runtime `JdbcFactory`; 14 независимых от service слоя DAO создаются в `DaoFactory` и собираются в `DaoGraph`. `KtorConfiguration` пока публикует те же singleton DAO через временные bean projections; `PlayerDao` остаётся отдельным, поскольку требует `MediaFolderService`. `RuntimeCompositionRootGraphTest`, `JdbcHelperTest` и `ServerHealthIntegrationTest` прошли 10/10. Полный сервисный граф и lifecycle ownership ресурсов ещё не вынесены из Spring.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
