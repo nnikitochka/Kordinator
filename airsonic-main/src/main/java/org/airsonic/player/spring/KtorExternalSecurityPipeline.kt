@@ -30,15 +30,18 @@ internal class KtorExternalSecurityPipeline(
         }
 
         writeSecurityHeaders(request, response)
-        corsAdapter.service(request, response, FilterChain { corsRequest, corsResponse ->
-            csrfAdapter.service(corsRequest as HttpServletRequest, corsResponse as HttpServletResponse, FilterChain { csrfRequest, csrfResponse ->
+        corsAdapter.service(request, response) { corsRequest, corsResponse ->
+            csrfAdapter.service(
+                corsRequest as HttpServletRequest,
+                corsResponse as HttpServletResponse
+            ) { csrfRequest, csrfResponse ->
                 authenticate(
                     csrfRequest as HttpServletRequest,
                     csrfResponse as HttpServletResponse,
                     terminal,
                 )
-            })
-        })
+            }
+        }
     }
 
     private fun authenticate(request: HttpServletRequest, response: HttpServletResponse, terminal: FilterChain) {
