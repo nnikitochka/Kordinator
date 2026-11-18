@@ -190,6 +190,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `37f45cf` переносит `CaptionService` и `VideoPlaybackService` в runtime root. Проверены graph assembly, `CaptionsIntegrationTest` и `VideoPlayerIntegrationTest` — 3/3.
 
+Срез `e33e9e8` переносит `MediaFileService` под root ownership: он получает тот же `MediaFolderService` и root-owned `CacheManager`; Spring projection больше не создает собственный экземпляр и кэш. Проверки graph assembly и ArtistInfo/artists/video/comments/song/directory/bookmark integration прошли 9/9.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
