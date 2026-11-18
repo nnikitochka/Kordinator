@@ -869,9 +869,8 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public MediaFolderService mediaFolderService(MusicFolderDao musicFolderDao, MediaFileDao mediaFileDao,
-            javax.cache.CacheManager cacheManager) {
-        return new MediaFolderService(musicFolderDao, mediaFileDao, cacheManager);
+    public MediaFolderService mediaFolderService(RuntimeCompositionRoot runtime) {
+        return runtime.createMediaFolderService();
     }
 
     @Bean

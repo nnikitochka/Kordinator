@@ -92,6 +92,8 @@ class RuntimeCompositionRootGraphTest {
         assertNotNull(transcodingDao);
 
         // Cache & Settings
+        MediaFolderService mediaFolderService = runtimeRoot.createMediaFolderService();
+        assertSame(mediaFolderService, runtimeRoot.createMediaFolderService());
         CacheManager cacheManager = runtimeRoot.createCacheManager();
         assertSame(cacheManager, runtimeRoot.createCacheManager());
         assertNotNull(cacheManager);
@@ -104,7 +106,6 @@ class RuntimeCompositionRootGraphTest {
         assertNotNull(settingsService);
 
         // MediaFolderService and PlayerDao
-        MediaFolderService mediaFolderService = config.mediaFolderService(musicFolderDao, mediaFileDao, cacheManager);
         assertNotNull(mediaFolderService);
 
         PlayerDaoPlayQueueFactory playQueueFactory = config.playerDaoPlayQueueFactory(mediaFolderService);

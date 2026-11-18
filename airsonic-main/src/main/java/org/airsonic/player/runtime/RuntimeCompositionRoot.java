@@ -10,6 +10,7 @@ public final class RuntimeCompositionRoot {
     private final LifecycleRegistry lifecycleRegistry;
     private PersistenceGraph persistenceGraph;
     private javax.cache.CacheManager cacheManager;
+    private org.airsonic.player.service.MediaFolderService mediaFolderService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -62,5 +63,18 @@ public final class RuntimeCompositionRoot {
             lifecycleRegistry.registerShutdown("cacheManager", cacheManager::close);
         }
         return cacheManager;
+    }
+
+    public synchronized org.airsonic.player.service.MediaFolderService createMediaFolderService() {
+        if (persistenceGraph == null) {
+            throw new IllegalStateException("Persistence graph must be created before media services");
+        }
+        if (mediaFolderService == null) {
+            mediaFolderService = new org.airsonic.player.service.MediaFolderService(
+                    persistenceGraph.getDaos().getMusicFolderDao(),
+                    persistenceGraph.getDaos().getMediaFileDao(),
+                    createCacheManager());
+        }
+        return mediaFolderService;
     }
 }
