@@ -258,6 +258,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `b1184e0` убирает `KtorConfiguration` и Spring bean projection assertions из `RuntimeCompositionRootGraphTest`. Тест собирает services/DAOs/handlers/jobs/lifecycle напрямую через root на тестовом HSQL `DataSource` без Spring application context и без Spring configuration object; обе проверки root graph прошли 2/2. Полный Ktor HTTP/security bootstrap всё ещё остаётся Spring-backed и требует дальнейшего перехода на graph factories.
 
+Срез `6e9a435` расширяет root graph test на root-owned `LocaleService`, `DefaultMetaDataParser` и `FFmpegParser`; после этого тест напрямую вызывает все 75 `create*` factories `RuntimeCompositionRoot`, включая транзитивно построенные parsing/search/UPnP/service graphs. Обе graph checks прошли 2/2. Автоматическая сверка фабрик и теста больше не находит непокрытых `create*` методов; Ktor route/controller и Spring security/HTTP bootstrap не входят в эти 75 factories и остаются для следующих срезов.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
