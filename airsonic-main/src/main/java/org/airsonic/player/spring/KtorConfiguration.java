@@ -765,17 +765,17 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public org.airsonic.player.service.ConfigurationPropertiesService configurationPropertiesService() {
-        return org.airsonic.player.service.ConfigurationPropertiesService.getInstance();
+    public org.airsonic.player.service.ConfigurationPropertiesService configurationPropertiesService(
+            RuntimeCompositionRoot runtime) {
+        return runtime.createConfigurationPropertiesService();
     }
 
     @Bean
-    public SettingsService settingsService(UserDao userDao, AvatarDao avatarDao,
-            org.springframework.core.env.Environment environment, javax.cache.CacheManager cacheManager,
+    public SettingsService settingsService(RuntimeCompositionRoot runtime, UserDao userDao, AvatarDao avatarDao,
+            javax.cache.CacheManager cacheManager,
             org.airsonic.player.service.ConfigurationPropertiesService properties) {
-        SettingsService service = new SettingsService(userDao, avatarDao, environment, cacheManager, properties);
-        service.init();
-        return service;
+        // Keep the DAO/cache parameters as bootstrap dependencies so PersistenceGraph exists first.
+        return runtime.createSettingsService();
     }
 
     @Bean

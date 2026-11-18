@@ -61,6 +61,8 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.search.QueryFactory queryFactory;
     private org.airsonic.player.service.search.SearchServiceUtilities searchServiceUtilities;
     private org.airsonic.player.service.search.SearchServiceImpl searchService;
+    private org.airsonic.player.service.ConfigurationPropertiesService configurationPropertiesService;
+    private org.airsonic.player.service.SettingsService settingsService;
     private org.airsonic.player.service.playlist.DefaultPlaylistExportHandler defaultPlaylistExportHandler;
     private org.airsonic.player.service.playlist.DefaultPlaylistImportHandler defaultPlaylistImportHandler;
     private org.airsonic.player.service.playlist.XspfPlaylistExportHandler xspfPlaylistExportHandler;
@@ -184,6 +186,28 @@ public final class RuntimeCompositionRoot {
                     createQueryFactory(), createIndexManager(), createSearchServiceUtilities(mediaFileService));
         }
         return searchService;
+    }
+
+    public synchronized org.airsonic.player.service.ConfigurationPropertiesService createConfigurationPropertiesService() {
+        if (configurationPropertiesService == null) {
+            // The Spring environment bootstrap still exposes this same file-backed source during migration.
+            configurationPropertiesService = org.airsonic.player.service.ConfigurationPropertiesService.getInstance();
+        }
+        return configurationPropertiesService;
+    }
+
+    public synchronized org.airsonic.player.service.SettingsService createSettingsService() {
+        if (settingsService == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before SettingsService");
+            }
+            DaoGraph daos = persistenceGraph.getDaos();
+            settingsService = new org.airsonic.player.service.SettingsService(
+                    daos.getUserDao(), daos.getAvatarDao(), configuration, createCacheManager(),
+                    createConfigurationPropertiesService());
+            settingsService.init();
+        }
+        return settingsService;
     }
 
     public synchronized PersistenceGraph createPersistenceGraph(DataSource dataSource) {

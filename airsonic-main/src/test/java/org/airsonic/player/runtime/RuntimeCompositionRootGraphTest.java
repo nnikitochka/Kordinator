@@ -9,7 +9,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.springframework.core.env.StandardEnvironment;
 
 import javax.cache.CacheManager;
 import java.nio.file.Path;
@@ -48,7 +47,8 @@ class RuntimeCompositionRootGraphTest {
         LifecycleRegistry lifecycleRegistry = new LifecycleRegistry();
         RuntimeConfiguration runtimeConfig = new RuntimeConfiguration(java.util.Map.of(
                 RuntimeConfiguration.HEALTH_STATUS_ORDER_KEY, "DOWN, UP",
-                "MediaScannerParallelism", "2"));
+                "MediaScannerParallelism", "2",
+                "IndexCreationInterval", "5"));
         RuntimeCompositionRoot runtimeRoot = new RuntimeCompositionRoot(runtimeConfig, lifecycleRegistry);
 
         JDBCDataSource dataSource = new JDBCDataSource();
@@ -117,11 +117,15 @@ class RuntimeCompositionRootGraphTest {
         LyricsService lyricsService = runtimeRoot.createLyricsService();
         assertSame(lyricsService, runtimeRoot.createLyricsService());
 
-        ConfigurationPropertiesService properties = config.configurationPropertiesService();
+        ConfigurationPropertiesService properties = runtimeRoot.createConfigurationPropertiesService();
+        assertSame(properties, config.configurationPropertiesService(runtimeRoot));
+        assertSame(properties, runtimeRoot.createConfigurationPropertiesService());
         assertNotNull(properties);
 
-        StandardEnvironment environment = new StandardEnvironment();
-        SettingsService settingsService = config.settingsService(userDao, avatarDao, environment, cacheManager, properties);
+        SettingsService settingsService = runtimeRoot.createSettingsService();
+        assertSame(settingsService, config.settingsService(runtimeRoot, userDao, avatarDao, cacheManager, properties));
+        assertSame(settingsService, runtimeRoot.createSettingsService());
+        assertEquals(5, settingsService.getIndexCreationInterval());
         assertNotNull(settingsService);
         VersionService versionService = runtimeRoot.createVersionService();
         assertSame(versionService, runtimeRoot.createVersionService());

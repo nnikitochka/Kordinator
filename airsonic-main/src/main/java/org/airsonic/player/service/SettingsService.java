@@ -18,6 +18,7 @@ import org.springframework.boot.logging.LogFile;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.airsonic.player.runtime.RuntimeConfiguration;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -228,7 +229,7 @@ public class SettingsService {
     private List<Locale> locales;
     private UserDao userDao;
     private AvatarDao avatarDao;
-    private Environment env;
+    private Function<String, String> environmentPropertyLookup;
 
     // Array of obsolete properties. Used to clean property file.
     private static final List<String> OBSOLETE_KEYS = Arrays.asList("PortForwardingPublicPort", "PortForwardingLocalPort",
@@ -255,9 +256,19 @@ public class SettingsService {
 
     public SettingsService(UserDao userDao, AvatarDao avatarDao, Environment env,
                            CacheManager cacheManager, ConfigurationPropertiesService properties) {
+        this(userDao, avatarDao, env::getProperty, cacheManager, properties);
+    }
+
+    public SettingsService(UserDao userDao, AvatarDao avatarDao, RuntimeConfiguration configuration,
+                           CacheManager cacheManager, ConfigurationPropertiesService properties) {
+        this(userDao, avatarDao, configuration::getProperty, cacheManager, properties);
+    }
+
+    private SettingsService(UserDao userDao, AvatarDao avatarDao, Function<String, String> propertyLookup,
+                            CacheManager cacheManager, ConfigurationPropertiesService properties) {
         this.userDao = userDao;
         this.avatarDao = avatarDao;
-        this.env = env;
+        this.environmentPropertyLookup = Objects.requireNonNull(propertyLookup);
         this.properties = Objects.requireNonNull(properties);
         this.userSettingsCache = cacheManager != null ? cacheManager.getCache("userSettingsCache", String.class, UserSettings.class) : null;
     }
@@ -516,7 +527,10 @@ public class SettingsService {
     }
 
     private int getInt(String key, int defaultValue) {
-        return (int) settingsCache.computeIfAbsent(key, k -> env.getProperty(k, int.class, defaultValue));
+        return (int) settingsCache.computeIfAbsent(key, k -> {
+            String value = environmentPropertyLookup.apply(k);
+            return value == null || value.trim().isEmpty() ? defaultValue : Integer.parseInt(value.trim());
+        });
     }
 
     private void setInt(String key, Integer value) {
@@ -524,7 +538,10 @@ public class SettingsService {
     }
 
     private long getLong(String key, long defaultValue) {
-        return (long) settingsCache.computeIfAbsent(key, k -> env.getProperty(k, long.class, defaultValue));
+        return (long) settingsCache.computeIfAbsent(key, k -> {
+            String value = environmentPropertyLookup.apply(k);
+            return value == null || value.trim().isEmpty() ? defaultValue : Long.parseLong(value.trim());
+        });
     }
 
     private void setLong(String key, Long value) {
@@ -532,7 +549,17 @@ public class SettingsService {
     }
 
     private boolean getBoolean(String key, boolean defaultValue) {
-        return (boolean) settingsCache.computeIfAbsent(key, k -> env.getProperty(k, boolean.class, defaultValue));
+        return (boolean) settingsCache.computeIfAbsent(key, k -> {
+            String value = environmentPropertyLookup.apply(k);
+            if (value == null || value.trim().isEmpty()) {
+                return defaultValue;
+            }
+            return switch (value.trim().toLowerCase(Locale.ROOT)) {
+                case "true", "yes", "on", "1" -> true;
+                case "false", "no", "off", "0" -> false;
+                default -> throw new IllegalArgumentException("Invalid boolean value for " + k + ": " + value);
+            };
+        });
     }
 
     private void setBoolean(String key, Boolean value) {
@@ -548,7 +575,10 @@ public class SettingsService {
     }
 
     private String getProperty(String key, String defaultValue) {
-        return (String) settingsCache.computeIfAbsent(key, k -> env.getProperty(k, defaultValue));
+        return (String) settingsCache.computeIfAbsent(key, k -> {
+            String value = environmentPropertyLookup.apply(k);
+            return value == null ? defaultValue : value;
+        });
     }
 
     public String getIndexString() {
@@ -1481,7 +1511,7 @@ public class SettingsService {
     }
 
     public void setEnvironment(Environment env) {
-        this.env = env;
+        this.environmentPropertyLookup = env::getProperty;
     }
 
     public void resetDatabaseToDefault() {
