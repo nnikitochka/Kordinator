@@ -252,6 +252,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `3164b05` вводит Kotlin `AuthorizationDeniedException` и убирает Spring `AccessDeniedException`/ACL `NotFoundException` из stream/HLS segment services. Ktor stream/HLS handlers явно мапят denial/not-found на HTTP 403/404; stream/HLS playback, endpoint и graph suite прошли 4/4. `DownloadService` пока всё ещё бросает Spring `AccessDeniedException`.
 
+Срез `9ad577a` переводит `DownloadService` на общий `AuthorizationDeniedException`; Ktor website download мапит его в Subsonic NOT_AUTHORIZED, а legacy `.view` servlet boundary сохраняет HTTP 403 для denied ACL. `DownloadIntegrationTest`, `WebsiteDownloadIntegrationTest` и graph test прошли 3/3. Первичный прогон выявил и помог восстановить прежний `.view` 403 контракт.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
