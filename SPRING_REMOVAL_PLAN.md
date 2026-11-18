@@ -210,6 +210,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `8cb6929` переносит создание и однократный `init()` `MediaScannerService` в root. Сканер использует root-owned scheduler и DAO graph; `MediaScannerParallelism` читается из `RuntimeConfiguration` с прежним default `availableProcessors() + 1`. `RuntimeCompositionRootGraphTest`, `MediaScannerServiceUnitTest`, `MediaScannerServiceTestCase`, `MusicIndexStateServiceTest` прошли 7/7; `SubsonicScanIntegrationTest` прошёл 3/3 при запуске embedded Tomcat вне sandbox. `IndexManager`, `SettingsService` и parser/search dependencies пока ещё поступают в граф как внешние зависимости.
 
+Срез `ebbcfbc` переносит `AnalyzerFactory`, `DocumentFactory` и создание `IndexManager` под root ownership; Spring projections возвращают те же экземпляры, а `IndexManager` использует DAO из root persistence graph. Проверены graph и analyzer/search regression tests — 21/21; `SubsonicScanIntegrationTest` и `DLNASettingsIntegrationTest` прошли 4/4 с embedded Tomcat вне sandbox. `QueryFactory`, `SearchServiceImpl` и `SearchServiceUtilities` пока остаются Spring-created dependencies.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
