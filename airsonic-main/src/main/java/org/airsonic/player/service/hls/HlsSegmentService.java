@@ -6,7 +6,6 @@ import org.airsonic.player.domain.TransferStatus;
 import org.airsonic.player.domain.User;
 import org.airsonic.player.io.PipeStreams.MonitoredResource;
 import org.airsonic.player.security.CallerContext;
-import org.airsonic.player.security.JWTAuthenticationToken;
 import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.SettingsService;
@@ -20,7 +19,6 @@ import org.springframework.core.io.PathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.acls.model.NotFoundException;
-import org.springframework.security.core.Authentication;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Map;
@@ -52,13 +50,13 @@ public class HlsSegmentService {
         FileUtil.delete(HlsSession.getHlsRootDirectory());
     }
 
-    public Resource getSegment(Authentication auth, User user, CallerContext callerContext, Player player, int id, String playerId,
+    public Resource getSegment(boolean jwtAuthentication, User user, CallerContext callerContext, Player player, int id, String playerId,
             int segmentIndex, int maxBitRate, String size, Integer duration, Integer audioTrack, boolean enforceFolderAccess, boolean countPlay) throws Exception {
         MediaFile mediaFile = this.mediaFileService.getMediaFile(id);
         if (mediaFile == null) {
             throw new NotFoundException("Media file not found: " + id);
         }
-        if ((enforceFolderAccess || !(auth instanceof JWTAuthenticationToken))
+        if ((enforceFolderAccess || !jwtAuthentication)
                 && !securityService.isFolderAccessAllowed(mediaFile, callerContext)) {
             throw new AccessDeniedException("Access to file " + id + " is forbidden for user " + user.getUsername());
         }

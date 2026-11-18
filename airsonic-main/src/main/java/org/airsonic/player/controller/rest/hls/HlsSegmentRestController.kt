@@ -15,6 +15,7 @@ import kotlinx.coroutines.withContext
 import org.airsonic.player.domain.Player
 import org.airsonic.player.domain.User
 import org.airsonic.player.security.CallerContext
+import org.airsonic.player.security.JWTAuthenticationToken
 import org.airsonic.player.service.hls.HlsSegmentService
 import org.springframework.security.core.Authentication
 import java.util.concurrent.TimeoutException
@@ -36,7 +37,7 @@ class HlsSegmentRestController(private val segments: HlsSegmentService) {
     private suspend fun respond(call: ApplicationCall, request: Request, head: Boolean) {
         val result = try {
             withContext(Dispatchers.IO) {
-                segments.getSegment(request.auth, request.user, request.callerContext, request.player, request.id, request.playerId,
+                segments.getSegment(request.auth is JWTAuthenticationToken, request.user, request.callerContext, request.player, request.id, request.playerId,
                     request.index, request.bitRate, request.size, request.duration, request.audioTrack, request.enforceFolderAccess, !head)
             }
         } catch (e: TimeoutException) {
