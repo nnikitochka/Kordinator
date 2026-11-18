@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 class RuntimeCompositionRootGraphTest {
 
@@ -179,7 +180,16 @@ class RuntimeCompositionRootGraphTest {
                 mediaFileService, mediaFolderService, settingsService, scheduler);
         assertSame(statusService, runtimeRoot.createStatusService(
                 mediaFileService, mediaFolderService, settingsService, scheduler));
-        TranscodingService transcodingService = mock(TranscodingService.class);
+        TranscodingService transcodingService = runtimeRoot.createTranscodingService(
+                daoGraph.getTranscodingDao(), settingsService, mediaFolderService);
+        assertSame(transcodingService, runtimeRoot.createTranscodingService(
+                daoGraph.getTranscodingDao(), settingsService, mediaFolderService));
+        PlayerDao playerServiceDao = mock(PlayerDao.class);
+        PlayerService playerService = runtimeRoot.createPlayerService(playerServiceDao, statusService,
+                securityService, transcodingService);
+        assertSame(playerService, runtimeRoot.createPlayerService(playerServiceDao, statusService,
+                securityService, transcodingService));
+        verify(playerServiceDao).deleteOldPlayers(60);
         JukeboxLegacySubsonicService legacyJukebox = runtimeRoot.createJukeboxLegacySubsonicService(
                 transcodingService, audioScrobblerService, statusService, settingsService, securityService,
                 mediaFileService);

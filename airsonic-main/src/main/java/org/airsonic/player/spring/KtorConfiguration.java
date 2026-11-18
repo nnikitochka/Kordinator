@@ -880,18 +880,18 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public TranscodingService transcodingService(TranscodingDao transcodingDao, SettingsService settingsService,
-            MediaFolderService mediaFolderService, @Lazy PlayerService playerService) {
-        return new TranscodingService(transcodingDao, settingsService, mediaFolderService, playerService);
+    public TranscodingService transcodingService(RuntimeCompositionRoot runtime, TranscodingDao transcodingDao,
+            SettingsService settingsService, MediaFolderService mediaFolderService,
+            org.springframework.beans.factory.ObjectProvider<PlayerService> playerServiceProvider) {
+        return runtime.createTranscodingService(transcodingDao, settingsService, mediaFolderService,
+                playerServiceProvider::getObject);
     }
 
     @Bean
     @DependsOn("liquibase")
-    public PlayerService playerService(PlayerDao playerDao, StatusService statusService,
+    public PlayerService playerService(RuntimeCompositionRoot runtime, PlayerDao playerDao, StatusService statusService,
             SecurityService securityService, TranscodingService transcodingService) {
-        PlayerService service = new PlayerService(playerDao, statusService, securityService, transcodingService);
-        service.init();
-        return service;
+        return runtime.createPlayerService(playerDao, statusService, securityService, transcodingService);
     }
 
     @Bean(destroyMethod = "shutdown")

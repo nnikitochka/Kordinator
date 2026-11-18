@@ -9,7 +9,6 @@ import org.airsonic.player.util.Util;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Lazy;
 
 import java.awt.Dimension;
 import java.io.BufferedInputStream;
@@ -26,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -45,13 +45,14 @@ public class TranscodingService {
     private TranscodingDao transcodingDao;
     private SettingsService settingsService;
     private final MediaFolderService mediaFolderService;
-    private PlayerService playerService;
+    private Supplier<PlayerService> playerServiceSupplier;
 
-    public TranscodingService(TranscodingDao transcodingDao, SettingsService settingsService, MediaFolderService mediaFolderService, @Lazy PlayerService playerService) {
+    public TranscodingService(TranscodingDao transcodingDao, SettingsService settingsService,
+            MediaFolderService mediaFolderService, Supplier<PlayerService> playerServiceSupplier) {
         this.transcodingDao = transcodingDao;
         this.settingsService = settingsService;
         this.mediaFolderService = mediaFolderService;
-        this.playerService = playerService;
+        this.playerServiceSupplier = playerServiceSupplier;
     }
 
     /**
@@ -108,7 +109,7 @@ public class TranscodingService {
 
         // Activate this transcoding for all players?
         if (transcoding.isDefaultActive()) {
-            playerService.getAllPlayers().parallelStream().filter(Objects::nonNull).forEach(player -> {
+            playerServiceSupplier.get().getAllPlayers().parallelStream().filter(Objects::nonNull).forEach(player -> {
                 List<Transcoding> transcodings = getTranscodingsForPlayer(player);
                 transcodings.add(transcoding);
                 setTranscodingsForPlayer(player, transcodings);
@@ -627,10 +628,6 @@ public class TranscodingService {
 
     public void setSettingsService(SettingsService settingsService) {
         this.settingsService = settingsService;
-    }
-
-    public void setPlayerService(PlayerService playerService) {
-        this.playerService = playerService;
     }
 
     public static class Parameters {

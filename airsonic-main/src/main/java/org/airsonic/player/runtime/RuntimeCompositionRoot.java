@@ -34,6 +34,8 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.AudioScrobblerService audioScrobblerService;
     private org.airsonic.player.service.CaptionService captionService;
     private org.airsonic.player.service.VideoPlaybackService videoPlaybackService;
+    private org.airsonic.player.service.TranscodingService transcodingService;
+    private org.airsonic.player.service.PlayerService playerService;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -353,5 +355,44 @@ public final class RuntimeCompositionRoot {
                     mediaFileService, captionService, jwtSecurityService, bookmarkService, settingsService);
         }
         return videoPlaybackService;
+    }
+
+    public synchronized org.airsonic.player.service.TranscodingService createTranscodingService(
+            org.airsonic.player.dao.TranscodingDao transcodingDao,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService) {
+        return createTranscodingService(transcodingDao, settingsService, mediaFolderService, this::requirePlayerService);
+    }
+
+    public synchronized org.airsonic.player.service.TranscodingService createTranscodingService(
+            org.airsonic.player.dao.TranscodingDao transcodingDao,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            java.util.function.Supplier<org.airsonic.player.service.PlayerService> playerServiceSupplier) {
+        if (transcodingService == null) {
+            transcodingService = new org.airsonic.player.service.TranscodingService(
+                    transcodingDao, settingsService, mediaFolderService, playerServiceSupplier);
+        }
+        return transcodingService;
+    }
+
+    private synchronized org.airsonic.player.service.PlayerService requirePlayerService() {
+        if (playerService == null) {
+            throw new IllegalStateException("PlayerService must be created before player transcodings are used");
+        }
+        return playerService;
+    }
+
+    public synchronized org.airsonic.player.service.PlayerService createPlayerService(
+            org.airsonic.player.dao.PlayerDao playerDao,
+            org.airsonic.player.service.StatusService statusService,
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.service.TranscodingService transcodingService) {
+        if (playerService == null) {
+            playerService = new org.airsonic.player.service.PlayerService(
+                    playerDao, statusService, securityService, transcodingService);
+            playerService.init();
+        }
+        return playerService;
     }
 }
