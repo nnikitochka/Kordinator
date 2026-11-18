@@ -381,20 +381,25 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public org.airsonic.player.dao.TransactionManager airsonicTransactionManager(javax.sql.DataSource dataSource) {
-        return new org.airsonic.player.runtime.JdbcFactory().transactionManager(dataSource);
+    public org.airsonic.player.runtime.PersistenceGraph persistenceGraph(RuntimeCompositionRoot runtime,
+            javax.sql.DataSource dataSource) {
+        return runtime.createPersistenceGraph(dataSource);
     }
 
     @Bean
-    public org.airsonic.player.dao.JdbcHelper jdbcHelper(javax.sql.DataSource dataSource,
-            org.airsonic.player.dao.TransactionManager transactionManager) {
-        return new org.airsonic.player.runtime.JdbcFactory().jdbcHelper(dataSource, transactionManager);
+    public org.airsonic.player.dao.TransactionManager airsonicTransactionManager(
+            org.airsonic.player.runtime.PersistenceGraph persistenceGraph) {
+        return persistenceGraph.getTransactionManager();
     }
 
     @Bean
-    public org.airsonic.player.runtime.DaoGraph daoGraph(org.airsonic.player.dao.JdbcHelper jdbcHelper,
-            org.airsonic.player.dao.TransactionManager transactionManager) {
-        return new org.airsonic.player.runtime.DaoFactory().create(jdbcHelper, transactionManager);
+    public org.airsonic.player.dao.JdbcHelper jdbcHelper(org.airsonic.player.runtime.PersistenceGraph persistenceGraph) {
+        return persistenceGraph.getJdbcHelper();
+    }
+
+    @Bean
+    public org.airsonic.player.runtime.DaoGraph daoGraph(org.airsonic.player.runtime.PersistenceGraph persistenceGraph) {
+        return persistenceGraph.getDaos();
     }
 
     @Bean
