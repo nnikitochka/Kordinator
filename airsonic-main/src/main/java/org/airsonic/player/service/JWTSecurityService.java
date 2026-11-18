@@ -9,7 +9,6 @@ import org.airsonic.player.security.JWTAuthenticationToken;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigInteger;
 import java.net.URI;
@@ -35,7 +34,6 @@ public class JWTSecurityService {
 
     private final SettingsService settingsService;
 
-    @Autowired
     public JWTSecurityService(SettingsService settingsService) {
         this.settingsService = settingsService;
     }

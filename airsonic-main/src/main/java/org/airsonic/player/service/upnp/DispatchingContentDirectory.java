@@ -32,11 +32,7 @@ public class DispatchingContentDirectory extends CustomContentDirectory {
 
     private PlaylistUpnpProcessor playlistProcessor;
     private MediaFileUpnpProcessor mediaFileProcessor;
-    //@Autowired can't autowire because of the subclassing :P
-    //first checks type then field name to autowire
     private AlbumUpnpProcessor albumUpnpProcessor;
-    //@Autowired can't autowire because of the subclassing :P
-    //first checks type then field name to autowire
     private RecentAlbumUpnpProcessor recentAlbumUpnpProcessor;
     private ArtistUpnpProcessor artistProcessor;
     private GenreUpnpProcessor genreProcessor;

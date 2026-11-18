@@ -17,7 +17,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -63,9 +62,8 @@ public class SecurityService implements UserDetailsService {
         this(userDao, settingsService, mediaFolderService, null);
     }
 
-    @Autowired
     public SecurityService(UserDao userDao, SettingsService settingsService, MediaFolderService mediaFolderService,
-                           @Autowired(required = false) CacheManager cacheManager) {
+                           CacheManager cacheManager) {
         this.userDao = userDao;
         this.settingsService = settingsService;
         this.mediaFolderService = mediaFolderService;

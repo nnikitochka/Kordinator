@@ -7,6 +7,8 @@ import org.airsonic.player.dao.PlaylistDao;
 import org.airsonic.player.domain.Playlist;
 import org.airsonic.player.service.playlist.DefaultPlaylistExportHandler;
 import org.airsonic.player.service.playlist.DefaultPlaylistImportHandler;
+import org.airsonic.player.service.playlist.PlaylistExportHandler;
+import org.airsonic.player.service.playlist.PlaylistImportHandler;
 import org.airsonic.player.service.playlist.XspfPlaylistExportHandler;
 import org.airsonic.player.service.playlist.XspfPlaylistImportHandler;
 import org.apache.commons.lang3.tuple.Pair;
@@ -43,7 +45,7 @@ public class PlaylistServiceHandlerOrderTest {
     }
 
     @Test
-    public void springInjectionPreservesSpecializedHandlerPriority() throws Exception {
+    public void explicitCompositionPreservesSpecializedHandlerPriority() throws Exception {
         Fixture fixture = new Fixture();
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
             context.getBeanFactory().registerSingleton("mediaFileDao", fixture.mediaFileDao);
@@ -55,7 +57,11 @@ public class PlaylistServiceHandlerOrderTest {
             context.registerBean("xspfExport", XspfPlaylistExportHandler.class, () -> fixture.xspfExport);
             context.registerBean("defaultImport", DefaultPlaylistImportHandler.class, () -> fixture.defaultImport);
             context.registerBean("xspfImport", XspfPlaylistImportHandler.class, () -> fixture.xspfImport);
-            context.registerBean(PlaylistService.class);
+            context.registerBean(PlaylistService.class, () -> new PlaylistService(
+                    fixture.mediaFileDao, fixture.playlistDao, fixture.securityService, fixture.settingsService,
+                    context.getBeanProvider(PlaylistExportHandler.class).orderedStream().toList(),
+                    context.getBeanProvider(PlaylistImportHandler.class).orderedStream().toList(),
+                    fixture.pathWatcherService, null));
             context.refresh();
 
             fixture.verifyHandlerSelection(context.getBean(PlaylistService.class));

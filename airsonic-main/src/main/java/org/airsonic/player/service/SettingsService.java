@@ -14,7 +14,6 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.airsonic.player.cache.CacheHelper;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.logging.LogFile;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
@@ -248,9 +247,8 @@ public class SettingsService {
         this(userDao, avatarDao, env, null);
     }
 
-    @Autowired
     public SettingsService(UserDao userDao, AvatarDao avatarDao, Environment env,
-                           @Autowired(required = false) CacheManager cacheManager) {
+                           CacheManager cacheManager) {
         this.userDao = userDao;
         this.avatarDao = avatarDao;
         this.env = env;

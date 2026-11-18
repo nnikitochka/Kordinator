@@ -8,7 +8,6 @@ import org.airsonic.player.domain.MusicFolder.Type;
 import org.apache.commons.lang3.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.cache.CacheManager;
 
@@ -39,9 +38,8 @@ public class MediaFolderService {
         this(musicFolderDao, mediaFileDao, null);
     }
 
-    @Autowired
     public MediaFolderService(MusicFolderDao musicFolderDao, MediaFileDao mediaFileDao,
-                              @Autowired(required = false) CacheManager cacheManager) {
+                              CacheManager cacheManager) {
         this.musicFolderDao = musicFolderDao;
         this.mediaFileDao = mediaFileDao;
         this.cacheManager = cacheManager;

@@ -13,7 +13,6 @@ import org.jaudiotagger.tag.images.Artwork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.airsonic.player.cache.CacheHelper;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -37,9 +36,8 @@ public class CoverArtService {
         this(coverArtDao, mediaFolderService, jaudiotaggerParser, null);
     }
 
-    @Autowired
     public CoverArtService(CoverArtDao coverArtDao, MediaFolderService mediaFolderService, JaudiotaggerParser jaudiotaggerParser,
-                           @Autowired(required = false) CacheManager cacheManager) {
+                           CacheManager cacheManager) {
         this.coverArtDao = coverArtDao;
         this.mediaFolderService = mediaFolderService;
         this.jaudiotaggerParser = jaudiotaggerParser;

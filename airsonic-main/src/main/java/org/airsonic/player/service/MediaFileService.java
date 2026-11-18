@@ -17,7 +17,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -57,9 +56,8 @@ public class MediaFileService {
         this(securityService, settingsService, mediaFileDao, mediaFolderService, albumDao, parser, metaDataParserFactory, coverArtService, localeResolver, null);
     }
 
-    @Autowired
     public MediaFileService(SecurityService securityService, SettingsService settingsService, MediaFileDao mediaFileDao, MediaFolderService mediaFolderService, AlbumDao albumDao, JaudiotaggerParser parser, MetaDataParserFactory metaDataParserFactory, CoverArtService coverArtService, LocaleResolver localeResolver,
-                            @Autowired(required = false) CacheManager cacheManager) {
+                            CacheManager cacheManager) {
         this.securityService = securityService;
         this.settingsService = settingsService;
         this.mediaFileDao = mediaFileDao;

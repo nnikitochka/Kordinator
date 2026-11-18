@@ -17,7 +17,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
 
 import javax.cache.Cache;
@@ -53,7 +52,6 @@ public class PlaylistService {
     private final Cache<Integer, Playlist> playlistCache;
     private final Cache<Integer, Object> playlistUsersCache;
 
-    @Autowired
     public PlaylistService(
             MediaFileDao mediaFileDao,
             PlaylistDao playlistDao,
@@ -74,7 +72,7 @@ public class PlaylistService {
             List<PlaylistExportHandler> exportHandlers,
             List<PlaylistImportHandler> importHandlers,
             PathWatcherService pathWatcherService,
-            @Autowired(required = false) CacheManager cacheManager
+            CacheManager cacheManager
     ) {
         notNull(mediaFileDao, "mediaFileDao must not be null");
         notNull(playlistDao, "playlistDao must not be null");
