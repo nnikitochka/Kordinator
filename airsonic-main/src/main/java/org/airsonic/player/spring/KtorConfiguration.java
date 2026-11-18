@@ -668,7 +668,6 @@ public class KtorConfiguration {
         return runtime.createSettingsService();
     }
 
-    @Bean
     public MediaScannerService mediaScannerService(RuntimeCompositionRoot runtime,
             PlaylistService playlistService, SettingsService settingsService,
             IndexManager indexManager, MediaFileService mediaFileService, MediaFolderService mediaFolderService,
@@ -734,12 +733,10 @@ public class KtorConfiguration {
                 bookmarkService, settingsService);
     }
 
-    @Bean
     public MediaFolderService mediaFolderService(RuntimeCompositionRoot runtime) {
         return runtime.createMediaFolderService();
     }
 
-    @Bean
     public MediaFileService mediaFileService(RuntimeCompositionRoot runtime, SecurityService securityService, SettingsService settingsService,
             MediaFileDao mediaFileDao, AlbumDao albumDao,
             JaudiotaggerParser parser, MetaDataParserFactory metaDataParserFactory, CoverArtService coverArtService,
@@ -748,7 +745,6 @@ public class KtorConfiguration {
                 parser, metaDataParserFactory, coverArtService, localeService);
     }
 
-    @Bean
     public TranscodingService transcodingService(RuntimeCompositionRoot runtime, TranscodingDao transcodingDao,
             SettingsService settingsService, MediaFolderService mediaFolderService,
             org.springframework.beans.factory.ObjectProvider<PlayerService> playerServiceProvider) {
@@ -756,19 +752,15 @@ public class KtorConfiguration {
                 playerServiceProvider::getObject);
     }
 
-    @Bean
-    @DependsOn("liquibase")
     public PlayerService playerService(RuntimeCompositionRoot runtime, PlayerDao playerDao, StatusService statusService,
             SecurityService securityService, TranscodingService transcodingService) {
         return runtime.createPlayerService(playerDao, statusService, securityService, transcodingService);
     }
 
-    @Bean
     public TaskSchedulingService taskSchedulingService(RuntimeCompositionRoot runtime) {
         return runtime.createTaskSchedulingService();
     }
 
-    @Bean
     public org.airsonic.player.service.PathWatcherService pathWatcherService(RuntimeCompositionRoot runtime) throws Exception {
         return runtime.createPathWatcherService();
     }
@@ -795,7 +787,6 @@ public class KtorConfiguration {
         return runtime.createUserAdministrationService(securityService, settingsService);
     }
 
-    @Bean
     public MusicIndexStateService musicIndexStateService(RuntimeCompositionRoot runtime, MediaScannerService scanner,
             SettingsService settings) {
         return runtime.createMusicIndexStateService(scanner, settings);

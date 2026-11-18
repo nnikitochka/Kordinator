@@ -2,6 +2,7 @@ package org.airsonic.player.spring
 
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.DependsOn
 
 /** Spring bootstrap adapter for the explicit Ktor bean factories. */
 @Configuration
@@ -332,6 +333,75 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         cacheManager: javax.cache.CacheManager,
         properties: org.airsonic.player.service.ConfigurationPropertiesService,
     ): org.airsonic.player.service.SettingsService = runtime.createSettingsService()
+
+    @Bean
+    override fun mediaFolderService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.MediaFolderService = runtime.createMediaFolderService()
+
+    @Bean
+    override fun mediaFileService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        securityService: org.airsonic.player.service.SecurityService,
+        settingsService: org.airsonic.player.service.SettingsService,
+        mediaFileDao: org.airsonic.player.dao.MediaFileDao,
+        albumDao: org.airsonic.player.dao.AlbumDao,
+        parser: org.airsonic.player.service.metadata.JaudiotaggerParser,
+        metaDataParserFactory: org.airsonic.player.service.metadata.MetaDataParserFactory,
+        coverArtService: org.airsonic.player.service.CoverArtService,
+        localeService: org.airsonic.player.i18n.LocaleService,
+    ): org.airsonic.player.service.MediaFileService = runtime.createMediaFileService(
+        securityService, settingsService, mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeService)
+
+    @Bean
+    override fun mediaScannerService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        playlistService: org.airsonic.player.service.PlaylistService,
+        settingsService: org.airsonic.player.service.SettingsService,
+        indexManager: org.airsonic.player.service.search.IndexManager,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        mediaFolderService: org.airsonic.player.service.MediaFolderService,
+        coverArtService: org.airsonic.player.service.CoverArtService,
+    ): org.airsonic.player.service.MediaScannerService = runtime.createMediaScannerService(
+        playlistService, settingsService, indexManager, mediaFileService, mediaFolderService, coverArtService)
+
+    @Bean
+    override fun musicIndexStateService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        scanner: org.airsonic.player.service.MediaScannerService,
+        settings: org.airsonic.player.service.SettingsService,
+    ): org.airsonic.player.service.MusicIndexStateService = runtime.createMusicIndexStateService(scanner, settings)
+
+    @Bean
+    override fun transcodingService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        transcodingDao: org.airsonic.player.dao.TranscodingDao,
+        settingsService: org.airsonic.player.service.SettingsService,
+        mediaFolderService: org.airsonic.player.service.MediaFolderService,
+        playerServiceProvider: org.springframework.beans.factory.ObjectProvider<org.airsonic.player.service.PlayerService>,
+    ): org.airsonic.player.service.TranscodingService = runtime.createTranscodingService(
+        transcodingDao, settingsService, mediaFolderService, playerServiceProvider::getObject)
+
+    @Bean
+    @DependsOn("liquibase")
+    override fun playerService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        playerDao: org.airsonic.player.dao.PlayerDao,
+        statusService: org.airsonic.player.service.StatusService,
+        securityService: org.airsonic.player.service.SecurityService,
+        transcodingService: org.airsonic.player.service.TranscodingService,
+    ): org.airsonic.player.service.PlayerService = runtime.createPlayerService(
+        playerDao, statusService, securityService, transcodingService)
+
+    @Bean
+    override fun taskSchedulingService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.TaskSchedulingService = runtime.createTaskSchedulingService()
+
+    @Bean
+    override fun pathWatcherService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.PathWatcherService = runtime.createPathWatcherService()
 
     @Bean
     override fun audioScrobblerService(
