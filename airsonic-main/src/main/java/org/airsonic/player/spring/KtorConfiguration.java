@@ -197,8 +197,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class KtorConfiguration {
 
     @Bean
-    public javax.cache.CacheManager jCacheCacheManager() {
-        return new org.airsonic.player.runtime.CacheFactory().createCacheManager();
+    public javax.cache.CacheManager jCacheCacheManager(RuntimeCompositionRoot runtime) {
+        return runtime.createCacheManager();
     }
 
     @Bean

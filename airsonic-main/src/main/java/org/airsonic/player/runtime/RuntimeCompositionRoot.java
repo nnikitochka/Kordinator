@@ -9,6 +9,7 @@ public final class RuntimeCompositionRoot {
     private final RuntimeConfiguration configuration;
     private final LifecycleRegistry lifecycleRegistry;
     private PersistenceGraph persistenceGraph;
+    private javax.cache.CacheManager cacheManager;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -53,5 +54,13 @@ public final class RuntimeCompositionRoot {
             lifecycleRegistry.registerShutdown("dataSource", closeable);
         }
         return persistenceGraph;
+    }
+
+    public synchronized javax.cache.CacheManager createCacheManager() {
+        if (cacheManager == null) {
+            cacheManager = new CacheFactory().createCacheManager();
+            lifecycleRegistry.registerShutdown("cacheManager", cacheManager::close);
+        }
+        return cacheManager;
     }
 }

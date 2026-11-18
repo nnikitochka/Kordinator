@@ -92,7 +92,8 @@ class RuntimeCompositionRootGraphTest {
         assertNotNull(transcodingDao);
 
         // Cache & Settings
-        CacheManager cacheManager = config.jCacheCacheManager();
+        CacheManager cacheManager = runtimeRoot.createCacheManager();
+        assertSame(cacheManager, runtimeRoot.createCacheManager());
         assertNotNull(cacheManager);
 
         ConfigurationPropertiesService properties = config.configurationPropertiesService();
@@ -143,6 +144,7 @@ class RuntimeCompositionRootGraphTest {
 
         lifecycleRegistry.shutdown();
         assertTrue(customClosed.get(), "Shutdown hook should have run");
+        assertTrue(cacheManager.isClosed(), "Runtime lifecycle should close its cache manager");
         assertTrue(lifecycleRegistry.isShutdownComplete(), "Lifecycle should be marked as completed");
     }
 }
