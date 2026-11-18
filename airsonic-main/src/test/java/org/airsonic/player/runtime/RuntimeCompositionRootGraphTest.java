@@ -90,7 +90,9 @@ class RuntimeCompositionRootGraphTest {
         org.airsonic.player.service.search.IndexManager indexManager = runtimeRoot.createIndexManager();
         assertSame(indexManager, config.indexManager(runtimeRoot));
         assertSame(indexManager, runtimeRoot.createIndexManager());
-
+        org.airsonic.player.service.search.QueryFactory queryFactory = runtimeRoot.createQueryFactory();
+        assertSame(queryFactory, config.queryFactory(runtimeRoot));
+        assertSame(queryFactory, runtimeRoot.createQueryFactory());
         assertNotNull(userDao);
         assertNotNull(playQueueDao);
         assertNotNull(albumDao);
@@ -149,6 +151,14 @@ class RuntimeCompositionRootGraphTest {
                 mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeResolver);
         assertSame(mediaFileService, runtimeRoot.createMediaFileService(securityService, settingsService,
                 mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeResolver));
+        org.airsonic.player.service.search.SearchServiceUtilities searchServiceUtilities =
+                runtimeRoot.createSearchServiceUtilities(mediaFileService);
+        assertSame(searchServiceUtilities, config.searchServiceUtilities(runtimeRoot, mediaFileService));
+        assertSame(searchServiceUtilities, runtimeRoot.createSearchServiceUtilities(mediaFileService));
+        org.airsonic.player.service.search.SearchServiceImpl searchService =
+                runtimeRoot.createSearchService(mediaFileService);
+        assertSame(searchService, config.searchServiceImpl(runtimeRoot, mediaFileService));
+        assertSame(searchService, runtimeRoot.createSearchService(mediaFileService));
         TagEditService tagEditService = runtimeRoot.createTagEditService(metaDataParserFactory,
                 mediaFileService, securityService);
         assertSame(tagEditService, runtimeRoot.createTagEditService(metaDataParserFactory,
@@ -266,7 +276,6 @@ class RuntimeCompositionRootGraphTest {
                 mediaScannerService, settingsService);
         assertSame(musicIndexStateService,
                 runtimeRoot.createMusicIndexStateService(mediaScannerService, settingsService));
-        SearchService searchService = mock(SearchService.class);
         PlayQueueService playQueueService = runtimeRoot.createPlayQueueService(
                 searchService, jukeboxService, settingsService, mediaFileService,
                 lastFmService, ratingService, playlistService, mediaFileDao, mediaFolderService,

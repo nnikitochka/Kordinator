@@ -488,14 +488,13 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public QueryFactory queryFactory(AnalyzerFactory analyzerFactory) {
-        return new QueryFactory(analyzerFactory);
+    public QueryFactory queryFactory(RuntimeCompositionRoot runtime) {
+        return runtime.createQueryFactory();
     }
 
     @Bean
-    public SearchServiceUtilities searchServiceUtilities(ArtistDao artistDao, AlbumDao albumDao,
-            MediaFileService mediaFileService) {
-        return new SearchServiceUtilities(artistDao, albumDao, mediaFileService);
+    public SearchServiceUtilities searchServiceUtilities(RuntimeCompositionRoot runtime, MediaFileService mediaFileService) {
+        return runtime.createSearchServiceUtilities(mediaFileService);
     }
 
     @Bean
@@ -504,9 +503,8 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public SearchServiceImpl searchServiceImpl(QueryFactory queryFactory, IndexManager indexManager,
-            SearchServiceUtilities searchServiceUtilities) {
-        return new SearchServiceImpl(queryFactory, indexManager, searchServiceUtilities);
+    public SearchServiceImpl searchServiceImpl(RuntimeCompositionRoot runtime, MediaFileService mediaFileService) {
+        return runtime.createSearchService(mediaFileService);
     }
 
     @Bean

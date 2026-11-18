@@ -58,6 +58,9 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.search.AnalyzerFactory analyzerFactory;
     private org.airsonic.player.service.search.DocumentFactory documentFactory;
     private org.airsonic.player.service.search.IndexManager indexManager;
+    private org.airsonic.player.service.search.QueryFactory queryFactory;
+    private org.airsonic.player.service.search.SearchServiceUtilities searchServiceUtilities;
+    private org.airsonic.player.service.search.SearchServiceImpl searchService;
     private org.airsonic.player.service.playlist.DefaultPlaylistExportHandler defaultPlaylistExportHandler;
     private org.airsonic.player.service.playlist.DefaultPlaylistImportHandler defaultPlaylistImportHandler;
     private org.airsonic.player.service.playlist.XspfPlaylistExportHandler xspfPlaylistExportHandler;
@@ -152,6 +155,35 @@ public final class RuntimeCompositionRoot {
                     daos.getArtistDao(), daos.getAlbumDao());
         }
         return indexManager;
+    }
+
+    public synchronized org.airsonic.player.service.search.QueryFactory createQueryFactory() {
+        if (queryFactory == null) {
+            queryFactory = new org.airsonic.player.service.search.QueryFactory(createAnalyzerFactory());
+        }
+        return queryFactory;
+    }
+
+    public synchronized org.airsonic.player.service.search.SearchServiceUtilities createSearchServiceUtilities(
+            org.airsonic.player.service.MediaFileService mediaFileService) {
+        if (searchServiceUtilities == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before SearchServiceUtilities");
+            }
+            DaoGraph daos = persistenceGraph.getDaos();
+            searchServiceUtilities = new org.airsonic.player.service.search.SearchServiceUtilities(
+                    daos.getArtistDao(), daos.getAlbumDao(), mediaFileService);
+        }
+        return searchServiceUtilities;
+    }
+
+    public synchronized org.airsonic.player.service.search.SearchServiceImpl createSearchService(
+            org.airsonic.player.service.MediaFileService mediaFileService) {
+        if (searchService == null) {
+            searchService = new org.airsonic.player.service.search.SearchServiceImpl(
+                    createQueryFactory(), createIndexManager(), createSearchServiceUtilities(mediaFileService));
+        }
+        return searchService;
     }
 
     public synchronized PersistenceGraph createPersistenceGraph(DataSource dataSource) {
