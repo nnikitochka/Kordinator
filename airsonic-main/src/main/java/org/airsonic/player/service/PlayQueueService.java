@@ -12,7 +12,6 @@ import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.RandomSearchCriteria;
 import org.airsonic.player.domain.SavedPlayQueue;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -22,7 +21,6 @@ import java.util.Optional;
 import java.util.function.Function;
 
 
-@Service
 public class PlayQueueService {
     /** Selects where the web-player start instruction is delivered. */
     public record PlaybackTarget(String sessionId, boolean returnToCaller) {

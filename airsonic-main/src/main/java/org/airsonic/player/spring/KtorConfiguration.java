@@ -513,6 +513,16 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public PlayQueueService playQueueService(SearchService searchService, JukeboxService jukeboxService,
+            SettingsService settingsService, MediaFileService mediaFileService, LastFmService lastFmService,
+            RatingService ratingService, PlaylistService playlistService, MediaFileDao mediaFileDao,
+            MediaFolderService mediaFolderService, PlayQueueDao playQueueDao,
+            JWTSecurityService jwtSecurityService) {
+        return new PlayQueueService(searchService, jukeboxService, settingsService, mediaFileService, lastFmService,
+                ratingService, playlistService, mediaFileDao, mediaFolderService, playQueueDao, jwtSecurityService);
+    }
+
+    @Bean
     public LastFmService lastFmService(MediaFileDao mediaFileDao, MediaFileService mediaFileService,
             ArtistDao artistDao) {
         return new LastFmService(mediaFileDao, mediaFileService, artistDao);
