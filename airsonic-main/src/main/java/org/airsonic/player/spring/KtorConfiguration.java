@@ -764,11 +764,9 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public DatabaseService databaseService(SettingsService settingsService, DatabaseDao databaseDao,
+    public DatabaseService databaseService(RuntimeCompositionRoot runtime, SettingsService settingsService, DatabaseDao databaseDao,
             TaskSchedulingService taskSchedulingService) {
-        DatabaseService service = new DatabaseService(settingsService, databaseDao, taskSchedulingService);
-        service.init();
-        return service;
+        return runtime.createDatabaseService(settingsService, databaseDao, taskSchedulingService);
     }
 
     @Bean

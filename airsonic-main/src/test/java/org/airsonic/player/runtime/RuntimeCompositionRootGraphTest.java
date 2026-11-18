@@ -158,8 +158,8 @@ class RuntimeCompositionRootGraphTest {
         MetricsManager metricsManager = config.metricsManager(runtimeRoot);
         assertNotNull(metricsManager);
 
-        DatabaseService databaseService = config.databaseService(settingsService, databaseDao, scheduler);
-        assertNotNull(databaseService);
+        DatabaseService databaseService = runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler);
+        assertSame(databaseService, runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler));
 
         // Custom lifecycle items to verify ordering and shutdown
         AtomicBoolean customStarted = new AtomicBoolean(false);
