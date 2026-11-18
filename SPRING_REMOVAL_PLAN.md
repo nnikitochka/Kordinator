@@ -244,6 +244,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `fbc9c25` убирает Spring Security `Authentication` и `JWTAuthenticationToken` из `MediaStreamService`: сервис получает нейтральный boolean-факт JWT-аутентификации, который REST boundary вычисляет из текущего токена. `RuntimeCompositionRootGraphTest`, `MediaStreamServiceTestCase`, stream/HLS playback, HLS endpoint и public-share интеграции прошли 8/8. Spring `AccessDeniedException` в stream service и Authentication adapters в HLS остаются отдельными задачами.
 
+Срез `feb3e6d` убирает Spring Security `Authentication` и `JWTAuthenticationToken` из `HlsSegmentService`, передавая проверенный факт JWT-аутентификации из REST boundary. Graph/HLS controller/HLS URL/playback/endpoint regression suite прошёл 6/6. `HlsSegmentService` пока сохраняет Spring `Resource`, `AccessDeniedException` и `NotFoundException`; `HlsPlaylistService` пока также принимает Spring Authentication.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
