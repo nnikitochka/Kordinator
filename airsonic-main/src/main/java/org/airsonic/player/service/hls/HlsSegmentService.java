@@ -21,7 +21,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.acls.model.NotFoundException;
 import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -32,7 +31,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-@Service
 public class HlsSegmentService {
     private static final Logger LOG = LoggerFactory.getLogger(HlsSegmentService.class);
     private final MediaFileService mediaFileService;

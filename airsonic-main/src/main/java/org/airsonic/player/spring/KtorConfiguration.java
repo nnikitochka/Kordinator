@@ -396,6 +396,18 @@ public class KtorConfiguration {
                 java.util.List.of(jaudiotaggerParser, ffmpegParser, defaultMetaDataParser)));
     }
 
+    @Bean
+    public HlsPlaylistService hlsPlaylistService(JWTSecurityService jwtSecurityService) {
+        return new HlsPlaylistService(jwtSecurityService);
+    }
+
+    @Bean
+    public HlsSegmentService hlsSegmentService(MediaFileService mediaFileService, SecurityService securityService,
+            StatusService statusService, SettingsService settingsService, TranscodingService transcodingService) {
+        return new HlsSegmentService(mediaFileService, securityService, statusService, settingsService,
+                transcodingService);
+    }
+
     @Bean(destroyMethod = "shutdown")
     public TaskSchedulingService taskSchedulingService(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
         TaskSchedulingService service = new TaskSchedulingService();

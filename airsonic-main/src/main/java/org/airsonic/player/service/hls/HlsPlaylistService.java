@@ -11,7 +11,6 @@ import org.airsonic.player.service.TranscodingService;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Service;
 
 import java.awt.Dimension;
 import java.io.PrintWriter;
@@ -24,7 +23,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /** Builds playlists shared by the website and the REST API. */
-@Service
 public class HlsPlaylistService {
     private static final int SEGMENT_DURATION = 10;
     private static final Pattern BITRATE_PATTERN = Pattern.compile("(\\d+)(@(\\d+)x(\\d+))?");
