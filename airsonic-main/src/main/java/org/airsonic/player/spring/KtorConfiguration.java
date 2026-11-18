@@ -827,8 +827,9 @@ public class KtorConfiguration {
     public MediaScannerService mediaScannerService(PlaylistService playlistService, SettingsService settingsService,
             IndexManager indexManager, MediaFileService mediaFileService, MediaFolderService mediaFolderService,
             CoverArtService coverArtService, MediaFileDao mediaFileDao, ArtistDao artistDao, AlbumDao albumDao,
-            TaskSchedulingService taskSchedulingService,
-            @org.springframework.beans.factory.annotation.Value("${MediaScannerParallelism:#{T(java.lang.Runtime).getRuntime().availableProcessors() + 1}}") int scannerParallelism) {
+            TaskSchedulingService taskSchedulingService, org.springframework.core.env.Environment environment) {
+        int scannerParallelism = environment.getProperty("MediaScannerParallelism", Integer.class,
+                Runtime.getRuntime().availableProcessors() + 1);
         MediaScannerService service = new MediaScannerService(playlistService, settingsService, indexManager, mediaFileService,
                 mediaFolderService, coverArtService, mediaFileDao, artistDao, albumDao, taskSchedulingService,
                 scannerParallelism);
