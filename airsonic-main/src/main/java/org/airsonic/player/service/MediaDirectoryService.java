@@ -7,7 +7,6 @@ import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MediaFileComparator;
 import org.airsonic.player.security.CallerContext;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,7 +19,6 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@Service
 public class MediaDirectoryService {
     private final MediaFileService mediaFileService;
     private final RatingService ratingService;

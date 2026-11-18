@@ -464,6 +464,17 @@ public class KtorConfiguration {
         return new RatingService(ratingDao, securityService, mediaFileService);
     }
 
+    @Bean
+    public MediaDirectoryService mediaDirectoryService(MediaFileService mediaFileService,
+            RatingService ratingService, SecurityService securityService, SettingsService settingsService) {
+        return new MediaDirectoryService(mediaFileService, ratingService, securityService, settingsService);
+    }
+
+    @Bean
+    public MusicIndexService musicIndexService(SettingsService settingsService, MediaFileService mediaFileService) {
+        return new MusicIndexService(settingsService, mediaFileService);
+    }
+
     @Bean(destroyMethod = "shutdown")
     public TaskSchedulingService taskSchedulingService(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
         TaskSchedulingService service = new TaskSchedulingService();

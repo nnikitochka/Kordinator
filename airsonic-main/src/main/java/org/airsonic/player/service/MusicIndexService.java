@@ -3,7 +3,6 @@ package org.airsonic.player.service;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.domain.MusicIndex.SortableArtist;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.stereotype.Service;
 
 import java.io.Serializable;
 import java.nio.file.Paths;
@@ -17,7 +16,6 @@ import static java.util.stream.Collectors.toList;
 /**
  * Provides services for grouping artists by index.
  */
-@Service
 public class MusicIndexService {
     private SettingsService settingsService;
     private MediaFileService mediaFileService;
