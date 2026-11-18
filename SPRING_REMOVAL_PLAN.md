@@ -250,6 +250,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `21a95e7` убирает Spring `Resource`/`PathResource` из `HlsSegmentService`: сервис возвращает уже ограниченный `InputStream` и длину сегмента, Ktor boundary пишет поток напрямую. Graph/HLS controller/playback/endpoint regression suite прошёл 4/4. Ошибки авторизации/отсутствующего сегмента в HLS service ещё используют Spring exceptions.
 
+Срез `3164b05` вводит Kotlin `AuthorizationDeniedException` и убирает Spring `AccessDeniedException`/ACL `NotFoundException` из stream/HLS segment services. Ktor stream/HLS handlers явно мапят denial/not-found на HTTP 403/404; stream/HLS playback, endpoint и graph suite прошли 4/4. `DownloadService` пока всё ещё бросает Spring `AccessDeniedException`.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
