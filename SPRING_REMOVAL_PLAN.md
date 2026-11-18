@@ -178,6 +178,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `981c76f` переносит `LyricsService` и `BookmarkService` под root ownership; `RuntimeCompositionRootGraphTest`, `LyricsServiceTest`, `LyricsIntegrationTest`, `BookmarksIntegrationTest` прошли 12/12. Spring projections пока остаются переходным способом выдачи уже созданных singleton-ов.
 
+Срез `538711d` переносит создание и singleton ownership `RatingService`, `MediaDirectoryService` и `MusicIndexService` в root с явными зависимостями. `RuntimeCompositionRootGraphTest`, `MusicIndexServiceTestCase`, `RatingIntegrationTest`, `MusicDirectoryIntegrationTest` прошли 5/5. Оставшиеся media services и полная framework-neutral сборка графа требуют дальнейшей работы.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
