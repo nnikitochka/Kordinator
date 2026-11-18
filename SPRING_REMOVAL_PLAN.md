@@ -266,6 +266,10 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `4cc0da2` переносит Spring bean registrations cache manager, metrics и health registry из `KtorConfiguration` в Kotlin `KtorSpringConfigurationAdapter`, напрямую проецируя root-owned instances. REST/login/static/health/cache-statistics integration suite прошёл 16/16. В `KtorConfiguration` остаётся 114 Spring `@Bean` методов; перенос остальных factories продолжается.
 
+Срез `41a625a` переносит в Kotlin adapter Spring registrations для `PersistenceGraph`, `TransactionManager`, `JdbcHelper`, `DaoGraph`, всех DAO, `PlayerDao` и play queue factory. `KtorConfiguration` сохраняет plain factory methods без `@Bean`; Spring adapter напрямую собирает persistence graph. DAO/JDBC/root/credentials/REST/health набор прошёл 38/38. Следующие service/controller/security factories ещё остаются в базовой фабрике.
+
+После этого среза в `KtorConfiguration` осталось 94 `@Bean` объявления; все 20 moved registrations переехали в adapter без изменения bean names, включая alias `musicFileInfoDao`.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
