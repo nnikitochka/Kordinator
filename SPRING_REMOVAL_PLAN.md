@@ -236,6 +236,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `98d19f7` выделяет root-owned Kotlin `LocaleService` для выбора пользовательской/серверной локали. `MediaFileService` и playlist controllers больше не зависят от Spring MVC `LocaleResolver`; сохранён отдельный тонкий `LocaleResolver` servlet adapter для locale request attributes/JSP. Graph, REST, artists, playlists и upload tests прошли 11/11.
 
+Срез `aa7a580` отделяет Spring `UserDetailsService` от root-owned `SecurityService`: новый Kotlin `SpringUserDetailsServiceAdapter` преобразует нейтральный `UserIdentity` в `SpringUserDetailsAdapter`; authentication provider и remember-me используют его, а `SecurityService` больше не реализует Spring интерфейс и не бросает Spring username-not-found exception. Graph/security/login/credentials/JWT tests прошли 12/12. Остальные request-context/authority adapters SecurityService ещё требуют разборки.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
