@@ -42,6 +42,7 @@ class StandaloneDatabase private constructor(
         }
 
         fun migrate(dataSource: DataSource) {
+            System.setProperty("liquibase.analytics.enabled", "false")
             dataSource.connection.use { connection ->
                 val database = DatabaseFactory.getInstance()
                     .findCorrectDatabaseImplementation(JdbcConnection(connection))
