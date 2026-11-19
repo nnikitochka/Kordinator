@@ -5,8 +5,6 @@ import com.google.common.collect.ImmutableMap;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.domain.UserCredential.App;
 import org.airsonic.player.util.Util;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -23,7 +21,6 @@ import java.util.stream.Collectors;
 /**
  * Provides user-related database services.
  */
-@Transactional
 public class UserDao extends AbstractDao {
     public UserDao(JdbcHelper jdbcHelper) {
         super(jdbcHelper);
@@ -103,6 +100,7 @@ public class UserDao extends AbstractDao {
     }
 
     public boolean deleteCredential(UserCredential credential, Predicate<UserCredential> postDeletionCheck) {
+        return inTransaction(status -> {
         String sql = "delete from user_credentials where username=:username and app_username=:app_username and credential=:credential and encoder=:encoder and app=:app and created=:created and updated=:updated";
         Map<String, Object> args = new HashMap<>();
         args.put("username", credential.getUsername());
@@ -124,6 +122,7 @@ public class UserDao extends AbstractDao {
         }
 
         return deleteSuccess;
+        });
     }
 
     /**
@@ -153,11 +152,14 @@ public class UserDao extends AbstractDao {
      * @param user The user to create.
      */
     public void createUser(User user, UserCredential credential) {
+        inTransaction(status -> {
         String sql = "insert into users (" + USER_COLUMNS + ") values (" + questionMarks(USER_COLUMNS) + ")";
         update(sql, user.getUsername(), user.getEmail(), user.isLdapAuthenticated(),
                 user.getBytesStreamed(), user.getBytesDownloaded(), user.getBytesUploaded(),
                 Util.toJson(user.getRoles()));
         createCredential(credential);
+        return null;
+        });
     }
 
     /**
@@ -166,6 +168,7 @@ public class UserDao extends AbstractDao {
      * @param username The username.
      */
     public void deleteUser(String username) {
+        inTransaction(status -> {
         if (User.USERNAME_ADMIN.equals(username)) {
             throw new IllegalArgumentException("Can't delete admin user.");
         }
@@ -173,6 +176,8 @@ public class UserDao extends AbstractDao {
         update("delete from player where username=?", username);
         update("delete from user_credentials where username=?", username);
         update("delete from users where username=?", username);
+        return null;
+        });
     }
 
     /**
@@ -210,11 +215,13 @@ public class UserDao extends AbstractDao {
      * @param settings The user-specific settings.
      */
     public boolean updateUserSettings(UserSettings settings) {
+        return inTransaction(status -> {
         update("delete from user_settings where username=?", settings.getUsername());
 
         String sql = "insert into user_settings (" + USER_SETTINGS_COLUMNS + ") values (" + questionMarks(USER_SETTINGS_COLUMNS) + ")";
 
         return update(sql, settings.getUsername(), Util.toJson(settings)) == 1;
+        });
     }
 
     private static class UserCredentialRowMapper implements RowMapper<UserCredential> {
