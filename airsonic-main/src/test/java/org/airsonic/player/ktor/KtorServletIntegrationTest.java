@@ -97,7 +97,7 @@ public class KtorServletIntegrationTest {
                 "/notFound", "/home", "/main", "/left", "/right", "/more", "/search", "/starred",
                 "/bookmarks", "/playlist", "/playlists", "/playQueue", "/nowPlaying", "/editTags",
                 "/changeCoverArt", "/lyrics", "/userSettings", "/settings", "/status", "/ext/share",
-                "/rest/downloadMedia")) {
+                "/rest/downloadMedia", "/rest/getWebsiteSettings", "/rest/updateWebsiteSettings")) {
             HttpResponse<String> response = get(path, true);
             assertEquals(path + " should be removed", 404, response.statusCode());
             assertTrue(path + " should not redirect", response.headers().firstValue("location").isEmpty());

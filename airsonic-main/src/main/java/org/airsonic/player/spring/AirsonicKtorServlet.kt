@@ -67,7 +67,6 @@ import io.ktor.http.parseQueryString
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController
 import org.airsonic.player.controller.rest.tags.TagEditController
-import org.airsonic.player.controller.rest.settings.WebsiteSettingsController
 import org.airsonic.player.controller.rest.livequeue.LiveQueueExportController
 import org.airsonic.player.controller.rest.livequeue.RandomQueueController
 import org.airsonic.player.controller.rest.livequeue.LiveQueueController
@@ -186,7 +185,6 @@ class AirsonicKtorServlet(
     private val coverArtActionsController: CoverArtActionsController,
     private val mediaFileCommentController: MediaFileCommentController,
     private val tagEditController: TagEditController,
-    private val websiteSettingsController: WebsiteSettingsController,
     private val liveQueueController: LiveQueueController,
     private val ratingController: RatingController,
     private val downloadRestController: DownloadRestController,
@@ -317,8 +315,6 @@ class AirsonicKtorServlet(
             if (uploadStatus != null) call.attributes.put(UPLOAD_STATUS_REQUEST_KEY, uploadStatus)
             val statistics = request.getAttribute(STATISTICS_REQUEST) as? StatisticsController.Request
             if (statistics != null) call.attributes.put(STATISTICS_REQUEST_KEY, statistics)
-            val websiteSettings = request.getAttribute(WEBSITE_SETTINGS_REQUEST) as? WebsiteSettingsController.Request
-            if (websiteSettings != null) call.attributes.put(WEBSITE_SETTINGS_REQUEST_KEY, websiteSettings)
             val avatar = request.getAttribute(AVATAR_REQUEST) as? AvatarRestController.Request
             if (avatar != null) call.attributes.put(AVATAR_REQUEST_KEY, avatar)
             val tagEdit = request.getAttribute(TAG_EDIT_REQUEST) as? TagEditController.Request
@@ -400,7 +396,6 @@ class AirsonicKtorServlet(
             videosController.routes(this) { call -> call.attributes[VIDEOS_REQUEST_KEY] }
             liveQueueExportController.routes(this) { call -> call.attributes[QUEUE_EXPORT_REQUEST_KEY] }
             liveQueueController.routes(this) { call -> call.attributes[LIVE_QUEUE_REQUEST_KEY] }
-            websiteSettingsController.routes(this) { call -> call.attributes[WEBSITE_SETTINGS_REQUEST_KEY] }
             tagEditController.routes(this) { call -> call.attributes[TAG_EDIT_REQUEST_KEY] }
             coverArtRestController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             avatarRestController.routes(this) { call -> call.attributes[AVATAR_REQUEST_KEY] }
@@ -1139,9 +1134,6 @@ class AirsonicKtorServlet(
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(UPLOAD_STATUS_REQUEST, UploadStatusController.Request(
                 user.username, user.isAdminRole || user.isUploadRole, user.isAdminRole, parameters(request)))
-        } else if (path in WebsiteSettingsController.PATHS) {
-            val user = requireNotNull(securityService.getCurrentUser(request))
-            request.setAttribute(WEBSITE_SETTINGS_REQUEST, WebsiteSettingsController.Request(user.username, parameters(request), user.isSettingsRole))
         } else if (path in TagEditController.PATHS) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(TAG_EDIT_REQUEST, TagEditController.Request(
@@ -1237,8 +1229,6 @@ class AirsonicKtorServlet(
         val STATISTICS_REQUEST_KEY = AttributeKey<StatisticsController.Request>(STATISTICS_REQUEST)
         const val UPLOAD_STATUS_REQUEST = "org.airsonic.player.uploadStatusRequest"
         val UPLOAD_STATUS_REQUEST_KEY = AttributeKey<UploadStatusController.Request>(UPLOAD_STATUS_REQUEST)
-        const val WEBSITE_SETTINGS_REQUEST = "org.airsonic.player.websiteSettingsRequest"
-        val WEBSITE_SETTINGS_REQUEST_KEY = AttributeKey<WebsiteSettingsController.Request>(WEBSITE_SETTINGS_REQUEST)
         const val AVATAR_REQUEST = "org.airsonic.player.avatarRequest"
         val AVATAR_REQUEST_KEY = AttributeKey<AvatarRestController.Request>(AVATAR_REQUEST)
         const val TAG_EDIT_REQUEST = "org.airsonic.player.tagEditRequest"

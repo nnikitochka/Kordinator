@@ -22,7 +22,6 @@ import org.airsonic.player.controller.rest.tags.MediaFileCommentController;
 import org.airsonic.player.controller.rest.tags.TagEditController;
 import org.airsonic.player.service.CoverArtSearchService;
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController;
-import org.airsonic.player.controller.rest.settings.WebsiteSettingsController;
 import org.airsonic.player.controller.rest.livequeue.LiveQueueController;
 import org.airsonic.player.controller.rest.livequeue.LiveQueueExportController;
 import org.airsonic.player.controller.rest.livequeue.RandomQueueController;
@@ -864,7 +863,6 @@ public class KtorConfiguration {
                                 new CoverArtActionsController(coverArtSearchService, jaxbWriter),
                                 new MediaFileCommentController(mediaFileService, securityService, jaxbWriter),
                                 new TagEditController(tagEditService, jaxbWriter),
-                                new WebsiteSettingsController(settingsService, jaxbWriter),
                                 new LiveQueueController(playQueueService, jaxbWriter, mediaFileService, playlistService, securityService, playQueueDao, playerService),
                                 new RatingController(mediaFileService, ratingService, jaxbWriter),
                                 new DownloadRestController(jaxbWriter), downloadService,
@@ -932,7 +930,6 @@ public class KtorConfiguration {
         registration.addUrlMappings(CoverArtActionsController.PATHS);
         registration.addUrlMappings(MediaFileCommentController.PATH);
         registration.addUrlMappings(TagEditController.PATHS);
-        registration.addUrlMappings(WebsiteSettingsController.PATHS);
         registration.addUrlMappings(LiveQueueController.PATHS);
         registration.addUrlMappings(RandomQueueController.PATH);
         registration.addUrlMappings(LiveQueueExportController.PATH);
