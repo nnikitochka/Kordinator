@@ -429,6 +429,14 @@ class AirsonicKtorServlet(
         return HlsLinkContext(principal.name, jwt != null, jwt?.expiresAt)
     }
 
+    private fun isKordinatorTrackStreamPath(path: String): Boolean =
+        path.startsWith("/api/v1/tracks/") && path.endsWith("/stream")
+
+    private fun kordinatorTrackStreamId(path: String): Int? {
+        if (!isKordinatorTrackStreamPath(path)) return null
+        return path.removePrefix("/api/v1/tracks/").removeSuffix("/stream").toIntOrNull()
+    }
+
     private fun serviceRequest(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
         val errorDispatch = path == errorProperties.get().path &&
@@ -900,15 +908,20 @@ class AirsonicKtorServlet(
                 return
             }
             request.setAttribute(PLAYLISTS_REQUEST, PlaylistsRequest(username, callerContextAdapter.fromRequest(request), admin, parameters(request), id, player))
-        } else if ((path in StreamRestController.PATHS || path in StreamRestController.EXTERNAL_PATHS)
+        } else if ((path in StreamRestController.PATHS || path in StreamRestController.EXTERNAL_PATHS || isKordinatorTrackStreamPath(path))
             && (request.method in setOf("GET", "HEAD") || (path in StreamRestController.PATHS && request.method == "POST"))) {
-            val restStream = path in StreamRestController.PATHS
+            val kordinatorTrackId = kordinatorTrackStreamId(path)
+            if (isKordinatorTrackStreamPath(path) && (kordinatorTrackId == null || kordinatorTrackId <= 0)) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST)
+                return
+            }
+            val restStream = path in StreamRestController.PATHS || isKordinatorTrackStreamPath(path)
             val rawPlayer = if (restStream) null else request.getParameter("player")?.trim()?.takeIf { it.isNotEmpty() }
             if (rawPlayer != null && rawPlayer.toIntOrNull() == null) {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST)
                 return
             }
-            val rawId = request.getParameter("id")?.trim()?.takeIf { it.isNotEmpty() }
+            val rawId = kordinatorTrackId?.toString() ?: request.getParameter("id")?.trim()?.takeIf { it.isNotEmpty() }
             val rawBitRate = request.getParameter("maxBitRate")?.trim()?.takeIf { it.isNotEmpty() }
             val rawOffset = request.getParameter("offsetSeconds")?.trim()?.takeIf { it.isNotEmpty() }
             val id = rawId?.toIntOrNull()
@@ -923,13 +936,17 @@ class AirsonicKtorServlet(
             val wrapped = if (restStream) object : HttpServletRequestWrapper(request) {
                 override fun getParameter(name: String): String? = when (name) {
                     "player" -> playerId?.toString()
-                    "id" -> mapRestId(super.getParameter(name))
+                    "id" -> kordinatorTrackId?.toString() ?: mapRestId(super.getParameter(name))
                     else -> super.getParameter(name)
                 }
             } else request
             val authentication = request.userPrincipal as Principal
             val restUser = if (restStream) requireNotNull(securityService.getUserByName(authentication.name)) else null
             if (restUser != null && !restUser.isStreamRole) {
+                if (isKordinatorTrackStreamPath(path)) {
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN)
+                    return
+                }
                 jaxbWriter.writeErrorResponse(wrapped, response, ErrorCode.NOT_AUTHORIZED,
                     "${restUser.username} is not authorized to play files.")
                 return
@@ -943,9 +960,19 @@ class AirsonicKtorServlet(
             }
             val file = request.getParameter("path")?.let { mediaFileService.getMediaFile(it) }
                 ?: id?.let { mediaFileService.getMediaFile(it) }
+            if (isKordinatorTrackStreamPath(path) &&
+                (file == null || file.isDirectory || (file.mediaType != org.airsonic.player.domain.MediaFile.MediaType.MUSIC &&
+                    file.mediaType != org.airsonic.player.domain.MediaFile.MediaType.AUDIOBOOK))) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND)
+                return
+            }
              val callerContext = callerContextAdapter.fromRequest(request)
              if (file != null && (restStream || jwt == null)
                  && !securityService.isFolderAccessAllowed(file, callerContext)) {
+                if (isKordinatorTrackStreamPath(path)) {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND)
+                    return
+                }
                 if (!restStream || path.endsWith(".view")) {
                     response.sendError(HttpServletResponse.SC_FORBIDDEN)
                     return

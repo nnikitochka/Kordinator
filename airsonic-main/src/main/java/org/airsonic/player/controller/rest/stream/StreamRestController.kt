@@ -32,6 +32,8 @@ class StreamRestController(private val streams: MediaStreamService) {
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
         with(root) {
+            get(API_TRACK_STREAM_PATH) { respond(call, request(call), false) }
+            head(API_TRACK_STREAM_PATH) { respond(call, request(call), true) }
             EXTERNAL_PATHS.forEach { path ->
                 for (route in listOf(path, "$path/{tail...}")) {
                     get(route) { respond(call, request(call), false) }
@@ -160,6 +162,7 @@ class StreamRestController(private val streams: MediaStreamService) {
     }
 
     companion object {
+        const val API_TRACK_STREAM_PATH = "/api/v1/tracks/{id}/stream"
         @JvmField val EXTERNAL_PATHS = arrayOf("/ext/stream")
         @JvmField val PATHS = arrayOf("/rest/stream", "/rest/stream.view")
     }
