@@ -314,6 +314,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `e58e7d1` удаляет runtime `SpringExternalTransactionConnectionContext` и внешний transaction SPI. После переноса всех production `@Transactional` DAO операций на собственный `TransactionManager` Spring connection binding больше не требуется; root создаёт транзакционный manager напрямую от DataSource. Удалён Spring-specific bridge test. DAO suites и критичные integration regressions (`*DaoTestCase`, `JdbcHelperTest`, credentials, playlist import, play queue, transcoding, root graph) прошли 38/38.
 
+Срез `95a3e1b` заменяет `Encryptors.delux` в `AesGcmPasswordEncoder` на JCE при сохранении параметров PBKDF2-HMAC-SHA1/1024/256, AES-GCM, 16-byte IV и hex-кодирования Spring Security. Исторический ciphertext fixture, tamper rejection, encoder unit/security and users/credential REST tests прошли 11/11.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
