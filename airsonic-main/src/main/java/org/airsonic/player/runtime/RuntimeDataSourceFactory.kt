@@ -1,5 +1,6 @@
 package org.airsonic.player.runtime
 
+import org.airsonic.player.util.LegacyHsqlMigrationUtil
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import java.util.Properties
@@ -11,6 +12,8 @@ object RuntimeDataSourceFactory {
     private const val HIKARI_PREFIX = "spring.datasource.hikari."
 
     fun create(configuration: RuntimeConfiguration): DataSource {
+        LegacyHsqlMigrationUtil.upgradeFileHsqlDbIfNeeded(configuration::getProperty)
+
         configuration.databaseJndiName?.takeIf(String::isNotBlank)?.let { name ->
             val context = InitialContext()
             return try {

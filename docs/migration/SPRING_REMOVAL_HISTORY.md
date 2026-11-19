@@ -398,6 +398,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** удалён последний прямой DAO Spring alias `ArtistDao`. `MusicFolderSettingsIntegrationTest` теперь проверяет реальное удаление устаревшей записи артиста через `DaoGraph` вместо Mockito spy на DAO bean; это сохраняет проверку эффекта вызова expunge, убирая отдельный bean alias. Полная компиляция test source прошла; HTTP integration test не смог загрузить контекст, поскольку sandbox запрещает открытие локального Tomcat socket (`Operation not permitted`).
 
+**Срез 19 ноября 2026:** удалены `StartupEventListener` и его регистрация в `spring.factories`; резервирование и upgrade старой file-HSQL базы теперь выполняется нейтральным `RuntimeDataSourceFactory` перед созданием пула. Сама процедура обновления не менялась. `LegacyDatabaseStartupTestCase`, `RuntimeCompositionRootTest`, `RuntimeCompositionRootGraphTest` и `RuntimeLiquibaseMigratorTest` прошли 9/9.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
