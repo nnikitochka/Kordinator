@@ -302,6 +302,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Следующий срез удаляет `@EnableTransactionManagement`, `spring-aspects` из runtime и AspectJ Maven weaving plugin. Два test-only приватных метода с `REQUIRES_NEW` заменены явным `TransactionTemplate`, чтобы тесты не зависели от weaving. В `airsonic-main/src/main` и сборочном POM больше нет AspectJ consumers/configuration; Maven dependency tree не содержит `spring-aspects` или `org.aspectj` artifacts. Целевой DAO/security/settings/runtime regression suite прошёл 20/20, включая `UserDaoTestCase.testCreateUserTransactionalError` после явного сохранения `REQUIRES_NEW` в test helper.
 
+Срез `42f73a1` удаляет неиспользовавшиеся в production `PipeStreams.DelayedResource` и `MonitoredResource`, которые реализовывали Spring `Resource`. Тест мониторинга теперь открывает обычный `Files.newInputStream` и напрямую оборачивает его в framework-neutral `MonitoredInputStream`. `PipeStreamsTest`, `MediaStreamServiceTestCase` и runtime composition graph прошли 6/6.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
