@@ -7,6 +7,7 @@ import org.airsonic.player.domain.User.Role;
 import org.airsonic.player.domain.UserCredential;
 import org.airsonic.player.domain.UserCredential.App;
 import org.airsonic.player.domain.UserSettings;
+import org.airsonic.player.runtime.DaoGraph;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +32,7 @@ import static org.junit.Assert.assertNull;
 public class UserDaoTestCase extends DaoTestCaseBean2 {
 
     @Autowired
-    UserDao userDao;
+    DaoGraph daoGraph;
 
     @Autowired
     TransactionManager transactionManager;
@@ -46,11 +47,11 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
     public void testCreateUser() {
         User user = new User("sindre", "sindre@activeobjects.no", false, 1000L, 2000L, 3000L, Set.of(Role.ADMIN, Role.COMMENT, Role.COVERART, Role.PLAYLIST, Role.STREAM, Role.JUKEBOX, Role.SETTINGS));
         UserCredential uc = new UserCredential("sindre", "sindre", "secret", "noop", App.AIRSONIC);
-        userDao.createUser(user, uc);
+        daoGraph.getUserDao().createUser(user, uc);
 
-        User newUser = userDao.getAllUsers().get(0);
+        User newUser = daoGraph.getUserDao().getAllUsers().get(0);
         assertThat(newUser).isEqualToComparingFieldByField(user);
-        assertThat(userDao.getCredentials("sindre", App.AIRSONIC).get(0)).isEqualToComparingFieldByField(uc);
+        assertThat(daoGraph.getUserDao().getCredentials("sindre", App.AIRSONIC).get(0)).isEqualToComparingFieldByField(uc);
     }
 
     @Test
@@ -66,7 +67,7 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
         UserCredential uc = new UserCredential("muff1nman5", "muff1nman5", "secret", "noop", App.AIRSONIC);
 
         assertThatExceptionOfType(RuntimeException.class).isThrownBy(() -> createTestUser(user, uc));
-        assertThat(userDao.getUserByName("muff1nman5", true)).isNull();
+        assertThat(daoGraph.getUserDao().getUserByName("muff1nman5", true)).isNull();
 
         User user2 = new User("muff1nman6", "noemail");
         UserCredential uc2 = new UserCredential("muff1nman6", "muff1nman6", "secret", "noop", App.AIRSONIC) {
@@ -77,11 +78,11 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
         };
 
         assertThatExceptionOfType(RuntimeException.class).isThrownBy(() -> createTestUser(user2, uc2));
-        assertThat(userDao.getUserByName("muff1nman6", true)).isNull();
+        assertThat(daoGraph.getUserDao().getUserByName("muff1nman6", true)).isNull();
     }
 
     private void createTestUser(User user, UserCredential uc) {
-        inNewTransaction(() -> userDao.createUser(user, uc));
+        inNewTransaction(() -> daoGraph.getUserDao().createUser(user, uc));
     }
 
     @Test
@@ -89,7 +90,7 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
         User user = new User("sindre", null);
         user.setRoles(Set.of(Role.ADMIN, Role.COMMENT, Role.COVERART, Role.PLAYLIST, Role.STREAM, Role.JUKEBOX, Role.SETTINGS));
         UserCredential uc = new UserCredential("sindre", "sindre", "secret", "noop", App.AIRSONIC);
-        userDao.createUser(user, uc);
+        daoGraph.getUserDao().createUser(user, uc);
 
         user.setEmail("sindre@foo.bar");
         user.setLdapAuthenticated(true);
@@ -98,10 +99,10 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
         user.setBytesUploaded(3);
         user.setRoles(Set.of(Role.DOWNLOAD, Role.UPLOAD));
 
-        userDao.updateUser(user);
+        daoGraph.getUserDao().updateUser(user);
 
-        assertThat(userDao.getAllUsers().get(0)).isEqualToComparingFieldByField(user);
-        assertThat(userDao.getCredentials("sindre", App.AIRSONIC).get(0)).isEqualToComparingFieldByField(uc);
+        assertThat(daoGraph.getUserDao().getAllUsers().get(0)).isEqualToComparingFieldByField(user);
+        assertThat(daoGraph.getUserDao().getCredentials("sindre", App.AIRSONIC).get(0)).isEqualToComparingFieldByField(uc);
     }
 
     @Test
@@ -109,71 +110,71 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
         User user = new User("sindre", null);
         user.setRoles(Set.of(Role.ADMIN, Role.COMMENT, Role.COVERART));
         UserCredential uc = new UserCredential("sindre", "sindre", "secret", "noop", App.AIRSONIC);
-        userDao.createUser(user, uc);
+        daoGraph.getUserDao().createUser(user, uc);
 
         UserCredential newCreds = new UserCredential(uc);
         newCreds.setCredential("foo");
 
-        userDao.updateCredential(uc, newCreds);
+        daoGraph.getUserDao().updateCredential(uc, newCreds);
 
-        assertThat(userDao.getAllUsers().get(0)).isEqualToComparingFieldByField(user);
-        assertThat(userDao.getCredentials("sindre", App.AIRSONIC).get(0)).isEqualToComparingFieldByField(newCreds);
+        assertThat(daoGraph.getUserDao().getAllUsers().get(0)).isEqualToComparingFieldByField(user);
+        assertThat(daoGraph.getUserDao().getCredentials("sindre", App.AIRSONIC).get(0)).isEqualToComparingFieldByField(newCreds);
     }
 
     @Test
     public void testGetUserByName() {
         User user = new User("sindre", null);
-        userDao.createUser(user, new UserCredential("sindre", "sindre", "secret", "noop", App.AIRSONIC));
+        daoGraph.getUserDao().createUser(user, new UserCredential("sindre", "sindre", "secret", "noop", App.AIRSONIC));
 
-        assertThat(userDao.getUserByName("sindre", true)).isEqualToComparingFieldByField(user);
+        assertThat(daoGraph.getUserDao().getUserByName("sindre", true)).isEqualToComparingFieldByField(user);
 
-        assertNull("Error in getUserByName().", userDao.getUserByName("sindre2", true));
-        // assertNull("Error in getUserByName().", userDao.getUserByName("Sindre ", true)); // depends on the collation of the DB
-        assertNull("Error in getUserByName().", userDao.getUserByName("bente", true));
-        assertNull("Error in getUserByName().", userDao.getUserByName("", true));
-        assertNull("Error in getUserByName().", userDao.getUserByName(null, true));
+        assertNull("Error in getUserByName().", daoGraph.getUserDao().getUserByName("sindre2", true));
+        // assertNull("Error in getUserByName().", daoGraph.getUserDao().getUserByName("Sindre ", true)); // depends on the collation of the DB
+        assertNull("Error in getUserByName().", daoGraph.getUserDao().getUserByName("bente", true));
+        assertNull("Error in getUserByName().", daoGraph.getUserDao().getUserByName("", true));
+        assertNull("Error in getUserByName().", daoGraph.getUserDao().getUserByName(null, true));
     }
 
     @Test
     public void testDeleteUser() {
-        assertEquals("Wrong number of users.", 0, userDao.getAllUsers().size());
+        assertEquals("Wrong number of users.", 0, daoGraph.getUserDao().getAllUsers().size());
 
-        userDao.createUser(new User("sindre", null), new UserCredential("sindre", "sindre", "secret", "noop", App.AIRSONIC));
-        assertEquals("Wrong number of users.", 1, userDao.getAllUsers().size());
+        daoGraph.getUserDao().createUser(new User("sindre", null), new UserCredential("sindre", "sindre", "secret", "noop", App.AIRSONIC));
+        assertEquals("Wrong number of users.", 1, daoGraph.getUserDao().getAllUsers().size());
 
-        userDao.createUser(new User("bente", null), new UserCredential("bente", "bente", "secret", "noop", App.AIRSONIC));
-        assertEquals("Wrong number of users.", 2, userDao.getAllUsers().size());
+        daoGraph.getUserDao().createUser(new User("bente", null), new UserCredential("bente", "bente", "secret", "noop", App.AIRSONIC));
+        assertEquals("Wrong number of users.", 2, daoGraph.getUserDao().getAllUsers().size());
 
-        userDao.deleteUser("sindre");
-        assertEquals("Wrong number of users.", 1, userDao.getAllUsers().size());
+        daoGraph.getUserDao().deleteUser("sindre");
+        assertEquals("Wrong number of users.", 1, daoGraph.getUserDao().getAllUsers().size());
 
-        userDao.deleteUser("bente");
-        assertEquals("Wrong number of users.", 0, userDao.getAllUsers().size());
+        daoGraph.getUserDao().deleteUser("bente");
+        assertEquals("Wrong number of users.", 0, daoGraph.getUserDao().getAllUsers().size());
     }
 
     @Test
     public void testGetRolesForUser() {
         User user = new User("sindre", null);
         user.setRoles(Set.of(Role.ADMIN, Role.COMMENT, Role.STREAM, Role.SETTINGS));
-        userDao.createUser(user, new UserCredential("sindre", "sindre", "secret", "noop", App.AIRSONIC));
+        daoGraph.getUserDao().createUser(user, new UserCredential("sindre", "sindre", "secret", "noop", App.AIRSONIC));
 
-        Set<Role> roles = userDao.getUserByName("sindre", true).getRoles();
+        Set<Role> roles = daoGraph.getUserDao().getUserByName("sindre", true).getRoles();
         assertThat(roles).containsOnly(Role.ADMIN, Role.COMMENT, Role.STREAM, Role.SETTINGS);
     }
 
     @Test
     public void testUserSettings() {
-        assertNull("Error in getUserSettings.", userDao.getUserSettings("sindre"));
+        assertNull("Error in getUserSettings.", daoGraph.getUserDao().getUserSettings("sindre"));
 
         assertThatExceptionOfType(RuntimeException.class)
                 .isThrownBy(() -> updateUserSettings(new UserSettings("sindre")));
 
-        userDao.createUser(new User("sindre", null), new UserCredential("sindre", "sindre", "secret", "noop", App.AIRSONIC));
-        assertNull("Error in getUserSettings.", userDao.getUserSettings("sindre"));
+        daoGraph.getUserDao().createUser(new User("sindre", null), new UserCredential("sindre", "sindre", "secret", "noop", App.AIRSONIC));
+        assertNull("Error in getUserSettings.", daoGraph.getUserDao().getUserSettings("sindre"));
 
         UserSettings settings = new UserSettings("sindre");
-        userDao.updateUserSettings(settings);
-        UserSettings userSettings = userDao.getUserSettings("sindre");
+        daoGraph.getUserDao().updateUserSettings(settings);
+        UserSettings userSettings = daoGraph.getUserDao().getUserSettings("sindre");
         assertThat(userSettings).usingComparatorForType(Comparator.nullsFirst((o1, o2) -> {
             // use a custom comparator to account for micro second differences
             // (Mysql only stores floats in json to a certain value)
@@ -208,16 +209,16 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
         settings.setPaginationSizePlayqueue(121);
         settings.setPaginationSizePlaylist(122);
 
-        userDao.updateUserSettings(settings);
-        userSettings = userDao.getUserSettings("sindre");
+        daoGraph.getUserDao().updateUserSettings(settings);
+        userSettings = daoGraph.getUserDao().getUserSettings("sindre");
         assertThat(userSettings).usingRecursiveComparison().isEqualTo(settings);
 
-        userDao.deleteUser("sindre");
-        assertNull("Error in cascading delete.", userDao.getUserSettings("sindre"));
+        daoGraph.getUserDao().deleteUser("sindre");
+        assertNull("Error in cascading delete.", daoGraph.getUserDao().getUserSettings("sindre"));
     }
 
     private void updateUserSettings(UserSettings settings) {
-        inNewTransaction(() -> userDao.updateUserSettings(settings));
+        inNewTransaction(() -> daoGraph.getUserDao().updateUserSettings(settings));
     }
 
     private void inNewTransaction(Runnable action) {

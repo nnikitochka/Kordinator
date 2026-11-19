@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.domain.User;
+import org.airsonic.player.runtime.DaoGraph;
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.util.HomeRule;
@@ -40,7 +41,7 @@ public class CredentialsManagementIntegrationTest {
     @Autowired private SecurityService security;
     @Autowired private SettingsService settings;
     @Autowired private ApplicationContext context;
-    @Autowired private org.airsonic.player.dao.UserDao userDao;
+    @Autowired private DaoGraph daoGraph;
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient client = HttpClient.newHttpClient();
 
@@ -121,7 +122,7 @@ public class CredentialsManagementIntegrationTest {
         assertNotNull(security.getDecodableCredsForApps(member.getUsername(), org.airsonic.player.domain.UserCredential.App.LASTFM).get(org.airsonic.player.domain.UserCredential.App.LASTFM));
         // A later encoder failure must roll back an earlier successful deletion in the same batch.
         org.airsonic.player.domain.UserCredential corrupt = new org.airsonic.player.domain.UserCredential(member.getUsername(), member.getUsername(), "INVALID_ENCRYPTED_VALUE", "encrypted-AES-GCM", org.airsonic.player.domain.UserCredential.App.LISTENBRAINZ);
-        assertTrue(userDao.createCredential(corrupt));
+        assertTrue(daoGraph.getUserDao().createCredential(corrupt));
         JsonNode withCorrupt = read(member.getUsername(), "secret");
         JsonNode bad = find(withCorrupt, "LISTENBRAINZ", "encrypted-AES-GCM");
         error(website(browser, "updateCredentials", change(convertedId, "hex", "", true) + "&" + change(bad.path("id").asText(), "noop", "", false) + csrf), 0);
