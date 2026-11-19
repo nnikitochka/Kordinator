@@ -336,6 +336,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `009fe95` переводит `SubsonicAuthenticator` с `Map` Spring password encoders на `CredentialEncoderRegistry`, добавляя в нейтральный контракт операцию проверки необходимости password upgrade. `MultipleCredsMatchingAuthenticationProvider` больше не читает `GlobalSecurityConfig.ENCODERS` и не адаптирует Spring encoder-ы в core-проверке; Spring registry остаётся единственным compatibility adapter. Authentication/encoder compatibility, login и credentials management tests прошли 14/14.
 
+Срез `a1f8d7a` убирает Spring `Authentication`/`JWTAuthenticationToken` из Ktor servlet и external-route pipeline: проверенные JWT теперь представлены обычным `ExternalJwtPrincipal` с ролями, сроком действия и подписанным path. `SpringCallerContextAdapter` заменён нейтральным servlet-principal adapter; Spring token остаётся только в оставшемся Spring Security фильтре. Servlet/Ktor, HLS, captions, public share, stream, download и cover-art regressions прошли 26/26.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
