@@ -380,6 +380,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** удалён отдельный Spring bean alias для `DatabaseDao`: код приложения и тесты уже получают DAO через `DaoGraph` или создают mock, отдельной autowire-точки нет. `UserDaoTestCase` и `RuntimeCompositionRootGraphTest` повторно прошли 10/10.
 
+**Срез 19 ноября 2026:** удалены неиспользуемые Spring bean aliases для `AvatarDao`, `PlayQueueDao`, `PlaylistDao` и `RatingDao`. Production-фабрики уже используют `DaoGraph`, а test source не внедряет эти DAO по отдельности. `UserDaoTestCase` и `RuntimeCompositionRootGraphTest` прошли 10/10.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

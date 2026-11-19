@@ -64,14 +64,10 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     // Runtime service factories consume DaoGraph directly and do not depend on these beans.
     @Bean fun albumDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.AlbumDao = graph.albumDao
     @Bean fun artistDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.ArtistDao = graph.artistDao
-    @Bean fun avatarDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.AvatarDao = graph.avatarDao
     @Bean fun bookmarkDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.BookmarkDao = graph.bookmarkDao
     @Bean fun coverArtDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.CoverArtDao = graph.coverArtDao
     @Bean fun mediaFileDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.MediaFileDao = graph.mediaFileDao
     @Bean fun musicFolderDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.MusicFolderDao = graph.musicFolderDao
-    @Bean fun playQueueDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.PlayQueueDao = graph.playQueueDao
-    @Bean fun playlistDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.PlaylistDao = graph.playlistDao
-    @Bean("musicFileInfoDao") fun ratingDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.RatingDao = graph.ratingDao
     @Bean fun shareDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.ShareDao = graph.shareDao
     @Bean fun transcodingDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.TranscodingDao = graph.transcodingDao
     @Bean fun userDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.UserDao = graph.userDao
