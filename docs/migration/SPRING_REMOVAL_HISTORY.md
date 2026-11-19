@@ -354,6 +354,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Первый срез этапа 1:** нейтральные `RuntimeConfiguration`/`RuntimeCompositionRoot` подключены к одному Spring health-status-order adapter и проверены unit плюс HTTP integration тестами. Следующие slices должны добавлять в этот root только по одной необходимой подсистеме и переиспользовать существующие singleton instances.
 
+**Срез 19 ноября 2026:** удалены неиспользуемые Spring MVC compatibility hooks из `KtorConfiguration` (`WebMvcConfigurer` для trailing slash и Validator) и `LoggingExceptionResolver`. `LocaleResolver` больше не реализует Spring MVC интерфейс и зарегистрирован как `servletLocaleResolver`, чтобы Spring MVC не подхватил servlet adapter по специальному имени `localeResolver`; Ktor использует только его servlet request API. `mvn ... -DskipTests compile` прошёл. `LoginPageIntegrationTest`, `StaticAndErrorIntegrationTest`, `SettingsEntryIntegrationTest` не смогли проверить HTTP, потому что sandbox запрещает открытие локального TCP сокета (`SocketException: Operation not permitted`); это ограничение среды, а не assertion failure. Spring Boot/bootstrap/security и servlet runtime остаются, поэтому Spring removal не завершён.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

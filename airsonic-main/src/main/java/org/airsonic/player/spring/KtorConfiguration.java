@@ -160,32 +160,9 @@ import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.context.MessageSource;
-import org.springframework.validation.Validator;
-import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
-import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /** Connects Ktor to the existing servlet container during the migration. */
 public class KtorConfiguration {
-
-    @Bean
-    public WebMvcConfigurer servletMvcCompatibility(MessageSource messageSource) {
-        return new WebMvcConfigurer() {
-            @Override
-            public void configurePathMatch(PathMatchConfigurer configurer) {
-                // Spring 6 changed trailing-slash matching; preserve existing URL behavior during migration.
-                configurer.setUseTrailingSlashMatch(true);
-            }
-
-            @Override
-            public Validator getValidator() {
-                LocalValidatorFactoryBean factory = new LocalValidatorFactoryBean();
-                factory.setValidationMessageSource(messageSource);
-                return factory;
-            }
-        };
-    }
 
     @Bean
     public JAXBWriter subsonicJaxbWriter() {
@@ -301,12 +278,6 @@ public class KtorConfiguration {
         return new SpringUserDetailsServiceAdapter(securityService);
     }
 
-    @Bean
-    @org.springframework.core.annotation.Order(org.springframework.core.Ordered.HIGHEST_PRECEDENCE)
-    public LoggingExceptionResolver loggingExceptionResolver() {
-        return new LoggingExceptionResolver();
-    }
-
     public org.airsonic.player.runtime.PersistenceGraph persistenceGraph(RuntimeCompositionRoot runtime,
             javax.sql.DataSource dataSource) {
         return runtime.createPersistenceGraph(dataSource);
@@ -375,7 +346,7 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public LocaleResolver localeResolver(SecurityService securityService, LocaleService localeService) {
+    public LocaleResolver servletLocaleResolver(SecurityService securityService, LocaleService localeService) {
         return new LocaleResolver(securityService, localeService);
     }
 
