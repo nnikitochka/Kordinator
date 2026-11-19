@@ -5,8 +5,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.jdbc.EmbeddedDatabaseConnection;
-import org.springframework.core.env.Environment;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,6 +15,7 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Properties;
+import java.util.function.Function;
 
 public class LegacyHsqlMigrationUtil {
 
@@ -72,11 +71,8 @@ public class LegacyHsqlMigrationUtil {
         }
 
         try {
-            // as we're running before spring's datasource initialises... we need to try loading the driver ourselves
-            EmbeddedDatabaseConnection conn = EmbeddedDatabaseConnection.get(null);
-            if (conn != null) {
-                Class.forName(conn.getDriverClassName());
-            }
+            // This check runs before datasource initialization, so load the HSQLDB driver directly.
+            Class.forName("org.hsqldb.jdbc.JDBCDriver");
         } catch (ClassNotFoundException e) {
             throw new RuntimeException("Unable to load HSQLDB driver", e);
         }
@@ -155,10 +151,10 @@ public class LegacyHsqlMigrationUtil {
     /**
      * If needed, perform an in-place database upgrade from HSQLDB 1.x to 2.x after having created backups.
      */
-    public static void upgradeFileHsqlDbIfNeeded(Environment env) {
-        String jdbcUrl = env.getProperty(SettingsService.KEY_DATABASE_URL);
+    public static void upgradeFileHsqlDbIfNeeded(Function<String, String> getProperty) {
+        String jdbcUrl = getProperty.apply(SettingsService.KEY_DATABASE_URL);
         String dbPath = StringUtils.substringBetween(jdbcUrl, "jdbc:hsqldb:file:", ";");
-        String jndi = env.getProperty(SettingsService.KEY_DATABASE_JNDI_NAME);
+        String jndi = getProperty.apply(SettingsService.KEY_DATABASE_JNDI_NAME);
 
         if (jndi == null && dbPath != null && isHsqlDbBackupNeeded(dbPath, jdbcUrl)) {
             try {
@@ -167,8 +163,8 @@ public class LegacyHsqlMigrationUtil {
                 throw new RuntimeException("Failed to backup HSQLDB database before upgrade", e);
             }
             try {
-                String user = env.getProperty(SettingsService.KEY_DATABASE_USERNAME);
-                String password = env.getProperty(SettingsService.KEY_DATABASE_PASSWORD);
+                String user = getProperty.apply(SettingsService.KEY_DATABASE_USERNAME);
+                String password = getProperty.apply(SettingsService.KEY_DATABASE_PASSWORD);
                 performHsqlDbUpgrade(jdbcUrl, user, password);
                 LOG.info("HSQLDB database version is now {}", getHsqlDbVersion(dbPath));
             } catch (Exception e) {

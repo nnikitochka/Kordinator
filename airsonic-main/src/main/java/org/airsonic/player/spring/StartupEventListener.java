@@ -14,6 +14,7 @@ public class StartupEventListener implements ApplicationListener<ApplicationCont
     public void onApplicationEvent(ApplicationContextInitializedEvent event) {
         // Handle HSQLDB database upgrades for builtin legacy db from 1.8 to 2.x before
         // any beans are started.
-        LegacyHsqlMigrationUtil.upgradeFileHsqlDbIfNeeded(event.getApplicationContext().getEnvironment());
+        LegacyHsqlMigrationUtil.upgradeFileHsqlDbIfNeeded(
+                event.getApplicationContext().getEnvironment()::getProperty);
     }
 }
