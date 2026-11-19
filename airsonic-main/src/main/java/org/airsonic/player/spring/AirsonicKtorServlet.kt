@@ -137,6 +137,7 @@ import org.airsonic.player.ktor.KordinatorArtistRoutes
 import org.airsonic.player.ktor.KordinatorSearchRoutes
 import org.airsonic.player.ktor.KordinatorAuthRoutes
 import org.airsonic.player.ktor.KordinatorFavoriteRoutes
+import org.airsonic.player.ktor.KordinatorLibraryRoutes
 import org.airsonic.player.ktor.KordinatorSessionService
 import org.airsonic.player.ktor.bearerToken
 import org.airsonic.player.controller.rest.stream.KordinatorTrackStreamRoutes
@@ -157,6 +158,7 @@ class AirsonicKtorServlet(
     private val kordinatorSearchRoutes: KordinatorSearchRoutes,
     private val kordinatorAuthRoutes: KordinatorAuthRoutes,
     private val kordinatorFavoriteRoutes: KordinatorFavoriteRoutes,
+    private val kordinatorLibraryRoutes: KordinatorLibraryRoutes,
     private val kordinatorSessionService: KordinatorSessionService,
     private val uploadController: UploadController,
     private val playlistExportController: PlaylistExportController,
@@ -356,6 +358,7 @@ class AirsonicKtorServlet(
             infrastructureRoutes(errorProperties, objectMapper)
             kordinatorAuthRoutes.routes(this, objectMapper)
             kordinatorFavoriteRoutes.routes(this, kordinatorUsername, objectMapper)
+            kordinatorLibraryRoutes.routes(this, kordinatorUsername, objectMapper)
             kordinatorTrackRoutes(
                 kordinatorTrackLookup,
                 currentUsername = kordinatorUsername,
