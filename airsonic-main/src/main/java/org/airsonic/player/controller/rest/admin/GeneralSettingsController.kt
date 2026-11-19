@@ -16,6 +16,7 @@ import org.airsonic.player.domain.CoverArtSource
 import org.subsonic.restapi.GeneralSettings
 import org.subsonic.restapi.GeneralSettingsOption
 import org.slf4j.LoggerFactory
+import java.time.Duration
 import kotlin.coroutines.cancellation.CancellationException
 
 /** Admin-only extensions. Save requires every setting, explicit true/false booleans and browser CSRF. */
@@ -109,13 +110,35 @@ class GeneralSettingsController(private val service: GeneralSettingsAdministrati
         require(theme >= 0) { "Unknown theme" }; require(locale >= 0) { "Unknown locale" }
         command.themeIndex = theme.toString(); command.localeIndex = locale.toString()
         java.nio.file.Paths.get(command.playlistFolder)
-        val duration = org.springframework.boot.convert.DurationStyle.detectAndParse(command.sessionDuration)
+        val duration = parseDuration(command.sessionDuration)
         require(!duration.isNegative && !duration.isZero) { "Session duration must be positive" }
         return command
     }
 
+    private fun parseDuration(value: String): Duration {
+        val normalized = value.trim()
+        if (normalized.startsWith("P", ignoreCase = true) || normalized.startsWith("-P", ignoreCase = true)
+            || normalized.startsWith("+P", ignoreCase = true)) {
+            return Duration.parse(normalized.uppercase())
+        }
+        val match = SIMPLE_DURATION.matchEntire(normalized)
+            ?: throw IllegalArgumentException("Invalid session duration")
+        val amount = match.groupValues[1].toLong()
+        return when (match.groupValues[2].lowercase()) {
+            "", "ms" -> Duration.ofMillis(amount)
+            "ns" -> Duration.ofNanos(amount)
+            "us" -> Duration.ofNanos(Math.multiplyExact(amount, 1_000))
+            "s" -> Duration.ofSeconds(amount)
+            "m" -> Duration.ofMinutes(amount)
+            "h" -> Duration.ofHours(amount)
+            "d" -> Duration.ofDays(amount)
+            else -> throw IllegalArgumentException("Invalid session duration")
+        }
+    }
+
     companion object {
         private val LOG = LoggerFactory.getLogger(GeneralSettingsController::class.java)
+        private val SIMPLE_DURATION = Regex("([+-]?\\d+)(ns|us|ms|s|m|h|d)?", RegexOption.IGNORE_CASE)
         const val READ_PATH = "/rest/getGeneralSettings"
         @JvmField val WRITE_PATHS = arrayOf("/rest/saveGeneralSettings")
     }
