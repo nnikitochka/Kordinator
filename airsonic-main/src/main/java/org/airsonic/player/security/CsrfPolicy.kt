@@ -14,13 +14,12 @@ class CsrfPolicy {
             }
         }
 
-        if (method == "POST" && (REST_VIEW.matches(requestPath) || SEARCH.matches(requestPath))) return false
+        if (method == "POST" && REST_VIEW.matches(requestPath)) return false
         return true
     }
 
     private companion object {
         val SAFE_METHODS = setOf("GET", "HEAD", "TRACE", "OPTIONS")
         val REST_VIEW = Regex("/rest/.*\\.view(\\?.*)?")
-        val SEARCH = Regex("/search(?:\\.view)?")
     }
 }

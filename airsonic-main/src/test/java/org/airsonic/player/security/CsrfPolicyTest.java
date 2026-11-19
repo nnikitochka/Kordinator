@@ -16,11 +16,11 @@ public class CsrfPolicyTest {
     }
 
     @Test
-    public void preservesPostWhitelistForRestViewAndSearchPaths() {
+    public void preservesPostWhitelistForRestViewPaths() {
         assertFalse(policy.requiresProtection("POST", "/rest/getScanStatus.view", null, null));
         assertFalse(policy.requiresProtection("POST", "/rest/getSong.view", null, "id=1"));
-        assertFalse(policy.requiresProtection("POST", "/search", null, null));
-        assertFalse(policy.requiresProtection("POST", "/search.view", null, null));
+        assertTrue(policy.requiresProtection("POST", "/search", null, null));
+        assertTrue(policy.requiresProtection("POST", "/search.view", null, null));
         assertTrue(policy.requiresProtection("POST", "/rest/getScanStatus", null, null));
         assertTrue(policy.requiresProtection("POST", "/search/advanced", null, null));
         assertTrue(policy.requiresProtection("PUT", "/rest/getSong.view", null, null));
