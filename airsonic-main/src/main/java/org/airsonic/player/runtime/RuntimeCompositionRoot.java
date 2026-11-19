@@ -85,6 +85,7 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.playlist.XspfPlaylistImportHandler xspfPlaylistImportHandler;
     private org.airsonic.player.health.HealthContributorRegistry healthContributorRegistry;
     private org.airsonic.player.monitor.MetricsManager metricsManager;
+    private io.micrometer.core.instrument.MeterRegistry meterRegistry;
     private org.airsonic.player.controller.JAXBWriter subsonicJaxbWriter;
     private org.airsonic.player.controller.rest.SubsonicResponseMapper subsonicResponseMapper;
     private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
@@ -540,13 +541,19 @@ public final class RuntimeCompositionRoot {
     }
 
     public synchronized org.airsonic.player.controller.rest.statistics.CacheStatisticsController
-            createCacheStatisticsController(javax.cache.CacheManager cacheManager,
-                    io.micrometer.core.instrument.MeterRegistry meterRegistry) {
+            createCacheStatisticsController(javax.cache.CacheManager cacheManager) {
         if (cacheStatisticsController == null) {
             cacheStatisticsController = new org.airsonic.player.controller.rest.statistics.CacheStatisticsController(
-                    cacheManager, meterRegistry, createSubsonicJaxbWriter());
+                    cacheManager, createMeterRegistry(), createSubsonicJaxbWriter());
         }
         return cacheStatisticsController;
+    }
+
+    public synchronized io.micrometer.core.instrument.MeterRegistry createMeterRegistry() {
+        if (meterRegistry == null) {
+            meterRegistry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        }
+        return meterRegistry;
     }
 
     public synchronized org.airsonic.player.controller.rest.upload.UploadStatusController createUploadStatusController(

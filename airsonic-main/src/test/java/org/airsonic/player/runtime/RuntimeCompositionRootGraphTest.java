@@ -509,10 +509,10 @@ class RuntimeCompositionRootGraphTest {
         assertSame(runtimeRoot.createStatusAggregator(), runtimeRoot.createStatusAggregator());
         assertSame(runtimeRoot.createServerHealthController(healthContributors, objectMapper),
                 runtimeRoot.createServerHealthController(healthContributors, objectMapper));
-        io.micrometer.core.instrument.MeterRegistry testMeterRegistry =
-                new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
-        assertSame(runtimeRoot.createCacheStatisticsController(cacheManager, testMeterRegistry),
-                runtimeRoot.createCacheStatisticsController(cacheManager, testMeterRegistry));
+        io.micrometer.core.instrument.MeterRegistry meterRegistry = runtimeRoot.createMeterRegistry();
+        assertSame(meterRegistry, runtimeRoot.createMeterRegistry());
+        assertSame(runtimeRoot.createCacheStatisticsController(cacheManager),
+                runtimeRoot.createCacheStatisticsController(cacheManager));
         assertSame(runtimeRoot.createUploadStatusController(statusService, databaseService),
                 runtimeRoot.createUploadStatusController(statusService, databaseService));
 

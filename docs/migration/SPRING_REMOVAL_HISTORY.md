@@ -462,6 +462,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 20 ноября 2026:** из `AirsonicKtorServlet` удалён Spring `ServletWebRequest`. `ServletConditionalRequest` на Jakarta Servlet API сохраняет порядок проверки `If-Match`, `If-Unmodified-Since`, `If-None-Match`, `If-Modified-Since`, коды 304/412 и cache headers. Совместные `ServletConditionalRequestTest` и `ContentDispositionHeaderTest` прошли 7/7. `StreamIntegrationTest` и `DownloadIntegrationTest` не смогли запустить embedded Tomcat из-за запрета открытия локального TCP-порта в среде (`SocketException: Operation not permitted`); HTTP assertions не выполнялись.
 
+**Срез 20 ноября 2026:** singleton `MeterRegistry` теперь создаёт `RuntimeCompositionRoot`; `CacheStatisticsController` берет его оттуда. Spring больше не объявляет `meterRegistry` bean и не передаёт его в servlet registration. Поведение cache statistics не менялось.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

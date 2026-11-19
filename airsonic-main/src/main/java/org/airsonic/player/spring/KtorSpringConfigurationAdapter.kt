@@ -2,8 +2,6 @@ package org.airsonic.player.spring
 
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Bean
-import io.micrometer.core.instrument.MeterRegistry
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 
 /** Spring bootstrap adapter for the explicit Ktor bean factories. */
 @Configuration
@@ -11,9 +9,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     fun dataSource(runtime: org.airsonic.player.runtime.RuntimeCompositionRoot): javax.sql.DataSource =
         runtime.createDataSource().also { runtime.migrateDatabase() }
-
-    @Bean
-    fun meterRegistry(): MeterRegistry = SimpleMeterRegistry()
 
     @Bean
     fun jCacheCacheManager(runtime: org.airsonic.player.runtime.RuntimeCompositionRoot): javax.cache.CacheManager =
