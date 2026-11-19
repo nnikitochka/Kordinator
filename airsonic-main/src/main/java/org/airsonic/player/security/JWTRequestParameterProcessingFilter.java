@@ -4,8 +4,10 @@ import org.airsonic.player.service.JWTSecurityService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationServiceException;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.CredentialsExpiredException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -19,22 +21,39 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.List;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 public class JWTRequestParameterProcessingFilter implements Filter {
     private static final Logger LOG = LoggerFactory.getLogger(JWTRequestParameterProcessingFilter.class);
-    private final AuthenticationManager authenticationManager;
+    private final String jwtKey;
     private final AuthenticationFailureHandler failureHandler;
+    private final JwtTokenVerifier verifier = new JwtTokenVerifier();
 
-    protected JWTRequestParameterProcessingFilter(AuthenticationManager authenticationManager, String failureUrl) {
-        this.authenticationManager = authenticationManager;
+    protected JWTRequestParameterProcessingFilter(String jwtKey, String failureUrl) {
+        this.jwtKey = jwtKey;
         failureHandler = new SimpleUrlAuthenticationFailureHandler(failureUrl);
     }
 
     public Authentication attemptAuthentication(Optional<JWTAuthenticationToken> token) throws AuthenticationException {
-        if (token.isPresent()) {
-            return authenticationManager.authenticate(token.get());
+        if (token.isEmpty() || !(token.get().getCredentials() instanceof String)) {
+            throw new BadCredentialsException("JWT credentials are missing");
         }
-        throw new AuthenticationServiceException("Invalid auth method");
+        JWTAuthenticationToken request = token.get();
+        String rawToken = (String) request.getCredentials();
+        JwtTokenVerifier.Result result = verifier.verifyRequest(jwtKey, rawToken, request.getRequestedPath());
+        if (result.getFailure() == JwtTokenVerifier.Failure.EXPIRED) {
+            throw new CredentialsExpiredException("Credentials have expired");
+        }
+        if (result.getFailure() == JwtTokenVerifier.Failure.PATH_MISMATCH) {
+            throw new InsufficientAuthenticationException("Credentials not valid for requested path " + request.getRequestedPath());
+        }
+        if (!result.isVerified()) {
+            throw new BadCredentialsException("Error verifying JWT");
+        }
+        DecodedJWT decoded = result.getToken();
+        return new JWTAuthenticationToken(decoded.getSubject(), rawToken, request.getRequestedPath(), JWT_AUTHORITIES, decoded);
     }
 
     private static Optional<JWTAuthenticationToken> findToken(HttpServletRequest request) {
@@ -42,6 +61,10 @@ public class JWTRequestParameterProcessingFilter implements Filter {
                 .filter(StringUtils::isNotEmpty)
                 .map(t -> new JWTAuthenticationToken(null, t, request.getRequestURI().substring(request.getContextPath().length() + 1) + "?" + request.getQueryString()));
     }
+
+    private static final List<GrantedAuthority> JWT_AUTHORITIES = List.of(
+            new SimpleGrantedAuthority("IS_AUTHENTICATED_FULLY"),
+            new SimpleGrantedAuthority("ROLE_TEMP"));
 
     @Override
     public void init(FilterConfig filterConfig) {

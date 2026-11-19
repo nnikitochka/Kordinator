@@ -209,25 +209,16 @@ public class GlobalSecurityConfig {
             LdapAuthenticator ldap = new LdapAuthenticator(securityService, settingsService, directory);
             providers.add(new SpringLdapAuthenticationProvider(ldap));
         }
-        String jwtKey = settingsService.getJWTKey();
-        if (StringUtils.isBlank(jwtKey)) {
-            LOG.warn("Generating new jwt key");
-            jwtKey = JWTSecurityService.generateKey();
-            settingsService.setJWTKey(jwtKey);
-            settingsService.save();
-        }
-        JWTAuthenticationProvider jwtAuth = new JWTAuthenticationProvider(jwtKey);
-        providers.add(jwtAuth);
         providers.add(multipleCredsProvider);
         return new ProviderManager(providers);
     }
 
     @Bean
     @Order(1)
-    public SecurityFilterChain extSecurityFilterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws Exception {
+    public SecurityFilterChain extSecurityFilterChain(HttpSecurity http) throws Exception {
         http = http.addFilter(new WebAsyncManagerIntegrationFilter());
         http = http.addFilterBefore(
-                new JWTRequestParameterProcessingFilter(authenticationManager, FAILURE_URL),
+                new JWTRequestParameterProcessingFilter(getJwtKey(), FAILURE_URL),
                 UsernamePasswordAuthenticationFilter.class);
 
         RequestMatcher ktorExternalRoutes = new org.airsonic.player.spring.KtorExternalRouteRequestMatcher();
@@ -312,6 +303,17 @@ public class GlobalSecurityConfig {
                         .key(rememberMeKey)
                         .userDetailsService(userDetailsService));
         return http.build();
+    }
+
+    private String getJwtKey() {
+        String jwtKey = settingsService.getJWTKey();
+        if (StringUtils.isBlank(jwtKey)) {
+            LOG.warn("Generating new jwt key");
+            jwtKey = JWTSecurityService.generateKey();
+            settingsService.setJWTKey(jwtKey);
+            settingsService.save();
+        }
+        return jwtKey;
     }
 
     @Bean
