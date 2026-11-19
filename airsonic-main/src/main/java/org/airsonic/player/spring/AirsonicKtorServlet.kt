@@ -133,6 +133,7 @@ import org.airsonic.player.ktor.MediaFileTrackLookup
 import org.airsonic.player.ktor.kordinatorTrackRoutes
 import org.airsonic.player.ktor.KordinatorPlaylistRoutes
 import org.airsonic.player.ktor.KordinatorAlbumRoutes
+import org.airsonic.player.ktor.KordinatorArtistRoutes
 class AirsonicKtorServlet(
     private val searchController: SearchController,
     private val musicFoldersController: MusicFoldersController,
@@ -146,6 +147,7 @@ class AirsonicKtorServlet(
     private val playlistsController: PlaylistsController,
     private val kordinatorPlaylistRoutes: KordinatorPlaylistRoutes,
     private val kordinatorAlbumRoutes: KordinatorAlbumRoutes,
+    private val kordinatorArtistRoutes: KordinatorArtistRoutes,
     private val uploadController: UploadController,
     private val playlistExportController: PlaylistExportController,
     private val playlistImportController: PlaylistImportController,
@@ -350,6 +352,7 @@ class AirsonicKtorServlet(
             coverArtRestController.kordinatorTrackRoutes(this, kordinatorTrackLookup, kordinatorUsername)
             kordinatorPlaylistRoutes.routes(this, kordinatorUsername, objectMapper)
             kordinatorAlbumRoutes.routes(this, kordinatorUsername, objectMapper)
+            kordinatorArtistRoutes.routes(this, kordinatorUsername, objectMapper)
             searchController.routes(this) { call -> call.attributes[SEARCH_REQUEST_KEY] }
             musicFoldersController.routes(this) { call -> call.attributes[MUSIC_FOLDERS_REQUEST_KEY] }
             genresController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
