@@ -296,7 +296,11 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `e1a6697` переносит Album/Artist upsert, MusicFolder create/reassign/user assignment на явные `READ_COMMITTED` transactions и удаляет соответствующие Spring annotations/imports. Scanner, music index, music-folder settings, Subsonic artists/genres и root graph suite прошёл 14/14. После него оставалось две Spring transaction declarations.
 
-Срез `031e3fc` переводит `MediaFileDao.createOrUpdateMediaFile` на явную `READ_COMMITTED` транзакцию. Runtime graph, scanner unit/service, tag-edit service/REST, artist-info, cover-art и music-directory API tests прошли 14/14. В прикладном DAO слое осталась одна Spring транзакционная декларация — class-level `@Transactional` на `UserDao`; затем можно удалить `@EnableTransactionManagement` и Spring AspectJ зависимости.
+Срез `031e3fc` переводит `MediaFileDao.createOrUpdateMediaFile` на явную `READ_COMMITTED` транзакцию. Runtime graph, scanner unit/service, tag-edit service/REST, artist-info, cover-art и music-directory API tests прошли 14/14. На тот момент в прикладном DAO слое оставалась одна Spring транзакционная декларация — class-level `@Transactional` на `UserDao`.
+
+Срез `add3590` удаляет class-level `@Transactional` с `UserDao`; многошаговые операции создания/удаления пользователей, credential deletion с post-check и замена user settings используют `AbstractDao.inTransaction`. Regression suite пользователей, credentials, security, login, settings и runtime graph прошёл 20/20.
+
+Следующий срез удаляет `@EnableTransactionManagement`, `spring-aspects` из runtime и AspectJ Maven weaving plugin. Два test-only приватных метода с `REQUIRES_NEW` заменены явным `TransactionTemplate`, чтобы тесты не зависели от weaving. В `airsonic-main/src/main` и сборочном POM больше нет AspectJ consumers/configuration; Maven dependency tree не содержит `spring-aspects` или `org.aspectj` artifacts. Целевой DAO/security/settings/runtime regression suite прошёл 20/20, включая `UserDaoTestCase.testCreateUserTransactionalError` после явного сохранения `REQUIRES_NEW` в test helper.
 
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
