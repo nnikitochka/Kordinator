@@ -107,6 +107,10 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.music.top.TopSongsController topSongsController;
     private org.airsonic.player.controller.rest.music.random.RandomSongsController randomSongsController;
     private org.airsonic.player.controller.rest.music.song.SongController songController;
+    private org.airsonic.player.controller.rest.videos.VideosController videosController;
+    private org.airsonic.player.controller.rest.lyrics.LyricsController lyricsController;
+    private org.airsonic.player.controller.rest.nowplaying.NowPlayingController nowPlayingController;
+    private org.airsonic.player.controller.rest.rating.RatingController ratingController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -393,6 +397,49 @@ public final class RuntimeCompositionRoot {
                     responseMapper, createSubsonicJaxbWriter());
         }
         return songController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.videos.VideosController createVideosController(
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
+        if (videosController == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before VideosController");
+            }
+            videosController = new org.airsonic.player.controller.rest.videos.VideosController(
+                    persistenceGraph.getDaos().getMediaFileDao(), mediaFolderService,
+                    responseMapper, createSubsonicJaxbWriter());
+        }
+        return videosController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.lyrics.LyricsController createLyricsController(
+            org.airsonic.player.service.LyricsService lyricsService) {
+        if (lyricsController == null) {
+            lyricsController = new org.airsonic.player.controller.rest.lyrics.LyricsController(
+                    lyricsService, createSubsonicJaxbWriter());
+        }
+        return lyricsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.nowplaying.NowPlayingController createNowPlayingController(
+            org.airsonic.player.service.StatusService statusService,
+            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
+        if (nowPlayingController == null) {
+            nowPlayingController = new org.airsonic.player.controller.rest.nowplaying.NowPlayingController(
+                    statusService, responseMapper, createSubsonicJaxbWriter());
+        }
+        return nowPlayingController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.rating.RatingController createRatingController(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.RatingService ratingService) {
+        if (ratingController == null) {
+            ratingController = new org.airsonic.player.controller.rest.rating.RatingController(
+                    mediaFileService, ratingService, createSubsonicJaxbWriter());
+        }
+        return ratingController;
     }
 
     public synchronized DataSource createDataSource() {

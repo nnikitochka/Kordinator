@@ -346,6 +346,14 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createRandomSongsController(searchService, mediaFolderService, responseMapper));
         assertSame(runtimeRoot.createSongController(securityService, responseMapper),
                 runtimeRoot.createSongController(securityService, responseMapper));
+        assertSame(runtimeRoot.createVideosController(mediaFolderService, responseMapper),
+                runtimeRoot.createVideosController(mediaFolderService, responseMapper));
+        assertSame(runtimeRoot.createLyricsController(lyricsService),
+                runtimeRoot.createLyricsController(lyricsService));
+        assertSame(runtimeRoot.createNowPlayingController(statusService, responseMapper),
+                runtimeRoot.createNowPlayingController(statusService, responseMapper));
+        assertSame(runtimeRoot.createRatingController(mediaFileService, ratingService),
+                runtimeRoot.createRatingController(mediaFileService, ratingService));
         org.airsonic.player.controller.rest.search.SearchService subsonicSearchService =
                 runtimeRoot.createSubsonicSearchService(searchService, mediaFolderService, responseMapper);
         assertSame(subsonicSearchService,
