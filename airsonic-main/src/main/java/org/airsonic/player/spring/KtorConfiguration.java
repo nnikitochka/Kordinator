@@ -155,6 +155,8 @@ import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.RatingService;
 import org.airsonic.player.service.SearchService;
 import org.airsonic.player.service.ShareService;
+import org.airsonic.player.service.ConfigurationPropertiesService;
+import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.DependsOn;
@@ -238,8 +240,13 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public RuntimeCompositionRoot runtimeCompositionRoot(org.springframework.core.env.Environment env) {
-        return new RuntimeCompositionRoot(SpringEnvironmentRuntimeConfigurationAdapter.from(env));
+    public RuntimeCompositionRoot runtimeCompositionRoot(ApplicationArguments arguments) {
+        ConfigurationPropertiesService properties = ConfigurationPropertiesService.getInstance();
+        SettingsService.migratePropFileKeys(SettingsService.getMigratedPropertyKeys(), properties);
+        org.airsonic.player.runtime.RuntimeConfiguration configuration =
+                new org.airsonic.player.runtime.RuntimeConfigurationLoader().load(
+                        arguments.getSourceArgs(), System.getProperties(), System.getenv(), null, properties.getConfiguration());
+        return new RuntimeCompositionRoot(configuration);
     }
 
     @Bean

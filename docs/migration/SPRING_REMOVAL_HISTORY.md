@@ -400,6 +400,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** удалены `StartupEventListener` и его регистрация в `spring.factories`; резервирование и upgrade старой file-HSQL базы теперь выполняется нейтральным `RuntimeDataSourceFactory` перед созданием пула. Сама процедура обновления не менялась. `LegacyDatabaseStartupTestCase`, `RuntimeCompositionRootTest`, `RuntimeCompositionRootGraphTest` и `RuntimeLiquibaseMigratorTest` прошли 9/9.
 
+**Срез 19 ноября 2026:** RuntimeCompositionRoot больше не получает настройки через Spring `Environment`. Spring bean теперь передаёт аргументы запуска, системные свойства, env и Commons Configuration в уже существующий `RuntimeConfigurationLoader`; удалён `SpringEnvironmentRuntimeConfigurationAdapter`. Персистентное обновление старых имён параметров в `airsonic.properties` сохранено. `RuntimeConfigurationLoaderTest`, `LegacyDatabaseStartupTestCase`, `RuntimeCompositionRootTest`, `RuntimeCompositionRootGraphTest` и `RuntimeLiquibaseMigratorTest` прошли 25/25.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

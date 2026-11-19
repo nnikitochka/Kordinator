@@ -3,7 +3,6 @@ package org.airsonic.player.runtime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.springframework.mock.env.MockEnvironment;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -196,21 +195,22 @@ class RuntimeConfigurationLoaderTest {
     }
 
     @Test
-    void springEnvironmentAdapterEquivalence() {
-        MockEnvironment mockEnv = new MockEnvironment();
-        mockEnv.setProperty("server.port", "7070");
-        mockEnv.setProperty("spring.datasource.username", "testuser");
-        mockEnv.setProperty("spring.datasource.password", "testpass");
-        mockEnv.setProperty("management.endpoint.health.status.order", "FATAL,DOWN,UP");
+    void runtimeLoaderExposesApplicationConfigurationWithoutFrameworkAdapters() {
+        Properties application = new Properties();
+        application.setProperty("server.port", "7070");
+        application.setProperty("spring.datasource.username", "testuser");
+        application.setProperty("spring.datasource.password", "testpass");
+        application.setProperty("management.endpoint.health.status.order", "FATAL,DOWN,UP");
 
-        RuntimeConfiguration adapted = org.airsonic.player.spring.SpringEnvironmentRuntimeConfigurationAdapter.from(mockEnv);
+        RuntimeConfiguration configuration = loader.load(
+                new String[0], new Properties(), Collections.emptyMap(), application, Collections.emptyMap());
 
-        assertEquals("7070", adapted.getProperty("server.port"));
-        assertEquals("testuser", adapted.getDatabaseUsername());
-        assertEquals("testpass", adapted.getDatabasePassword());
-        assertEquals(List.of("FATAL", "DOWN", "UP"), adapted.getHealthStatusOrder());
-        assertTrue(adapted.containsKey("server.port"));
-        assertFalse(adapted.containsKey("nonexistent"));
-        assertEquals("******", adapted.asMaskedMap().get("spring.datasource.password"));
+        assertEquals("7070", configuration.getProperty("server.port"));
+        assertEquals("testuser", configuration.getDatabaseUsername());
+        assertEquals("testpass", configuration.getDatabasePassword());
+        assertEquals(List.of("FATAL", "DOWN", "UP"), configuration.getHealthStatusOrder());
+        assertTrue(configuration.containsKey("server.port"));
+        assertFalse(configuration.containsKey("nonexistent"));
+        assertEquals("******", configuration.asMaskedMap().get("spring.datasource.password"));
     }
 }
