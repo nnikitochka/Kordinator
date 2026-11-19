@@ -39,6 +39,10 @@ import static org.junit.Assert.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class LiveQueueExportIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule home = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private SecurityService security;
@@ -48,7 +52,7 @@ public class LiveQueueExportIntegrationTest {
     @Autowired private org.airsonic.player.service.MediaFileService mediaService;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao mediaFiles;
+
     @Autowired private ApplicationContext context;
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient client = HttpClient.newHttpClient();
@@ -62,8 +66,8 @@ public class LiveQueueExportIntegrationTest {
             security.createUser(user, "secret", "test");
             folders.setMusicFoldersForUser(user.getUsername(), java.util.Set.of(library.get(0).getId()));
             HttpClient browser = login(user.getUsername(), "secret");
-            var album = mediaFiles.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
-            var songs = mediaFiles.getChildrenOf(album.getPath(), album.getFolderId(), true);
+            var album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
+            var songs = daoGraph.getMediaFileDao().getChildrenOf(album.getPath(), album.getFolderId(), true);
             var first = songs.get(0); var second = songs.get(1);
             first.setArtist("Артист\r\n#EXTINF:0,Injected"); first.setTitle("Трек\nInjected"); first.setDuration(null);
             mediaService.updateMediaFile(first);
@@ -103,7 +107,7 @@ public class LiveQueueExportIntegrationTest {
             for (String id : List.of("bad", "", "2147483647", foreign.getId().toString()))
                 assertError(get(browser, "/rest/exportLivePlayQueue?f=json&playerId=" + id), 50);
             // The second fixture folder is inaccessible to this owner, even if its files reach a live queue.
-            var inaccessible = mediaFiles.getChildrenOf("", library.get(1).getId(), true).get(0);
+            var inaccessible = daoGraph.getMediaFileDao().getChildrenOf("", library.get(1).getId(), true).get(0);
             player.getPlayQueue().addFiles(false, List.of(inaccessible));
             assertError(get(browser, path + "&f=json"), 50);
             var xml = get(browser, path); assertTrue(xml.body(), xml.body().contains("code=\"50\""));

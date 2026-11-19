@@ -32,12 +32,9 @@ import java.util.concurrent.TimeUnit;
 public class SearchServiceTestCase extends AbstractAirsonicHomeTest {
 
     @Autowired
-    private AlbumDao albumDao;
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
 
     private final MetricRegistry metrics = new MetricRegistry();
-
-    @Autowired
-    private MusicFolderDao musicFolderDao;
 
     @Autowired
     private SearchService searchService;
@@ -66,7 +63,7 @@ public class SearchServiceTestCase extends AbstractAirsonicHomeTest {
          * Complete route coverage and data coverage in this case alone are not conscious.
          */
 
-        List<MusicFolder> allMusicFolders = musicFolderDao.getAllMusicFolders();
+        List<MusicFolder> allMusicFolders = daoGraph.getMusicFolderDao().getAllMusicFolders();
         Assert.assertEquals(3, allMusicFolders.size());
 
         // *** testSearch() ***
@@ -262,7 +259,7 @@ public class SearchServiceTestCase extends AbstractAirsonicHomeTest {
         /*
          * Acquisition of maximum number(5).
          */
-        List<Album> allAlbums = albumDao.getAlphabeticalAlbums(0, Integer.MAX_VALUE, true, true, allMusicFolders);
+        List<Album> allAlbums = daoGraph.getAlbumDao().getAlphabeticalAlbums(0, Integer.MAX_VALUE, true, true, allMusicFolders);
         Assert.assertEquals("(26) Get all albums with Dao.", 5, allAlbums.size());
         List<MediaFile> allRandomAlbums = searchService.getRandomAlbums(Integer.MAX_VALUE,
                 allMusicFolders);

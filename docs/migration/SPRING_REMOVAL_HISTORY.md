@@ -392,6 +392,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** `ShareSettingsIntegrationTest` и `PublicShareIntegrationTest` используют `DaoGraph` для подготовки данных. Удалён отдельный Spring alias `ShareDao`; весь test source компилируется, `RuntimeCompositionRootGraphTest` прошёл 2/2. HTTP integration tests не запускались.
 
+**Срез 19 ноября 2026:** интеграционные и поисковые тесты переведены с отдельных Spring aliases `AlbumDao`, `MediaFileDao` и `MusicFolderDao` на `DaoGraph`; тесты также больше не получают `MusicFolderDao` через базовый класс. Удалены три соответствующих bean aliases. `artistDao` оставлен временно только для Mockito spy в `MusicFolderSettingsIntegrationTest`. Полная компиляция test source прошла; выбранные тесты дали 10/12 проходов, два search/index assertion теста (`IndexManagerTestCase.testExpunge`, `SearchServiceTestCase.testSearchTypical`) вернули неожиданные fixture/index результаты и требуют отдельного выяснения; остальные DAO/scanner/composition тесты прошли. HTTP integration tests не запускались.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

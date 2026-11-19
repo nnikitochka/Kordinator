@@ -39,11 +39,15 @@ import static org.junit.Assert.*;
         properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class SharesIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule homeRule = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao mediaFiles;
+
     @Autowired private SecurityService security;
     @Autowired private ShareService shares;
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -54,8 +58,8 @@ public class SharesIntegrationTest {
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
         UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
         try {
-            MediaFile album = mediaFiles.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
-            List<MediaFile> songs = mediaFiles.getChildrenOf(album.getPath(), album.getFolderId(), true);
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
+            List<MediaFile> songs = daoGraph.getMediaFileDao().getChildrenOf(album.getPath(), album.getFolderId(), true);
             int song = songs.get(0).getId();
             security.createUser(new User("share-reader", null), "secret", "share test");
             String reader = "share-reader:secret";

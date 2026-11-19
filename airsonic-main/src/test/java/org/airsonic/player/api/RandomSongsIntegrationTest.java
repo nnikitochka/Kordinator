@@ -35,11 +35,15 @@ import static org.mockito.Mockito.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class RandomSongsIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule home = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao mediaFiles;
+
     @Autowired private SecurityService security;
     @MockitoSpyBean private SearchService search;
     private final HttpClient client = HttpClient.newHttpClient();
@@ -49,8 +53,8 @@ public class RandomSongsIntegrationTest {
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
         UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
         try {
-            MediaFile album = mediaFiles.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
-            MediaFile song = mediaFiles.getChildrenOf(album.getPath(), album.getFolderId(), true).get(0);
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
+            MediaFile song = daoGraph.getMediaFileDao().getChildrenOf(album.getPath(), album.getFolderId(), true).get(0);
             doReturn(List.of(song)).when(search).getRandomSongs(any());
             User restricted = new User("random-restricted", null);
             restricted.setRoles(Set.of(User.Role.STREAM));

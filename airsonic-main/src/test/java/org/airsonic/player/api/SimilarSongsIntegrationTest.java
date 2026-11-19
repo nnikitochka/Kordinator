@@ -46,6 +46,10 @@ import static org.mockito.Mockito.*;
         properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class SimilarSongsIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule
     public static final HomeRule homeRule = new HomeRule();
 
@@ -55,10 +59,7 @@ public class SimilarSongsIntegrationTest {
     private MediaFolderService folders;
     @Autowired
     private MediaScannerService scanner;
-    @Autowired
-    private MediaFileDao mediaFileDao;
-    @Autowired
-    private ArtistDao artistDao;
+
     @Autowired
     private SecurityService securityService;
     @MockitoBean
@@ -72,12 +73,12 @@ public class SimilarSongsIntegrationTest {
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
         UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
         try {
-            MediaFile album = mediaFileDao.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes",
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes",
                     library.get(0).getId());
             assertNotNull(album);
-            MediaFile song = mediaFileDao.getChildrenOf(album.getPath(), album.getFolderId(), true).get(0);
-            artistDao.createOrUpdateArtist(new Artist(0, "Similar test artist", 1, Instant.now(), true, library.get(0).getId()));
-            Artist artist = artistDao.getArtist("Similar test artist");
+            MediaFile song = daoGraph.getMediaFileDao().getChildrenOf(album.getPath(), album.getFolderId(), true).get(0);
+            daoGraph.getArtistDao().createOrUpdateArtist(new Artist(0, "Similar test artist", 1, Instant.now(), true, library.get(0).getId()));
+            Artist artist = daoGraph.getArtistDao().getArtist("Similar test artist");
             assertNotNull(artist);
             when(lastFm.getSimilarSongs(any(MediaFile.class), anyInt(), anyList())).thenReturn(List.of(song));
             when(lastFm.getSimilarSongs(any(Artist.class), anyInt(), anyList())).thenReturn(List.of(song));

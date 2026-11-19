@@ -44,12 +44,16 @@ import static org.junit.Assert.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class MediaFileCommentIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule home = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private ApplicationContext context;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao files;
+
     @Autowired private SecurityService security;
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -62,8 +66,8 @@ public class MediaFileCommentIntegrationTest {
         MusicFolder other = MusicFolderTestData.getTestMusicFolders().get(1);
         UUID cleanup = ScanningTestUtils.before(List.of(own, other), folders, scanner);
         try {
-            MediaFile song = files.getMediaFile("Artist/Album/song.mp3", own.getId());
-            MediaFile album = files.getMediaFile("Artist/Album", own.getId());
+            MediaFile song = daoGraph.getMediaFileDao().getMediaFile("Artist/Album/song.mp3", own.getId());
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("Artist/Album", own.getId());
             assertNotNull(song); assertNotNull(album);
             User editor = new User("tag-editor", null);
             editor.setRoles(Set.of(User.Role.COMMENT, User.Role.STREAM));
@@ -92,9 +96,9 @@ public class MediaFileCommentIntegrationTest {
             String fields = "f=json&c=airsonic-web&id=" + album.getId() + "&comment=" + enc(comment);
             assertEquals(403, send(browser, path, fields, null).statusCode());
             assertEquals("ok", body(send(browser, path, fields, csrf)).path("status").asText());
-            assertEquals(comment, files.getMediaFile(album.getId()).getComment());
+            assertEquals(comment, daoGraph.getMediaFileDao().getMediaFile(album.getId()).getComment());
             assertEquals("ok", body(send(browser, path, fields.replace("id=" + album.getId(), "id=" + song.getId()), csrf)).path("status").asText());
-            assertEquals(comment, files.getMediaFile(song.getId()).getComment());
+            assertEquals(comment, daoGraph.getMediaFileDao().getMediaFile(song.getId()).getComment());
             assertEquals(10, body(send(browser, path, "f=json&id=" + album.getId(), csrf)).path("error").path("code").asInt());
             assertEquals(10, body(send(browser, path, "f=json&comment=x", csrf)).path("error").path("code").asInt());
             assertEquals(0, body(send(browser, path, "f=json&id=bad&comment=x", csrf)).path("error").path("code").asInt());
@@ -102,12 +106,12 @@ public class MediaFileCommentIntegrationTest {
             // Explicitly clearing a comment is distinct from omitting the parameter.
             HttpResponse<String> xml = send(browser, path, "id=" + album.getId() + "&comment=", csrf);
             assertTrue(xml.body(), xml.body().contains("status=\"ok\""));
-            assertEquals("", files.getMediaFile(album.getId()).getComment());
+            assertEquals("", daoGraph.getMediaFileDao().getMediaFile(album.getId()).getComment());
             assertTrue(xml.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
             editor.setRoles(Set.of(User.Role.STREAM));
             security.updateUser(editor);
             assertEquals(50, body(send(browser, path, fields, csrf)).path("error").path("code").asInt());
-            assertEquals("", files.getMediaFile(album.getId()).getComment());
+            assertEquals("", daoGraph.getMediaFileDao().getMediaFile(album.getId()).getComment());
             assertEquals(405, send(browser, path, null, null).statusCode());
             for (String old : List.of("/setMusicFileInfo", "/setMusicFileInfo.view")) {
                 assertEquals(404, send(browser, old, fields, csrf).statusCode());
@@ -121,7 +125,7 @@ public class MediaFileCommentIntegrationTest {
                 Matcher csrfMatcher = Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(send(deniedBrowser, "/top.view", null, null).body());
                 assertTrue(csrfMatcher.find());
                 assertEquals(50, body(send(deniedBrowser, path, fields, csrfMatcher.group(1))).path("error").path("code").asInt());
-                assertEquals("", files.getMediaFile(album.getId()).getComment());
+                assertEquals("", daoGraph.getMediaFileDao().getMediaFile(album.getId()).getComment());
             }
             assertEquals(403, send(HttpClient.newHttpClient(), path, fields, null).statusCode());
         } finally {

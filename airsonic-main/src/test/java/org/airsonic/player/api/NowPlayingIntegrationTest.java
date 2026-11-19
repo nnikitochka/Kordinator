@@ -37,11 +37,15 @@ import static org.junit.Assert.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class NowPlayingIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule home = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao mediaFiles;
+
     @Autowired private PlayerService players;
     @Autowired private StatusService status;
     @Autowired private SecurityService security;
@@ -53,8 +57,8 @@ public class NowPlayingIntegrationTest {
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
         UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
         try {
-            MediaFile album = mediaFiles.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
-            List<MediaFile> songs = mediaFiles.getChildrenOf(album.getPath(), album.getFolderId(), true);
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
+            List<MediaFile> songs = daoGraph.getMediaFileDao().getChildrenOf(album.getPath(), album.getFolderId(), true);
             Player active = player("admin", "active-player");
             Player remote = player("admin", "remote-player");
             security.createUser(new User("hidden-listener", null), "secret", "test");

@@ -42,12 +42,16 @@ import static org.junit.Assert.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class WebShareIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule home = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private ApplicationContext context;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao files;
+
     @Autowired private SecurityService security;
     @Autowired private org.airsonic.player.service.MediaFileService mediaService;
     @Autowired private org.airsonic.player.service.ShareService shares;
@@ -59,7 +63,7 @@ public class WebShareIntegrationTest {
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
         UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
         try {
-            MediaFile album = files.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
             var songs = mediaService.getChildrenOf(album, true, false, true);
             User user = new User("web-sharer", null);
             user.setRoles(Set.of(User.Role.SHARE, User.Role.STREAM));

@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class MusicFolderDaoTestCase extends DaoTestCaseBean2 {
 
     @Autowired
-    MusicFolderDao musicFolderDao;
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
 
     @Before
     public void setUp() {
@@ -30,40 +30,40 @@ public class MusicFolderDaoTestCase extends DaoTestCaseBean2 {
     @Test
     public void testCreateMusicFolder() {
         MusicFolder musicFolder = new MusicFolder(Paths.get("path"), "name", Type.MEDIA, true, Instant.now());
-        musicFolderDao.createMusicFolder(musicFolder);
+        daoGraph.getMusicFolderDao().createMusicFolder(musicFolder);
 
         // no duplicates
-        musicFolderDao.createMusicFolder(new MusicFolder(Paths.get("path"), "name", Type.MEDIA, true, Instant.now()));
+        daoGraph.getMusicFolderDao().createMusicFolder(new MusicFolder(Paths.get("path"), "name", Type.MEDIA, true, Instant.now()));
 
-        assertThat(musicFolderDao.getAllMusicFolders()).usingElementComparatorIgnoringFields("id")
+        assertThat(daoGraph.getMusicFolderDao().getAllMusicFolders()).usingElementComparatorIgnoringFields("id")
                 .containsExactly(musicFolder);
     }
 
     @Test
     public void testUpdateMusicFolder() {
         MusicFolder musicFolder = new MusicFolder(Paths.get("path"), "name", Type.MEDIA, true, Instant.now());
-        musicFolderDao.createMusicFolder(musicFolder);
-        musicFolder = musicFolderDao.getAllMusicFolders().get(0);
+        daoGraph.getMusicFolderDao().createMusicFolder(musicFolder);
+        musicFolder = daoGraph.getMusicFolderDao().getAllMusicFolders().get(0);
 
         musicFolder.setPath(Paths.get("newPath"));
         musicFolder.setName("newName");
         musicFolder.setEnabled(false);
         musicFolder.setChanged(Instant.ofEpochMilli(234234L));
-        musicFolderDao.updateMusicFolder(musicFolder);
+        daoGraph.getMusicFolderDao().updateMusicFolder(musicFolder);
 
-        assertThat(musicFolderDao.getAllMusicFolders()).element(0).isEqualToComparingFieldByField(musicFolder);
+        assertThat(daoGraph.getMusicFolderDao().getAllMusicFolders()).element(0).isEqualToComparingFieldByField(musicFolder);
     }
 
     @Test
     public void testDeleteMusicFolder() {
-        assertThat(musicFolderDao.getAllMusicFolders()).hasSize(0);
+        assertThat(daoGraph.getMusicFolderDao().getAllMusicFolders()).hasSize(0);
 
-        musicFolderDao.createMusicFolder(new MusicFolder(Paths.get("path"), "name", Type.MEDIA, true, Instant.now()));
+        daoGraph.getMusicFolderDao().createMusicFolder(new MusicFolder(Paths.get("path"), "name", Type.MEDIA, true, Instant.now()));
 
-        List<MusicFolder> musicFolders = musicFolderDao.getAllMusicFolders();
+        List<MusicFolder> musicFolders = daoGraph.getMusicFolderDao().getAllMusicFolders();
         assertThat(musicFolders).hasSize(1);
 
-        musicFolderDao.deleteMusicFolder(musicFolders.get(0).getId());
-        assertThat(musicFolderDao.getAllMusicFolders()).hasSize(0);
+        daoGraph.getMusicFolderDao().deleteMusicFolder(musicFolders.get(0).getId());
+        assertThat(daoGraph.getMusicFolderDao().getAllMusicFolders()).hasSize(0);
     }
 }

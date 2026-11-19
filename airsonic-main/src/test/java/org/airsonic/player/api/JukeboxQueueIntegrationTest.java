@@ -45,13 +45,17 @@ import static org.mockito.Mockito.*;
         properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class JukeboxQueueIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule homeRule = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private SecurityService security;
     @Autowired private PlayerService players;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao mediaFiles;
+
     @MockitoBean private JukeboxService jukebox;
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ObjectMapper mapper = new ObjectMapper();
@@ -66,8 +70,8 @@ public class JukeboxQueueIntegrationTest {
             security.createUser(user, "secret", "jukebox test");
             folders.setMusicFoldersForUser("jukebox-test", List.of(library.get(0).getId()));
             when(jukebox.canControl(any())).thenReturn(true);
-            MediaFile album = mediaFiles.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
-            MediaFile song = mediaFiles.getChildrenOf(album.getPath(), album.getFolderId(), true).stream().filter(MediaFile::isFile).findFirst().orElseThrow();
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
+            MediaFile song = daoGraph.getMediaFileDao().getChildrenOf(album.getPath(), album.getFolderId(), true).stream().filter(MediaFile::isFile).findFirst().orElseThrow();
             assertOk(call("", "action=add&id=" + song.getId(), "jukebox-test", false));
             JsonNode queue = body(call("", "action=get", "jukebox-test", false)).path("jukeboxPlaylist");
             assertEquals(song.getId().intValue(), queue.path("entry").get(0).path("id").asInt());

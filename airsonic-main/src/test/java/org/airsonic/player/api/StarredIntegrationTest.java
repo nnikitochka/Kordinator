@@ -51,16 +51,19 @@ import static org.junit.Assert.*;
         properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class StarredIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule homeRule = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao mediaFiles;
+
     @Autowired private SecurityService security;
     @Autowired private SettingsService settings;
     @Autowired private ApplicationContext context;
-    @Autowired private ArtistDao artists;
-    @Autowired private AlbumDao albums;
+
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -69,15 +72,15 @@ public class StarredIntegrationTest {
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
         UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
         try {
-            MediaFile directory = mediaFiles.getMediaFile("_DIR_ Sixteen Horsepower", library.get(0).getId());
-            MediaFile albumDir = mediaFiles.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
-            MediaFile song = mediaFiles.getChildrenOf(albumDir.getPath(), albumDir.getFolderId(), true).stream().filter(MediaFile::isFile).findFirst().orElseThrow();
+            MediaFile directory = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower", library.get(0).getId());
+            MediaFile albumDir = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
+            MediaFile song = daoGraph.getMediaFileDao().getChildrenOf(albumDir.getPath(), albumDir.getFolderId(), true).stream().filter(MediaFile::isFile).findFirst().orElseThrow();
             assertNotNull(directory);
-            artists.createOrUpdateArtist(new Artist(0, "Starred contract", 1, Instant.now(), true, library.get(0).getId()));
-            Artist artist = artists.getArtist("Starred contract");
-            albums.createOrUpdateAlbum(new Album(0, "starred-contract", "Starred album", "Starred contract", 1, 10,
+            daoGraph.getArtistDao().createOrUpdateArtist(new Artist(0, "Starred contract", 1, Instant.now(), true, library.get(0).getId()));
+            Artist artist = daoGraph.getArtistDao().getArtist("Starred contract");
+            daoGraph.getAlbumDao().createOrUpdateAlbum(new Album(0, "starred-contract", "Starred album", "Starred contract", 1, 10,
                     null, null, 0, null, null, Instant.now(), Instant.now(), true, library.get(0).getId(), null));
-            Album album = albums.getAlbum("Starred contract", "Starred album");
+            Album album = daoGraph.getAlbumDao().getAlbum("Starred contract", "Starred album");
             security.createUser(new User("starred-reader", null), "secret", "starred test");
             String reader = "starred-reader:secret";
             int songId = song.getId(), albumId = album.getId(), artistId = artist.getId();
@@ -94,12 +97,12 @@ public class StarredIntegrationTest {
             HttpResponse<String> pageDataResponse = raw("starredPage", "", null, null, false);
             assertEquals(pageDataResponse.body(), 200, pageDataResponse.statusCode());
             JsonNode pageData = mapper.readTree(pageDataResponse.body());
-            assertId(pageData.path("artists"), directory.getId());
-            assertId(pageData.path("albums"), albumDir.getId());
+            assertId(pageData.path("daoGraph.getArtistDao()"), directory.getId());
+            assertId(pageData.path("daoGraph.getAlbumDao()"), albumDir.getId());
             assertId(pageData.path("songs"), songId);
             assertTrue(pageData.path("videos").isArray());
-            assertFalse(pageData.path("artists").get(0).path("name").asText().isBlank());
-            assertFalse(pageData.path("albums").get(0).path("name").asText().isBlank());
+            assertFalse(pageData.path("daoGraph.getArtistDao()").get(0).path("name").asText().isBlank());
+            assertFalse(pageData.path("daoGraph.getAlbumDao()").get(0).path("name").asText().isBlank());
             assertFalse(pageData.path("songs").get(0).path("title").asText().isBlank());
             assertTrue(pageData.path("streamAllowed").asBoolean());
             assertTrue(pageData.path("coverArtSize").asInt() > 0);
@@ -119,14 +122,14 @@ public class StarredIntegrationTest {
             readerSettings.setPartyModeEnabled(true);
             settings.updateUserSettings(readerSettings);
             JsonNode readerPage = mapper.readTree(raw("starredPage", "", reader, null, false).body());
-            assertEquals(0, readerPage.path("artists").size());
-            assertEquals(0, readerPage.path("albums").size());
+            assertEquals(0, readerPage.path("daoGraph.getArtistDao()").size());
+            assertEquals(0, readerPage.path("daoGraph.getAlbumDao()").size());
             assertId(readerPage.path("songs"), songId);
             assertTrue(readerPage.path("partyModeEnabled").asBoolean());
             assertOk(call("unstar", all, null));
             JsonNode emptyPage = mapper.readTree(raw("starredPage", "", null, null, false).body());
-            assertEquals(0, emptyPage.path("artists").size());
-            assertEquals(0, emptyPage.path("albums").size());
+            assertEquals(0, emptyPage.path("daoGraph.getArtistDao()").size());
+            assertEquals(0, emptyPage.path("daoGraph.getAlbumDao()").size());
             assertEquals(0, emptyPage.path("songs").size());
             assertEquals(0, emptyPage.path("videos").size());
             assertEquals(0, body(call("getStarred2", "", null)).path("starred2").path("song").size());

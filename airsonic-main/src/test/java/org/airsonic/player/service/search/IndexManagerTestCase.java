@@ -27,6 +27,9 @@ import static org.junit.Assert.assertEquals;
 
 public class IndexManagerTestCase extends AbstractAirsonicHomeTest {
 
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     private List<MusicFolder> musicFolders;
 
     @Autowired
@@ -61,15 +64,6 @@ public class IndexManagerTestCase extends AbstractAirsonicHomeTest {
         cleanupId = null;
     }
 
-    @Autowired
-    private MediaFileDao mediaFileDao;
-
-    @Autowired
-    private ArtistDao artistDao;
-
-    @Autowired
-    private AlbumDao albumDao;
-
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -102,12 +96,12 @@ public class IndexManagerTestCase extends AbstractAirsonicHomeTest {
         assertEquals("_DIR_ Ravel", result.getMediaFiles().get(0).getName());
         assertEquals("_DIR_ Sixteen Horsepower", result.getMediaFiles().get(1).getName());
 
-        List<Integer> candidates = mediaFileDao.getArtistExpungeCandidates();
+        List<Integer> candidates = daoGraph.getMediaFileDao().getArtistExpungeCandidates();
         assertEquals(0, candidates.size());
 
-        result.getMediaFiles().forEach(a -> mediaFileDao.deleteMediaFile(a.getPath(), a.getFolderId()));
+        result.getMediaFiles().forEach(a -> daoGraph.getMediaFileDao().deleteMediaFile(a.getPath(), a.getFolderId()));
 
-        candidates = mediaFileDao.getArtistExpungeCandidates();
+        candidates = daoGraph.getMediaFileDao().getArtistExpungeCandidates();
         assertEquals(2, candidates.size());
 
         // album
@@ -116,12 +110,12 @@ public class IndexManagerTestCase extends AbstractAirsonicHomeTest {
         assertEquals("_DIR_ Ravel - Complete Piano Works", result.getMediaFiles().get(0).getName());
         assertEquals("_DIR_ Ravel - Chamber Music With Voice", result.getMediaFiles().get(1).getName());
 
-        candidates = mediaFileDao.getAlbumExpungeCandidates();
+        candidates = daoGraph.getMediaFileDao().getAlbumExpungeCandidates();
         assertEquals(0, candidates.size());
 
-        result.getMediaFiles().forEach(a -> mediaFileDao.deleteMediaFile(a.getPath(), a.getFolderId()));
+        result.getMediaFiles().forEach(a -> daoGraph.getMediaFileDao().deleteMediaFile(a.getPath(), a.getFolderId()));
 
-        candidates = mediaFileDao.getAlbumExpungeCandidates();
+        candidates = daoGraph.getMediaFileDao().getAlbumExpungeCandidates();
         assertEquals(2, candidates.size());
 
         // song
@@ -130,12 +124,12 @@ public class IndexManagerTestCase extends AbstractAirsonicHomeTest {
         assertEquals("01 - Gaspard de la Nuit - i. Ondine", result.getMediaFiles().get(0).getName());
         assertEquals("02 - Gaspard de la Nuit - ii. Le Gibet", result.getMediaFiles().get(1).getName());
 
-        candidates = mediaFileDao.getSongExpungeCandidates();
+        candidates = daoGraph.getMediaFileDao().getSongExpungeCandidates();
         assertEquals(0, candidates.size());
 
-        result.getMediaFiles().forEach(a -> mediaFileDao.deleteMediaFile(a.getPath(), a.getFolderId()));
+        result.getMediaFiles().forEach(a -> daoGraph.getMediaFileDao().deleteMediaFile(a.getPath(), a.getFolderId()));
 
-        candidates = mediaFileDao.getSongExpungeCandidates();
+        candidates = daoGraph.getMediaFileDao().getSongExpungeCandidates();
         assertEquals(2, candidates.size());
 
         // artistid3
@@ -143,12 +137,12 @@ public class IndexManagerTestCase extends AbstractAirsonicHomeTest {
         assertEquals(1, result.getArtists().size());
         assertEquals("_DIR_ Ravel", result.getArtists().get(0).getName());
 
-        candidates = artistDao.getExpungeCandidates();
+        candidates = daoGraph.getArtistDao().getExpungeCandidates();
         assertEquals(0, candidates.size());
 
-        artistDao.markNonPresent(Instant.now());
+        daoGraph.getArtistDao().markNonPresent(Instant.now());
 
-        candidates = artistDao.getExpungeCandidates();
+        candidates = daoGraph.getArtistDao().getExpungeCandidates();
         assertEquals(4, candidates.size());
 
         // albumId3
@@ -156,12 +150,12 @@ public class IndexManagerTestCase extends AbstractAirsonicHomeTest {
         assertEquals(1, result.getAlbums().size());
         assertEquals("Complete Piano Works", result.getAlbums().get(0).getName());
 
-        candidates = albumDao.getExpungeCandidates();
+        candidates = daoGraph.getAlbumDao().getExpungeCandidates();
         assertEquals(0, candidates.size());
 
-        albumDao.markNonPresent(Instant.now());
+        daoGraph.getAlbumDao().markNonPresent(Instant.now());
 
-        candidates = albumDao.getExpungeCandidates();
+        candidates = daoGraph.getAlbumDao().getExpungeCandidates();
         assertEquals(4, candidates.size());
 
         /* Does not scan, only expunges the index. */

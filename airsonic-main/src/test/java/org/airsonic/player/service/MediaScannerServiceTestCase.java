@@ -57,6 +57,9 @@ import static org.junit.Assert.assertEquals;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class MediaScannerServiceTestCase {
 
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule
     public static final HomeRule airsonicRule = new HomeRule();
 
@@ -66,19 +69,7 @@ public class MediaScannerServiceTestCase {
     private MediaScannerService mediaScannerService;
 
     @Autowired
-    private MediaFileDao mediaFileDao;
-
-    @Autowired
-    private MusicFolderDao musicFolderDao;
-
-    @Autowired
     private MediaFileService mediaFileService;
-
-    @Autowired
-    private ArtistDao artistDao;
-
-    @Autowired
-    private AlbumDao albumDao;
 
     @Autowired
     private MediaFolderService mediaFolderService;
@@ -114,26 +105,26 @@ public class MediaScannerServiceTestCase {
         globalTimerContext.stop();
 
         // Music Folder Music must have 3 children
-        List<MediaFile> listeMusicChildren = mediaFileDao.getChildrenOf("", testFolders.get(0).getId(), false);
+        List<MediaFile> listeMusicChildren = daoGraph.getMediaFileDao().getChildrenOf("", testFolders.get(0).getId(), false);
         Assert.assertEquals(3, listeMusicChildren.size());
         // Music Folder Music2 must have 1 children
-        List<MediaFile> listeMusic2Children = mediaFileDao.getChildrenOf("", testFolders.get(1).getId(), false);
+        List<MediaFile> listeMusic2Children = daoGraph.getMediaFileDao().getChildrenOf("", testFolders.get(1).getId(), false);
         Assert.assertEquals(1, listeMusic2Children.size());
 
         System.out.println("--- List of all artists ---");
         System.out.println("artistName#albumCount");
-        List<Artist> allArtists = artistDao.getAlphabetialArtists(0, Integer.MAX_VALUE, musicFolderDao.getAllMusicFolders());
+        List<Artist> allArtists = daoGraph.getArtistDao().getAlphabetialArtists(0, Integer.MAX_VALUE, daoGraph.getMusicFolderDao().getAllMusicFolders());
         allArtists.forEach(artist -> System.out.println(artist.getName() + "#" + artist.getAlbumCount()));
         System.out.println("--- *********************** ---");
 
         System.out.println("--- List of all albums ---");
         System.out.println("name#artist");
-        List<Album> allAlbums = albumDao.getAlphabeticalAlbums(0, Integer.MAX_VALUE, true, true, musicFolderDao.getAllMusicFolders());
+        List<Album> allAlbums = daoGraph.getAlbumDao().getAlphabeticalAlbums(0, Integer.MAX_VALUE, true, true, daoGraph.getMusicFolderDao().getAllMusicFolders());
         allAlbums.forEach(album -> System.out.println(album.getName() + "#" + album.getArtist()));
         Assert.assertEquals(5, allAlbums.size());
         System.out.println("--- *********************** ---");
 
-        List<MediaFile> listeSongs = mediaFileDao.getSongsByGenre("Baroque Instrumental", 0, Integer.MAX_VALUE, musicFolderDao.getAllMusicFolders());
+        List<MediaFile> listeSongs = daoGraph.getMediaFileDao().getSongsByGenre("Baroque Instrumental", 0, Integer.MAX_VALUE, daoGraph.getMusicFolderDao().getAllMusicFolders());
         Assert.assertEquals(2, listeSongs.size());
 
         // display out metrics report
@@ -179,19 +170,19 @@ public class MediaScannerServiceTestCase {
         // Retrieve the "Music3" folder from the database to make
         // sure that we don't accidentally operate on other folders
         // from previous tests.
-        musicFolder = musicFolderDao.getMusicFolderForPath(musicFolder.getPath().toString());
+        musicFolder = daoGraph.getMusicFolderDao().getMusicFolderForPath(musicFolder.getPath().toString());
         List<MusicFolder> folders = new ArrayList<>();
         folders.add(musicFolder);
 
         // Test that the artist is correctly imported
-        List<Artist> allArtists = artistDao.getAlphabetialArtists(0, Integer.MAX_VALUE, folders);
+        List<Artist> allArtists = daoGraph.getArtistDao().getAlphabetialArtists(0, Integer.MAX_VALUE, folders);
         Assert.assertEquals(1, allArtists.size());
         Artist artist = allArtists.get(0);
         Assert.assertEquals("TestArtist", artist.getName());
         Assert.assertEquals(1, artist.getAlbumCount());
 
         // Test that the album is correctly imported, along with its MusicBrainz release ID
-        List<Album> allAlbums = albumDao.getAlphabeticalAlbums(0, Integer.MAX_VALUE, true, true, folders);
+        List<Album> allAlbums = daoGraph.getAlbumDao().getAlphabeticalAlbums(0, Integer.MAX_VALUE, true, true, folders);
         Assert.assertEquals(1, allAlbums.size());
         Album album = allAlbums.get(0);
         Assert.assertEquals("TestAlbum", album.getName());
@@ -201,7 +192,7 @@ public class MediaScannerServiceTestCase {
         Assert.assertEquals("TestAlbum", album.getPath());
 
         // Test that the music file is correctly imported, along with its MusicBrainz release ID and recording ID
-        List<MediaFile> albumFiles = mediaFileDao.getChildrenOf(allAlbums.get(0).getPath(), allAlbums.get(0).getFolderId(), false);
+        List<MediaFile> albumFiles = daoGraph.getMediaFileDao().getChildrenOf(allAlbums.get(0).getPath(), allAlbums.get(0).getFolderId(), false);
         Assert.assertEquals(1, albumFiles.size());
         MediaFile file = albumFiles.get(0);
         Assert.assertEquals("Aria", file.getTitle());

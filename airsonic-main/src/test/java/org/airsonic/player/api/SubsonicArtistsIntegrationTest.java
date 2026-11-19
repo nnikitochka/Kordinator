@@ -43,6 +43,10 @@ import static org.junit.Assert.assertTrue;
         properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class SubsonicArtistsIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule
     public static final HomeRule homeRule = new HomeRule();
 
@@ -51,9 +55,6 @@ public class SubsonicArtistsIntegrationTest {
 
     @Autowired
     private MediaFolderService mediaFolderService;
-
-    @Autowired
-    private ArtistDao artistDao;
 
     @Autowired
     private SecurityService securityService;
@@ -125,7 +126,7 @@ public class SubsonicArtistsIntegrationTest {
             // A different user can see only their allowed folder and their own starred state.
             securityService.createUser(new User("limited", null), "secret", "artists test");
             mediaFolderService.setMusicFoldersForUser("limited", List.of(folderId));
-            artistDao.starArtist(alpha.getId(), "limited");
+            daoGraph.getArtistDao().starArtist(alpha.getId(), "limited");
             String limitedPath = "/rest/getArtists?v=" + TestCaseUtils.restApiVersion() + "&c=test&f=json";
             JsonNode limited = body(send(limitedPath, null, "limited:secret")).path("artists").path("index");
             assertEquals(limited.toString(), 1, limited.size());
@@ -187,7 +188,7 @@ public class SubsonicArtistsIntegrationTest {
 
     private Artist insertArtist(String name, int folderId) {
         Artist artist = new Artist(0, name, 3, Instant.now(), true, folderId);
-        artistDao.createOrUpdateArtist(artist);
+        daoGraph.getArtistDao().createOrUpdateArtist(artist);
         return artist;
     }
 

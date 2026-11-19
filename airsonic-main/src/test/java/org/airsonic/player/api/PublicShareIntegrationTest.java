@@ -43,7 +43,7 @@ public class PublicShareIntegrationTest {
     @Autowired private ApplicationContext context;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao files;
+
     @Autowired private DaoGraph daoGraph;
     @Autowired private ShareService shares;
     @Autowired private JWTSecurityService jwt;
@@ -63,8 +63,8 @@ public class PublicShareIntegrationTest {
         try {
             var player = players.getGuestPlayer(null);
             folders.setMusicFoldersForUser(User.USERNAME_GUEST, Set.of(folder.getId()));
-            MediaFile album = files.getMediaFile("Artist/Album", folder.getId());
-            MediaFile song = files.getMediaFile("Artist/Album/One.mp3", folder.getId());
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("Artist/Album", folder.getId());
+            MediaFile song = daoGraph.getMediaFileDao().getMediaFile("Artist/Album/One.mp3", folder.getId());
             Share share = create("PublicTest", List.of(album), "<script>alert('x')</script> Кириллица");
             String dataUrl = signed("ext/rest/share/" + share.getName(), Instant.now().plusSeconds(600));
             var head = client.send(HttpRequest.newBuilder(URI.create(dataUrl)).method("HEAD", HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
@@ -143,8 +143,8 @@ public class PublicShareIntegrationTest {
         try {
             players.getGuestPlayer(null);
             folders.setMusicFoldersForUser(User.USERNAME_GUEST, Set.of(folder.getId()));
-            var mkv = files.getMediaFile("sample.mkv", folder.getId());
-            var mp4 = files.getMediaFile("sample.mp4", folder.getId());
+            var mkv = daoGraph.getMediaFileDao().getMediaFile("sample.mkv", folder.getId());
+            var mp4 = daoGraph.getMediaFileDao().getMediaFile("sample.mp4", folder.getId());
             var share = create("PublicVideo", List.of(mkv, mp4), "Videos");
             var data = json.readTree(get(signed("ext/rest/share/" + share.getName(), Instant.now().plusSeconds(600))).body());
             assertTrue(data.toPrettyString(), data.path("available").asBoolean());

@@ -45,6 +45,10 @@ import static org.mockito.Mockito.*;
         properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class AlbumsIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule
     public static final HomeRule homeRule = new HomeRule();
 
@@ -54,10 +58,6 @@ public class AlbumsIntegrationTest {
     private MediaFolderService folders;
     @Autowired
     private MediaScannerService scanner;
-    @Autowired
-    private MediaFileDao mediaFileDao;
-    @Autowired
-    private AlbumDao albumDao;
 
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ObjectMapper mapper = new ObjectMapper();
@@ -69,16 +69,16 @@ public class AlbumsIntegrationTest {
         try {
             Album album = new Album(0, "albums-test", "Album contract", "Album artist", 1, 10,
                     null, null, 0, null, null, Instant.now(), Instant.now(), true, library.get(0).getId(), null);
-            albumDao.createOrUpdateAlbum(album);
-            album = albumDao.getAlbum("Album artist", "Album contract");
+            daoGraph.getAlbumDao().createOrUpdateAlbum(album);
+            album = daoGraph.getAlbumDao().getAlbum("Album artist", "Album contract");
             assertNotNull(album);
             int id = album.getId();
-            MediaFile albumDir = mediaFileDao.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
-            MediaFile song = mediaFileDao.getChildrenOf(albumDir.getPath(), albumDir.getFolderId(), true).stream()
+            MediaFile albumDir = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
+            MediaFile song = daoGraph.getMediaFileDao().getChildrenOf(albumDir.getPath(), albumDir.getFolderId(), true).stream()
                     .filter(MediaFile::isFile).findFirst().orElseThrow();
             song.setAlbumName("Album contract");
             song.setAlbumArtist("Album artist");
-            mediaFileDao.createOrUpdateMediaFile(song, ignored -> { });
+            daoGraph.getMediaFileDao().createOrUpdateMediaFile(song, ignored -> { });
             for (String suffix : List.of("", ".view")) {
                 String albumPath = "/rest/getAlbum" + suffix;
                 JsonNode result = body(send(albumPath + "?" + credentials() + "&f=json&id=" + id, null, null));

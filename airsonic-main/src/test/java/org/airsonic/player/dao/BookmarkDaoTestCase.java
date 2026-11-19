@@ -31,12 +31,6 @@ public class BookmarkDaoTestCase extends DaoTestCaseBean2 {
     @Autowired
     DaoGraph daoGraph;
 
-    @Autowired
-    MediaFileDao mediaFileDao;
-
-    @Autowired
-    MusicFolderDao musicFolderDao;
-
     private int mediaFileId;
     private int musicFolderId;
 
@@ -47,13 +41,13 @@ public class BookmarkDaoTestCase extends DaoTestCaseBean2 {
         Instant now = Instant.now();
         MusicFolder folder = new MusicFolder(java.nio.file.Paths.get("/bookmark-test-" + UUID.randomUUID()), "Bookmark test",
                 MusicFolder.Type.MEDIA, true, now);
-        musicFolderDao.createMusicFolder(folder);
+        daoGraph.getMusicFolderDao().createMusicFolder(folder);
         musicFolderId = folder.getId();
 
         MediaFile file = new MediaFile(null, "track-" + UUID.randomUUID(), folder.getId(), MediaFile.MediaType.MUSIC,
                 "mp3", "Bookmark test track", null, null, null, null, null, null, null, null,
                 false, 1.0, 0L, null, null, "", 0, null, null, now, now, now, now, true, 1, null, null);
-        mediaFileDao.createOrUpdateMediaFile(file, ignored -> { });
+        daoGraph.getMediaFileDao().createOrUpdateMediaFile(file, ignored -> { });
         mediaFileId = file.getId();
     }
 

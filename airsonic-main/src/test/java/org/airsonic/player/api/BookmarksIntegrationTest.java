@@ -41,11 +41,15 @@ import static org.junit.Assert.*;
         properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class BookmarksIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule homeRule = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao mediaFiles;
+
     @Autowired private SecurityService security;
     @Autowired private SettingsService settings;
     @Autowired private BookmarkService bookmarks;
@@ -57,10 +61,10 @@ public class BookmarksIntegrationTest {
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
         UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
         try {
-            MediaFile album = mediaFiles.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
-            MediaFile song = mediaFiles.getChildrenOf(album.getPath(), album.getFolderId(), true).stream().filter(MediaFile::isFile).findFirst().orElseThrow();
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
+            MediaFile song = daoGraph.getMediaFileDao().getChildrenOf(album.getPath(), album.getFolderId(), true).stream().filter(MediaFile::isFile).findFirst().orElseThrow();
             song.setDuration(1000.0);
-            mediaFiles.createOrUpdateMediaFile(song, ignored -> { });
+            daoGraph.getMediaFileDao().createOrUpdateMediaFile(song, ignored -> { });
             int id = song.getId();
             String oldId = StringUtil.utf8HexEncode(song.getFullPath(library.get(0).getPath()).toString());
             security.createUser(new User("bookmark-reader", null), "secret", "bookmark test");

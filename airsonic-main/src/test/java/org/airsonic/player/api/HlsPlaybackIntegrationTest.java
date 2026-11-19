@@ -34,11 +34,15 @@ import static org.junit.Assert.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class HlsPlaybackIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule home = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao mediaFiles;
+
     @Autowired private org.springframework.context.ApplicationContext context;
     @Autowired private org.airsonic.player.service.JWTSecurityService jwt;
     @Autowired private org.airsonic.player.service.SecurityService security;
@@ -56,7 +60,7 @@ public class HlsPlaybackIntegrationTest {
         MusicFolder folder = new MusicFolder(null, directory, "HLS test", MusicFolder.Type.MEDIA, true, Instant.now());
         UUID cleanup = ScanningTestUtils.before(List.of(folder), folders, scanner);
         try {
-            MediaFile media = mediaFiles.getMediaFile("sample.mp4", folder.getId());
+            MediaFile media = daoGraph.getMediaFileDao().getMediaFile("sample.mp4", folder.getId());
             assertNotNull(media);
             assertFalse(context.containsBean("hlsController"));
             org.airsonic.player.domain.User restricted = new org.airsonic.player.domain.User("hls-public", null);

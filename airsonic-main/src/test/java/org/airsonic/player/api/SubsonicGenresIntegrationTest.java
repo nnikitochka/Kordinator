@@ -37,14 +37,15 @@ import static org.junit.Assert.assertTrue;
         properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class SubsonicGenresIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule
     public static final HomeRule homeRule = new HomeRule();
 
     @LocalServerPort
     private int port;
-
-    @Autowired
-    private MediaFileDao mediaFileDao;
 
     private final HttpClient client = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.NEVER)
@@ -54,7 +55,7 @@ public class SubsonicGenresIntegrationTest {
     @Before
     public void prepareGenres() {
         // No scanner or shared media paths: both counts and ordering come from the real database.
-        mediaFileDao.updateGenres(List.of(new Genre("Ambient", 7, 1), new Genre("Рок & Jazz", 3, 2)));
+        daoGraph.getMediaFileDao().updateGenres(List.of(new Genre("Ambient", 7, 1), new Genre("Рок & Jazz", 3, 2)));
     }
 
     @Test
@@ -93,7 +94,7 @@ public class SubsonicGenresIntegrationTest {
 
     @Test
     public void preservesEmptyLibraryResponse() throws Exception {
-        mediaFileDao.updateGenres(List.of());
+        daoGraph.getMediaFileDao().updateGenres(List.of());
         JsonNode response = body(send("/rest/getGenres?" + credentials() + "&f=json", null, false));
         assertEquals("ok", response.path("status").asText());
         assertEquals(0, response.path("genres").path("genre").size());

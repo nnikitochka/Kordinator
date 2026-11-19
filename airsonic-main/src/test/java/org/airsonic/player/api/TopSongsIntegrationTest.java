@@ -42,6 +42,10 @@ import static org.mockito.Mockito.*;
         properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class TopSongsIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule
     public static final HomeRule homeRule = new HomeRule();
 
@@ -51,8 +55,7 @@ public class TopSongsIntegrationTest {
     private MediaFolderService folders;
     @Autowired
     private MediaScannerService scanner;
-    @Autowired
-    private MediaFileDao mediaFileDao;
+
     @Autowired
     private SecurityService securityService;
     @MockitoBean
@@ -66,8 +69,8 @@ public class TopSongsIntegrationTest {
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
         UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
         try {
-            MediaFile album = mediaFileDao.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
-            MediaFile song = mediaFileDao.getChildrenOf(album.getPath(), album.getFolderId(), true).get(0);
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
+            MediaFile song = daoGraph.getMediaFileDao().getChildrenOf(album.getPath(), album.getFolderId(), true).get(0);
             when(lastFm.getTopSongs(anyString(), anyInt(), anyList())).thenReturn(List.of(song));
             securityService.createUser(new User("top-user", null), "secret", "top songs test");
             folders.setMusicFoldersForUser("top-user", List.of(library.get(0).getId()));

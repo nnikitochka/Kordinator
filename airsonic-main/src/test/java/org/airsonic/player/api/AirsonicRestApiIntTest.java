@@ -36,6 +36,9 @@ import static org.junit.Assert.assertNotNull;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class AirsonicRestApiIntTest {
 
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     private static final String CLIENT_NAME = "airsonic";
     private static final String AIRSONIC_USER = "admin";
     private static final String AIRSONIC_PASSWORD = "admin";
@@ -55,9 +58,6 @@ public class AirsonicRestApiIntTest {
     @Autowired
     private MediaFolderService mediaFolderService;
 
-    @Autowired
-    private MediaFileDao mediaFileDao;
-
     private final HttpClient client = HttpClient.newBuilder()
             .connectTimeout(HTTP_TIMEOUT)
             .followRedirects(HttpClient.Redirect.NEVER)
@@ -70,7 +70,7 @@ public class AirsonicRestApiIntTest {
         UUID cleanupId = ScanningTestUtils.before(testFolders, mediaFolderService, mediaScannerService);
         try {
             // The album directory media file, scanned from the test library.
-            MediaFile albumDir = mediaFileDao.getMediaFile(
+            MediaFile albumDir = daoGraph.getMediaFileDao().getMediaFile(
                     "_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", testFolders.get(0).getId());
             assertNotNull("Album directory not found after scan", albumDir);
 

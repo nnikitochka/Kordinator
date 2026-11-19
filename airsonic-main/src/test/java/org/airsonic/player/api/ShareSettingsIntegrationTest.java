@@ -41,7 +41,7 @@ public class ShareSettingsIntegrationTest {
     @Autowired private SecurityService security;
     @Autowired private DaoGraph daoGraph;
     @Autowired private org.airsonic.player.service.ShareService shares;
-    @Autowired private org.airsonic.player.dao.MediaFileDao mediaFiles;
+
     @Autowired private org.airsonic.player.service.MediaFolderService folders;
     @Autowired private org.airsonic.player.service.MediaScannerService scanner;
     @Autowired private ApplicationContext context;
@@ -52,8 +52,8 @@ public class ShareSettingsIntegrationTest {
         java.util.List<org.airsonic.player.domain.MusicFolder> library = org.airsonic.player.util.MusicFolderTestData.getTestMusicFolders();
         java.util.UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
         try {
-            org.airsonic.player.domain.MediaFile album = mediaFiles.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.getFirst().getId());
-            int song = mediaFiles.getChildrenOf(album.getPath(), album.getFolderId(), true).getFirst().getId();
+            org.airsonic.player.domain.MediaFile album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.getFirst().getId());
+            int song = daoGraph.getMediaFileDao().getChildrenOf(album.getPath(), album.getFolderId(), true).getFirst().getId();
             User member = new User("settings-owner", null); member.setRoles(Set.of(User.Role.SETTINGS, User.Role.STREAM));
             security.createUser(member, "secret", "test"); folders.setMusicFoldersForUser(member.getUsername(), java.util.List.of(library.getFirst().getId()));
             User external = new User("settings-external", null); external.setRoles(Set.of(User.Role.STREAM));

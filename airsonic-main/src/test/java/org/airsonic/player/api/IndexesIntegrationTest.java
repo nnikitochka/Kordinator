@@ -30,12 +30,16 @@ import static org.mockito.Mockito.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class IndexesIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule home = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
     @Autowired private SettingsService settings;
-    @Autowired private MediaFileDao mediaFiles;
+
     @Autowired private SecurityService security;
     private final HttpClient client = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
@@ -79,7 +83,7 @@ public class IndexesIntegrationTest {
             }
             JsonNode beforeStar = body(send("", "f=json&musicFolderId=" + first, false)).path("indexes");
             int starredId = Integer.parseInt(artistIds(beforeStar).iterator().next());
-            mediaFiles.starMediaFile(starredId, "admin");
+            daoGraph.getMediaFileDao().starMediaFile(starredId, "admin");
             JsonNode starred = body(send("", "f=json&musicFolderId=" + first, false)).path("indexes");
             boolean foundStarred = false;
             for (JsonNode index : starred.path("index")) {

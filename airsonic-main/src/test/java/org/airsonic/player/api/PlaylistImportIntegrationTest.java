@@ -41,13 +41,17 @@ import static org.junit.Assert.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class PlaylistImportIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule home = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private SecurityService security;
     @Autowired private PlaylistService playlists;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao mediaFiles;
+
     @Autowired private ApplicationContext context;
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient client = HttpClient.newHttpClient();
@@ -60,8 +64,8 @@ public class PlaylistImportIntegrationTest {
         var cleanup = ScanningTestUtils.before(library, folders, scanner);
         try {
             folders.setMusicFoldersForUser(member.getUsername(), library.stream().map(org.airsonic.player.domain.MusicFolder::getId).toList());
-            var album = mediaFiles.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
-            List<MediaFile> songs = mediaFiles.getChildrenOf(album.getPath(), album.getFolderId(), true);
+            var album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
+            List<MediaFile> songs = daoGraph.getMediaFileDao().getChildrenOf(album.getPath(), album.getFolderId(), true);
             assertTrue(songs.size() >= 2);
             byte[] content = ("#EXTM3U\n" + songs.get(0).getPath() + "\n" + songs.get(1).getPath() + "\n" + songs.get(0).getPath() + "\n").getBytes(StandardCharsets.UTF_8);
             HttpClient browser = login(member.getUsername(), "secret");

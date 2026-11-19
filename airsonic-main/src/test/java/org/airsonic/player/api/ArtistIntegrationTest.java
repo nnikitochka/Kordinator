@@ -47,6 +47,10 @@ import static org.mockito.Mockito.*;
         properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class ArtistIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule
     public static final HomeRule homeRule = new HomeRule();
 
@@ -56,12 +60,6 @@ public class ArtistIntegrationTest {
     private MediaFolderService folders;
     @Autowired
     private MediaScannerService scanner;
-    @Autowired
-    private MediaFileDao mediaFileDao;
-    @Autowired
-    private AlbumDao albumDao;
-    @Autowired
-    private ArtistDao artistDao;
 
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ObjectMapper mapper = new ObjectMapper();
@@ -71,12 +69,12 @@ public class ArtistIntegrationTest {
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
         UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
         try {
-            artistDao.createOrUpdateArtist(new Artist(0, "Artist contract", 1, Instant.now(), true, library.get(0).getId()));
-            Artist artist = artistDao.getArtist("Artist contract");
+            daoGraph.getArtistDao().createOrUpdateArtist(new Artist(0, "Artist contract", 1, Instant.now(), true, library.get(0).getId()));
+            Artist artist = daoGraph.getArtistDao().getArtist("Artist contract");
             assertNotNull(artist);
             Album album = new Album(0, "artist-album-test", "Artist album", "Artist contract", 1, 10,
                     null, null, 0, null, null, Instant.now(), Instant.now(), true, library.get(0).getId(), null);
-            albumDao.createOrUpdateAlbum(album);
+            daoGraph.getAlbumDao().createOrUpdateAlbum(album);
             for (String suffix : List.of("", ".view")) {
                 String path = "/rest/getArtist" + suffix;
                 JsonNode result = body(send(path + "?" + credentials() + "&f=json&id=" + artist.getId(), null, null));

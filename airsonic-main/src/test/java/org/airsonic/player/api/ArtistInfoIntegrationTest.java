@@ -50,6 +50,10 @@ import static org.mockito.Mockito.*;
         properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class ArtistInfoIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule
     public static final HomeRule homeRule = new HomeRule();
 
@@ -59,10 +63,7 @@ public class ArtistInfoIntegrationTest {
     private MediaFolderService folders;
     @Autowired
     private MediaScannerService scanner;
-    @Autowired
-    private MediaFileDao mediaFileDao;
-    @Autowired
-    private ArtistDao artistDao;
+
     @Autowired
     private SecurityService securityService;
     @Autowired
@@ -78,11 +79,11 @@ public class ArtistInfoIntegrationTest {
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
         UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
         try {
-            MediaFile album = mediaFileDao.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes",
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes",
                     library.get(0).getId());
             assertNotNull(album);
-            artistDao.createOrUpdateArtist(new Artist(0, "Similar test artist", 1, Instant.now(), true, library.get(0).getId()));
-            Artist artist = artistDao.getArtist("Similar test artist");
+            daoGraph.getArtistDao().createOrUpdateArtist(new Artist(0, "Similar test artist", 1, Instant.now(), true, library.get(0).getId()));
+            Artist artist = daoGraph.getArtistDao().getArtist("Similar test artist");
             assertNotNull(artist);
             ArtistBio bio = new ArtistBio("Biography", "mbid", "https://example.org/lastfm", "small", "medium", "large");
             when(lastFm.getSimilarArtists(any(MediaFile.class), anyInt(), anyBoolean(), anyList())).thenReturn(List.of(album));

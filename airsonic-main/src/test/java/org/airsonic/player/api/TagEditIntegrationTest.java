@@ -47,12 +47,16 @@ import static org.junit.Assert.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class TagEditIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule home = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private ApplicationContext context;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao files;
+
     @Autowired private SecurityService security;
     @Autowired private MetaDataParserFactory parsers;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -66,8 +70,8 @@ public class TagEditIntegrationTest {
         MusicFolder other = MusicFolderTestData.getTestMusicFolders().get(1);
         UUID cleanup = ScanningTestUtils.before(List.of(own, other), folders, scanner);
         try {
-            MediaFile song = files.getMediaFile("Artist/Album/song.mp3", own.getId());
-            MediaFile album = files.getMediaFile("Artist/Album", own.getId());
+            MediaFile song = daoGraph.getMediaFileDao().getMediaFile("Artist/Album/song.mp3", own.getId());
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("Artist/Album", own.getId());
             assertNotNull(song); assertNotNull(album);
             MetaData before = parsers.getParser(songPath).getRawMetaData(songPath);
             User editor = new User("tag-editor", null);

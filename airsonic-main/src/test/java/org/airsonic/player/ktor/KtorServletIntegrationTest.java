@@ -48,6 +48,9 @@ import static org.junit.Assert.assertTrue;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class KtorServletIntegrationTest {
 
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule
     public static final HomeRule homeRule = new HomeRule();
 
@@ -59,9 +62,6 @@ public class KtorServletIntegrationTest {
 
     @Autowired
     private MediaScannerService mediaScannerService;
-
-    @Autowired
-    private MediaFileDao mediaFileDao;
 
     @Autowired
     private SettingsService settingsService;
@@ -158,7 +158,7 @@ public class KtorServletIntegrationTest {
         UUID cleanupId = ScanningTestUtils.before(folders, mediaFolderService, mediaScannerService);
         Avatar previousAvatar = settingsService.getCustomAvatar("admin");
         try {
-            MediaFile album = mediaFileDao.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", folders.get(0).getId());
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", folders.get(0).getId());
             Path image = folders.get(0).getPath().resolve("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes/cover.jpg");
             byte[] expected = Files.readAllBytes(image);
             settingsService.setCustomAvatar(new Avatar(0, "test", Instant.now(), "image/jpeg", 1, 1, image), "admin");
@@ -206,7 +206,7 @@ public class KtorServletIntegrationTest {
                     .path("scanStatus");
             assertTrue(status.toString(), !status.path("scanning").asBoolean());
             assertTrue(status.toString(), status.path("count").asInt() > 0);
-            assertNotNull(mediaFileDao.getMediaFile(
+            assertNotNull(daoGraph.getMediaFileDao().getMediaFile(
                     "_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", folders.get(0).getId()));
         } finally {
             if (!mediaScannerService.isScanning()) {

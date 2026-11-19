@@ -45,13 +45,17 @@ import static org.mockito.Mockito.*;
         properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class JukeboxIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule homeRule = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private SecurityService security;
     @Autowired private PlayerService players;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao mediaFiles;
+
     @MockitoBean private JukeboxService jukebox;
     @MockitoBean private PlayQueueService queues;
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -97,8 +101,8 @@ public class JukeboxIntegrationTest {
             verify(queues).reset(any(Player.class), eq(List.of()), eq(true));
             Player player = players.getPlayersForUserAndClientId("jukebox-test", "jukebox-test-jukebox").get(0);
             assertEquals(PlayerTechnology.JUKEBOX, player.getTechnology());
-            MediaFile album = mediaFiles.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
-            MediaFile song = mediaFiles.getChildrenOf(album.getPath(), album.getFolderId(), true).stream().filter(MediaFile::isFile).findFirst().orElseThrow();
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
+            MediaFile song = daoGraph.getMediaFileDao().getChildrenOf(album.getPath(), album.getFolderId(), true).stream().filter(MediaFile::isFile).findFirst().orElseThrow();
             player.getPlayQueue().addFiles(true, song);
             JsonNode status = body(call("", "action=status", "jukebox-test", false)).path("jukeboxStatus");
             assertEquals(0, status.path("currentIndex").asInt());

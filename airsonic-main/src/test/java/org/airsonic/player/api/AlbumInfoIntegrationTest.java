@@ -45,6 +45,10 @@ import static org.mockito.Mockito.*;
         properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class AlbumInfoIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule
     public static final HomeRule homeRule = new HomeRule();
 
@@ -54,10 +58,7 @@ public class AlbumInfoIntegrationTest {
     private MediaFolderService folders;
     @Autowired
     private MediaScannerService scanner;
-    @Autowired
-    private MediaFileDao mediaFileDao;
-    @Autowired
-    private AlbumDao albumDao;
+
     @MockitoBean
     private LastFmService lastFm;
 
@@ -69,13 +70,13 @@ public class AlbumInfoIntegrationTest {
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
         UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
         try {
-            MediaFile album = mediaFileDao.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes",
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes",
                     library.get(0).getId());
             assertNotNull(album);
             Album albumId3 = new Album(0, "album-info-test", "Album info test", "Album info artist", 1, 10,
                     null, null, 0, null, null, Instant.now(), Instant.now(), true, library.get(0).getId(), null);
-            albumDao.createOrUpdateAlbum(albumId3);
-            albumId3 = albumDao.getAlbum("Album info artist", "Album info test");
+            daoGraph.getAlbumDao().createOrUpdateAlbum(albumId3);
+            albumId3 = daoGraph.getAlbumDao().getAlbum("Album info artist", "Album info test");
             assertNotNull(albumId3);
             AlbumNotes notes = new AlbumNotes("Album notes", "mbid", "https://example.org/lastfm", "small", "medium", "large");
             when(lastFm.getAlbumNotes(any(MediaFile.class))).thenReturn(notes);

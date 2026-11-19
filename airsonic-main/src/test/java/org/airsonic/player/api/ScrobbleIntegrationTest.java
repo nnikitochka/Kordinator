@@ -36,11 +36,15 @@ import static org.mockito.Mockito.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class ScrobbleIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule home = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao mediaFiles;
+
     @MockitoBean private AudioScrobblerService scrobbler;
     @MockitoSpyBean private StatusService status;
     private final HttpClient client = HttpClient.newHttpClient();
@@ -50,10 +54,10 @@ public class ScrobbleIntegrationTest {
         List<MusicFolder> library = MusicFolderTestData.getTestMusicFolders();
         UUID cleanup = ScanningTestUtils.before(library, folders, scanner);
         try {
-            MediaFile album = mediaFiles.getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
-            List<MediaFile> songs = mediaFiles.getChildrenOf(album.getPath(), album.getFolderId(), true);
+            MediaFile album = daoGraph.getMediaFileDao().getMediaFile("_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes", library.get(0).getId());
+            List<MediaFile> songs = daoGraph.getMediaFileDao().getChildrenOf(album.getPath(), album.getFolderId(), true);
             MediaFile first = songs.get(0), second = songs.get(1);
-            int before = mediaFiles.getMediaFile(first.getId()).getPlayCount();
+            int before = daoGraph.getMediaFileDao().getMediaFile(first.getId()).getPlayCount();
             String ids = "id=" + first.getId() + "&id=" + second.getId();
             for (String suffix : List.of("", ".view")) {
                 clearInvocations(scrobbler, status);
@@ -76,7 +80,7 @@ public class ScrobbleIntegrationTest {
                 assertTrue(send(suffix, "f=xml&id=2147483647", false).body().contains("<subsonic-response"));
                 assertTrue(send(suffix, "f=jsonp&callback=client.test&id=2147483647", false).body().startsWith("client.test("));
             }
-            assertTrue(mediaFiles.getMediaFile(first.getId()).getPlayCount() >= before + 4);
+            assertTrue(daoGraph.getMediaFileDao().getMediaFile(first.getId()).getPlayCount() >= before + 4);
             clearInvocations(scrobbler);
             assertEquals("ok", body(send(".view", "f=json&id=" + first.getId(), true)).path("status").asText());
             verify(scrobbler).register(any(), eq("admin"), eq(true), isNull());

@@ -35,12 +35,16 @@ import static org.junit.Assert.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class CaptionsIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule home = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private ApplicationContext context;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao files;
+
     @Autowired private JWTSecurityService jwt;
     private final HttpClient client = HttpClient.newHttpClient();
     private final ObjectMapper json = new ObjectMapper();
@@ -64,9 +68,9 @@ public class CaptionsIntegrationTest {
         var folder = new MusicFolder(null, directory, "Captions", MusicFolder.Type.MEDIA, true, Instant.now());
         var cleanup = ScanningTestUtils.before(List.of(folder), folders, scanner);
         try {
-            var file = files.getMediaFile("Album/sample.mkv", folder.getId());
+            var file = daoGraph.getMediaFileDao().getMediaFile("Album/sample.mkv", folder.getId());
             int id = file.getId();
-            int otherId = files.getMediaFile("Album/other.mkv", folder.getId()).getId();
+            int otherId = daoGraph.getMediaFileDao().getMediaFile("Album/other.mkv", folder.getId()).getId();
             String listUrl = rest("/rest/captions/list", id);
             var list = get(listUrl); assertEquals(list.body(), 200, list.statusCode());
             JsonNode tracks = json.readTree(list.body()); assertEquals(tracks.toPrettyString(), 3, tracks.size());

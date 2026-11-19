@@ -45,9 +45,6 @@ public abstract class AbstractAirsonicHomeTest {
     protected MediaScannerService mediaScannerService;
 
     @Autowired
-    protected MusicFolderDao musicFolderDao;
-
-    @Autowired
     protected MediaFolderService mediaFolderService;
 
     @Rule

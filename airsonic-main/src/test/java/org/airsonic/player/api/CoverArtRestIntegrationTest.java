@@ -46,13 +46,15 @@ import static org.junit.Assert.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "server.servlet.context-path=/airsonic")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class CoverArtRestIntegrationTest {
+
+    @Autowired
+    private org.airsonic.player.runtime.DaoGraph daoGraph;
+
     @ClassRule public static final HomeRule home = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
-    @Autowired private MediaFileDao files;
-    @Autowired private AlbumDao albums;
-    @Autowired private ArtistDao artists;
+
     @Autowired private PlaylistService playlists;
     @Autowired private JWTSecurityService jwt;
     @Autowired private ApplicationContext context;
@@ -66,7 +68,7 @@ public class CoverArtRestIntegrationTest {
         playlists.createPlaylist(playlist);
         try {
             String albumPath = "_DIR_ Sixteen Horsepower/_DIR_ Sackcloth 'n' Ashes";
-            MediaFile dir = files.getMediaFile(albumPath, library.get(0).getId());
+            MediaFile dir = daoGraph.getMediaFileDao().getMediaFile(albumPath, library.get(0).getId());
             assertNotNull(dir);
             byte[] original = Files.readAllBytes(library.get(0).getPath().resolve(albumPath + "/cover.jpg"));
             String legacyId = StringUtil.utf8HexEncode(dir.getFullPath(library.get(0).getPath()).toString());
@@ -96,13 +98,13 @@ public class CoverArtRestIntegrationTest {
             }
             assertArrayEquals(original, request("/rest/getCoverArt.view", "POST", auth + "&id=" + dir.getId(), false).body());
             assertEquals(403, request("/rest/getCoverArt", "POST", auth + "&id=" + dir.getId(), false).statusCode());
-            artists.createOrUpdateArtist(new Artist(0, "Cover test artist", 1, Instant.now(), true, library.get(0).getId()));
-            Artist artist = artists.getArtist("Cover test artist");
+            daoGraph.getArtistDao().createOrUpdateArtist(new Artist(0, "Cover test artist", 1, Instant.now(), true, library.get(0).getId()));
+            Artist artist = daoGraph.getArtistDao().getArtist("Cover test artist");
             assertNotNull(artist);
             assertDimensions(request("/rest/getCoverArt?" + auth + "&id=ar-" + artist.getId() + "&size=32", "GET", null, false), 32, 32);
-            albums.createOrUpdateAlbum(new Album(0, albumPath, "Cover test album", "Cover test artist", 1, 1,
+            daoGraph.getAlbumDao().createOrUpdateAlbum(new Album(0, albumPath, "Cover test album", "Cover test artist", 1, 1,
                     null, null, 0, null, null, Instant.now(), Instant.now(), true, library.get(0).getId(), null));
-            Album album = albums.getAlbum("Cover test artist", "Cover test album");
+            Album album = daoGraph.getAlbumDao().getAlbum("Cover test artist", "Cover test album");
             assertNotNull(album);
             assertDimensions(request("/rest/getCoverArt?" + auth + "&id=al-" + album.getId() + "&size=32", "GET", null, false), 32, 32);
             String parallelPath = "/rest/getCoverArt?" + auth + "&id=" + dir.getId() + "&size=47";
