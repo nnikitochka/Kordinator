@@ -9,8 +9,8 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>kordinator-server</artifactId>
-    <name>Kordinator music server</name>
+    <artifactId>youamp-server</artifactId>
+    <name>Youamp standalone server</name>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -36,17 +36,14 @@
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-kotlin</artifactId>
-            <version>2.19.2</version>
         </dependency>
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
-            <version>6.3.2</version>
         </dependency>
         <dependency>
             <groupId>org.liquibase</groupId>
             <artifactId>liquibase-core</artifactId>
-            <version>4.31.1</version>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
@@ -61,13 +58,11 @@
         <dependency>
             <groupId>org.hsqldb</groupId>
             <artifactId>hsqldb</artifactId>
-            <version>2.7.3</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.5.18</version>
             <scope>runtime</scope>
         </dependency>
 
@@ -80,7 +75,6 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.12.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -91,12 +85,11 @@
     </dependencies>
 
     <build>
-        <finalName>kordinator-server</finalName>
+        <finalName>youamp-server</finalName>
         <plugins>
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
-                <version>${kotlin.version}</version>
                 <configuration>
                     <jvmTarget>${java.version}</jvmTarget>
                     <javaParameters>true</javaParameters>
@@ -117,7 +110,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.4.2</version>
                 <configuration>
                     <archive>
                         <manifest>

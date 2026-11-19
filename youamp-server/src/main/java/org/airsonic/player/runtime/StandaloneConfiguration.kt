@@ -3,7 +3,7 @@ package org.airsonic.player.runtime
 import java.nio.file.Path
 import java.util.Properties
 
-/** Configuration for the independent Kordinator server process. */
+/** Configuration for the independent Youamp server process. */
 class StandaloneConfiguration private constructor(
     private val values: Map<String, String>,
 ) {
