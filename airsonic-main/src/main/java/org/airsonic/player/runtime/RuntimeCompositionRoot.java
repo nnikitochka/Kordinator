@@ -97,6 +97,7 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.artists.ArtistsController subsonicArtistsController;
     private org.airsonic.player.controller.rest.albums.AlbumsController subsonicAlbumsController;
     private org.airsonic.player.controller.rest.server.ServerInfoController serverInfoController;
+    private org.airsonic.player.controller.rest.recovery.PasswordRecoveryController passwordRecoveryController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -257,6 +258,17 @@ public final class RuntimeCompositionRoot {
                     serverInfoService, objectMapper, settingsService);
         }
         return serverInfoController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.recovery.PasswordRecoveryController
+            createPasswordRecoveryController(
+                    org.airsonic.player.service.PasswordRecoveryService passwordRecoveryService,
+                    com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        if (passwordRecoveryController == null) {
+            passwordRecoveryController = new org.airsonic.player.controller.rest.recovery.PasswordRecoveryController(
+                    passwordRecoveryService, objectMapper);
+        }
+        return passwordRecoveryController;
     }
 
     public synchronized DataSource createDataSource() {

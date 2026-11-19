@@ -428,6 +428,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** `ServerInfoController` теперь создаётся и кешируется в `RuntimeCompositionRoot`; servlet wiring больше не конструирует его напрямую. Graph test проверяет singleton identity контроллера в Spring-free сборке.
 
+**Срез 19 ноября 2026:** `PasswordRecoveryController` также переведён на singleton ownership `RuntimeCompositionRoot`; маршрут и токен-семантика не менялись. Точечная проверка Spring-free графа выполняется вместе с контроллерами и сервисами.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
