@@ -112,7 +112,7 @@ import org.airsonic.player.controller.rest.download.DownloadRequest
 import org.airsonic.player.controller.rest.error.ErrorCode
 import org.airsonic.player.service.DownloadService
 import org.airsonic.player.util.ContentDispositionHeader
-import org.springframework.web.context.request.ServletWebRequest
+import org.airsonic.player.http.ServletConditionalRequest
 import org.apache.commons.io.FilenameUtils
 import java.util.Optional
 import org.airsonic.player.i18n.LocaleResolver
@@ -750,7 +750,8 @@ class AirsonicKtorServlet(
                     val player = playerService.getPlayer(wrapped, response, false, false)
                     val download = downloads.prepare(user, callerContext, player, Optional.ofNullable(id), playlist,
                         playerId, indices?.filterNotNull(), null)
-                    if (download != null && ServletWebRequest(wrapped, response).checkNotModified(download.size.toString(), download.changed)) return
+                    if (download != null && ServletConditionalRequest.checkNotModified(
+                            wrapped, response, download.size.toString(), download.changed)) return
                     val disposition = download?.let { ContentDispositionHeader.attachment(it.filename) }
                     val type = download?.let { StringUtil.getMimeType(FilenameUtils.getExtension(it.filename)) }
                     request.setAttribute(DOWNLOAD_REQUEST, DownloadRequest(params, download, contentDisposition = disposition, contentType = type))
@@ -1004,12 +1005,13 @@ class AirsonicKtorServlet(
                 }
                 throw AuthorizationDeniedException("Access to file ${file.id} is forbidden for user ${user.username}")
             }
-            val webRequest = ServletWebRequest(wrapped, response)
             request.setAttribute(STREAM_REQUEST, StreamRestController.Request(jwt != null, callerContext, player, user,
                 request.getParameter("format"), request.getParameter("suffix"), bitRate, id, request.getParameter("path"), offset,
                 MediaStreamService.VideoOptions(request.getParameter("maxBitRate"), request.getParameter("timeOffset"),
                     request.getParameter("duration"), request.getParameter("size")), request.getHeader("icy-metadata"),
-                java.util.function.BiPredicate { tag, modified -> webRequest.checkNotModified(tag, modified) },
+                java.util.function.BiPredicate { tag, modified ->
+                    ServletConditionalRequest.checkNotModified(wrapped, response, tag, modified)
+                },
                 { response.status }))
         } else if ((path in HlsRestController.EXTERNAL_PATHS || path == "/ext/hls/segment")
             && request.method in setOf("GET", "HEAD")) {
