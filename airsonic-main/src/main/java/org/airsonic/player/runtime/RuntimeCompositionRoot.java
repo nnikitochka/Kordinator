@@ -124,6 +124,11 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.playqueue.PlayQueueController playQueueController;
     private org.airsonic.player.controller.rest.indexes.IndexesController indexesController;
     private org.airsonic.player.controller.rest.music.directory.MusicDirectoryController musicDirectoryController;
+    private org.airsonic.player.controller.rest.admin.DLNASettingsController dlnaSettingsController;
+    private org.airsonic.player.controller.rest.settings.PersonalSettingsController personalSettingsController;
+    private org.airsonic.player.controller.rest.admin.PlayerSettingsController playerSettingsController;
+    private org.airsonic.player.controller.rest.admin.AdvancedSettingsController advancedSettingsController;
+    private org.airsonic.player.controller.rest.admin.TranscodingSettingsController transcodingSettingsController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -600,6 +605,58 @@ public final class RuntimeCompositionRoot {
                     ratingService, responseMapper, createSubsonicJaxbWriter());
         }
         return musicDirectoryController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.admin.DLNASettingsController createDLNASettingsController(
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.UPnPService upnpService) {
+        if (dlnaSettingsController == null) {
+            dlnaSettingsController = new org.airsonic.player.controller.rest.admin.DLNASettingsController(
+                    settingsService, upnpService, createSubsonicJaxbWriter());
+        }
+        return dlnaSettingsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.settings.PersonalSettingsController
+            createPersonalSettingsController(
+                    org.airsonic.player.service.SettingsService settingsService,
+                    org.airsonic.player.service.SecurityService securityService) {
+        if (personalSettingsController == null) {
+            personalSettingsController = new org.airsonic.player.controller.rest.settings.PersonalSettingsController(
+                    settingsService, securityService, createSubsonicJaxbWriter());
+        }
+        return personalSettingsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.admin.PlayerSettingsController createPlayerSettingsController(
+            org.airsonic.player.service.PlayerService playerService,
+            org.airsonic.player.service.TranscodingService transcodingService,
+            org.airsonic.player.service.PlayQueueService playQueueService) {
+        if (playerSettingsController == null) {
+            playerSettingsController = new org.airsonic.player.controller.rest.admin.PlayerSettingsController(
+                    playerService, transcodingService, playQueueService, createSubsonicJaxbWriter());
+        }
+        return playerSettingsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.admin.AdvancedSettingsController
+            createAdvancedSettingsController(org.airsonic.player.service.SettingsService settingsService) {
+        if (advancedSettingsController == null) {
+            advancedSettingsController = new org.airsonic.player.controller.rest.admin.AdvancedSettingsController(
+                    settingsService, createSubsonicJaxbWriter());
+        }
+        return advancedSettingsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.admin.TranscodingSettingsController
+            createTranscodingSettingsController(
+                    org.airsonic.player.service.TranscodingService transcodingService,
+                    org.airsonic.player.service.SettingsService settingsService) {
+        if (transcodingSettingsController == null) {
+            transcodingSettingsController = new org.airsonic.player.controller.rest.admin.TranscodingSettingsController(
+                    transcodingService, settingsService, createSubsonicJaxbWriter());
+        }
+        return transcodingSettingsController;
     }
 
     public synchronized DataSource createDataSource() {

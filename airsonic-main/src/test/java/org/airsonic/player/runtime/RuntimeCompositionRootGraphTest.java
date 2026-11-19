@@ -395,6 +395,16 @@ class RuntimeCompositionRootGraphTest {
 
         DatabaseService databaseService = runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler);
         assertSame(databaseService, runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler));
+        assertSame(runtimeRoot.createDLNASettingsController(settingsService, upnpService),
+                runtimeRoot.createDLNASettingsController(settingsService, upnpService));
+        assertSame(runtimeRoot.createPersonalSettingsController(settingsService, securityService),
+                runtimeRoot.createPersonalSettingsController(settingsService, securityService));
+        assertSame(runtimeRoot.createPlayerSettingsController(playerService, transcodingService, playQueueService),
+                runtimeRoot.createPlayerSettingsController(playerService, transcodingService, playQueueService));
+        assertSame(runtimeRoot.createAdvancedSettingsController(settingsService),
+                runtimeRoot.createAdvancedSettingsController(settingsService));
+        assertSame(runtimeRoot.createTranscodingSettingsController(transcodingService, settingsService),
+                runtimeRoot.createTranscodingSettingsController(transcodingService, settingsService));
         assertSame(runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService),
                 runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService));
         assertSame(runtimeRoot.createMusicFolderSettingsController(musicFolderAdministrationService),
