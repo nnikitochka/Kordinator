@@ -31,7 +31,6 @@ import org.airsonic.player.controller.rest.shares.PublicShareController
 import org.airsonic.player.controller.rest.hls.HlsRestController
 import org.airsonic.player.controller.rest.hls.HlsSegmentRestController
 import org.airsonic.player.controller.rest.starred.StarredController
-import org.airsonic.player.controller.rest.starred.StarredPageController
 import org.airsonic.player.controller.rest.starred.StarredRequest
 import org.airsonic.player.controller.rest.jukebox.JukeboxController
 import org.airsonic.player.controller.rest.jukebox.JukeboxRequest
@@ -58,9 +57,6 @@ import org.airsonic.player.controller.rest.scan.ScanController
 import org.airsonic.player.controller.rest.shares.SharesController
 import org.airsonic.player.controller.rest.shares.SharesRequest
 import org.airsonic.player.controller.rest.search.SearchController
-import org.airsonic.player.controller.rest.search.SearchPageController
-import org.airsonic.player.controller.rest.home.HomePageController
-import org.airsonic.player.controller.rest.cover.ChangeCoverArtPageController
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsController
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsRequest
 import org.airsonic.player.service.MediaStreamService
@@ -73,7 +69,6 @@ import io.ktor.http.parseQueryString
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController
 import org.airsonic.player.controller.rest.tags.TagEditController
-import org.airsonic.player.controller.rest.tags.TagEditorPageController
 import org.airsonic.player.controller.rest.settings.WebsiteSettingsController
 import org.airsonic.player.controller.rest.livequeue.LiveQueueExportController
 import org.airsonic.player.controller.rest.livequeue.RandomQueueController
@@ -92,7 +87,6 @@ import org.airsonic.player.controller.rest.users.UsersController
 import org.airsonic.player.controller.rest.users.PasswordController
 import org.airsonic.player.controller.rest.users.UsersRequest
 import org.airsonic.player.controller.rest.playqueue.PlayQueueController
-import org.airsonic.player.controller.rest.playqueue.PlayQueuePageController
 import org.airsonic.player.controller.rest.playqueue.PlayQueueRequest
 import org.airsonic.player.controller.rest.indexes.IndexesController
 import org.airsonic.player.controller.rest.indexes.IndexesRequest
@@ -115,15 +109,6 @@ import org.airsonic.player.controller.rest.lyrics.LyricsController
 import org.airsonic.player.controller.rest.rating.RatingController
 import org.airsonic.player.controller.rest.rating.RatingRequest
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingController
-import org.airsonic.player.controller.rest.nowplaying.NowPlayingPageController
-import org.airsonic.player.controller.rest.nowplaying.RightPageController
-import org.airsonic.player.controller.rest.more.MorePageController
-import org.airsonic.player.controller.rest.indexes.LeftPageController
-import org.airsonic.player.controller.rest.indexes.IndexPageController
-import org.airsonic.player.controller.rest.bookmarks.BookmarksPageController
-import org.airsonic.player.controller.rest.playlists.PlaylistPageController
-import org.airsonic.player.controller.rest.music.MainPageController
-import org.airsonic.player.controller.rest.playlists.PlaylistsPageController
 import org.airsonic.player.controller.rest.statistics.ScheduledTasksController
 import org.airsonic.player.controller.rest.statistics.ServerHealthController
 import org.airsonic.player.controller.rest.statistics.PathWatchersController
@@ -153,7 +138,6 @@ import org.apache.commons.lang.StringUtils
 import java.security.Principal
 class AirsonicKtorServlet(
     private val searchController: SearchController,
-    private val searchPageController: SearchPageController,
     private val musicFoldersController: MusicFoldersController,
     private val genresController: GenresController,
     private val artistsController: ArtistsController,
@@ -172,7 +156,6 @@ class AirsonicKtorServlet(
     private val albumsController: AlbumsController,
     private val bookmarksController: BookmarksController,
     private val starredController: StarredController,
-    private val starredPageController: StarredPageController,
     private val jukeboxController: JukeboxController,
     private val usersController: UsersController,
     private val dlnaSettingsController: DLNASettingsController,
@@ -193,17 +176,6 @@ class AirsonicKtorServlet(
     private val randomSongsController: RandomSongsController,
     private val scrobbleController: ScrobbleController,
     private val nowPlayingController: NowPlayingController,
-    private val nowPlayingPageController: NowPlayingPageController,
-    private val rightPageController: RightPageController,
-    private val indexPageController: IndexPageController,
-    private val morePageController: MorePageController,
-    private val leftPageController: LeftPageController,
-    private val bookmarksPageController: BookmarksPageController,
-    private val playlistPageController: PlaylistPageController,
-    private val mainPageController: MainPageController,
-    private val playlistsPageController: PlaylistsPageController,
-    private val homePageController: HomePageController,
-    private val changeCoverArtPageController: ChangeCoverArtPageController,
     private val uploadStatusController: UploadStatusController,
     private val statisticsController: StatisticsController,
     private val scheduledTasksController: ScheduledTasksController,
@@ -216,7 +188,6 @@ class AirsonicKtorServlet(
     private val coverArtActionsController: CoverArtActionsController,
     private val mediaFileCommentController: MediaFileCommentController,
     private val tagEditController: TagEditController,
-    private val tagEditorPageController: TagEditorPageController,
     private val websiteSettingsController: WebsiteSettingsController,
     private val liveQueueController: LiveQueueController,
     private val ratingController: RatingController,
@@ -239,7 +210,6 @@ class AirsonicKtorServlet(
     private val videoPlayerRestController: VideoPlayerRestController,
     private val passwordRecoveryController: PasswordRecoveryController,
     private val serverInfoController: ServerInfoController,
-    private val playQueuePageController: PlayQueuePageController,
     private val jaxbWriter: JAXBWriter,
     private val errorProperties: java.util.function.Supplier<InfrastructureErrorSettings>,
     private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
@@ -270,31 +240,6 @@ class AirsonicKtorServlet(
             if (searchRequest != null) {
                 call.attributes.put(SEARCH_REQUEST_KEY, searchRequest)
             }
-            val searchPageRequest = request.getAttribute(SearchPageController.REQUEST_ATTRIBUTE) as? SearchPageController.Request
-            if (searchPageRequest != null) call.attributes.put(SEARCH_PAGE_REQUEST_KEY, searchPageRequest)
-            val nowPlayingPageRequest = request.getAttribute(NowPlayingPageController.REQUEST_ATTRIBUTE)
-                as? NowPlayingPageController.Request
-            if (nowPlayingPageRequest != null) call.attributes.put(NOW_PLAYING_PAGE_REQUEST_KEY, nowPlayingPageRequest)
-            val rightPageRequest = request.getAttribute(RightPageController.REQUEST_ATTRIBUTE) as? RightPageController.Request
-            if (rightPageRequest != null) call.attributes.put(RIGHT_PAGE_REQUEST_KEY, rightPageRequest)
-            val indexPageRequest = request.getAttribute(IndexPageController.REQUEST_ATTRIBUTE) as? IndexPageController.Request
-            if (indexPageRequest != null) call.attributes.put(INDEX_PAGE_REQUEST_KEY, indexPageRequest)
-            val morePageRequest = request.getAttribute(MorePageController.REQUEST_ATTRIBUTE) as? MorePageController.Request
-            if (morePageRequest != null) call.attributes.put(MORE_PAGE_REQUEST_KEY, morePageRequest)
-            val leftPageRequest = request.getAttribute(LeftPageController.REQUEST_ATTRIBUTE) as? LeftPageController.Request
-            if (leftPageRequest != null) call.attributes.put(LEFT_PAGE_REQUEST_KEY, leftPageRequest)
-            val leftPageSelection = request.getAttribute(LeftPageController.SELECTION_ATTRIBUTE) as? LeftPageController.Selection
-            if (leftPageSelection != null) call.attributes.put(LEFT_PAGE_SELECTION_KEY, leftPageSelection)
-            val bookmarksPageRequest = request.getAttribute(BookmarksPageController.REQUEST_ATTRIBUTE) as? BookmarksPageController.Request
-            if (bookmarksPageRequest != null) call.attributes.put(BOOKMARKS_PAGE_REQUEST_KEY, bookmarksPageRequest)
-            val playlistPageRequest = request.getAttribute(PlaylistPageController.REQUEST_ATTRIBUTE) as? PlaylistPageController.Request
-            if (playlistPageRequest != null) call.attributes.put(PLAYLIST_PAGE_REQUEST_KEY, playlistPageRequest)
-            val mainPageRequest = request.getAttribute(MainPageController.REQUEST_ATTRIBUTE) as? MainPageController.Request
-            if (mainPageRequest != null) call.attributes.put(MAIN_PAGE_REQUEST_KEY, mainPageRequest)
-            val playlistsPageRequest = request.getAttribute(PlaylistsPageController.REQUEST_ATTRIBUTE) as? PlaylistsPageController.Request
-            if (playlistsPageRequest != null) call.attributes.put(PLAYLISTS_PAGE_REQUEST_KEY, playlistsPageRequest)
-            val homePageRequest = request.getAttribute(HomePageController.REQUEST_ATTRIBUTE) as? HomePageController.Request
-            if (homePageRequest != null) call.attributes.put(HOME_PAGE_REQUEST_KEY, homePageRequest)
             val musicFoldersRequest = request.getAttribute(MUSIC_FOLDERS_REQUEST)
                 as? MusicFoldersController.Request
             if (musicFoldersRequest != null) {
@@ -355,8 +300,6 @@ class AirsonicKtorServlet(
             if (starredRequest != null) {
                 call.attributes.put(STARRED_REQUEST_KEY, starredRequest)
             }
-            val starredPageRequest = request.getAttribute(StarredPageController.REQUEST_ATTRIBUTE) as? StarredPageController.Request
-            if (starredPageRequest != null) call.attributes.put(STARRED_PAGE_REQUEST_KEY, starredPageRequest)
             val bookmarksRequest = request.getAttribute(BOOKMARKS_REQUEST) as? BookmarksRequest
             if (bookmarksRequest != null) {
                 call.attributes.put(BOOKMARKS_REQUEST_KEY, bookmarksRequest)
@@ -385,8 +328,6 @@ class AirsonicKtorServlet(
             if (avatar != null) call.attributes.put(AVATAR_REQUEST_KEY, avatar)
             val tagEdit = request.getAttribute(TAG_EDIT_REQUEST) as? TagEditController.Request
             if (tagEdit != null) call.attributes.put(TAG_EDIT_REQUEST_KEY, tagEdit)
-            val tagEditorPage = request.getAttribute(TagEditorPageController.REQUEST_ATTRIBUTE) as? TagEditorPageController.Request
-            if (tagEditorPage != null) call.attributes.put(TAG_EDITOR_PAGE_REQUEST_KEY, tagEditorPage)
             val coverActions = request.getAttribute(COVER_ACTIONS_REQUEST) as? CoverArtActionsController.Request
             if (coverActions != null) call.attributes.put(COVER_ACTIONS_REQUEST_KEY, coverActions)
             val parameters = request.getAttribute(REST_PARAMETERS) as? Parameters
@@ -397,9 +338,6 @@ class AirsonicKtorServlet(
             if (hlsSegment != null) call.attributes.put(HLS_SEGMENT_REQUEST_KEY, hlsSegment)
             (request.getAttribute(SERVER_INFO_REQUEST) as? ServerInfoController.Request)?.let {
                 call.attributes.put(SERVER_INFO_REQUEST_KEY, it)
-            }
-            (request.getAttribute(PLAY_QUEUE_PAGE_REQUEST) as? PlayQueuePageController.Request)?.let {
-                call.attributes.put(PLAY_QUEUE_PAGE_REQUEST_KEY, it)
             }
             (request.getAttribute(RECOVERY_REQUEST) as? PasswordRecoveryController.Request)?.let {
                 call.attributes.put(RECOVERY_REQUEST_KEY, it)
@@ -548,262 +486,6 @@ class AirsonicKtorServlet(
             super.service(synchronousErrorRequest, response)
             return
         }
-        if (path in IndexPageController.PAGE_PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            if (securityService.getCurrentUsername(request) == null) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
-                return
-            }
-            val user = requireNotNull(securityService.getCurrentUser(request))
-            response.setHeader("Cache-Control", "no-store")
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
-        }
-        if (path in RightPageController.PAGE_PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            if (securityService.getCurrentUsername(request) == null) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
-                return
-            }
-            response.setHeader("Cache-Control", "no-store")
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
-        }
-        if (path in StarredPageController.PAGE_PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            if (securityService.getCurrentUsername(request) == null) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
-                return
-            }
-            response.setHeader("Cache-Control", "no-store")
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
-        }
-        if (path in TagEditorPageController.PAGE_PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            if (securityService.getCurrentUsername(request) == null) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
-                return
-            }
-            response.setHeader("Cache-Control", "no-store")
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
-        }
-        if (path == "/changeCoverArt" || path == "/changeCoverArt.view") {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            val username = securityService.getCurrentUsername(request) ?: run { response.sendError(401); return }
-            val id = request.getParameter("id")?.toIntOrNull() ?: run { response.sendError(400); return }
-            val model = try {
-                changeCoverArtPageController.page(username, id, request.getParameter("artist"), request.getParameter("album"))
-            } catch (_: NoSuchElementException) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND)
-                return
-            } catch (_: SecurityException) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN)
-                return
-            }
-            request.setAttribute("model", model)
-            response.setHeader("Cache-Control", "no-store")
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
-        }
-        if (path == "/lyrics" || path == "/lyrics.view") {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            if (securityService.getCurrentUsername(request) == null) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
-                return
-            }
-            response.setHeader("Cache-Control", "no-store")
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
-        }
-        if (path == BookmarksPageController.DATA_PATH || path in BookmarksPageController.PAGE_PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            val username = securityService.getCurrentUsername(request) ?: run { response.sendError(401); return }
-            request.setAttribute(BookmarksPageController.REQUEST_ATTRIBUTE, BookmarksPageController.Request(username))
-            if (path in BookmarksPageController.PAGE_PATHS) {
-                response.setHeader("Cache-Control", "no-store")
-                response.sendError(HttpServletResponse.SC_NOT_FOUND)
-                return
-                return
-            }
-        }
-        if (path == PlaylistPageController.DATA_PATH || path in PlaylistPageController.PAGE_PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            val username = securityService.getCurrentUsername(request) ?: run { response.sendError(401); return }
-            val rawId = request.getParameter("id") ?: run { response.sendError(400); return }
-            val playlistId = rawId.toIntOrNull() ?: run { response.sendError(400); return }
-            request.setAttribute(PlaylistPageController.REQUEST_ATTRIBUTE, PlaylistPageController.Request(username, playlistId))
-            if (path in PlaylistPageController.PAGE_PATHS) {
-                response.setHeader("Cache-Control", "no-store")
-                response.sendError(HttpServletResponse.SC_NOT_FOUND)
-                return
-                return
-            }
-        }
-        if (path == MainPageController.DATA_PATH || path in MainPageController.PAGE_PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            val username = securityService.getCurrentUsername(request) ?: run { response.sendError(401); return }
-            val paths = org.springframework.web.bind.ServletRequestUtils.getStringParameters(request, "path")
-                .map { StringUtils.split(it, ":", 2) }
-                .groupBy { it[0] }
-                .mapValues { (_, values) -> values.map { it.getOrNull(1) ?: "" }.toSet() }
-            val ids = org.springframework.web.bind.ServletRequestUtils.getIntParameters(request, "id").toList()
-            request.setAttribute(MainPageController.REQUEST_ATTRIBUTE, MainPageController.Request(username, ids, paths))
-            if (path in MainPageController.PAGE_PATHS) {
-                response.setHeader("Cache-Control", "no-store")
-                response.sendError(HttpServletResponse.SC_NOT_FOUND)
-                return
-                return
-            }
-        }
-        if (path == PlaylistsPageController.DATA_PATH || path in PlaylistsPageController.PAGE_PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            val username = securityService.getCurrentUsername(request) ?: run { response.sendError(401); return }
-            request.setAttribute(PlaylistsPageController.REQUEST_ATTRIBUTE, PlaylistsPageController.Request(username))
-            if (path in PlaylistsPageController.PAGE_PATHS) {
-                response.setHeader("Cache-Control", "no-store")
-                response.sendError(HttpServletResponse.SC_NOT_FOUND)
-                return
-                return
-            }
-        }
-        if (path == LeftPageController.DATA_PATH || path == LeftPageController.PAGE_PATH || path == "/left") {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            val user = securityService.getCurrentUser(request)
-            val player = playerService.getPlayer(request, response)
-            val requestData = LeftPageController.Request(user, player, localeResolver.resolveLocale(request), request.getParameter("refresh") == "true")
-            request.setAttribute(LeftPageController.REQUEST_ATTRIBUTE, requestData)
-            if (path != LeftPageController.DATA_PATH) {
-                response.setHeader("Cache-Control", "no-store")
-                response.sendError(HttpServletResponse.SC_NOT_FOUND)
-                return
-                return
-            }
-        }
-        if (path == LeftPageController.SELECT_PATH) {
-            if (request.method != "POST") {
-                response.setHeader("Allow", "POST")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            val username = securityService.getCurrentUsername(request) ?: run { response.sendError(401); return }
-            val rawId = request.getParameter("musicFolderId")
-            val folderId = if (rawId == null) null else rawId.toIntOrNull() ?: run { response.sendError(400); return }
-            request.setAttribute(LeftPageController.SELECTION_ATTRIBUTE, LeftPageController.Selection(username, folderId))
-        }
-        if (path == MorePageController.PATH) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            val user = securityService.getCurrentUser(request)
-            val player = playerService.getPlayer(request, response)
-            request.setAttribute(MorePageController.REQUEST_ATTRIBUTE,
-                MorePageController.Request(user, player.isExternalWithPlaylist || player.isWeb))
-        }
-        if (path in MorePageController.PAGE_PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            val user = securityService.getCurrentUser(request)
-            val player = playerService.getPlayer(request, response)
-            request.setAttribute(MorePageController.REQUEST_ATTRIBUTE,
-                MorePageController.Request(user, player.isExternalWithPlaylist || player.isWeb))
-            response.setHeader("Cache-Control", "no-store")
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
-        }
-        if (path in NowPlayingPageController.PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            request.setAttribute(NowPlayingPageController.REQUEST_ATTRIBUTE, nowPlayingPageController.request(request, response))
-        }
-        if (path in PlayQueuePageController.PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            val user = securityService.getCurrentUser(request)
-            val player = if (path in PlayQueuePageController.PLAYER_PATHS) {
-                val rawId = request.getParameter("player")
-                if (rawId != null) {
-                    val id = rawId.toIntOrNull()
-                    if (id == null) {
-                        response.sendError(HttpServletResponse.SC_BAD_REQUEST)
-                        return
-                    }
-                    val selected = playerService.getPlayerById(id)
-                    if (selected == null || selected.username != user.username) {
-                        response.sendError(HttpServletResponse.SC_FORBIDDEN)
-                        return
-                    }
-                }
-                playerService.getPlayer(request, response)
-            } else null
-            request.setAttribute(PLAY_QUEUE_PAGE_REQUEST, PlayQueuePageController.Request(user, player))
-        }
-        if (path in setOf("/playQueue", "/playQueue.view")) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            response.setHeader("Cache-Control", "no-store")
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
-        }
         if (path in ServerInfoController.PATHS || path == ServerInfoController.GETTING_STARTED_PATH) {
             val allowed = if (path == ServerInfoController.GETTING_STARTED_PATH) setOf("GET", "HEAD", "POST") else setOf("GET", "HEAD")
             if (request.method !in allowed) {
@@ -929,35 +611,7 @@ class AirsonicKtorServlet(
             val expiration = auth.expiresAt
             val publicRequest = PublicShareController.Request(name, playerService.getGuestPlayer(request),
                 NetworkService.getBaseUrl(request), expiration)
-            if (path == PublicShareController.PAGE_PATH) {
-                request.setAttribute("publicSharePreview", publicShareController.preview(publicRequest))
-                request.setAttribute("publicShareDataUrl", publicShareController.dataUrl(name,
-                    NetworkService.getBaseUrl(request), expiration))
-                response.sendError(HttpServletResponse.SC_NOT_FOUND)
-                return
-                return
-            }
             request.setAttribute(PUBLIC_SHARE_REQUEST, publicRequest)
-        }
-        if (path in setOf("/userSettings", "/userSettings.view", "/musicFolderSettings", "/musicFolderSettings.view", "/generalSettings", "/generalSettings.view", "/transcodingSettings", "/transcodingSettings.view", "/advancedSettings", "/advancedSettings.view", "/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view", "/databaseSettings", "/databaseSettings.view", "/dlnaSettings", "/dlnaSettings.view", "/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view", "/help", "/help.view", "/gettingStarted", "/gettingStarted.view")) {
-            val user = securityService.getCurrentUser(request)
-            val personalPage = path in setOf("/playerSettings", "/playerSettings.view", "/personalSettings", "/personalSettings.view", "/shareSettings", "/shareSettings.view", "/credentialsSettings", "/credentialsSettings.view")
-            if (path !in setOf("/top", "/top.view", "/status", "/status.view", "/importPlaylist", "/importPlaylist.view", "/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view", "/help", "/help.view", "/gettingStarted", "/gettingStarted.view") && !user.isAdminRole && !(personalPage && user.isSettingsRole)) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN)
-                return
-            }
-            if (request.method != "GET" && request.method != "HEAD") {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            if (path in setOf("/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view", "/help", "/help.view", "/gettingStarted", "/gettingStarted.view")) response.setHeader("Cache-Control", "no-store")
-            // JSP tags still need the view context while the page loads its data from Ktor REST.
-            request.setAttribute("playerSettingsAdmin", user.isAdminRole)
-            request.setAttribute("personalSettingsUsername", user.username)
-            val page = path.removePrefix("/").removeSuffix(".view")
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
         }
         if (path.startsWith("/ext/rest-hls/")) {
             val auth = request.userPrincipal as? ExternalJwtPrincipal
@@ -972,56 +626,6 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
-        }
-        if (path in HomePageController.PAGE_PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            val username = securityService.getCurrentUsername(request) ?: run { response.sendError(401); return }
-            if (homePageController.shouldRedirectToGettingStarted(username)) {
-                response.sendRedirect("gettingStarted.view")
-                return
-            }
-            request.setAttribute(HomePageController.REQUEST_ATTRIBUTE, HomePageController.Request(username))
-            response.setHeader("Cache-Control", "no-store")
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
-        }
-        if (path == HomePageController.DATA_PATH) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            val username = securityService.getCurrentUsername(request) ?: run { response.sendError(401); return }
-            request.setAttribute(HomePageController.REQUEST_ATTRIBUTE, HomePageController.Request(username))
-        }
-        if (path in SearchPageController.PAGE_PATHS) {
-            if (request.method !in setOf("GET", "HEAD", "POST")) {
-                response.setHeader("Allow", "GET, HEAD, POST")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            val username = securityService.getCurrentUsername(request) ?: run { response.sendError(401); return }
-            val initialQuery = if (request.method == "POST") request.getParameter("query").orEmpty() else ""
-            val player = playerService.getPlayer(request, response)
-            request.setAttribute(SearchPageController.REQUEST_ATTRIBUTE, SearchPageController.Request(username, player))
-            request.setAttribute(SearchPageController.INITIAL_QUERY_ATTRIBUTE, initialQuery)
-            response.setHeader("Cache-Control", "no-store")
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
-        }
-        if (path == SearchPageController.DATA_PATH) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            val username = securityService.getCurrentUsername(request) ?: run { response.sendError(401); return }
-            request.setAttribute(SearchPageController.REQUEST_ATTRIBUTE,
-                SearchPageController.Request(username, playerService.getPlayer(request, response)))
         }
         if (path in SearchController.PATHS) {
             // Capture Spring's thread-bound authentication before Ktor dispatches to a coroutine.
@@ -1155,10 +759,6 @@ class AirsonicKtorServlet(
             val username = if (listing) requireNotNull(securityService.getCurrentUsername(request))
                 else requireNotNull(securityService.getCurrentUser(request)).username
             request.setAttribute(STARRED_REQUEST, StarredRequest(username, parameters(request), player))
-        } else if (path == StarredPageController.DATA_PATH) {
-            val username = requireNotNull(securityService.getCurrentUsername(request))
-            request.setAttribute(StarredPageController.REQUEST_ATTRIBUTE,
-                StarredPageController.Request(username, playerService.getPlayer(request, response)))
         } else if (path == DownloadRestController.WEBSITE_PATH && request.method in setOf("GET", "HEAD")) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             val explicit = request.getParameter("player")
@@ -1627,20 +1227,10 @@ class AirsonicKtorServlet(
         } else if (path in WebsiteSettingsController.PATHS) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(WEBSITE_SETTINGS_REQUEST, WebsiteSettingsController.Request(user.username, parameters(request), user.isSettingsRole))
-        } else if (path == RightPageController.DATA_PATH) {
-            val username = requireNotNull(securityService.getCurrentUsername(request))
-            request.setAttribute(RightPageController.REQUEST_ATTRIBUTE, RightPageController.Request(username))
-        } else if (path == IndexPageController.DATA_PATH) {
-            val username = requireNotNull(securityService.getCurrentUsername(request))
-            request.setAttribute(IndexPageController.REQUEST_ATTRIBUTE, IndexPageController.Request(username))
         } else if (path in TagEditController.PATHS) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(TAG_EDIT_REQUEST, TagEditController.Request(
                 callerContextAdapter.fromRequest(request), user.isAdminRole || user.isCoverArtRole, parameters(request)))
-        } else if (path == TagEditorPageController.PATH) {
-            val user = requireNotNull(securityService.getCurrentUser(request))
-            request.setAttribute(TagEditorPageController.REQUEST_ATTRIBUTE, TagEditorPageController.Request(
-                user.username, callerContextAdapter.fromRequest(request), request.getParameter("id")?.toIntOrNull(), user.isAdminRole || user.isCoverArtRole))
         } else if (path in CoverArtActionsController.PATHS) {
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(COVER_ACTIONS_REQUEST, CoverArtActionsController.Request(
@@ -1729,8 +1319,6 @@ class AirsonicKtorServlet(
         val HLS_SEGMENT_REQUEST_KEY = AttributeKey<HlsSegmentRestController.Request>(HLS_SEGMENT_REQUEST)
         const val SERVER_INFO_REQUEST = "org.airsonic.player.serverInfoRequest"
         val SERVER_INFO_REQUEST_KEY = AttributeKey<ServerInfoController.Request>(SERVER_INFO_REQUEST)
-        const val PLAY_QUEUE_PAGE_REQUEST = "org.airsonic.player.playQueuePageRequest"
-        val PLAY_QUEUE_PAGE_REQUEST_KEY = AttributeKey<PlayQueuePageController.Request>(PLAY_QUEUE_PAGE_REQUEST)
         const val RECOVERY_REQUEST = "org.airsonic.player.recoveryRequest"
         val RECOVERY_REQUEST_KEY = AttributeKey<PasswordRecoveryController.Request>(RECOVERY_REQUEST)
         const val VIDEO_PLAYER_REQUEST = "org.airsonic.player.videoPlayerRequest"
@@ -1757,29 +1345,12 @@ class AirsonicKtorServlet(
         val AVATAR_REQUEST_KEY = AttributeKey<AvatarRestController.Request>(AVATAR_REQUEST)
         const val TAG_EDIT_REQUEST = "org.airsonic.player.tagEditRequest"
         val TAG_EDIT_REQUEST_KEY = AttributeKey<TagEditController.Request>(TAG_EDIT_REQUEST)
-        val TAG_EDITOR_PAGE_REQUEST_KEY = AttributeKey<TagEditorPageController.Request>(TagEditorPageController.REQUEST_ATTRIBUTE)
         const val COVER_ACTIONS_REQUEST = "org.airsonic.player.coverActionsRequest"
         val COVER_ACTIONS_REQUEST_KEY = AttributeKey<CoverArtActionsController.Request>(COVER_ACTIONS_REQUEST)
         const val REST_PARAMETERS = "org.airsonic.player.restParameters"
         val REST_PARAMETERS_KEY = AttributeKey<Parameters>(REST_PARAMETERS)
-        val NOW_PLAYING_PAGE_REQUEST_KEY = AttributeKey<NowPlayingPageController.Request>(NowPlayingPageController.REQUEST_ATTRIBUTE)
-        val RIGHT_PAGE_REQUEST_KEY = AttributeKey<RightPageController.Request>(RightPageController.REQUEST_ATTRIBUTE)
-        val INDEX_PAGE_REQUEST_KEY = AttributeKey<IndexPageController.Request>(IndexPageController.REQUEST_ATTRIBUTE)
-        val MORE_PAGE_REQUEST_KEY = AttributeKey<MorePageController.Request>(MorePageController.REQUEST_ATTRIBUTE)
-        val LEFT_PAGE_REQUEST_KEY = AttributeKey<LeftPageController.Request>(LeftPageController.REQUEST_ATTRIBUTE)
-        val LEFT_PAGE_SELECTION_KEY = AttributeKey<LeftPageController.Selection>(LeftPageController.SELECTION_ATTRIBUTE)
-        val BOOKMARKS_PAGE_REQUEST_KEY = AttributeKey<BookmarksPageController.Request>(BookmarksPageController.REQUEST_ATTRIBUTE)
-        const val PLAYLIST_PAGE_REQUEST = PlaylistPageController.REQUEST_ATTRIBUTE
-        val PLAYLIST_PAGE_REQUEST_KEY = AttributeKey<PlaylistPageController.Request>(PLAYLIST_PAGE_REQUEST)
-        const val MAIN_PAGE_REQUEST = MainPageController.REQUEST_ATTRIBUTE
-        val MAIN_PAGE_REQUEST_KEY = AttributeKey<MainPageController.Request>(MAIN_PAGE_REQUEST)
-        const val PLAYLISTS_PAGE_REQUEST = PlaylistsPageController.REQUEST_ATTRIBUTE
-        val PLAYLISTS_PAGE_REQUEST_KEY = AttributeKey<PlaylistsPageController.Request>(PLAYLISTS_PAGE_REQUEST)
-        val HOME_PAGE_REQUEST_KEY = AttributeKey<HomePageController.Request>(HomePageController.REQUEST_ATTRIBUTE)
         const val SEARCH_REQUEST = "org.airsonic.player.searchRequest"
         val SEARCH_REQUEST_KEY = AttributeKey<SearchController.Request>(SEARCH_REQUEST)
-        const val SEARCH_PAGE_REQUEST = SearchPageController.REQUEST_ATTRIBUTE
-        val SEARCH_PAGE_REQUEST_KEY = AttributeKey<SearchPageController.Request>(SEARCH_PAGE_REQUEST)
         const val MUSIC_FOLDERS_REQUEST = "org.airsonic.player.musicFoldersRequest"
         val MUSIC_FOLDERS_REQUEST_KEY = AttributeKey<MusicFoldersController.Request>(
             MUSIC_FOLDERS_REQUEST
@@ -1816,7 +1387,6 @@ class AirsonicKtorServlet(
         val JUKEBOX_REQUEST_KEY = AttributeKey<JukeboxRequest>(JUKEBOX_REQUEST)
         const val STARRED_REQUEST = "org.airsonic.player.starredRequest"
         val STARRED_REQUEST_KEY = AttributeKey<StarredRequest>(STARRED_REQUEST)
-        val STARRED_PAGE_REQUEST_KEY = AttributeKey<StarredPageController.Request>(StarredPageController.REQUEST_ATTRIBUTE)
         const val BOOKMARKS_REQUEST = "org.airsonic.player.bookmarksRequest"
         val BOOKMARKS_REQUEST_KEY = AttributeKey<BookmarksRequest>(BOOKMARKS_REQUEST)
         const val ALBUMS_REQUEST = "org.airsonic.player.albumsRequest"

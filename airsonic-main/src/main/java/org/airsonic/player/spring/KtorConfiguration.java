@@ -20,7 +20,6 @@ import org.airsonic.player.security.CredentialEncoderRegistry;
 import org.airsonic.player.security.SpringCredentialEncoderRegistry;
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController;
 import org.airsonic.player.controller.rest.tags.TagEditController;
-import org.airsonic.player.controller.rest.tags.TagEditorPageController;
 import org.airsonic.player.service.CoverArtSearchService;
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController;
 import org.airsonic.player.controller.rest.settings.WebsiteSettingsController;
@@ -69,15 +68,6 @@ import org.airsonic.player.controller.rest.lyrics.LyricsController;
 import org.airsonic.player.controller.rest.rating.RatingController;
 import org.airsonic.player.controller.rest.scrobble.ScrobbleController;
 import org.airsonic.player.controller.rest.nowplaying.NowPlayingController;
-import org.airsonic.player.controller.rest.nowplaying.NowPlayingPageController;
-import org.airsonic.player.controller.rest.nowplaying.RightPageController;
-import org.airsonic.player.controller.rest.more.MorePageController;
-import org.airsonic.player.controller.rest.indexes.LeftPageController;
-import org.airsonic.player.controller.rest.indexes.IndexPageController;
-import org.airsonic.player.controller.rest.bookmarks.BookmarksPageController;
-import org.airsonic.player.controller.rest.playlists.PlaylistPageController;
-import org.airsonic.player.controller.rest.music.MainPageController;
-import org.airsonic.player.controller.rest.playlists.PlaylistsPageController;
 import org.airsonic.player.controller.rest.upload.UploadStatusController;
 import org.airsonic.player.controller.rest.statistics.StatisticsController;
 import org.airsonic.player.controller.rest.statistics.ScheduledTasksController;
@@ -95,7 +85,6 @@ import org.airsonic.player.service.CoverArtImageService;
 import org.airsonic.player.service.CoverArtAccentColorBackfill;
 import org.airsonic.player.service.DatabaseService;
 import org.airsonic.player.controller.rest.playqueue.PlayQueueController;
-import org.airsonic.player.controller.rest.playqueue.PlayQueuePageController;
 import org.airsonic.player.dao.PlayQueueDao;
 import org.airsonic.player.service.UserAdministrationService;
 import org.airsonic.player.controller.rest.users.UsersController;
@@ -118,7 +107,6 @@ import org.airsonic.player.service.VersionService;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.controller.rest.jukebox.JukeboxController;
 import org.airsonic.player.controller.rest.starred.StarredController;
-import org.airsonic.player.controller.rest.starred.StarredPageController;
 import org.airsonic.player.controller.rest.bookmarks.BookmarksController;
 import org.airsonic.player.controller.rest.albums.AlbumsController;
 import org.airsonic.player.controller.rest.info.album.AlbumInfoController;
@@ -135,9 +123,6 @@ import org.airsonic.player.controller.rest.playlists.PlaylistImportController;
 import org.airsonic.player.controller.rest.scan.ScanController;
 import org.airsonic.player.controller.rest.shares.SharesController;
 import org.airsonic.player.controller.rest.search.SearchController;
-import org.airsonic.player.controller.rest.search.SearchPageController;
-import org.airsonic.player.controller.rest.home.HomePageController;
-import org.airsonic.player.controller.rest.cover.ChangeCoverArtPageController;
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsController;
 import org.airsonic.player.controller.rest.SubsonicResponseMapper;
 import org.airsonic.player.dao.AlbumDao;
@@ -826,8 +811,6 @@ public class KtorConfiguration {
         ServletRegistrationBean<ServletApplicationEngine> registration =
                 new ServletRegistrationBean<>(
                         new AirsonicKtorServlet(searchController,
-                                new SearchPageController(albumSearchService, securityService, mediaFolderService, settingsService,
-                                        albumDao, mediaFileService, objectMapper),
                                 musicFoldersController, genresController,
                                 artistsController, new PingController(jaxbWriter), new ScanController(mediaScannerService, jaxbWriter),
                                 new SimilarSongsController(mediaFileService, artistDao, lastFmService,
@@ -847,7 +830,6 @@ public class KtorConfiguration {
                                         ratingService, albumSearchService, responseMapper, jaxbWriter),
                                 new BookmarksController(bookmarkService, mediaFileService, responseMapper, jaxbWriter),
                                 new StarredController(mediaFileDao, albumDao, artistDao, mediaFolderService, responseMapper, jaxbWriter),
-                                new StarredPageController(mediaFileDao, mediaFileService, mediaFolderService, securityService, settingsService, objectMapper),
                                 new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),
                                 new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, transcodingService, jaxbWriter),
                                 new DLNASettingsController(settingsService, upnpService, jaxbWriter),
@@ -872,18 +854,6 @@ public class KtorConfiguration {
                                 new RandomSongsController(albumSearchService, mediaFolderService, responseMapper, jaxbWriter),
                                 new ScrobbleController(mediaFileService, statusService, audioScrobblerService, jaxbWriter),
                                 new NowPlayingController(statusService, responseMapper, jaxbWriter),
-                                new NowPlayingPageController(playerService, statusService, mediaFileService),
-                                new RightPageController(settingsService, versionService, objectMapper),
-                                new IndexPageController(settingsService, objectMapper),
-                                new MorePageController(settingsService, mediaFileService, mediaFolderService, objectMapper),
-                                new LeftPageController(settingsService, mediaFolderService, musicIndexService, musicIndexStateService, mediaScannerService, indexManager, playerService, objectMapper),
-                                new BookmarksPageController(settingsService, objectMapper),
-                                new PlaylistPageController(playlistService, securityService, settingsService, localeService, objectMapper),
-                                new MainPageController(securityService, settingsService, objectMapper),
-                                new PlaylistsPageController(settingsService, objectMapper),
-                                new HomePageController(settingsService, mediaScannerService, ratingService, securityService,
-                                        mediaFileService, mediaFolderService, albumSearchService, objectMapper),
-                                new ChangeCoverArtPageController(mediaFileService, mediaFolderService),
                                 new UploadStatusController(statusService, jaxbWriter, databaseService),
                                 new StatisticsController(statusService, securityService, jaxbWriter),
                                 new ScheduledTasksController(taskSchedulingService, jaxbWriter),
@@ -896,7 +866,6 @@ public class KtorConfiguration {
                                 new CoverArtActionsController(coverArtSearchService, jaxbWriter),
                                 new MediaFileCommentController(mediaFileService, securityService, jaxbWriter),
                                 new TagEditController(tagEditService, jaxbWriter),
-                                new TagEditorPageController(mediaFileService, mediaFolderService, securityService, objectMapper),
                                 new WebsiteSettingsController(settingsService, jaxbWriter),
                                 new LiveQueueController(playQueueService, jaxbWriter, mediaFileService, playlistService, securityService, playQueueDao, playerService),
                                 new RatingController(mediaFileService, ratingService, jaxbWriter),
@@ -906,7 +875,7 @@ public class KtorConfiguration {
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService), new AvatarUploadController(settingsService, jaxbWriter),
                                 new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(mediaStreamService),
                                 new PublicShareController(shareService, mediaFileService, mediaFolderService, jwtSecurityService, metadataParsers, objectMapper), new CaptionsRestController(captionService, mediaFolderService, objectMapper),
-                                new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), new PlayQueuePageController(playerService, settingsService, objectMapper), jaxbWriter, () -> new InfrastructureErrorSettings(
+                                new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), jaxbWriter, () -> new InfrastructureErrorSettings(
                                         serverProperties.getError().getPath(), serverProperties.getError().isIncludeException(),
                                         ErrorAttributeMode.valueOf(serverProperties.getError().getIncludeMessage().name()),
                                         ErrorAttributeMode.valueOf(serverProperties.getError().getIncludeStacktrace().name()),
