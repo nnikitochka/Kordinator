@@ -434,6 +434,28 @@ class RuntimeCompositionRootGraphTest {
         assertSame(runtimeRoot.createScrobbleController(mediaFileService, statusService, audioScrobblerService),
                 runtimeRoot.createScrobbleController(mediaFileService, statusService, audioScrobblerService));
         assertSame(runtimeRoot.createDownloadRestController(), runtimeRoot.createDownloadRestController());
+        assertSame(runtimeRoot.createMediaFileCommentController(mediaFileService, securityService),
+                runtimeRoot.createMediaFileCommentController(mediaFileService, securityService));
+        assertSame(runtimeRoot.createTagEditController(tagEditService),
+                runtimeRoot.createTagEditController(tagEditService));
+        assertSame(runtimeRoot.createCoverArtRestController(coverArtImageService),
+                runtimeRoot.createCoverArtRestController(coverArtImageService));
+        assertSame(runtimeRoot.createAvatarRestController(settingsService),
+                runtimeRoot.createAvatarRestController(settingsService));
+        assertSame(runtimeRoot.createAvatarUploadController(settingsService),
+                runtimeRoot.createAvatarUploadController(settingsService));
+        assertSame(runtimeRoot.createHlsRestController(hlsPlaylistService),
+                runtimeRoot.createHlsRestController(hlsPlaylistService));
+        assertSame(runtimeRoot.createHlsSegmentRestController(hlsSegmentService),
+                runtimeRoot.createHlsSegmentRestController(hlsSegmentService));
+        assertSame(runtimeRoot.createStreamRestController(mediaStreamService),
+                runtimeRoot.createStreamRestController(mediaStreamService));
+        assertSame(runtimeRoot.createPublicShareController(shareService, mediaFileService, mediaFolderService,
+                        jwtSecurityService, metaDataParserFactory, objectMapper),
+                runtimeRoot.createPublicShareController(shareService, mediaFileService, mediaFolderService,
+                        jwtSecurityService, metaDataParserFactory, objectMapper));
+        assertSame(runtimeRoot.createCaptionsRestController(captionService, mediaFolderService, objectMapper),
+                runtimeRoot.createCaptionsRestController(captionService, mediaFolderService, objectMapper));
         assertSame(runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService),
                 runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService));
         assertSame(runtimeRoot.createMusicFolderSettingsController(musicFolderAdministrationService),

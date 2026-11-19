@@ -141,6 +141,16 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.livequeue.LiveQueueExportController liveQueueExportController;
     private org.airsonic.player.controller.rest.scrobble.ScrobbleController scrobbleController;
     private org.airsonic.player.controller.rest.download.DownloadRestController downloadRestController;
+    private org.airsonic.player.controller.rest.tags.MediaFileCommentController mediaFileCommentController;
+    private org.airsonic.player.controller.rest.tags.TagEditController tagEditController;
+    private org.airsonic.player.controller.rest.cover.CoverArtRestController coverArtRestController;
+    private org.airsonic.player.controller.rest.avatar.AvatarRestController avatarRestController;
+    private org.airsonic.player.controller.rest.avatar.AvatarUploadController avatarUploadController;
+    private org.airsonic.player.controller.rest.hls.HlsRestController hlsRestController;
+    private org.airsonic.player.controller.rest.hls.HlsSegmentRestController hlsSegmentRestController;
+    private org.airsonic.player.controller.rest.stream.StreamRestController streamRestController;
+    private org.airsonic.player.controller.rest.shares.PublicShareController publicShareController;
+    private org.airsonic.player.controller.captions.CaptionsRestController captionsRestController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -810,6 +820,102 @@ public final class RuntimeCompositionRoot {
                     createSubsonicJaxbWriter());
         }
         return downloadRestController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.tags.MediaFileCommentController
+            createMediaFileCommentController(
+                    org.airsonic.player.service.MediaFileService mediaFileService,
+                    org.airsonic.player.service.SecurityService securityService) {
+        if (mediaFileCommentController == null) {
+            mediaFileCommentController = new org.airsonic.player.controller.rest.tags.MediaFileCommentController(
+                    mediaFileService, securityService, createSubsonicJaxbWriter());
+        }
+        return mediaFileCommentController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.tags.TagEditController createTagEditController(
+            org.airsonic.player.service.TagEditService tagEditService) {
+        if (tagEditController == null) {
+            tagEditController = new org.airsonic.player.controller.rest.tags.TagEditController(
+                    tagEditService, createSubsonicJaxbWriter());
+        }
+        return tagEditController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.cover.CoverArtRestController createCoverArtRestController(
+            org.airsonic.player.service.CoverArtImageService coverArtImageService) {
+        if (coverArtRestController == null) {
+            coverArtRestController = new org.airsonic.player.controller.rest.cover.CoverArtRestController(
+                    coverArtImageService);
+        }
+        return coverArtRestController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.avatar.AvatarRestController createAvatarRestController(
+            org.airsonic.player.service.SettingsService settingsService) {
+        if (avatarRestController == null) {
+            avatarRestController = new org.airsonic.player.controller.rest.avatar.AvatarRestController(settingsService);
+        }
+        return avatarRestController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.avatar.AvatarUploadController
+            createAvatarUploadController(org.airsonic.player.service.SettingsService settingsService) {
+        if (avatarUploadController == null) {
+            avatarUploadController = new org.airsonic.player.controller.rest.avatar.AvatarUploadController(
+                    settingsService, createSubsonicJaxbWriter());
+        }
+        return avatarUploadController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.hls.HlsRestController createHlsRestController(
+            org.airsonic.player.service.hls.HlsPlaylistService hlsPlaylistService) {
+        if (hlsRestController == null) {
+            hlsRestController = new org.airsonic.player.controller.rest.hls.HlsRestController(hlsPlaylistService);
+        }
+        return hlsRestController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.hls.HlsSegmentRestController createHlsSegmentRestController(
+            org.airsonic.player.service.hls.HlsSegmentService hlsSegmentService) {
+        if (hlsSegmentRestController == null) {
+            hlsSegmentRestController = new org.airsonic.player.controller.rest.hls.HlsSegmentRestController(hlsSegmentService);
+        }
+        return hlsSegmentRestController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.stream.StreamRestController createStreamRestController(
+            org.airsonic.player.service.MediaStreamService mediaStreamService) {
+        if (streamRestController == null) {
+            streamRestController = new org.airsonic.player.controller.rest.stream.StreamRestController(mediaStreamService);
+        }
+        return streamRestController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.shares.PublicShareController createPublicShareController(
+            org.airsonic.player.service.ShareService shareService,
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.service.JWTSecurityService jwtSecurityService,
+            org.airsonic.player.service.metadata.MetaDataParserFactory metadataParsers,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        if (publicShareController == null) {
+            publicShareController = new org.airsonic.player.controller.rest.shares.PublicShareController(
+                    shareService, mediaFileService, mediaFolderService, jwtSecurityService,
+                    metadataParsers, objectMapper);
+        }
+        return publicShareController;
+    }
+
+    public synchronized org.airsonic.player.controller.captions.CaptionsRestController createCaptionsRestController(
+            org.airsonic.player.service.CaptionService captionService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        if (captionsRestController == null) {
+            captionsRestController = new org.airsonic.player.controller.captions.CaptionsRestController(
+                    captionService, mediaFolderService, objectMapper);
+        }
+        return captionsRestController;
     }
 
     public synchronized DataSource createDataSource() {

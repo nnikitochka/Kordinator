@@ -450,6 +450,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** под ownership runtime root переданы `Upload`, `PlaylistExport`, `PlaylistImport`, `LiveQueueExport`, `Scrobble` и `DownloadRest` controllers. Ktor servlet wiring использует их root-owned instances; graph test проверяет singleton identity.
 
+**Срез 19 ноября 2026:** `MediaFileComment`, `TagEdit`, cover/avatar, HLS, stream, public share и captions REST controllers теперь создаются runtime root. Spring adapter только запрашивает root-owned endpoints; singleton identity каждого проверяется графовым тестом.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
