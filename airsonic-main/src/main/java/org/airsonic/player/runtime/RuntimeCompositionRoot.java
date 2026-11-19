@@ -152,6 +152,8 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.shares.PublicShareController publicShareController;
     private org.airsonic.player.controller.captions.CaptionsRestController captionsRestController;
     private org.airsonic.player.controller.rest.shares.SharesController sharesController;
+    private org.airsonic.player.ktor.KordinatorSessionService kordinatorSessionService;
+    private org.airsonic.player.ktor.KordinatorAuthRoutes kordinatorAuthRoutes;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -933,6 +935,31 @@ public final class RuntimeCompositionRoot {
                     playerService, playlistService, securityService);
         }
         return sharesController;
+    }
+
+    public synchronized org.airsonic.player.ktor.KordinatorSessionService createKordinatorSessionService(
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.security.CredentialEncoderRegistry credentialEncoders,
+            org.airsonic.player.service.SettingsService settingsService) {
+        if (kordinatorSessionService == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before KordinatorSessionService");
+            }
+            kordinatorSessionService = new org.airsonic.player.ktor.KordinatorSessionService(
+                    securityService, credentialEncoders,
+                    new org.airsonic.player.ktor.JdbcKordinatorSessionStore(persistenceGraph.getDataSource()),
+                    settingsService.getNonDecodablePasswordEncoder());
+        }
+        return kordinatorSessionService;
+    }
+
+    public synchronized org.airsonic.player.ktor.KordinatorAuthRoutes createKordinatorAuthRoutes(
+            org.airsonic.player.ktor.KordinatorSessionService sessionService) {
+        if (kordinatorAuthRoutes == null) {
+            kordinatorAuthRoutes = new org.airsonic.player.ktor.KordinatorAuthRoutes(
+                    sessionService, new org.airsonic.player.security.LoginRateLimiter());
+        }
+        return kordinatorAuthRoutes;
     }
 
     public synchronized DataSource createDataSource() {

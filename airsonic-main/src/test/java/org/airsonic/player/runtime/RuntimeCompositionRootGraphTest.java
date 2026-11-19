@@ -460,6 +460,12 @@ class RuntimeCompositionRootGraphTest {
                         responseMapper, playerService, playlistService, securityService),
                 runtimeRoot.createSharesController(shareService, mediaFileService, mediaFolderService,
                         responseMapper, playerService, playlistService, securityService));
+        org.airsonic.player.ktor.KordinatorSessionService sessionService =
+                runtimeRoot.createKordinatorSessionService(securityService, credentialEncoders, settingsService);
+        assertSame(sessionService, runtimeRoot.createKordinatorSessionService(
+                securityService, credentialEncoders, settingsService));
+        assertSame(runtimeRoot.createKordinatorAuthRoutes(sessionService),
+                runtimeRoot.createKordinatorAuthRoutes(sessionService));
         assertSame(runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService),
                 runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService));
         assertSame(runtimeRoot.createMusicFolderSettingsController(musicFolderAdministrationService),

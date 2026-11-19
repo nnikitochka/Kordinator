@@ -680,7 +680,6 @@ public class KtorConfiguration {
             BookmarkService bookmarkService,
             JukeboxService jukeboxService,
             PlayQueueService playQueueService,
-            javax.sql.DataSource dataSource,
             SecurityService securityService,
             CredentialEncoderRegistry credentialEncoderRegistry,
             SettingsService settingsService,
@@ -718,13 +717,9 @@ public class KtorConfiguration {
         MediaFileDao mediaFileDao = graph.getMediaFileDao();
         PlayQueueDao playQueueDao = graph.getPlayQueueDao();
         org.airsonic.player.ktor.KordinatorSessionService kordinatorSessionService =
-                new org.airsonic.player.ktor.KordinatorSessionService(
-                        securityService, credentialEncoderRegistry,
-                        new org.airsonic.player.ktor.JdbcKordinatorSessionStore(dataSource),
-                        settingsService.getNonDecodablePasswordEncoder());
+                runtime.createKordinatorSessionService(securityService, credentialEncoderRegistry, settingsService);
         org.airsonic.player.ktor.KordinatorAuthRoutes kordinatorAuthRoutes =
-                new org.airsonic.player.ktor.KordinatorAuthRoutes(
-                        kordinatorSessionService, new org.airsonic.player.security.LoginRateLimiter());
+                runtime.createKordinatorAuthRoutes(kordinatorSessionService);
         ServletRegistrationBean<ServletApplicationEngine> registration =
                 new ServletRegistrationBean<>(
                         new AirsonicKtorServlet(searchController,
