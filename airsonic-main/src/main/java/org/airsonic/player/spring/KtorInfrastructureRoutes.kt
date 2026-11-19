@@ -1,5 +1,6 @@
 package org.airsonic.player.spring
 
+import org.airsonic.player.runtime.RuntimeConfiguration
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.withCharset
@@ -31,7 +32,23 @@ data class InfrastructureErrorSettings(
     val includeMessage: ErrorAttributeMode,
     val includeStacktrace: ErrorAttributeMode,
     val includePath: ErrorAttributeMode,
-)
+) {
+    companion object {
+        @JvmStatic
+        fun from(configuration: RuntimeConfiguration): InfrastructureErrorSettings = InfrastructureErrorSettings(
+            path = configuration.getProperty("server.error.path", "/error"),
+            includeException = configuration.getBooleanProperty("server.error.include-exception", false),
+            includeMessage = configuration.errorAttributeMode("server.error.include-message", ErrorAttributeMode.NEVER),
+            includeStacktrace = configuration.errorAttributeMode("server.error.include-stacktrace", ErrorAttributeMode.NEVER),
+            includePath = configuration.errorAttributeMode("server.error.include-path", ErrorAttributeMode.ALWAYS),
+        )
+    }
+}
+
+private fun RuntimeConfiguration.errorAttributeMode(key: String, default: ErrorAttributeMode): ErrorAttributeMode =
+    getProperty(key)?.trim()?.uppercase()?.let { value ->
+        runCatching { ErrorAttributeMode.valueOf(value) }.getOrNull()
+    } ?: default
 
 internal val INFRASTRUCTURE_REQUEST = AttributeKey<InfrastructureRequestSnapshot>("airsonic.infrastructure.request")
 

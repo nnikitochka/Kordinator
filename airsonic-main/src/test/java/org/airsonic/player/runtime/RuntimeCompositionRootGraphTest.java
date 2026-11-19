@@ -351,9 +351,10 @@ class RuntimeCompositionRootGraphTest {
     void rootCreatesAndOwnsOneDataSourceForThePersistenceGraph() {
         LifecycleRegistry lifecycle = new LifecycleRegistry();
         RuntimeConfiguration configuration = new RuntimeConfiguration(java.util.Map.of(
-                "spring.datasource.url", "jdbc:hsqldb:mem:runtime_root_datasource;hsqldb.tx=mvcc",
+                "spring.datasource.url", "jdbc:hsqldb:mem:runtime_root_datasource;hsqldb.tx=mvcc;sql.enforce_size=false;sql.char_literal=false;sql.nulls_first=false",
                 "spring.datasource.username", "sa",
-                "spring.datasource.password", ""));
+                "spring.datasource.password", "",
+                "spring.liquibase.parameters.mysqlVarcharLimit", "255"));
         RuntimeCompositionRoot root = new RuntimeCompositionRoot(configuration, lifecycle);
 
         PersistenceGraph graph = root.createPersistenceGraph();

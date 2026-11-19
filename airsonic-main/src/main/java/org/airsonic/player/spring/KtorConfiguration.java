@@ -722,7 +722,6 @@ public class KtorConfiguration {
             MediaStreamService mediaStreamService,
             UploadFileService uploadFileService,
             org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry,
-            org.springframework.boot.autoconfigure.web.ServerProperties serverProperties,
             org.airsonic.player.monitor.MetricsManager metricsManager,
             org.airsonic.player.dao.TransactionManager transactionManager
     ) {
@@ -811,11 +810,8 @@ public class KtorConfiguration {
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService), new AvatarUploadController(settingsService, jaxbWriter),
                                 new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(mediaStreamService),
                                 new PublicShareController(shareService, mediaFileService, mediaFolderService, jwtSecurityService, metadataParsers, objectMapper), new CaptionsRestController(captionService, mediaFolderService, objectMapper),
-                                new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), jaxbWriter, () -> new InfrastructureErrorSettings(
-                                        serverProperties.getError().getPath(), serverProperties.getError().isIncludeException(),
-                                        ErrorAttributeMode.valueOf(serverProperties.getError().getIncludeMessage().name()),
-                                        ErrorAttributeMode.valueOf(serverProperties.getError().getIncludeStacktrace().name()),
-                                        ErrorAttributeMode.valueOf(serverProperties.getError().getIncludePath().name())),
+                                new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), jaxbWriter,
+                                () -> InfrastructureErrorSettings.from(runtime.getConfiguration()),
                                 objectMapper, metricsManager, lifecycleRegistry, settingsService),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
@@ -886,7 +882,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(StreamRestController.PATHS);
         registration.addUrlMappings("/ext/stream", "/ext/stream/*");
         // Keep container error dispatch in Ktor.
-        registration.addUrlMappings(serverProperties.getError().getPath(), "");
+        registration.addUrlMappings(runtime.getConfiguration().getProperty("server.error.path", "/error"), "");
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);

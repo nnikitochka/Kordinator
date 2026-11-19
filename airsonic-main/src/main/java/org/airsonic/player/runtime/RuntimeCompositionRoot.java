@@ -10,6 +10,7 @@ public final class RuntimeCompositionRoot {
     private final LifecycleRegistry lifecycleRegistry;
     private DataSource dataSource;
     private boolean dataSourceShutdownRegistered;
+    private boolean liquibaseMigrated;
     private PersistenceGraph persistenceGraph;
     private javax.cache.CacheManager cacheManager;
     private org.airsonic.player.service.MediaFolderService mediaFolderService;
@@ -130,7 +131,16 @@ public final class RuntimeCompositionRoot {
     }
 
     public synchronized PersistenceGraph createPersistenceGraph() {
+        migrateDatabase();
         return createPersistenceGraph(createDataSource());
+    }
+
+    public synchronized void migrateDatabase() {
+        if (liquibaseMigrated) {
+            return;
+        }
+        org.airsonic.player.runtime.RuntimeLiquibaseMigrator.INSTANCE.update(configuration, createDataSource());
+        liquibaseMigrated = true;
     }
 
     public synchronized org.airsonic.player.monitor.MetricsManager createMetricsManager() {
