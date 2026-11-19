@@ -332,15 +332,18 @@ class AirsonicKtorServlet(
             val stream = request.getAttribute(STREAM_REQUEST) as? StreamRestController.Request
             if (stream != null) call.attributes.put(STREAM_REQUEST_KEY, stream)
         }
+        val kordinatorTrackLookup = MediaFileTrackLookup(mediaFileService, securityService)
+        val kordinatorUsername: (ApplicationCall) -> String? = { call ->
+            (call.request as? ServletApplicationRequest)?.servletRequest?.let(securityService::getCurrentUsername)
+        }
         application.routing {
             infrastructureRoutes(errorProperties, objectMapper)
             kordinatorTrackRoutes(
-                MediaFileTrackLookup(mediaFileService, securityService),
-                currentUsername = { call ->
-                    (call.request as? ServletApplicationRequest)?.servletRequest?.let(securityService::getCurrentUsername)
-                },
+                kordinatorTrackLookup,
+                currentUsername = kordinatorUsername,
                 objectMapper = objectMapper,
             )
+            coverArtRestController.kordinatorTrackRoutes(this, kordinatorTrackLookup, kordinatorUsername)
             searchController.routes(this) { call -> call.attributes[SEARCH_REQUEST_KEY] }
             musicFoldersController.routes(this) { call -> call.attributes[MUSIC_FOLDERS_REQUEST_KEY] }
             genresController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
