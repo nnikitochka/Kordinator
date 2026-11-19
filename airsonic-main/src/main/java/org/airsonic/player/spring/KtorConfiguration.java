@@ -274,11 +274,6 @@ public class KtorConfiguration {
         return runtime.createLocaleService(settingsService);
     }
 
-    @Bean
-    public LocaleResolver servletLocaleResolver(SecurityService securityService, LocaleService localeService) {
-        return new LocaleResolver(securityService, localeService);
-    }
-
     public StatusService statusService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService,
             MediaFolderService mediaFolderService, SettingsService settingsService,
             TaskSchedulingService taskSchedulingService) {
@@ -659,7 +654,6 @@ public class KtorConfiguration {
             CoverArtService coverArtService,
             IndexManager indexManager,
             TranscodingService transcodingService,
-            LocaleResolver localeResolver,
             LocaleService localeService,
             CoverArtImageService coverArtImageService,
             HlsPlaylistService hlsPlaylistService,
@@ -747,7 +741,8 @@ public class KtorConfiguration {
                                 runtime.createRatingController(mediaFileService, ratingService),
                                 runtime.createDownloadRestController(), downloadService,
                                 shareService, mediaFileService,
-                                playerResolver, playerService, securityService, localeResolver,
+                                playerResolver, playerService, securityService,
+                                new LocaleResolver(securityService, localeService),
                                 runtime.createCoverArtRestController(coverArtImageService),
                                 runtime.createAvatarRestController(settingsService),
                                 runtime.createAvatarUploadController(settingsService),
