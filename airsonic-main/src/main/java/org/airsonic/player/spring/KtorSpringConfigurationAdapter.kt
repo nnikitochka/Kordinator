@@ -195,16 +195,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         mediaFileService, coverArtService, transcodingService, settingsService, playlistService, artistDao, albumDao)
 
     @Bean
-    override fun coverArtSearchService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        securityService: org.airsonic.player.service.SecurityService,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-        lastFmService: org.airsonic.player.service.LastFmService,
-        coverArtService: org.airsonic.player.service.CoverArtService,
-    ): org.airsonic.player.service.CoverArtSearchService = runtime.createCoverArtSearchService(
-        securityService, mediaFileService, lastFmService, coverArtService)
-
-    @Bean
     override fun coverArtAccentColorBackfill(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         coverArtService: org.airsonic.player.service.CoverArtService,

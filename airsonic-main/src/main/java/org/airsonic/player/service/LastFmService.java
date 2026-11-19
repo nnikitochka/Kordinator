@@ -324,40 +324,6 @@ public class LastFmService {
         }
     }
 
-    public List<LastFmCoverArt> searchCoverArt(String artist, String album) {
-        if (artist == null && album == null) {
-            return Collections.emptyList();
-        }
-        try {
-            StringBuilder query = new StringBuilder();
-            if (artist != null) {
-                query.append(artist).append(" ");
-            }
-            if (album != null) {
-                query.append(album);
-            }
-
-            Collection<Album> matches = Album.search(query.toString(), LAST_FM_KEY);
-            return matches.stream()
-                    .map(LastFmService::convert)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-        } catch (Throwable x) {
-            LOG.warn("Failed to search for cover art for " + artist + " - " + album, x);
-            return Collections.emptyList();
-        }
-    }
-
-    private static LastFmCoverArt convert(Album album) {
-        return EnumSet.allOf(ImageSize.class).stream()
-                .sorted(Comparator.reverseOrder())
-                .map(imageSize -> StringUtils.trimToNull(album.getImageURL(imageSize)))
-                .filter(Objects::nonNull)
-                .findFirst()
-                .map(imageUrl -> new LastFmCoverArt(imageUrl, album.getArtist(), album.getName()))
-                .orElse(null);
-    }
-
     private String getCanonicalArtistName(String artistName) {
         try {
             if (artistName == null) {

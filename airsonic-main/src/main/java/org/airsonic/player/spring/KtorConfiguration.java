@@ -20,8 +20,6 @@ import org.airsonic.player.security.CredentialEncoderRegistry;
 import org.airsonic.player.security.SpringCredentialEncoderRegistry;
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController;
 import org.airsonic.player.controller.rest.tags.TagEditController;
-import org.airsonic.player.service.CoverArtSearchService;
-import org.airsonic.player.controller.rest.cover.CoverArtActionsController;
 import org.airsonic.player.controller.rest.livequeue.LiveQueueExportController;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.service.MusicIndexStateService;
@@ -482,11 +480,6 @@ public class KtorConfiguration {
                 settingsService, playlistService, artistDao, albumDao);
     }
 
-    public CoverArtSearchService coverArtSearchService(RuntimeCompositionRoot runtime, SecurityService securityService,
-            MediaFileService mediaFileService, LastFmService lastFmService, CoverArtService coverArtService) {
-        return runtime.createCoverArtSearchService(securityService, mediaFileService, lastFmService, coverArtService);
-    }
-
     public CoverArtAccentColorBackfill coverArtAccentColorBackfill(RuntimeCompositionRoot runtime,
             CoverArtService coverArtService) {
         return runtime.createCoverArtAccentColorBackfill(coverArtService);
@@ -755,7 +748,6 @@ public class KtorConfiguration {
             PlaylistService playlistService,
             ShareService shareService,
             LyricsService lyricsService,
-            CoverArtSearchService coverArtSearchService,
             TagEditService tagEditService,
             BookmarkService bookmarkService,
             JukeboxService jukeboxService,
@@ -849,7 +841,6 @@ public class KtorConfiguration {
                                 new SongController(mediaFileDao, securityService, responseMapper, jaxbWriter),
                                 new VideosController(mediaFileDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new LyricsController(lyricsService, jaxbWriter),
-                                new CoverArtActionsController(coverArtSearchService, jaxbWriter),
                                 new MediaFileCommentController(mediaFileService, securityService, jaxbWriter),
                                 new TagEditController(tagEditService, jaxbWriter),
                                 new RatingController(mediaFileService, ratingService, jaxbWriter),
@@ -915,7 +906,6 @@ public class KtorConfiguration {
         registration.addUrlMappings(DownloadRestController.PATHS);
         registration.addUrlMappings(CoverArtRestController.PATHS);
         registration.addUrlMappings(CoverArtRestController.EXTERNAL_PATHS);
-        registration.addUrlMappings(CoverArtActionsController.PATHS);
         registration.addUrlMappings(MediaFileCommentController.PATH);
         registration.addUrlMappings(TagEditController.PATHS);
         registration.addUrlMappings(AvatarRestController.PATHS);

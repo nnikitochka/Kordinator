@@ -63,7 +63,6 @@ import org.airsonic.player.filter.RequestEncodingPolicy
 import org.airsonic.player.controller.rest.avatar.AvatarRestController
 import org.airsonic.player.controller.rest.avatar.AvatarUploadController
 import io.ktor.http.parseQueryString
-import org.airsonic.player.controller.rest.cover.CoverArtActionsController
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController
 import org.airsonic.player.controller.rest.tags.TagEditController
 import org.airsonic.player.controller.rest.livequeue.LiveQueueExportController
@@ -178,7 +177,6 @@ class AirsonicKtorServlet(
     private val songController: SongController,
     private val videosController: VideosController,
     private val lyricsController: LyricsController,
-    private val coverArtActionsController: CoverArtActionsController,
     private val mediaFileCommentController: MediaFileCommentController,
     private val tagEditController: TagEditController,
     private val ratingController: RatingController,
@@ -309,8 +307,6 @@ class AirsonicKtorServlet(
             if (avatar != null) call.attributes.put(AVATAR_REQUEST_KEY, avatar)
             val tagEdit = request.getAttribute(TAG_EDIT_REQUEST) as? TagEditController.Request
             if (tagEdit != null) call.attributes.put(TAG_EDIT_REQUEST_KEY, tagEdit)
-            val coverActions = request.getAttribute(COVER_ACTIONS_REQUEST) as? CoverArtActionsController.Request
-            if (coverActions != null) call.attributes.put(COVER_ACTIONS_REQUEST_KEY, coverActions)
             val parameters = request.getAttribute(REST_PARAMETERS) as? Parameters
             if (parameters != null) {
                 call.attributes.put(REST_PARAMETERS_KEY, parameters)
@@ -386,7 +382,6 @@ class AirsonicKtorServlet(
             tagEditController.routes(this) { call -> call.attributes[TAG_EDIT_REQUEST_KEY] }
             coverArtRestController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             avatarRestController.routes(this) { call -> call.attributes[AVATAR_REQUEST_KEY] }
-            coverArtActionsController.routes(this) { call -> call.attributes[COVER_ACTIONS_REQUEST_KEY] }
             lyricsController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             ratingController.routes(this) { call -> call.attributes[RATING_REQUEST_KEY] }
             topSongsController.routes(this) { call -> call.attributes[TOP_SONGS_REQUEST_KEY] }
@@ -1113,10 +1108,6 @@ class AirsonicKtorServlet(
             val user = requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(TAG_EDIT_REQUEST, TagEditController.Request(
                 callerContextAdapter.fromRequest(request), user.isAdminRole || user.isCoverArtRole, parameters(request)))
-        } else if (path in CoverArtActionsController.PATHS) {
-            val user = requireNotNull(securityService.getCurrentUser(request))
-            request.setAttribute(COVER_ACTIONS_REQUEST, CoverArtActionsController.Request(
-                user.username, user.isAdminRole || user.isCoverArtRole, parameters(request)))
         } else if (path in AvatarRestController.PATHS) {
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             val context = request.servletContext
@@ -1201,8 +1192,6 @@ class AirsonicKtorServlet(
         val AVATAR_REQUEST_KEY = AttributeKey<AvatarRestController.Request>(AVATAR_REQUEST)
         const val TAG_EDIT_REQUEST = "org.airsonic.player.tagEditRequest"
         val TAG_EDIT_REQUEST_KEY = AttributeKey<TagEditController.Request>(TAG_EDIT_REQUEST)
-        const val COVER_ACTIONS_REQUEST = "org.airsonic.player.coverActionsRequest"
-        val COVER_ACTIONS_REQUEST_KEY = AttributeKey<CoverArtActionsController.Request>(COVER_ACTIONS_REQUEST)
         const val REST_PARAMETERS = "org.airsonic.player.restParameters"
         val REST_PARAMETERS_KEY = AttributeKey<Parameters>(REST_PARAMETERS)
         const val SEARCH_REQUEST = "org.airsonic.player.searchRequest"

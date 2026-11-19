@@ -198,10 +198,6 @@ class RuntimeCompositionRootGraphTest {
         assertSame(lastFmService, runtimeRoot.createLastFmService(mediaFileDao, mediaFileService, artistDao));
         ShareService shareService = runtimeRoot.createShareService(daoGraph.getShareDao(), mediaFileService, jwtSecurityService);
         assertSame(shareService, runtimeRoot.createShareService(daoGraph.getShareDao(), mediaFileService, jwtSecurityService));
-        CoverArtSearchService coverArtSearchService = runtimeRoot.createCoverArtSearchService(
-                securityService, mediaFileService, lastFmService, coverArtService);
-        assertSame(coverArtSearchService, runtimeRoot.createCoverArtSearchService(
-                securityService, mediaFileService, lastFmService, coverArtService));
         org.airsonic.player.service.hls.HlsPlaylistService hlsPlaylistService =
                 runtimeRoot.createHlsPlaylistService(jwtSecurityService);
         assertSame(hlsPlaylistService, runtimeRoot.createHlsPlaylistService(jwtSecurityService));

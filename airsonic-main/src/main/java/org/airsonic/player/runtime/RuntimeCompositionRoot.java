@@ -41,7 +41,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.metadata.JaudiotaggerParser jaudiotaggerParser;
     private org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory;
     private org.airsonic.player.service.CoverArtService coverArtService;
-    private org.airsonic.player.service.CoverArtSearchService coverArtSearchService;
     private org.airsonic.player.service.hls.HlsPlaylistService hlsPlaylistService;
     private org.airsonic.player.service.hls.HlsSegmentService hlsSegmentService;
     private org.airsonic.player.service.TagEditService tagEditService;
@@ -523,18 +522,6 @@ public final class RuntimeCompositionRoot {
                     coverArtDao, createMediaFolderService(), createJaudiotaggerParser(), createCacheManager());
         }
         return coverArtService;
-    }
-
-    public synchronized org.airsonic.player.service.CoverArtSearchService createCoverArtSearchService(
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.LastFmService lastFmService,
-            org.airsonic.player.service.CoverArtService coverArtService) {
-        if (coverArtSearchService == null) {
-            coverArtSearchService = new org.airsonic.player.service.CoverArtSearchService(
-                    securityService, mediaFileService, lastFmService, createMediaFolderService(), coverArtService);
-        }
-        return coverArtSearchService;
     }
 
     public synchronized org.airsonic.player.service.hls.HlsPlaylistService createHlsPlaylistService(
