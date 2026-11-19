@@ -31,8 +31,6 @@ import java.util.GregorianCalendar;
 import java.util.Map.Entry;
 
 import static org.airsonic.player.util.XMLUtil.createSAXBuilder;
-import static org.springframework.web.bind.ServletRequestUtils.getStringParameter;
-
 public class JAXBWriter {
     private static final Logger LOG = LoggerFactory.getLogger(JAXBWriter.class);
 
@@ -131,7 +129,10 @@ public class JAXBWriter {
     }
 
     public Entry<String, String> serializeForType(HttpServletRequest request, Response resp) {
-        String format = getStringParameter(request, "f", "xml");
+        String format = request.getParameter("f");
+        if (format == null) {
+            format = "xml";
+        }
         String jsonpCallback = request.getParameter("callback");
         return serializeForType(format, jsonpCallback, resp);
     }
