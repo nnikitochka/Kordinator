@@ -1,8 +1,6 @@
 package org.airsonic.player.taglib;
 
 import org.airsonic.player.util.StringUtil;
-import org.springframework.web.servlet.support.RequestContextUtils;
-
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.jsp.JspException;
 import jakarta.servlet.jsp.JspTagException;
@@ -34,7 +32,11 @@ public class FormatBytesTag extends BodyTagSupport {
     }
 
     public int doEndTag() throws JspException {
-        Locale locale = RequestContextUtils.getLocale((HttpServletRequest) pageContext.getRequest());
+        HttpServletRequest request = (HttpServletRequest) pageContext.getRequest();
+        Locale locale = (Locale) request.getAttribute("airsonic.locale");
+        if (locale == null) {
+            locale = request.getLocale();
+        }
         String result = StringUtil.formatBytes(bytes, locale);
 
         try {
