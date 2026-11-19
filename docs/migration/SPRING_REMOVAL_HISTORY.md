@@ -434,6 +434,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** `SimilarSongsController`, `ArtistInfoController` и `AlbumInfoController` теперь создаются через runtime root с DAO из root-owned persistence graph. Поведение маршрутов не менялось; graph test проверяет singleton identity всех трёх.
 
+**Срез 19 ноября 2026:** `SongsByGenreController`, `TopSongsController`, `RandomSongsController` и `SongController` также переданы под ownership runtime root. DAO берутся из persistence graph, сериализатор — общий root-owned `JAXBWriter`; graph test проверяет singleton identity каждого.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

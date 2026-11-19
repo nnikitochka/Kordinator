@@ -103,6 +103,10 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.music.similar.SimilarSongsController similarSongsController;
     private org.airsonic.player.controller.rest.info.artist.ArtistInfoController artistInfoController;
     private org.airsonic.player.controller.rest.info.album.AlbumInfoController albumInfoController;
+    private org.airsonic.player.controller.rest.music.genre.SongsByGenreController songsByGenreController;
+    private org.airsonic.player.controller.rest.music.top.TopSongsController topSongsController;
+    private org.airsonic.player.controller.rest.music.random.RandomSongsController randomSongsController;
+    private org.airsonic.player.controller.rest.music.song.SongController songController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -337,6 +341,58 @@ public final class RuntimeCompositionRoot {
                     mediaFileService, persistenceGraph.getDaos().getAlbumDao(), lastFmService, createSubsonicJaxbWriter());
         }
         return albumInfoController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.music.genre.SongsByGenreController
+            createSongsByGenreController(
+                    org.airsonic.player.service.MediaFolderService mediaFolderService,
+                    org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
+        if (songsByGenreController == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before SongsByGenreController");
+            }
+            songsByGenreController = new org.airsonic.player.controller.rest.music.genre.SongsByGenreController(
+                    persistenceGraph.getDaos().getMediaFileDao(), mediaFolderService, responseMapper,
+                    createSubsonicJaxbWriter());
+        }
+        return songsByGenreController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.music.top.TopSongsController createTopSongsController(
+            org.airsonic.player.service.LastFmService lastFmService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
+        if (topSongsController == null) {
+            topSongsController = new org.airsonic.player.controller.rest.music.top.TopSongsController(
+                    lastFmService, mediaFolderService, responseMapper, createSubsonicJaxbWriter());
+        }
+        return topSongsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.music.random.RandomSongsController
+            createRandomSongsController(
+                    org.airsonic.player.service.SearchService searchService,
+                    org.airsonic.player.service.MediaFolderService mediaFolderService,
+                    org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
+        if (randomSongsController == null) {
+            randomSongsController = new org.airsonic.player.controller.rest.music.random.RandomSongsController(
+                    searchService, mediaFolderService, responseMapper, createSubsonicJaxbWriter());
+        }
+        return randomSongsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.music.song.SongController createSongController(
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
+        if (songController == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before SongController");
+            }
+            songController = new org.airsonic.player.controller.rest.music.song.SongController(
+                    persistenceGraph.getDaos().getMediaFileDao(), securityService,
+                    responseMapper, createSubsonicJaxbWriter());
+        }
+        return songController;
     }
 
     public synchronized DataSource createDataSource() {
