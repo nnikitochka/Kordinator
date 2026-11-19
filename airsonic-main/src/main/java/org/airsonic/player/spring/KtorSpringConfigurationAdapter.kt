@@ -67,7 +67,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean fun mediaFileDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.MediaFileDao = graph.mediaFileDao
     @Bean fun musicFolderDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.MusicFolderDao = graph.musicFolderDao
     @Bean fun shareDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.ShareDao = graph.shareDao
-    @Bean fun transcodingDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.TranscodingDao = graph.transcodingDao
     @Bean fun userDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.UserDao = graph.userDao
 
     @Bean

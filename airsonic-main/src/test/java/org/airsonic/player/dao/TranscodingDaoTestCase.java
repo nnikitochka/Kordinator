@@ -2,6 +2,8 @@ package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.Transcoding;
+import org.airsonic.player.runtime.DaoGraph;
+import org.airsonic.player.runtime.RuntimeCompositionRoot;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,30 +20,33 @@ import static org.junit.Assert.assertEquals;
 public class TranscodingDaoTestCase extends DaoTestCaseBean2 {
 
     @Autowired
-    TranscodingDao transcodingDao;
+    DaoGraph daoGraph;
 
     @Autowired
-    PlayerDao playerDao;
+    RuntimeCompositionRoot runtime;
+
+    private PlayerDao playerDao;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         getJdbcHelper().update("delete from transcoding");
+        playerDao = runtime.createPlayerDao();
     }
 
     @Test
     public void testCreateTranscoding() {
         Transcoding transcoding = new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", false);
-        transcodingDao.createTranscoding(transcoding);
+        daoGraph.getTranscodingDao().createTranscoding(transcoding);
 
-        Transcoding newTranscoding = transcodingDao.getAllTranscodings().get(0);
+        Transcoding newTranscoding = daoGraph.getTranscodingDao().getAllTranscodings().get(0);
         assertTranscodingEquals(transcoding, newTranscoding);
     }
 
     @Test
     public void testUpdateTranscoding() {
         Transcoding transcoding = new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", false);
-        transcodingDao.createTranscoding(transcoding);
-        transcoding = transcodingDao.getAllTranscodings().get(0);
+        daoGraph.getTranscodingDao().createTranscoding(transcoding);
+        transcoding = daoGraph.getTranscodingDao().getAllTranscodings().get(0);
 
         transcoding.setName("newName");
         transcoding.setSourceFormats("newSourceFormats");
@@ -50,27 +55,27 @@ public class TranscodingDaoTestCase extends DaoTestCaseBean2 {
         transcoding.setStep2("newStep2");
         transcoding.setStep3("newStep3");
         transcoding.setDefaultActive(true);
-        transcodingDao.updateTranscoding(transcoding);
+        daoGraph.getTranscodingDao().updateTranscoding(transcoding);
 
-        Transcoding newTranscoding = transcodingDao.getAllTranscodings().get(0);
+        Transcoding newTranscoding = daoGraph.getTranscodingDao().getAllTranscodings().get(0);
         assertTranscodingEquals(transcoding, newTranscoding);
     }
 
     @Test
     public void testDeleteTranscoding() {
-        assertEquals("Wrong number of transcodings.", 0, transcodingDao.getAllTranscodings().size());
+        assertEquals("Wrong number of transcodings.", 0, daoGraph.getTranscodingDao().getAllTranscodings().size());
 
-        transcodingDao.createTranscoding(new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", true));
-        assertEquals("Wrong number of transcodings.", 1, transcodingDao.getAllTranscodings().size());
+        daoGraph.getTranscodingDao().createTranscoding(new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", true));
+        assertEquals("Wrong number of transcodings.", 1, daoGraph.getTranscodingDao().getAllTranscodings().size());
 
-        transcodingDao.createTranscoding(new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", true));
-        assertEquals("Wrong number of transcodings.", 2, transcodingDao.getAllTranscodings().size());
+        daoGraph.getTranscodingDao().createTranscoding(new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", true));
+        assertEquals("Wrong number of transcodings.", 2, daoGraph.getTranscodingDao().getAllTranscodings().size());
 
-        transcodingDao.deleteTranscoding(transcodingDao.getAllTranscodings().get(0).getId());
-        assertEquals("Wrong number of transcodings.", 1, transcodingDao.getAllTranscodings().size());
+        daoGraph.getTranscodingDao().deleteTranscoding(daoGraph.getTranscodingDao().getAllTranscodings().get(0).getId());
+        assertEquals("Wrong number of transcodings.", 1, daoGraph.getTranscodingDao().getAllTranscodings().size());
 
-        transcodingDao.deleteTranscoding(transcodingDao.getAllTranscodings().get(0).getId());
-        assertEquals("Wrong number of transcodings.", 0, transcodingDao.getAllTranscodings().size());
+        daoGraph.getTranscodingDao().deleteTranscoding(daoGraph.getTranscodingDao().getAllTranscodings().get(0).getId());
+        assertEquals("Wrong number of transcodings.", 0, daoGraph.getTranscodingDao().getAllTranscodings().size());
     }
 
     @Test
@@ -78,29 +83,29 @@ public class TranscodingDaoTestCase extends DaoTestCaseBean2 {
         Player player = new Player();
         playerDao.createPlayer(player);
 
-        transcodingDao.createTranscoding(new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", false));
-        transcodingDao.createTranscoding(new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", false));
-        transcodingDao.createTranscoding(new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", false));
-        Transcoding transcodingA = transcodingDao.getAllTranscodings().get(0);
-        Transcoding transcodingB = transcodingDao.getAllTranscodings().get(1);
-        Transcoding transcodingC = transcodingDao.getAllTranscodings().get(2);
+        daoGraph.getTranscodingDao().createTranscoding(new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", false));
+        daoGraph.getTranscodingDao().createTranscoding(new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", false));
+        daoGraph.getTranscodingDao().createTranscoding(new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", false));
+        Transcoding transcodingA = daoGraph.getTranscodingDao().getAllTranscodings().get(0);
+        Transcoding transcodingB = daoGraph.getTranscodingDao().getAllTranscodings().get(1);
+        Transcoding transcodingC = daoGraph.getTranscodingDao().getAllTranscodings().get(2);
 
-        List<Transcoding> activeTranscodings = transcodingDao.getTranscodingsForPlayer(player.getId());
+        List<Transcoding> activeTranscodings = daoGraph.getTranscodingDao().getTranscodingsForPlayer(player.getId());
         assertEquals("Wrong number of transcodings.", 0, activeTranscodings.size());
 
-        transcodingDao.setTranscodingsForPlayer(player.getId(), new int[]{transcodingA.getId()});
-        activeTranscodings = transcodingDao.getTranscodingsForPlayer(player.getId());
+        daoGraph.getTranscodingDao().setTranscodingsForPlayer(player.getId(), new int[]{transcodingA.getId()});
+        activeTranscodings = daoGraph.getTranscodingDao().getTranscodingsForPlayer(player.getId());
         assertEquals("Wrong number of transcodings.", 1, activeTranscodings.size());
         assertTranscodingEquals(transcodingA, activeTranscodings.get(0));
 
-        transcodingDao.setTranscodingsForPlayer(player.getId(), new int[]{transcodingB.getId(), transcodingC.getId()});
-        activeTranscodings = transcodingDao.getTranscodingsForPlayer(player.getId());
+        daoGraph.getTranscodingDao().setTranscodingsForPlayer(player.getId(), new int[]{transcodingB.getId(), transcodingC.getId()});
+        activeTranscodings = daoGraph.getTranscodingDao().getTranscodingsForPlayer(player.getId());
         assertEquals("Wrong number of transcodings.", 2, activeTranscodings.size());
         assertTranscodingEquals(transcodingB, activeTranscodings.get(0));
         assertTranscodingEquals(transcodingC, activeTranscodings.get(1));
 
-        transcodingDao.setTranscodingsForPlayer(player.getId(), new int[0]);
-        activeTranscodings = transcodingDao.getTranscodingsForPlayer(player.getId());
+        daoGraph.getTranscodingDao().setTranscodingsForPlayer(player.getId(), new int[0]);
+        activeTranscodings = daoGraph.getTranscodingDao().getTranscodingsForPlayer(player.getId());
         assertEquals("Wrong number of transcodings.", 0, activeTranscodings.size());
     }
 
@@ -109,15 +114,15 @@ public class TranscodingDaoTestCase extends DaoTestCaseBean2 {
         Player player = new Player();
         playerDao.createPlayer(player);
 
-        transcodingDao.createTranscoding(new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", true));
-        Transcoding transcoding = transcodingDao.getAllTranscodings().get(0);
+        daoGraph.getTranscodingDao().createTranscoding(new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", true));
+        Transcoding transcoding = daoGraph.getTranscodingDao().getAllTranscodings().get(0);
 
-        transcodingDao.setTranscodingsForPlayer(player.getId(), new int[]{transcoding.getId()});
-        List<Transcoding> activeTranscodings = transcodingDao.getTranscodingsForPlayer(player.getId());
+        daoGraph.getTranscodingDao().setTranscodingsForPlayer(player.getId(), new int[]{transcoding.getId()});
+        List<Transcoding> activeTranscodings = daoGraph.getTranscodingDao().getTranscodingsForPlayer(player.getId());
         assertEquals("Wrong number of transcodings.", 1, activeTranscodings.size());
 
         playerDao.deletePlayer(player.getId());
-        activeTranscodings = transcodingDao.getTranscodingsForPlayer(player.getId());
+        activeTranscodings = daoGraph.getTranscodingDao().getTranscodingsForPlayer(player.getId());
         assertEquals("Wrong number of transcodings.", 0, activeTranscodings.size());
     }
 
@@ -126,15 +131,15 @@ public class TranscodingDaoTestCase extends DaoTestCaseBean2 {
         Player player = new Player();
         playerDao.createPlayer(player);
 
-        transcodingDao.createTranscoding(new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", true));
-        Transcoding transcoding = transcodingDao.getAllTranscodings().get(0);
+        daoGraph.getTranscodingDao().createTranscoding(new Transcoding(null, "name", "sourceFormats", "targetFormat", "step1", "step2", "step3", true));
+        Transcoding transcoding = daoGraph.getTranscodingDao().getAllTranscodings().get(0);
 
-        transcodingDao.setTranscodingsForPlayer(player.getId(), new int[]{transcoding.getId()});
-        List<Transcoding> activeTranscodings = transcodingDao.getTranscodingsForPlayer(player.getId());
+        daoGraph.getTranscodingDao().setTranscodingsForPlayer(player.getId(), new int[]{transcoding.getId()});
+        List<Transcoding> activeTranscodings = daoGraph.getTranscodingDao().getTranscodingsForPlayer(player.getId());
         assertEquals("Wrong number of transcodings.", 1, activeTranscodings.size());
 
-        transcodingDao.deleteTranscoding(transcoding.getId());
-        activeTranscodings = transcodingDao.getTranscodingsForPlayer(player.getId());
+        daoGraph.getTranscodingDao().deleteTranscoding(transcoding.getId());
+        activeTranscodings = daoGraph.getTranscodingDao().getTranscodingsForPlayer(player.getId());
         assertEquals("Wrong number of transcodings.", 0, activeTranscodings.size());
     }
 
