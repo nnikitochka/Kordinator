@@ -325,13 +325,8 @@ public class KtorConfiguration {
 
     @Bean
     public MultipleCredsMatchingAuthenticationProvider multipleCredsMatchingAuthenticationProvider(
-            SecurityService securityService, SpringUserDetailsServiceAdapter userDetailsService,
-            @Lazy org.springframework.security.crypto.password.PasswordEncoder passwordEncoder) {
-        MultipleCredsMatchingAuthenticationProvider provider = new MultipleCredsMatchingAuthenticationProvider();
-        provider.setSecurityService(securityService);
-        provider.setUserDetailsService(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder);
-        return provider;
+            SecurityService securityService) {
+        return new MultipleCredsMatchingAuthenticationProvider(securityService);
     }
 
     @Bean

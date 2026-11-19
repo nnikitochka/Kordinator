@@ -3,115 +3,119 @@ package org.airsonic.player.security;
 import org.airsonic.player.controller.rest.error.APIException;
 import org.airsonic.player.controller.rest.error.ErrorCode;
 import org.airsonic.player.domain.UserCredential;
+import org.airsonic.player.security.crypto.PasswordEncoder;
 import org.airsonic.player.service.SecurityService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.CredentialsExpiredException;
-import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
-public class MultipleCredsMatchingAuthenticationProvider extends DaoAuthenticationProvider {
+/** Spring boundary for the framework-neutral Subsonic credential verifier. */
+public class MultipleCredsMatchingAuthenticationProvider implements AuthenticationProvider {
     public static final String SALT_TOKEN_MECHANISM_SPECIALIZATION = "salttoken";
-    private SecurityService securityService;
+
+    private static final Logger LOG = LoggerFactory.getLogger(MultipleCredsMatchingAuthenticationProvider.class);
+
+    private final SecurityService securityService;
     private final SubsonicAuthenticator authenticator = new SubsonicAuthenticator();
 
-    @Override
-    protected void additionalAuthenticationChecks(UserDetails userDetails,
-            UsernamePasswordAuthenticationToken authentication) throws AuthenticationException {
-        if (authentication.getCredentials() == null) {
-            logger.debug("Authentication failed: no credentials provided");
-
-            throw new BadCredentialsException(messages.getMessage("AbstractUserDetailsAuthenticationProvider.badCredentials", "Bad credentials"));
-        }
-
-        String presentedPassword = authentication.getCredentials().toString();
-
-        String encoderSpecialization = (authentication instanceof UsernameSaltedTokenAuthenticationToken)
-                ? SALT_TOKEN_MECHANISM_SPECIALIZATION
-                : "";
-
-        if (!SpringUserDetailsAdapter.class.isAssignableFrom(userDetails.getClass())) {
-            throw new InternalAuthenticationServiceException("Retrieved user does not match expected class");
-        }
-
-        SpringUserDetailsAdapter userDetail = (SpringUserDetailsAdapter) userDetails;
-
-        SubsonicAuthenticator.Mode mode = encoderSpecialization.isEmpty()
-                ? SubsonicAuthenticator.Mode.PASSWORD : SubsonicAuthenticator.Mode.SALTED_TOKEN;
-        Map<String, org.airsonic.player.security.crypto.PasswordEncoder> encoders = new java.util.HashMap<>();
-        GlobalSecurityConfig.ENCODERS.forEach((name, encoder) -> {
-            if (encoder instanceof SpringPasswordEncoderAdapter) {
-                encoders.put(name, ((SpringPasswordEncoderAdapter) encoder).getDelegate());
-            } else {
-                encoders.put(name, new org.airsonic.player.security.crypto.PasswordEncoder() {
-                    @Override
-                    public String encode(CharSequence rawPassword) {
-                        return encoder.encode(rawPassword);
-                    }
-
-                    @Override
-                    public boolean matches(CharSequence rawPassword, String encodedPassword) {
-                        return encoder.matches(rawPassword, encodedPassword);
-                    }
-
-                    @Override
-                    public boolean upgradeEncoding(String encodedPassword) {
-                        return encoder.upgradeEncoding(encodedPassword);
-                    }
-                });
-            }
-        });
-        SubsonicAuthenticator.Result result = authenticator.authenticate(userDetail.getCredentials(),
-                presentedPassword, mode, encoders);
-
-        if (!result.isAuthenticated() && result.getFailure().orElse(null) != SubsonicAuthenticator.Failure.CREDENTIALS_EXPIRED) {
-            logger.debug("Authentication failed: password does not match any stored values");
-
-            // If failure via tokens, try and signal to automatically upgrade to a non-token (password) method
-            // This custom error code exists for DSub client to automatically switch authentication mechanism
-            APIException rootCause = null;
-            if (encoderSpecialization.equals(SALT_TOKEN_MECHANISM_SPECIALIZATION)) {
-                logger.debug("Authentication attempted via hashed password (salted token), can retry with normal means");
-                rootCause = new APIException(ErrorCode.NOT_AUTHENTICATED_UPGRADE_TO_NON_HASHED);
-            }
-            throw new BadCredentialsException(messages.getMessage("AbstractUserDetailsAuthenticationProvider.badCredentials", "Bad credentials"), rootCause);
-        }
-
-        if (result.getFailure().orElse(null) == SubsonicAuthenticator.Failure.CREDENTIALS_EXPIRED) {
-            logger.debug("User account credentials have expired");
-
-            throw new CredentialsExpiredException(messages.getMessage("AbstractUserDetailsAuthenticationProvider.credentialsExpired", "User credentials have expired"));
-        }
-
-        // perform upgrade if needed for password-based auth
-        Optional<UserCredential> matchedCred = result.getCredential();
-        if (result.isUpgradeRequired()) {
-            UserCredential upgraded = new UserCredential(matchedCred.orElseThrow());
-            upgraded.setCredential(authentication.getCredentials().toString());
-            if (!securityService.updateCredentials(matchedCred.orElseThrow(), upgraded, upgraded.getComment() + " | Automatically upgraded by system", true)) {
-                logger.debug("Password needs to be upgraded, but failed");
-            }
-        }
-    }
-
-    public void setSecurityService(SecurityService securityService) {
+    public MultipleCredsMatchingAuthenticationProvider(SecurityService securityService) {
         this.securityService = securityService;
     }
 
     @Override
-    public void setUserDetailsService(UserDetailsService userDetailsService) {
-        super.setUserDetailsService(userDetailsService);
+    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        if (!(authentication instanceof UsernamePasswordAuthenticationToken)) {
+            return null;
+        }
+        if (authentication.getCredentials() == null) {
+            throw new BadCredentialsException("Bad credentials");
+        }
+
+        UserIdentity identity = securityService.findUserIdentity(authentication.getName(), true);
+        if (identity == null) {
+            throw new BadCredentialsException("Bad credentials");
+        }
+
+        boolean saltedToken = authentication instanceof UsernameSaltedTokenAuthenticationToken;
+        SubsonicAuthenticator.Mode mode = saltedToken
+                ? SubsonicAuthenticator.Mode.SALTED_TOKEN : SubsonicAuthenticator.Mode.PASSWORD;
+        String presentedPassword = authentication.getCredentials().toString();
+        SubsonicAuthenticator.Result result = authenticator.authenticate(
+                identity.getCredentials(), presentedPassword, mode, encoders());
+
+        if (!result.isAuthenticated()
+                && result.getFailure().orElse(null) != SubsonicAuthenticator.Failure.CREDENTIALS_EXPIRED) {
+            Throwable cause = saltedToken
+                    ? new APIException(ErrorCode.NOT_AUTHENTICATED_UPGRADE_TO_NON_HASHED) : null;
+            throw new BadCredentialsException("Bad credentials", cause);
+        }
+
+        if (result.getFailure().orElse(null) == SubsonicAuthenticator.Failure.CREDENTIALS_EXPIRED) {
+            throw new CredentialsExpiredException("User credentials have expired");
+        }
+
+        UserCredential matchedCredential = result.getCredential().orElseThrow();
+        if (result.isUpgradeRequired()) {
+            UserCredential upgraded = new UserCredential(matchedCredential);
+            upgraded.setCredential(presentedPassword);
+            if (!securityService.updateCredentials(matchedCredential, upgraded,
+                    upgraded.getComment() + " | Automatically upgraded by system", true)) {
+                LOG.debug("Password needs to be upgraded, but failed");
+            }
+        }
+
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("IS_AUTHENTICATED_ANONYMOUSLY"));
+        authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+        identity.getRoles().forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name())));
+        UsernamePasswordAuthenticationToken authenticated = UsernamePasswordAuthenticationToken.authenticated(
+                identity.getUsername(), null, authorities);
+        authenticated.setDetails(authentication.getDetails());
+        return authenticated;
     }
 
     @Override
-    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
-        super.setPasswordEncoder(passwordEncoder);
+    public boolean supports(Class<?> authentication) {
+        return UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication);
+    }
+
+    private static Map<String, PasswordEncoder> encoders() {
+        Map<String, PasswordEncoder> result = new HashMap<>();
+        GlobalSecurityConfig.ENCODERS.forEach((name, encoder) -> result.put(name, asAirsonicEncoder(encoder)));
+        return result;
+    }
+
+    private static PasswordEncoder asAirsonicEncoder(
+            org.springframework.security.crypto.password.PasswordEncoder encoder) {
+        if (encoder instanceof SpringPasswordEncoderAdapter) {
+            return ((SpringPasswordEncoderAdapter) encoder).getDelegate();
+        }
+        return new PasswordEncoder() {
+            @Override
+            public String encode(CharSequence rawPassword) {
+                return encoder.encode(rawPassword);
+            }
+
+            @Override
+            public boolean matches(CharSequence rawPassword, String encodedPassword) {
+                return encoder.matches(rawPassword, encodedPassword);
+            }
+
+            @Override
+            public boolean upgradeEncoding(String encodedPassword) {
+                return encoder.upgradeEncoding(encodedPassword);
+            }
+        };
     }
 }
