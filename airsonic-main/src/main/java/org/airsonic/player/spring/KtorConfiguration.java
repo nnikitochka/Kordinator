@@ -708,8 +708,7 @@ public class KtorConfiguration {
             HlsSegmentService hlsSegmentService,
             MediaStreamService mediaStreamService,
             UploadFileService uploadFileService,
-            org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry,
-            org.airsonic.player.monitor.MetricsManager metricsManager
+            org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry
     ) {
         ArtistDao artistDao = graph.getArtistDao();
         AlbumDao albumDao = graph.getAlbumDao();
@@ -803,7 +802,7 @@ public class KtorConfiguration {
                                 runtime.createPasswordRecoveryController(passwordRecoveryService, objectMapper),
                                 runtime.createServerInfoController(serverInfoService, objectMapper, settingsService), jaxbWriter,
                                 () -> InfrastructureErrorSettings.from(runtime.getConfiguration()),
-                                objectMapper, metricsManager, lifecycleRegistry, settingsService),
+                                objectMapper, runtime.createMetricsManager(), lifecycleRegistry, settingsService),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);

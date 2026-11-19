@@ -14,10 +14,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     fun jCacheCacheManager(runtime: org.airsonic.player.runtime.RuntimeCompositionRoot): javax.cache.CacheManager =
         runtime.createCacheManager()
 
-    @Bean(destroyMethod = "close")
-    fun metricsManager(runtime: org.airsonic.player.runtime.RuntimeCompositionRoot): org.airsonic.player.monitor.MetricsManager =
-        runtime.createMetricsManager()
-
     @Bean
     fun serverHealthContributors(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
