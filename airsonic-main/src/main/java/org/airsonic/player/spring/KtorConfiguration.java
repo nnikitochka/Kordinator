@@ -257,12 +257,6 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public org.springframework.context.ApplicationListener<org.springframework.boot.context.event.ApplicationReadyEvent>
-            runtimeLifecycleStartupListener(org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry) {
-        return event -> lifecycleRegistry.start();
-    }
-
-    @Bean
     public org.springframework.context.ApplicationListener<org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent>
             authenticationFailureListener(GlobalSecurityConfig securityConfig) {
         return securityConfig::loginFailureListener;
@@ -729,6 +723,7 @@ public class KtorConfiguration {
             HlsSegmentService hlsSegmentService,
             MediaStreamService mediaStreamService,
             UploadFileService uploadFileService,
+            org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry,
             org.springframework.boot.autoconfigure.web.ServerProperties serverProperties,
             org.airsonic.player.monitor.MetricsManager metricsManager,
             org.airsonic.player.dao.TransactionManager transactionManager
@@ -823,7 +818,7 @@ public class KtorConfiguration {
                                         ErrorAttributeMode.valueOf(serverProperties.getError().getIncludeMessage().name()),
                                         ErrorAttributeMode.valueOf(serverProperties.getError().getIncludeStacktrace().name()),
                                         ErrorAttributeMode.valueOf(serverProperties.getError().getIncludePath().name())),
-                                objectMapper, metricsManager, settingsService),
+                                objectMapper, metricsManager, lifecycleRegistry, settingsService),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);

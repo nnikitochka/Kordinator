@@ -404,6 +404,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** удалены прямые production-зависимости `spring-security-ldap` и `spring-ldap-core`: LDAP auth реализована проектным `JndiLdapDirectoryAuthenticator` через стандартный JNDI API и не использует Spring LDAP. Для этого удалена ненужная `@Transactional(NOT_SUPPORTED)` из параллельного `BookmarkDaoTestCase` (тестовый контекст и ранее не оборачивал тестовые методы в транзакции). Provider/authenticator/JNDI/DAO regression-тесты прошли 17/17; dependency tree пуст для обоих удалённых artifacts.
 
+**Срез 19 ноября 2026:** запуск `LifecycleRegistry` перенесён со Spring `ApplicationReadyEvent` внутрь инициализации Ktor servlet engine, после регистрации routes. Контекст больше не зависит от Spring application event для запуска backfill обложек и других runtime startup actions. `LifecycleRegistryTest`, `RuntimeCompositionRootGraphTest`, `LegacyDatabaseStartupTestCase` и `CoverArtServiceAccentColorTest` прошли 13/13; HTTP startup integration test не запускался из-за запрещённого sandbox loopback socket.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

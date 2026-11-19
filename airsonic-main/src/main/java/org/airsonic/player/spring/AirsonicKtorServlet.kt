@@ -222,6 +222,7 @@ class AirsonicKtorServlet(
     private val errorProperties: java.util.function.Supplier<InfrastructureErrorSettings>,
     private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
     metricsManager: MetricsManager,
+    private val lifecycleRegistry: org.airsonic.player.runtime.LifecycleRegistry,
     settingsService: org.airsonic.player.service.SettingsService,
 ) : ServletApplicationEngine() {
     private val callerContextAdapter = ServletCallerContextAdapter(securityService)
@@ -450,6 +451,7 @@ class AirsonicKtorServlet(
                 )
             }
         }
+        lifecycleRegistry.start()
     }
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
