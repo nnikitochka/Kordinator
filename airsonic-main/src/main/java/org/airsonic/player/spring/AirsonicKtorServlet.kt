@@ -827,16 +827,6 @@ class AirsonicKtorServlet(
                 request.getParameter("usernameOrEmail"), request.getParameter("g-recaptcha-response"),
                 csrf?.headerName, csrf?.token))
         }
-        if (path in setOf("/recover", "/recover.view")) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            response.setHeader("Cache-Control", "no-store")
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
-        }
         if (path == VideoPlayerRestController.PATH) {
             if (request.method !in setOf("GET", "HEAD")) {
                 response.setHeader("Allow", "GET, HEAD")

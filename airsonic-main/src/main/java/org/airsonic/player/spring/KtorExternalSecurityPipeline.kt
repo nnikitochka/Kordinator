@@ -50,7 +50,7 @@ internal class KtorExternalSecurityPipeline(
         val requestedPath = request.requestURI.substring(request.contextPath.length + 1) + "?" + request.queryString
         val verification = jwtTokenVerifier.verifyRequest(settingsService.jwtKey, rawToken, requestedPath)
         if (!verification.isVerified) {
-            response.sendRedirect(request.contextPath + FAILURE_URL)
+            response.sendError(HttpServletResponse.SC_FORBIDDEN)
             return
         }
         val token = verification.token
@@ -101,7 +101,6 @@ internal class KtorExternalSecurityPipeline(
     }
 
     private companion object {
-        const val FAILURE_URL = "/login?error"
         val JWT_ROLES = setOf("ROLE_TEMP")
     }
 }

@@ -982,7 +982,7 @@ public class KtorConfiguration {
         registration.addUrlMappings("/ext/share/*", "/ext/rest/share/*");
         registration.addUrlMappings(CaptionsRestController.PATHS);
         registration.addUrlMappings(ServerInfoController.PATHS);
-        registration.addUrlMappings(PasswordRecoveryController.PATH, "/recover", "/recover.view");
+        registration.addUrlMappings(PasswordRecoveryController.PATH);
         registration.addUrlMappings(VideoPlayerRestController.PATH, "/videoPlayer", "/videoPlayer.view");
         registration.addUrlMappings(HlsRestController.PATHS);
         registration.addUrlMappings(HlsRestController.WEBSITE_PATHS);
