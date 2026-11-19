@@ -10,6 +10,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.service.PlaylistService
 import org.airsonic.player.service.SecurityService
@@ -94,6 +95,58 @@ class KordinatorPlaylistRoutes(
             call.respondText(objectMapper.writeValueAsString(details), ContentType.Application.Json)
         }
 
+        root.put("/api/v1/playlists/{id}") {
+            val username = currentUsername(call)
+            if (username.isNullOrBlank()) {
+                call.respond(HttpStatusCode.Unauthorized)
+                return@put
+            }
+
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id == null || id <= 0) {
+                call.respondText(
+                    objectMapper.writeValueAsString(ApiError("invalid_request", "Playlist ID must be a positive number")),
+                    ContentType.Application.Json,
+                    HttpStatusCode.BadRequest,
+                )
+                return@put
+            }
+
+            val original = playlists.getPlaylist(id)
+            if (original == null || !playlists.isWriteAllowed(original, username)) {
+                call.respond(HttpStatusCode.NotFound)
+                return@put
+            }
+
+            val request = try {
+                objectMapper.readValue(call.receiveText(), UpdateKordinatorPlaylistRequest::class.java)
+            } catch (_: Exception) {
+                call.respondText(
+                    objectMapper.writeValueAsString(ApiError("invalid_request", "Request body must be valid JSON")),
+                    ContentType.Application.Json,
+                    HttpStatusCode.BadRequest,
+                )
+                return@put
+            }
+            val name = request.name?.trim()
+            if (name.isNullOrEmpty()) {
+                call.respondText(
+                    objectMapper.writeValueAsString(ApiError("invalid_request", "Playlist name is required")),
+                    ContentType.Application.Json,
+                    HttpStatusCode.BadRequest,
+                )
+                return@put
+            }
+
+            val updated = Playlist(original).apply {
+                this.name = name
+                comment = request.comment?.trim()?.takeIf(String::isNotEmpty)
+                changed = Instant.now()
+            }
+            playlists.updatePlaylist(updated)
+            call.respondText(objectMapper.writeValueAsString(updated.toSummary()), ContentType.Application.Json)
+        }
+
         root.post("/api/v1/playlists") {
             val username = currentUsername(call)
             if (username.isNullOrBlank()) {
@@ -140,6 +193,8 @@ class KordinatorPlaylistRoutes(
 }
 
 data class CreateKordinatorPlaylistRequest(val name: String?)
+
+data class UpdateKordinatorPlaylistRequest(val name: String?, val comment: String?)
 
 data class KordinatorPlaylistDetails(
     val id: Int,

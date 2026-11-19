@@ -3,6 +3,7 @@ package org.airsonic.player.ktor
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
@@ -137,6 +138,76 @@ class KordinatorPlaylistRoutesTest {
 
         assertEquals(HttpStatusCode.NotFound, response.status)
         Mockito.verify(playlistService, Mockito.never()).getFilesInPlaylist(7)
+    }
+
+    @Test
+    fun updatesPlaylistMetadataOnlyForItsOwner() = testApplication {
+        val playlistService = Mockito.mock(PlaylistService::class.java)
+        val securityService = Mockito.mock(SecurityService::class.java)
+        val playlist = Playlist().apply {
+            id = 7
+            username = "alice"
+            name = "Old name"
+        }
+        Mockito.`when`(playlistService.getPlaylist(7)).thenReturn(playlist)
+        Mockito.`when`(playlistService.isWriteAllowed(playlist, "alice")).thenReturn(true)
+        val mapper = jacksonObjectMapper()
+        application {
+            routing {
+                KordinatorPlaylistRoutes(playlistService, securityService).routes(
+                    this,
+                    currentUsername = { call -> call.request.headers["X-Test-User"] },
+                    objectMapper = mapper,
+                )
+            }
+        }
+
+        val response = client.put("/api/v1/playlists/7") {
+            headers.append("X-Test-User", "alice")
+            contentType(ContentType.Application.Json)
+            setBody("""{"name":" New name ","comment":" Road music "}""")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val payload = mapper.readTree(response.bodyAsText())
+        assertEquals(7, payload["id"].asInt())
+        assertEquals("New name", payload["name"].asText())
+        val updated = Mockito.mockingDetails(playlistService).invocations
+            .single { it.method.name == "updatePlaylist" }
+            .arguments[0] as Playlist
+        assertEquals("alice", updated.username)
+        assertEquals("Road music", updated.comment)
+    }
+
+    @Test
+    fun rejectsPlaylistUpdateFromNonOwner() = testApplication {
+        val playlistService = Mockito.mock(PlaylistService::class.java)
+        val securityService = Mockito.mock(SecurityService::class.java)
+        val playlist = Playlist().apply {
+            id = 7
+            username = "bob"
+            name = "Private"
+        }
+        Mockito.`when`(playlistService.getPlaylist(7)).thenReturn(playlist)
+        Mockito.`when`(playlistService.isWriteAllowed(playlist, "alice")).thenReturn(false)
+        application {
+            routing {
+                KordinatorPlaylistRoutes(playlistService, securityService).routes(
+                    this,
+                    currentUsername = { call -> call.request.headers["X-Test-User"] },
+                    objectMapper = jacksonObjectMapper(),
+                )
+            }
+        }
+
+        val response = client.put("/api/v1/playlists/7") {
+            headers.append("X-Test-User", "alice")
+            contentType(ContentType.Application.Json)
+            setBody("""{"name":"Hijacked"}""")
+        }
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        Mockito.verify(playlistService, Mockito.never()).updatePlaylist(Mockito.any(Playlist::class.java))
     }
 
     @Test
