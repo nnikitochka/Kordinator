@@ -338,6 +338,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `a1f8d7a` убирает Spring `Authentication`/`JWTAuthenticationToken` из Ktor servlet и external-route pipeline: проверенные JWT теперь представлены обычным `ExternalJwtPrincipal` с ролями, сроком действия и подписанным path. `SpringCallerContextAdapter` заменён нейтральным servlet-principal adapter; Spring token остаётся только в оставшемся Spring Security фильтре. Servlet/Ktor, HLS, captions, public share, stream, download и cover-art regressions прошли 26/26.
 
+Срез `3f6d27b` переносит поиск `UserIdentity`, проверку срока действия и automatic password upgrade из `MultipleCredsMatchingAuthenticationProvider` в Kotlin `SubsonicCredentialAuthenticationService`, принадлежащий `RuntimeCompositionRoot`. Spring provider теперь только отображает нейтральный результат в Spring exceptions и authorities. Неподдерживаемый сохранённый encoder сохраняет прежнее поведение «не прошла аутентификация», без HTTP 500. Login/credentials integration, provider и root graph regressions прошли; исправленный набор service+root graph прошёл 5/5.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
