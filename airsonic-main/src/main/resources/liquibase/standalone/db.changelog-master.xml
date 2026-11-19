@@ -136,4 +136,51 @@
             <column name="album"/>
         </createIndex>
     </changeSet>
+    <changeSet id="standalone-playlist-tables-1" author="airsonic">
+        <createTable tableName="user_playlist">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_user_playlist"/>
+            </column>
+            <column name="owner_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_playlist" baseColumnNames="owner_id"
+                                 constraintName="fk_user_playlist_owner" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="user_playlist" indexName="ix_user_playlist_owner">
+            <column name="owner_id"/>
+            <column name="updated_at"/>
+        </createIndex>
+
+        <createTable tableName="user_playlist_track">
+            <column name="playlist_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_playlist_track"/>
+            </column>
+            <column name="position" type="INT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_playlist_track"/>
+            </column>
+            <column name="track_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_playlist_track" baseColumnNames="playlist_id"
+                                 constraintName="fk_user_playlist_track_playlist" referencedTableName="user_playlist"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <addForeignKeyConstraint baseTableName="user_playlist_track" baseColumnNames="track_id"
+                                 constraintName="fk_user_playlist_track_track" referencedTableName="media_track"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="user_playlist_track" indexName="ix_user_playlist_track_track">
+            <column name="track_id"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>

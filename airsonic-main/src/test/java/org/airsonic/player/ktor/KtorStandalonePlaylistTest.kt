@@ -1,0 +1,114 @@
+package org.airsonic.player.ktor
+
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
+import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.delete
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.put
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.server.testing.testApplication
+import org.airsonic.player.runtime.StandaloneDatabase
+import org.airsonic.player.security.LocalAuthService
+import org.airsonic.player.service.StandaloneLibraryScanService
+import org.airsonic.player.service.StandaloneLibraryService
+import org.airsonic.player.service.StandalonePlaylistService
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Files
+import java.nio.file.Path
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+class KtorStandalonePlaylistTest {
+    @TempDir
+    lateinit var musicRoot: Path
+
+    @Test
+    fun playlistsArePrivateOrderedAndUpdatedAtomically() {
+        Files.writeString(musicRoot.resolve("track.mp3"), "stream bytes")
+        val dataSource = HikariDataSource(HikariConfig().apply {
+            jdbcUrl = "jdbc:hsqldb:mem:standalone_playlist_api"
+            driverClassName = "org.hsqldb.jdbc.JDBCDriver"
+            username = "sa"
+            password = ""
+            maximumPoolSize = 4
+        })
+
+        dataSource.use {
+            StandaloneDatabase.migrate(dataSource)
+            val auth = LocalAuthService(dataSource)
+            auth.createInitialAdmin("owner", "a strong password for tests")
+            auth.createUser("other", "another strong password")
+            val ownerToken = auth.login("owner", "a strong password for tests")!!.token
+            val otherToken = auth.login("other", "another strong password")!!.token
+            val libraries = StandaloneLibraryService(dataSource)
+            val library = libraries.create("Music", musicRoot)
+            val scans = StandaloneLibraryScanService(dataSource)
+            val scan = scans.enqueue(library.id)
+            scans.run(scan.id)
+            val playlists = StandalonePlaylistService(dataSource)
+            val mapper = jacksonObjectMapper()
+
+            testApplication {
+                application { standaloneModule(auth, libraries, scans, playlists) }
+
+                val tracksResponse = client.get("/api/v1/tracks") { bearerAuth(ownerToken) }
+                val trackId = mapper.readTree(tracksResponse.bodyAsText()).get("items")[0].get("id").asLong()
+
+                val created = client.post("/api/v1/playlists") {
+                    bearerAuth(ownerToken)
+                    header("Content-Type", "application/json")
+                    setBody("""{"name":"Road Trip","trackIds":[$trackId,$trackId]}""")
+                }
+                assertEquals(201, created.status.value)
+                val createdBody = mapper.readTree(created.bodyAsText())
+                val playlistId = createdBody.get("id").asLong()
+                assertEquals("Road Trip", createdBody.get("name").asText())
+                assertEquals(listOf(trackId, trackId), createdBody.get("trackIds").map { it.asLong() })
+
+                val list = client.get("/api/v1/playlists") { bearerAuth(ownerToken) }
+                assertEquals(1, mapper.readTree(list.bodyAsText()).size())
+                val privateList = client.get("/api/v1/playlists") { bearerAuth(otherToken) }
+                assertEquals(0, mapper.readTree(privateList.bodyAsText()).size())
+                assertEquals(404, client.get("/api/v1/playlists/$playlistId") { bearerAuth(otherToken) }.status.value)
+                assertEquals(
+                    404,
+                    client.put("/api/v1/playlists/$playlistId") {
+                        bearerAuth(otherToken)
+                        header("Content-Type", "application/json")
+                        setBody("""{"name":"Stolen","trackIds":[]}""")
+                    }.status.value,
+                )
+                assertEquals(404, client.delete("/api/v1/playlists/$playlistId") { bearerAuth(otherToken) }.status.value)
+
+                val invalidUpdate = client.put("/api/v1/playlists/$playlistId") {
+                    bearerAuth(ownerToken)
+                    header("Content-Type", "application/json")
+                    setBody("""{"name":"Broken","trackIds":[999999]}""")
+                }
+                assertEquals(400, invalidUpdate.status.value)
+                val unchanged = client.get("/api/v1/playlists/$playlistId") { bearerAuth(ownerToken) }
+                val unchangedBody = mapper.readTree(unchanged.bodyAsText())
+                assertEquals("Road Trip", unchangedBody.get("name").asText())
+                assertEquals(listOf(trackId, trackId), unchangedBody.get("trackIds").map { it.asLong() })
+
+                val update = client.put("/api/v1/playlists/$playlistId") {
+                    bearerAuth(ownerToken)
+                    header("Content-Type", "application/json")
+                    setBody("""{"name":"Favorites","trackIds":[$trackId]}""")
+                }
+                assertEquals(200, update.status.value)
+                val updatedBody = mapper.readTree(update.bodyAsText())
+                assertEquals("Favorites", updatedBody.get("name").asText())
+                assertEquals(listOf(trackId), updatedBody.get("trackIds").map { it.asLong() })
+
+                assertEquals(204, client.delete("/api/v1/playlists/$playlistId") { bearerAuth(ownerToken) }.status.value)
+                assertEquals(404, client.get("/api/v1/playlists/$playlistId") { bearerAuth(ownerToken) }.status.value)
+            }
+        }
+    }
+}

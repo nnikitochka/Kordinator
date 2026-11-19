@@ -21,6 +21,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.request.receiveText
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
@@ -39,6 +40,7 @@ import org.airsonic.player.runtime.RuntimeConfigurationLoader
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.service.StandaloneLibraryService
 import org.airsonic.player.service.StandaloneLibraryScanService
+import org.airsonic.player.service.StandalonePlaylistService
 import java.nio.file.Path
 import java.nio.channels.FileChannel
 import java.nio.ByteBuffer
@@ -60,6 +62,7 @@ fun Application.standaloneModule(
     authService: LocalAuthService? = null,
     libraryService: StandaloneLibraryService? = null,
     libraryScanService: StandaloneLibraryScanService? = null,
+    playlistService: StandalonePlaylistService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -174,6 +177,95 @@ fun Application.standaloneModule(
                     }
                 }
                 authenticate("server-session") {
+                    get("/playlists") {
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (playlistService == null) {
+                            call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val playlists = withContext(scanDispatcher) { playlistService.list(user.id) }
+                            .map { PlaylistSummaryResponse(it.id, it.name, it.createdAt.toString(), it.updatedAt.toString(), it.trackCount) }
+                        call.respondJson(playlists)
+                    }
+                    post("/playlists") {
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                        if (playlistService == null) {
+                            call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@post
+                        }
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), SavePlaylistRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected name and optional trackIds"), HttpStatusCode.BadRequest)
+                            return@post
+                        }
+                        try {
+                            val playlist = withContext(scanDispatcher) { playlistService.create(user.id, request.name, request.trackIds) }
+                            call.respondJson(playlist.toResponse(), HttpStatusCode.Created)
+                        } catch (_: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_playlist", "Playlist name or track IDs are invalid"), HttpStatusCode.BadRequest)
+                        }
+                    }
+                    get("/playlists/{id}") {
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val service = playlistService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val playlistId = call.parameters["id"]?.toLongOrNull()
+                        if (playlistId == null || playlistId < 0) {
+                            call.respondJson(ApiError("invalid_request", "Playlist ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val playlist = withContext(scanDispatcher) { service.get(user.id, playlistId) }
+                        if (playlist == null) call.respond(HttpStatusCode.NotFound) else call.respondJson(playlist.toResponse())
+                    }
+                    put("/playlists/{id}") {
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        val playlistId = call.parameters["id"]?.toLongOrNull()
+                        if (playlistId == null || playlistId < 0) {
+                            call.respondJson(ApiError("invalid_request", "Playlist ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val service = playlistService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@put
+                        }
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), SavePlaylistRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected name and trackIds"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        try {
+                            val playlist = withContext(scanDispatcher) { service.update(user.id, playlistId, request.name, request.trackIds) }
+                            if (playlist == null) call.respond(HttpStatusCode.NotFound) else call.respondJson(playlist.toResponse())
+                        } catch (_: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_playlist", "Playlist name or track IDs are invalid"), HttpStatusCode.BadRequest)
+                        }
+                    }
+                    delete("/playlists/{id}") {
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                        val service = playlistService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@delete
+                        }
+                        val playlistId = call.parameters["id"]?.toLongOrNull()
+                        if (playlistId == null || playlistId < 0) {
+                            call.respondJson(ApiError("invalid_request", "Playlist ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@delete
+                        }
+                        val deleted = withContext(scanDispatcher) { service.delete(user.id, playlistId) }
+                        if (deleted) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
+                    }
                     get("/me") {
                         val user = call.principal<LocalUserPrincipal>()
                             ?: return@get call.respond(HttpStatusCode.Unauthorized)
@@ -394,6 +486,23 @@ data class ScanResponse(
     val startedAt: String,
     val finishedAt: String?,
 )
+data class SavePlaylistRequest(val name: String, val trackIds: List<Long> = emptyList())
+data class PlaylistSummaryResponse(val id: Long, val name: String, val createdAt: String, val updatedAt: String, val trackCount: Int)
+data class PlaylistTrackResponse(
+    val id: Long,
+    val title: String,
+    val artist: String?,
+    val album: String?,
+    val durationSeconds: Int,
+)
+data class PlaylistResponse(
+    val id: Long,
+    val name: String,
+    val createdAt: String,
+    val updatedAt: String,
+    val trackIds: List<Long>,
+    val tracks: List<PlaylistTrackResponse>,
+)
 
 private data class ByteRange(val start: Long, val end: Long)
 
@@ -429,6 +538,15 @@ private fun org.airsonic.player.service.LibraryScan.toResponse() = ScanResponse(
     id, libraryId, state, tracksScanned, errorCount, startedAt.toString(), finishedAt?.toString(),
 )
 
+private fun org.airsonic.player.service.StandalonePlaylist.toResponse() = PlaylistResponse(
+    id,
+    name,
+    createdAt.toString(),
+    updatedAt.toString(),
+    tracks.map { it.id },
+    tracks.map { PlaylistTrackResponse(it.id, it.title, it.artist, it.album, it.durationSeconds) },
+)
+
 fun main(args: Array<String>) {
     val configuration = RuntimeConfigurationLoader().load(args, System.getProperties(), System.getenv(), null, emptyMap())
     val host = configuration.getProperty("airsonic.http.host", "0.0.0.0")
@@ -446,6 +564,7 @@ fun main(args: Array<String>) {
     val authService = LocalAuthService(database.dataSource)
     val libraryService = StandaloneLibraryService(database.dataSource)
     val libraryScanService = StandaloneLibraryScanService(database.dataSource)
+    val playlistService = StandalonePlaylistService(database.dataSource)
     if (configuration.getBooleanProperty("airsonic.create-admin", false)) {
         try {
             val console = System.console()
@@ -467,7 +586,7 @@ fun main(args: Array<String>) {
         return
     }
     val server = embeddedServer(Netty, host = host, port = port) {
-        standaloneModule(authService, libraryService, libraryScanService)
+        standaloneModule(authService, libraryService, libraryScanService, playlistService)
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })
     server.start(wait = true)
