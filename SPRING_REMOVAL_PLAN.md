@@ -294,7 +294,9 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `1080c28` удаляет `@Transactional` из `CoverArtDao`, `AvatarDao`, `ShareDao`; multi-statement upsert/expunge/avatar replace и batch share files теперь используют явные framework-neutral transactions. Cover-art accent/REST, avatar upload, share/public/web-share, JDBC и root graph tests прошли 19/19. После него оставалось 7 деклараций.
 
-Срез `e1a6697` переносит Album/Artist upsert, MusicFolder create/reassign/user assignment на явные `READ_COMMITTED` transactions и удаляет соответствующие Spring annotations/imports. Scanner, music index, music-folder settings, Subsonic artists/genres и root graph suite прошёл 14/14. В DAO осталось только две Spring transaction declarations: сложный `MediaFileDao` write path и class-level `UserDao`; дальнейший срез должен убрать их и отключить AspectJ transaction weaving.
+Срез `e1a6697` переносит Album/Artist upsert, MusicFolder create/reassign/user assignment на явные `READ_COMMITTED` transactions и удаляет соответствующие Spring annotations/imports. Scanner, music index, music-folder settings, Subsonic artists/genres и root graph suite прошёл 14/14. После него оставалось две Spring transaction declarations.
+
+Срез `031e3fc` переводит `MediaFileDao.createOrUpdateMediaFile` на явную `READ_COMMITTED` транзакцию. Runtime graph, scanner unit/service, tag-edit service/REST, artist-info, cover-art и music-directory API tests прошли 14/14. В прикладном DAO слое осталась одна Spring транзакционная декларация — class-level `@Transactional` на `UserDao`; затем можно удалить `@EnableTransactionManagement` и Spring AspectJ зависимости.
 
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
