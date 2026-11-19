@@ -312,6 +312,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `3c6adbd` убирает Spring `RequestContextUtils` из JSP `FormatBytesTag`: он берёт рассчитанную локаль из request attribute `airsonic.locale`, а затем fallback-ится на Servlet API `getLocale()`. `StringUtilTestCase`, Ktor servlet pages/routes и login regressions прошли 29/29.
 
+Срез `e58e7d1` удаляет runtime `SpringExternalTransactionConnectionContext` и внешний transaction SPI. После переноса всех production `@Transactional` DAO операций на собственный `TransactionManager` Spring connection binding больше не требуется; root создаёт транзакционный manager напрямую от DataSource. Удалён Spring-specific bridge test. DAO suites и критичные integration regressions (`*DaoTestCase`, `JdbcHelperTest`, credentials, playlist import, play queue, transcoding, root graph) прошли 38/38.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
