@@ -372,6 +372,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** `spring-boot-starter-security` заменён прямыми `spring-security-config` и `spring-security-web`; приложение уже предоставляет собственную `GlobalSecurityConfig`/`SecurityFilterChain`, поэтому Boot Security starter не нужен для security wiring. `LoginRateLimiterTest`, `SecurityRoutePolicyTest`, `SubsonicCredentialAuthenticationServiceTest`, `CredentialCompatibilityBaselineTest` и `SecurityServiceTestCase` прошли 11/11; dependency tree подтверждает отсутствие Boot Security starter.
 
+**Срез 19 ноября 2026:** `spring-boot-starter-tomcat` заменён прямыми Tomcat Embed Core/EL/WebSocket зависимостями с тем же профилем scope; Servlet API и контейнер сохранены. В явные production dependencies добавлены `spring-boot`, `spring-boot-autoconfigure` и Logback, ранее неявно приходившие через Boot starters. `mvn ... clean package -DskipTests` прошёл с чистой компиляцией и пересборкой WAR; dependency tree показывает только прямые Tomcat Embed artifacts, без Tomcat Boot starter. Тесты этого среза не запускались.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
