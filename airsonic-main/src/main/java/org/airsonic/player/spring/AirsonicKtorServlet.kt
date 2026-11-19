@@ -68,8 +68,6 @@ import org.airsonic.player.controller.rest.cover.CoverArtActionsController
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController
 import org.airsonic.player.controller.rest.tags.TagEditController
 import org.airsonic.player.controller.rest.livequeue.LiveQueueExportController
-import org.airsonic.player.controller.rest.livequeue.RandomQueueController
-import org.airsonic.player.controller.rest.livequeue.LiveQueueController
 import org.airsonic.player.controller.rest.cover.CoverArtRestController
 import org.airsonic.player.controller.rest.admin.MusicFolderSettingsController
 import org.airsonic.player.controller.rest.admin.GeneralSettingsController
@@ -147,7 +145,6 @@ class AirsonicKtorServlet(
     private val uploadController: UploadController,
     private val playlistExportController: PlaylistExportController,
     private val playlistImportController: PlaylistImportController,
-    private val randomQueueController: RandomQueueController,
     private val liveQueueExportController: LiveQueueExportController,
     private val sharesController: SharesController,
     private val albumsController: AlbumsController,
@@ -185,7 +182,6 @@ class AirsonicKtorServlet(
     private val coverArtActionsController: CoverArtActionsController,
     private val mediaFileCommentController: MediaFileCommentController,
     private val tagEditController: TagEditController,
-    private val liveQueueController: LiveQueueController,
     private val ratingController: RatingController,
     private val downloadRestController: DownloadRestController,
     private val downloads: DownloadService,
@@ -307,10 +303,6 @@ class AirsonicKtorServlet(
             }
             val queueExport = request.getAttribute(QUEUE_EXPORT_REQUEST) as? LiveQueueExportController.Request
             if (queueExport != null) call.attributes.put(QUEUE_EXPORT_REQUEST_KEY, queueExport)
-            val randomQueue = request.getAttribute(RANDOM_QUEUE_REQUEST) as? RandomQueueController.Request
-            if (randomQueue != null) call.attributes.put(RANDOM_QUEUE_REQUEST_KEY, randomQueue)
-            val liveQueue = request.getAttribute(LIVE_QUEUE_REQUEST) as? LiveQueueController.Request
-            if (liveQueue != null) call.attributes.put(LIVE_QUEUE_REQUEST_KEY, liveQueue)
             val uploadStatus = request.getAttribute(UPLOAD_STATUS_REQUEST) as? UploadStatusController.Request
             if (uploadStatus != null) call.attributes.put(UPLOAD_STATUS_REQUEST_KEY, uploadStatus)
             val statistics = request.getAttribute(STATISTICS_REQUEST) as? StatisticsController.Request
@@ -361,7 +353,6 @@ class AirsonicKtorServlet(
             mediaFileCommentController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             playlistExportController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             playlistImportController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
-            randomQueueController.routes(this) { call -> call.attributes[RANDOM_QUEUE_REQUEST_KEY] }
             sharesController.routes(this) { call -> call.attributes[SHARES_REQUEST_KEY] }
             albumsController.routes(this) { call -> call.attributes[ALBUMS_REQUEST_KEY] }
             bookmarksController.routes(this) { call -> call.attributes[BOOKMARKS_REQUEST_KEY] }
@@ -395,7 +386,6 @@ class AirsonicKtorServlet(
             songController.routes(this) { call -> call.attributes[SONG_REQUEST_KEY] }
             videosController.routes(this) { call -> call.attributes[VIDEOS_REQUEST_KEY] }
             liveQueueExportController.routes(this) { call -> call.attributes[QUEUE_EXPORT_REQUEST_KEY] }
-            liveQueueController.routes(this) { call -> call.attributes[LIVE_QUEUE_REQUEST_KEY] }
             tagEditController.routes(this) { call -> call.attributes[TAG_EDIT_REQUEST_KEY] }
             coverArtRestController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             avatarRestController.routes(this) { call -> call.attributes[AVATAR_REQUEST_KEY] }
@@ -1115,18 +1105,6 @@ class AirsonicKtorServlet(
             request.setAttribute(QUEUE_EXPORT_REQUEST, LiveQueueExportController.Request(
                 player?.takeIf { it.username == username }, username, callerContextAdapter.fromRequest(request),
                 org.airsonic.player.service.NetworkService.getBaseUrl(request), parameters(request)))
-        } else if (path == RandomQueueController.PATH && request.method == "POST") {
-            val username = requireNotNull(securityService.getCurrentUsername(request))
-            val explicit = request.getParameter("playerId")
-            val player = if (explicit != null) explicit.toIntOrNull()?.let { playerService.getPlayerById(it) }
-                else playerService.getPlayer(request, response)
-            request.setAttribute(RANDOM_QUEUE_REQUEST, RandomQueueController.Request(
-                player?.takeIf { it.username == username }, username, parameters(request)))
-        } else if (path in LiveQueueController.PATHS) {
-            val username = requireNotNull(securityService.getCurrentUsername(request))
-            val player = request.getParameter("playerId")?.toIntOrNull()?.let { playerService.getPlayerById(it) }
-            request.setAttribute(LIVE_QUEUE_REQUEST, LiveQueueController.Request(
-                player?.takeIf { it.username == username }, parameters(request), username, callerContextAdapter.fromRequest(request)))
         } else if (path in StatisticsController.PATHS) {
             requireNotNull(securityService.getCurrentUser(request))
             request.setAttribute(STATISTICS_REQUEST, StatisticsController.Request(parameters(request), localeResolver.resolveLocale(request)))
@@ -1221,10 +1199,6 @@ class AirsonicKtorServlet(
         val HLS_REQUEST_KEY = AttributeKey<HlsRestController.Request>(HLS_REQUEST)
         const val QUEUE_EXPORT_REQUEST = "org.airsonic.player.queueExportRequest"
         val QUEUE_EXPORT_REQUEST_KEY = AttributeKey<LiveQueueExportController.Request>(QUEUE_EXPORT_REQUEST)
-        const val LIVE_QUEUE_REQUEST = "org.airsonic.player.liveQueueRequest"
-        private const val RANDOM_QUEUE_REQUEST = "airsonic.randomQueueRequest"
-        private val RANDOM_QUEUE_REQUEST_KEY = AttributeKey<RandomQueueController.Request>(RANDOM_QUEUE_REQUEST)
-        val LIVE_QUEUE_REQUEST_KEY = AttributeKey<LiveQueueController.Request>(LIVE_QUEUE_REQUEST)
         const val STATISTICS_REQUEST = "org.airsonic.player.statisticsRequest"
         val STATISTICS_REQUEST_KEY = AttributeKey<StatisticsController.Request>(STATISTICS_REQUEST)
         const val UPLOAD_STATUS_REQUEST = "org.airsonic.player.uploadStatusRequest"

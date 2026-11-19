@@ -22,9 +22,7 @@ import org.airsonic.player.controller.rest.tags.MediaFileCommentController;
 import org.airsonic.player.controller.rest.tags.TagEditController;
 import org.airsonic.player.service.CoverArtSearchService;
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController;
-import org.airsonic.player.controller.rest.livequeue.LiveQueueController;
 import org.airsonic.player.controller.rest.livequeue.LiveQueueExportController;
-import org.airsonic.player.controller.rest.livequeue.RandomQueueController;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.service.MusicIndexStateService;
 import org.airsonic.player.service.hls.HlsPlaylistService;
@@ -813,7 +811,6 @@ public class KtorConfiguration {
                                 new UploadController(uploadFileService, statusService, securityService, settingsService, jaxbWriter),
                                 new PlaylistExportController(playlistService, jaxbWriter),
                                 new PlaylistImportController(playlistService, jaxbWriter),
-                                new RandomQueueController(playQueueService, mediaFolderService, jaxbWriter),
                                 new LiveQueueExportController(transcodingService, jwtSecurityService, securityService, jaxbWriter),
                                 new SharesController(shareService, mediaFileService, mediaFolderService, responseMapper, jaxbWriter, playerService, playlistService, securityService),
                                 new AlbumsController(albumDao, mediaFileDao, mediaFileService, mediaFolderService,
@@ -856,7 +853,6 @@ public class KtorConfiguration {
                                 new CoverArtActionsController(coverArtSearchService, jaxbWriter),
                                 new MediaFileCommentController(mediaFileService, securityService, jaxbWriter),
                                 new TagEditController(tagEditService, jaxbWriter),
-                                new LiveQueueController(playQueueService, jaxbWriter, mediaFileService, playlistService, securityService, playQueueDao, playerService),
                                 new RatingController(mediaFileService, ratingService, jaxbWriter),
                                 new DownloadRestController(jaxbWriter), downloadService,
                                 shareService, mediaFileService,
@@ -923,9 +919,6 @@ public class KtorConfiguration {
         registration.addUrlMappings(CoverArtActionsController.PATHS);
         registration.addUrlMappings(MediaFileCommentController.PATH);
         registration.addUrlMappings(TagEditController.PATHS);
-        registration.addUrlMappings(LiveQueueController.PATHS);
-        registration.addUrlMappings(RandomQueueController.PATH);
-        registration.addUrlMappings(LiveQueueExportController.PATH);
         registration.addUrlMappings(AvatarRestController.PATHS);
         registration.addUrlMappings(AvatarRestController.LEGACY_PATHS);
         registration.addUrlMappings(ProxyRestController.PATHS);
@@ -933,6 +926,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(UploadController.PATH);
         registration.addUrlMappings(PlaylistExportController.PATH);
         registration.addUrlMappings(PlaylistImportController.PATH);
+        registration.addUrlMappings(LiveQueueExportController.PATH);
         registration.addUrlMappings("/ext/rest/share/*");
         registration.addUrlMappings(CaptionsRestController.PATHS);
         registration.addUrlMappings(ServerInfoController.PATHS);
