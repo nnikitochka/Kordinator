@@ -332,6 +332,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `be945a1` удаляет два неиспользуемых класса `CustomLDAPAuthenticatorPostProcessor` и `CustomUserDetailsContextMapper`: по production и test source search в них нет call sites, а активный LDAP login идёт через собственный `LdapAuthenticator` и `SpringLdapAuthenticationProvider`. LDAP authenticator/JNDI/provider, login и credential management tests прошли 21/21.
 
+Срез `e506bb3` удаляет `JWTAuthenticationProvider` из Spring `ProviderManager`: servlet JWT filter теперь вызывает framework-neutral `JwtTokenVerifier` напрямую и только отображает его результат в Spring Security principal на servlet boundary. Генерация и сохранение JWT key привязаны к созданию external filter, а не к созданию authentication manager. URI/JWT verifier, song, login и HLS tests прошли 18/18.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
