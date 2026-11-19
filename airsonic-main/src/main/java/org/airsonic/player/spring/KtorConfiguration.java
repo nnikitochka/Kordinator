@@ -121,12 +121,8 @@ import org.airsonic.player.dao.RatingDao;
 import org.airsonic.player.dao.ShareDao;
 import org.airsonic.player.dao.TranscodingDao;
 import org.airsonic.player.dao.UserDao;
-import org.airsonic.player.service.search.AnalyzerFactory;
-import org.airsonic.player.service.search.DocumentFactory;
 import org.airsonic.player.service.search.IndexManager;
-import org.airsonic.player.service.search.QueryFactory;
 import org.airsonic.player.service.search.SearchServiceImpl;
-import org.airsonic.player.service.search.SearchServiceUtilities;
 import org.airsonic.player.service.playlist.DefaultPlaylistExportHandler;
 import org.airsonic.player.service.playlist.DefaultPlaylistImportHandler;
 import org.airsonic.player.service.playlist.XspfPlaylistExportHandler;
@@ -273,22 +269,6 @@ public class KtorConfiguration {
             MediaFolderService mediaFolderService, SettingsService settingsService,
             TaskSchedulingService taskSchedulingService) {
         return runtime.createStatusService(mediaFileService, mediaFolderService, settingsService, taskSchedulingService);
-    }
-
-    public AnalyzerFactory analyzerFactory(RuntimeCompositionRoot runtime) {
-        return runtime.createAnalyzerFactory();
-    }
-
-    public DocumentFactory documentFactory(RuntimeCompositionRoot runtime) {
-        return runtime.createDocumentFactory();
-    }
-
-    public QueryFactory queryFactory(RuntimeCompositionRoot runtime) {
-        return runtime.createQueryFactory();
-    }
-
-    public SearchServiceUtilities searchServiceUtilities(RuntimeCompositionRoot runtime, MediaFileService mediaFileService) {
-        return runtime.createSearchServiceUtilities(mediaFileService);
     }
 
     public IndexManager indexManager(RuntimeCompositionRoot runtime) {

@@ -15,27 +15,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime.createPersistenceGraph().daos
 
     @Bean
-    override fun analyzerFactory(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.search.AnalyzerFactory = runtime.createAnalyzerFactory()
-
-    @Bean
-    override fun documentFactory(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.search.DocumentFactory = runtime.createDocumentFactory()
-
-    @Bean
-    override fun queryFactory(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.search.QueryFactory = runtime.createQueryFactory()
-
-    @Bean
-    override fun searchServiceUtilities(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-    ): org.airsonic.player.service.search.SearchServiceUtilities = runtime.createSearchServiceUtilities(mediaFileService)
-
-    @Bean
     override fun indexManager(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
     ): org.airsonic.player.service.search.IndexManager = runtime.createIndexManager()
