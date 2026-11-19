@@ -284,7 +284,9 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `2af9b5a` переносит play queue, jukebox legacy/service, captions, video playback и media stream factories в Kotlin adapter. `RuntimeCompositionRootGraphTest`, play queue broadcast/integration, jukebox unit/REST, stream/caption URL и HLS playlist/playback/integration tests прошли 31/31. После него оставалось 36 регистраций.
 
-Срез `d5d693c` переносит Last.fm, share, upload, download и user administration factories в Kotlin adapter. Runtime graph, cover-art search, share/public-share/web-share, website/Subsonic download, file/status upload и users REST tests прошли 13/13. В базовом `KtorConfiguration` осталось 31 `@Bean` регистрация; далее остаются статус/прочие service factories и Ktor servlet/bootstrap wiring.
+Срез `d5d693c` переносит Last.fm, share, upload, download и user administration factories в Kotlin adapter. Runtime graph, cover-art search, share/public-share/web-share, website/Subsonic download, file/status upload и users REST tests прошли 13/13. После него оставалось 31 регистрация.
+
+Срез `06459f7` переносит `StatusService`, `LocaleService`, `VersionService`, `ServerInfoService` и `PasswordRecoveryService` registrations в Kotlin adapter. Runtime graph, version/server info/status/password recovery service tests и server info/health/recovery/login integration прошли 25/25. В базовом `KtorConfiguration` осталось 26 `@Bean` registrations; далее остаются controller factories, servlet registration и Spring HTTP/security configuration beans.
 
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
