@@ -57,9 +57,6 @@ import org.airsonic.player.dao.PlaylistDao;
 import org.airsonic.player.controller.rest.cover.CoverArtRestController;
 import org.airsonic.player.controller.rest.avatar.AvatarRestController;
 import org.airsonic.player.controller.rest.proxy.ProxyRestController;
-import org.airsonic.player.controller.rest.login.LoginPageController;
-import org.airsonic.player.controller.rest.login.AccessDeniedPageController;
-import org.airsonic.player.controller.rest.error.NotFoundPageController;
 import org.airsonic.player.controller.rest.avatar.AvatarUploadController;
 import org.airsonic.player.controller.rest.indexes.IndexesController;
 import org.airsonic.player.controller.rest.music.genre.SongsByGenreController;
@@ -909,7 +906,7 @@ public class KtorConfiguration {
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService), new AvatarUploadController(settingsService, jaxbWriter),
                                 new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(mediaStreamService),
                                 new PublicShareController(shareService, mediaFileService, mediaFolderService, jwtSecurityService, metadataParsers, objectMapper), new CaptionsRestController(captionService, mediaFolderService, objectMapper),
-                                new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), new PlayQueuePageController(playerService, settingsService, objectMapper), new LoginPageController(securityService, settingsService), new AccessDeniedPageController(), jaxbWriter, () -> new InfrastructureErrorSettings(
+                                new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), new PlayQueuePageController(playerService, settingsService, objectMapper), jaxbWriter, () -> new InfrastructureErrorSettings(
                                         serverProperties.getError().getPath(), serverProperties.getError().isIncludeException(),
                                         ErrorAttributeMode.valueOf(serverProperties.getError().getIncludeMessage().name()),
                                         ErrorAttributeMode.valueOf(serverProperties.getError().getIncludeStacktrace().name()),

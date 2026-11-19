@@ -68,9 +68,6 @@ import org.airsonic.player.service.CoverArtImageService
 import org.airsonic.player.filter.RequestEncodingPolicy
 import org.airsonic.player.controller.rest.avatar.AvatarRestController
 import org.airsonic.player.controller.rest.proxy.ProxyRestController
-import org.airsonic.player.controller.rest.login.LoginPageController
-import org.airsonic.player.controller.rest.login.AccessDeniedPageController
-import org.airsonic.player.controller.rest.error.NotFoundPageController
 import org.airsonic.player.controller.rest.avatar.AvatarUploadController
 import io.ktor.http.parseQueryString
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController
@@ -243,8 +240,6 @@ class AirsonicKtorServlet(
     private val passwordRecoveryController: PasswordRecoveryController,
     private val serverInfoController: ServerInfoController,
     private val playQueuePageController: PlayQueuePageController,
-    private val loginPageController: LoginPageController,
-    private val accessDeniedPageController: AccessDeniedPageController,
     private val jaxbWriter: JAXBWriter,
     private val errorProperties: java.util.function.Supplier<InfrastructureErrorSettings>,
     private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
@@ -551,38 +546,6 @@ class AirsonicKtorServlet(
                 override fun isAsyncSupported(): Boolean = false
             }
             super.service(synchronousErrorRequest, response)
-            return
-        }
-        if (path in AccessDeniedPageController.PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            accessDeniedPageController.logAccessDenied(request.remoteAddr, request.requestURL.toString())
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
-        }
-        if (path in NotFoundPageController.PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
-        }
-        if (path in LoginPageController.PATHS) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            loginPageController.legacyRedirect(request)?.let {
-                response.sendRedirect(response.encodeRedirectURL(it))
-                return
-            }
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
             return
         }
         if (path in IndexPageController.PAGE_PATHS) {
