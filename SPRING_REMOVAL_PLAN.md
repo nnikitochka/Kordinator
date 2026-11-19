@@ -310,6 +310,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `ef85a3c` заменяет Spring `AntPathMatcher` в Ktor external-route matcher/security pipeline на общий Kotlin matcher, реализующий ровно используемые trailing `*`/`**` правила. Добавлены boundary cases для совпадения, соседнего префикса и вложенных путей. Security policy, registered-route matcher и полный Ktor servlet integration suite прошли 21/21.
 
+Срез `3c6adbd` убирает Spring `RequestContextUtils` из JSP `FormatBytesTag`: он берёт рассчитанную локаль из request attribute `airsonic.locale`, а затем fallback-ится на Servlet API `getLocale()`. `StringUtilTestCase`, Ktor servlet pages/routes и login regressions прошли 29/29.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
