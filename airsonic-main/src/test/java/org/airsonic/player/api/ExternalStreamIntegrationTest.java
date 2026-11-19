@@ -67,7 +67,8 @@ public class ExternalStreamIntegrationTest {
             assertEquals(200, liveResponse.statusCode());
             assertArrayEquals(Arrays.copyOf(expected, 10), Arrays.copyOf(liveResponse.body(), 10));
 
-            assertEquals(404, send("/stream?format=raw&id=" + song.getId(), null, null).statusCode());
+            String basic = "Basic " + java.util.Base64.getEncoder().encodeToString("admin:admin".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            assertEquals(404, send("/stream?format=raw&id=" + song.getId(), "Authorization", basic).statusCode());
         } finally {
             ScanningTestUtils.after(cleanup, folders);
             folders.expunge();

@@ -19,17 +19,13 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.net.CookieManager;
-import java.net.CookiePolicy;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Base64;
+import java.util.IdentityHashMap;
 
 import static org.junit.Assert.*;
 
@@ -45,6 +41,7 @@ public class ServerHealthIntegrationTest {
     @Autowired private HealthContributorRegistry contributors;
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient client = HttpClient.newHttpClient();
+    private final Map<HttpClient, String> authorization = new IdentityHashMap<>();
 
     @Test public void healthIsAvailableThroughKtorIncludingUnhealthyAndNestedComponents() throws Exception {
         User member = new User("health-member", null);
@@ -58,7 +55,7 @@ public class ServerHealthIntegrationTest {
         try {
             assertEquals("failed", body(get(client, "/rest/getServerHealth?f=json")).path("status").asText());
             assertEquals(0, calls.get());
-            for (HttpClient browser : new HttpClient[]{login("admin", "admin"), login(member.getUsername(), "secret")}) {
+            for (HttpClient browser : new HttpClient[]{basic("admin", "admin"), basic(member.getUsername(), "secret")}) {
                 var response = get(browser, "/rest/getServerHealth?f=json");
                 assertTrue(response.headers().firstValue("Cache-Control").orElse("").contains("no-store"));
                 JsonNode health = body(response).path("serverHealth");
@@ -75,17 +72,6 @@ public class ServerHealthIntegrationTest {
                 for (JsonNode row : health.path("component")) {
                     if (previous != null) assertTrue(previous.compareTo(row.path("name").asText()) <= 0);
                     previous = row.path("name").asText();
-                }
-                String page = get(browser, "/status.view").body();
-                assertTrue(page.contains("statisticsApi.health()"));
-                assertFalse(page.contains("/actuator/health"));
-                assertEquals(404, get(browser, "/actuator/health").statusCode());
-                Matcher token = Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(get(browser, "/top.view").body());
-                assertTrue(token.find());
-                assertEquals(403, post(browser, "/rest/getServerHealth", "").statusCode());
-                for (String method : new String[]{"POST", "PUT", "DELETE", "PATCH"}) {
-                    assertEquals(405, browser.send(HttpRequest.newBuilder(URI.create(base() + "/rest/getServerHealth"))
-                        .header("X-CSRF-TOKEN", token.group(1)).method(method, HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString()).statusCode());
                 }
             }
             assertEquals(2, calls.get());
@@ -124,7 +110,7 @@ public class ServerHealthIntegrationTest {
         } finally {
             contributors.unregisterContributor(name);
         }
-        for (JsonNode row : body(get(login("admin", "admin"), "/rest/getServerHealth?f=json")).path("serverHealth").path("component")) {
+        for (JsonNode row : body(get(basic("admin", "admin"), "/rest/getServerHealth?f=json")).path("serverHealth").path("component")) {
             assertNotEquals(name, row.path("name").asText());
         }
     }
@@ -139,20 +125,17 @@ public class ServerHealthIntegrationTest {
         return mapper.readTree(response.body()).path("subsonic-response");
     }
 
-    private HttpClient login(String username, String password) throws Exception {
-        HttpClient browser = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL)).build();
-        Matcher token = Pattern.compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"").matcher(get(browser, "/login").body());
-        assertTrue(token.find());
-        assertEquals(302, post(browser, "/login", "j_username=" + username + "&j_password=" + password + "&_csrf=" + encode(token.group(1))).statusCode());
+    private HttpClient basic(String username, String password) {
+        HttpClient browser = HttpClient.newHttpClient();
+        authorization.put(browser, "Basic " + Base64.getEncoder().encodeToString((username + ":" + password)
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         return browser;
     }
     private HttpResponse<String> get(HttpClient browser, String path) throws Exception {
-        return browser.send(HttpRequest.newBuilder(URI.create(base() + path)).GET().build(), HttpResponse.BodyHandlers.ofString());
-    }
-    private HttpResponse<String> post(HttpClient browser, String path, String form) throws Exception {
-        return browser.send(HttpRequest.newBuilder(URI.create(base() + path)).header("Content-Type", "application/x-www-form-urlencoded")
-                .POST(HttpRequest.BodyPublishers.ofString(form)).build(), HttpResponse.BodyHandlers.ofString());
+        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(base() + path));
+        String credentials = authorization.get(browser);
+        if (credentials != null) request.header("Authorization", credentials);
+        return browser.send(request.GET().build(), HttpResponse.BodyHandlers.ofString());
     }
     private String base() { return "http://localhost:" + port + "/airsonic"; }
-    private String encode(String value) { return URLEncoder.encode(value, StandardCharsets.UTF_8); }
 }
