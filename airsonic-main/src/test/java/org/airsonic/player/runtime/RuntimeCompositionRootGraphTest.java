@@ -184,10 +184,6 @@ class RuntimeCompositionRootGraphTest {
                 mediaFileService);
         assertSame(ratingService, runtimeRoot.createRatingService(daoGraph.getRatingDao(), securityService,
                 mediaFileService));
-        MediaDirectoryService mediaDirectoryService = runtimeRoot.createMediaDirectoryService(mediaFileService,
-                ratingService, securityService, settingsService);
-        assertSame(mediaDirectoryService, runtimeRoot.createMediaDirectoryService(mediaFileService,
-                ratingService, securityService, settingsService));
         MusicIndexService musicIndexService = runtimeRoot.createMusicIndexService(settingsService, mediaFileService);
         assertSame(musicIndexService, runtimeRoot.createMusicIndexService(settingsService, mediaFileService));
         PasswordRecoveryService passwordRecoveryService =

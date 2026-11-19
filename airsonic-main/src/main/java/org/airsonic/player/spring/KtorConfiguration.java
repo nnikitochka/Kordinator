@@ -25,7 +25,6 @@ import org.airsonic.player.controller.rest.cover.CoverArtActionsController;
 import org.airsonic.player.controller.rest.livequeue.LiveQueueController;
 import org.airsonic.player.controller.rest.livequeue.LiveQueueExportController;
 import org.airsonic.player.controller.rest.livequeue.RandomQueueController;
-import org.airsonic.player.service.MediaDirectoryService;
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.service.MusicIndexStateService;
 import org.airsonic.player.service.hls.HlsPlaylistService;
@@ -575,11 +574,6 @@ public class KtorConfiguration {
         return runtime.createRatingService(ratingDao, securityService, mediaFileService);
     }
 
-    public MediaDirectoryService mediaDirectoryService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService,
-            RatingService ratingService, SecurityService securityService, SettingsService settingsService) {
-        return runtime.createMediaDirectoryService(mediaFileService, ratingService, securityService, settingsService);
-    }
-
     public MusicIndexService musicIndexService(RuntimeCompositionRoot runtime, SettingsService settingsService,
             MediaFileService mediaFileService) {
         return runtime.createMusicIndexService(settingsService, mediaFileService);
@@ -766,7 +760,6 @@ public class KtorConfiguration {
             LyricsService lyricsService,
             CoverArtSearchService coverArtSearchService,
             TagEditService tagEditService,
-            MediaDirectoryService mediaDirectoryService,
             BookmarkService bookmarkService,
             JukeboxService jukeboxService,
             PlayQueueService playQueueService,
@@ -813,7 +806,7 @@ public class KtorConfiguration {
                                 new SimilarSongsController(mediaFileService, artistDao, lastFmService,
                                         mediaFolderService, responseMapper, jaxbWriter),
                                 new ArtistInfoController(mediaFileService, artistDao, lastFmService,
-                                        mediaFolderService, responseMapper, jaxbWriter, securityService),
+                                        mediaFolderService, responseMapper, jaxbWriter),
                                 new AlbumInfoController(mediaFileService, albumDao, lastFmService, jaxbWriter),
                                 new PlaylistsController(playlistService, mediaFileService, securityService, responseMapper, jaxbWriter,
                                         mediaFileDao, mediaFolderService, playerService, localeService),
@@ -847,7 +840,7 @@ public class KtorConfiguration {
                                 new IndexesController(settingsService, mediaFolderService, musicIndexService, musicIndexStateService, mediaFileDao, ratingService, responseMapper, jaxbWriter, playerService),
                                 new SongsByGenreController(mediaFileDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new TopSongsController(lastFmService, mediaFolderService, responseMapper, jaxbWriter),
-                                new MusicDirectoryController(mediaFileService, mediaFileDao, securityService, ratingService, responseMapper, jaxbWriter, mediaDirectoryService),
+                                new MusicDirectoryController(mediaFileService, mediaFileDao, securityService, ratingService, responseMapper, jaxbWriter),
                                 new RandomSongsController(albumSearchService, mediaFolderService, responseMapper, jaxbWriter),
                                 new ScrobbleController(mediaFileService, statusService, audioScrobblerService, jaxbWriter),
                                 new NowPlayingController(statusService, responseMapper, jaxbWriter),

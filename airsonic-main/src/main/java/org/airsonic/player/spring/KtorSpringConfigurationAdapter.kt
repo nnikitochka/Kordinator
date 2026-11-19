@@ -581,16 +581,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     ): org.airsonic.player.service.RatingService = runtime.createRatingService(ratingDao, securityService, mediaFileService)
 
     @Bean
-    override fun mediaDirectoryService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-        ratingService: org.airsonic.player.service.RatingService,
-        securityService: org.airsonic.player.service.SecurityService,
-        settingsService: org.airsonic.player.service.SettingsService,
-    ): org.airsonic.player.service.MediaDirectoryService = runtime.createMediaDirectoryService(
-        mediaFileService, ratingService, securityService, settingsService)
-
-    @Bean
     override fun musicIndexService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         settingsService: org.airsonic.player.service.SettingsService,

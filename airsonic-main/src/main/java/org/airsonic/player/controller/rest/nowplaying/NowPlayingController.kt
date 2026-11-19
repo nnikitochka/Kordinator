@@ -33,10 +33,8 @@ class NowPlayingController(
     private suspend fun respond(call: ApplicationCall, parameters: Parameters) {
         val result = try {
             val nowPlaying = NowPlaying()
-            val includeWebsiteDetails = parameters["includeWebsiteDetails"] == "true"
-            val plays = status.activePlays.asSequence().map { true to it } +
-                status.inactivePlays.asSequence().map { false to it }
-            plays.forEach { (isActive, info) ->
+            val plays = status.activePlays.asSequence() + status.inactivePlays.asSequence()
+            plays.forEach { info ->
                 val play = requireNotNull(info.fromPlayStatus())
                 val player = play.player
                 val entry = NowPlayingEntry().apply {
@@ -44,19 +42,6 @@ class NowPlayingController(
                     playerId = player.id
                     playerName = player.name
                     minutesAgo = play.minutesAgo.toInt()
-                    if (includeWebsiteDetails) {
-                        active = isActive
-                        transferId = info.transferId?.toString()
-                        displayUsername = info.username
-                        displayArtist = info.artist
-                        displayTitle = info.title
-                        tooltip = info.tooltip
-                        streamUrl = info.streamUrl
-                        albumUrl = info.albumUrl
-                        lyricsUrl = info.lyricsUrl
-                        coverArtUrl = info.coverArtUrl
-                        avatarUrl = info.avatarUrl
-                    }
                 }
                 nowPlaying.entry.add(mapper.child(entry, player, play.mediaFile, requireNotNull(entry.username)))
             }

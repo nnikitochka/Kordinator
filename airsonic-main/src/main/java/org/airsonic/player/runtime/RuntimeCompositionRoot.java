@@ -20,7 +20,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.LyricsService lyricsService;
     private org.airsonic.player.service.BookmarkService bookmarkService;
     private org.airsonic.player.service.RatingService ratingService;
-    private org.airsonic.player.service.MediaDirectoryService mediaDirectoryService;
     private org.airsonic.player.service.MusicIndexService musicIndexService;
     private org.airsonic.player.service.SecurityService securityService;
     private org.airsonic.player.security.SubsonicCredentialAuthenticationService subsonicCredentialAuthenticationService;
@@ -778,18 +777,6 @@ public final class RuntimeCompositionRoot {
             ratingService = new org.airsonic.player.service.RatingService(ratingDao, securityService, mediaFileService);
         }
         return ratingService;
-    }
-
-    public synchronized org.airsonic.player.service.MediaDirectoryService createMediaDirectoryService(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.RatingService ratingService,
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.service.SettingsService settingsService) {
-        if (mediaDirectoryService == null) {
-            mediaDirectoryService = new org.airsonic.player.service.MediaDirectoryService(
-                    mediaFileService, ratingService, securityService, settingsService);
-        }
-        return mediaDirectoryService;
     }
 
     public synchronized org.airsonic.player.service.MusicIndexService createMusicIndexService(

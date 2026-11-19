@@ -8,21 +8,18 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.SubsonicResponseMapper
-import org.airsonic.player.controller.rest.toWebsiteEntry
 import org.airsonic.player.controller.rest.error.ErrorCode
 import org.airsonic.player.dao.ArtistDao
 import org.airsonic.player.domain.ArtistBio
 import org.airsonic.player.service.LastFmService
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
-import org.airsonic.player.service.SecurityService
 import org.slf4j.LoggerFactory
 import org.subsonic.restapi.ArtistID3
 import org.subsonic.restapi.ArtistInfo
 import org.subsonic.restapi.ArtistInfo2
 import org.subsonic.restapi.ArtistInfoBase
 import org.subsonic.restapi.Response
-import org.subsonic.restapi.WebsiteArtistInfo
 import kotlin.coroutines.cancellation.CancellationException
 
 class ArtistInfoController(
@@ -32,7 +29,6 @@ class ArtistInfoController(
     private val folders: MediaFolderService,
     private val mapper: SubsonicResponseMapper,
     private val writer: JAXBWriter,
-    private val security: SecurityService,
 ) {
     fun routes(root: Route, request: (ApplicationCall) -> ArtistInfoRequest) {
         with(root) {
@@ -78,29 +74,15 @@ class ArtistInfoController(
         } else {
             val mediaFile = mediaFiles.getMediaFile(id)
                 ?: return writer.createErrorResponse(ErrorCode.NOT_FOUND, "Media file not found.")
-            val website = request.parameters["includeWebsiteDetails"] == "true"
-            if (website && !security.isFolderAccessAllowed(mediaFile, request.callerContext)) {
-                return writer.createErrorResponse(ErrorCode.NOT_AUTHORIZED, "Access denied")
-            }
             val musicFolders = folders.getMusicFoldersForUser(request.username)
             val similar = lastFm.getSimilarArtists(mediaFile, count, includeNotPresent, musicFolders)
             val result = ArtistInfo()
             similar.forEach { artist ->
-                result.similarArtist.add(mapper.artist(artist, request.username).apply {
-                    if (website) name = artist.name
-                })
+                result.similarArtist.add(mapper.artist(artist, request.username))
             }
             lastFm.getArtistBio(mediaFile, request.locale)?.let { setBio(result, it) }
             writer.createResponse(true).apply {
                 artistInfo = result
-                if (website) {
-                    val limit = request.parameters["topSongsCount"]?.toIntOrNull() ?: 100
-                    val songs = lastFm.getTopSongs(mediaFile, limit, musicFolders)
-                    websiteArtistInfo = WebsiteArtistInfo().apply {
-                        mediaFiles.toMediaFileEntryList(songs, request.username, true, true, null, null, null)
-                            .forEach { topSong.add(it.toWebsiteEntry()) }
-                    }
-                }
             }
         }
     }
