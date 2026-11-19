@@ -85,6 +85,9 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.playlist.XspfPlaylistImportHandler xspfPlaylistImportHandler;
     private org.airsonic.player.health.HealthContributorRegistry healthContributorRegistry;
     private org.airsonic.player.monitor.MetricsManager metricsManager;
+    private org.airsonic.player.controller.JAXBWriter subsonicJaxbWriter;
+    private org.airsonic.player.controller.rest.SubsonicResponseMapper subsonicResponseMapper;
+    private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -109,6 +112,38 @@ public final class RuntimeCompositionRoot {
 
     public LifecycleRegistry getLifecycleRegistry() {
         return lifecycleRegistry;
+    }
+
+    public synchronized org.airsonic.player.controller.JAXBWriter createSubsonicJaxbWriter() {
+        if (subsonicJaxbWriter == null) {
+            subsonicJaxbWriter = new org.airsonic.player.controller.JAXBWriter();
+        }
+        return subsonicJaxbWriter;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.SubsonicResponseMapper createSubsonicResponseMapper(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.RatingService ratingService,
+            org.airsonic.player.service.CoverArtService coverArtService,
+            org.airsonic.player.service.TranscodingService transcodingService) {
+        if (subsonicResponseMapper == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before SubsonicResponseMapper");
+            }
+            DaoGraph daos = persistenceGraph.getDaos();
+            subsonicResponseMapper = new org.airsonic.player.controller.rest.SubsonicResponseMapper(
+                    mediaFileService, daos.getMediaFileDao(), ratingService, coverArtService, transcodingService,
+                    daos.getAlbumDao(), daos.getArtistDao(), createSubsonicJaxbWriter());
+        }
+        return subsonicResponseMapper;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.RestPlayerResolver createRestPlayerResolver(
+            org.airsonic.player.service.PlayerService playerService) {
+        if (restPlayerResolver == null) {
+            restPlayerResolver = new org.airsonic.player.controller.rest.RestPlayerResolver(playerService);
+        }
+        return restPlayerResolver;
     }
 
     public synchronized DataSource createDataSource() {

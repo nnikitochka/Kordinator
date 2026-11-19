@@ -166,13 +166,13 @@ import org.springframework.context.annotation.Lazy;
 public class KtorConfiguration {
 
     @Bean
-    public JAXBWriter subsonicJaxbWriter() {
-        return new JAXBWriter();
+    public JAXBWriter subsonicJaxbWriter(RuntimeCompositionRoot runtime) {
+        return runtime.createSubsonicJaxbWriter();
     }
 
     @Bean
-    public RestPlayerResolver restPlayerResolver(PlayerService playerService) {
-        return new RestPlayerResolver(playerService);
+    public RestPlayerResolver restPlayerResolver(RuntimeCompositionRoot runtime, PlayerService playerService) {
+        return runtime.createRestPlayerResolver(playerService);
     }
 
     @Bean
@@ -213,10 +213,9 @@ public class KtorConfiguration {
 
     @Bean
     public SubsonicResponseMapper subsonicResponseMapper(
-            MediaFileService mediaFileService, org.airsonic.player.runtime.DaoGraph graph, RatingService ratingService,
-            CoverArtService coverArtService, TranscodingService transcodingService, JAXBWriter subsonicJaxbWriter) {
-        return new SubsonicResponseMapper(mediaFileService, graph.getMediaFileDao(), ratingService, coverArtService,
-                transcodingService, graph.getAlbumDao(), graph.getArtistDao(), subsonicJaxbWriter);
+            MediaFileService mediaFileService, RatingService ratingService, CoverArtService coverArtService,
+            TranscodingService transcodingService, RuntimeCompositionRoot runtime) {
+        return runtime.createSubsonicResponseMapper(mediaFileService, ratingService, coverArtService, transcodingService);
     }
 
     @Bean
