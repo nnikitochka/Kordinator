@@ -3,7 +3,6 @@ package org.airsonic.player.security;
 import jakarta.servlet.http.HttpServletRequest;
 import org.airsonic.player.service.SecurityService;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  * Transitional servlet adapter. This is the only security migration boundary
@@ -20,7 +19,7 @@ public final class SpringCallerContextAdapter {
     public CallerContext fromRequest(HttpServletRequest request) {
         Authentication authentication = request.getUserPrincipal() instanceof Authentication
                 ? (Authentication) request.getUserPrincipal()
-                : SecurityContextHolder.getContext().getAuthentication();
+                : null;
         if (authentication == null || !authentication.isAuthenticated()) {
             return CallerContext.anonymous();
         }
