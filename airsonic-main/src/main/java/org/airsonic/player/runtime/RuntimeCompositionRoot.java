@@ -1657,14 +1657,21 @@ public final class RuntimeCompositionRoot {
     public synchronized org.airsonic.player.service.PlaylistService createPlaylistService(
             org.airsonic.player.service.SecurityService securityService,
             org.airsonic.player.service.SettingsService settingsService,
-            java.util.List<org.airsonic.player.service.playlist.PlaylistExportHandler> exportHandlers,
-            java.util.List<org.airsonic.player.service.playlist.PlaylistImportHandler> importHandlers) throws Exception {
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.CoverArtService coverArtService) throws Exception {
         if (playlistService == null) {
             if (persistenceGraph == null) {
                 throw new IllegalStateException("Persistence graph must be created before PlaylistService");
             }
+            DaoGraph daos = persistenceGraph.getDaos();
+            java.util.List<org.airsonic.player.service.playlist.PlaylistExportHandler> exportHandlers = java.util.List.of(
+                    createDefaultPlaylistExportHandler(daos.getMediaFileDao()),
+                    createXspfPlaylistExportHandler(daos.getMediaFileDao(), daos.getPlaylistDao(), coverArtService));
+            java.util.List<org.airsonic.player.service.playlist.PlaylistImportHandler> importHandlers = java.util.List.of(
+                    createDefaultPlaylistImportHandler(mediaFileService, settingsService),
+                    createXspfPlaylistImportHandler(mediaFileService, settingsService));
             playlistService = new org.airsonic.player.service.PlaylistService(
-                    persistenceGraph.getDaos().getMediaFileDao(), persistenceGraph.getDaos().getPlaylistDao(),
+                    daos.getMediaFileDao(), daos.getPlaylistDao(),
                     securityService, settingsService, exportHandlers, importHandlers,
                     createPathWatcherService(), createCacheManager());
             playlistService.init();

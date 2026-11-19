@@ -123,10 +123,6 @@ import org.airsonic.player.dao.TranscodingDao;
 import org.airsonic.player.dao.UserDao;
 import org.airsonic.player.service.search.IndexManager;
 import org.airsonic.player.service.search.SearchServiceImpl;
-import org.airsonic.player.service.playlist.DefaultPlaylistExportHandler;
-import org.airsonic.player.service.playlist.DefaultPlaylistImportHandler;
-import org.airsonic.player.service.playlist.XspfPlaylistExportHandler;
-import org.airsonic.player.service.playlist.XspfPlaylistImportHandler;
 import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.i18n.LocaleService;
 import org.airsonic.player.service.LastFmService;
@@ -284,34 +280,10 @@ public class KtorConfiguration {
         return runtime.createPasswordRecoveryService(settingsService, securityService);
     }
 
-    public DefaultPlaylistExportHandler defaultPlaylistExportHandler(RuntimeCompositionRoot runtime,
-            org.airsonic.player.runtime.DaoGraph graph) {
-        return runtime.createDefaultPlaylistExportHandler(graph.getMediaFileDao());
-    }
-
-    public DefaultPlaylistImportHandler defaultPlaylistImportHandler(RuntimeCompositionRoot runtime,
-            MediaFileService mediaFileService,
-            SettingsService settingsService) {
-        return runtime.createDefaultPlaylistImportHandler(mediaFileService, settingsService);
-    }
-
-    public XspfPlaylistExportHandler xspfPlaylistExportHandler(RuntimeCompositionRoot runtime,
-            org.airsonic.player.runtime.DaoGraph graph, CoverArtService coverArtService) {
-        return runtime.createXspfPlaylistExportHandler(
-                graph.getMediaFileDao(), graph.getPlaylistDao(), coverArtService);
-    }
-
-    public XspfPlaylistImportHandler xspfPlaylistImportHandler(RuntimeCompositionRoot runtime,
-            MediaFileService mediaFileService,
-            SettingsService settingsService) {
-        return runtime.createXspfPlaylistImportHandler(mediaFileService, settingsService);
-    }
-
     public PlaylistService playlistService(RuntimeCompositionRoot runtime, SecurityService securityService,
-            SettingsService settingsService,
-            java.util.List<org.airsonic.player.service.playlist.PlaylistExportHandler> exportHandlers,
-            java.util.List<org.airsonic.player.service.playlist.PlaylistImportHandler> importHandlers) throws Exception {
-        return runtime.createPlaylistService(securityService, settingsService, exportHandlers, importHandlers);
+            SettingsService settingsService, MediaFileService mediaFileService, CoverArtService coverArtService)
+            throws Exception {
+        return runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService);
     }
 
     public HlsPlaylistService hlsPlaylistService(RuntimeCompositionRoot runtime, JWTSecurityService jwtSecurityService) {

@@ -265,16 +265,10 @@ class RuntimeCompositionRootGraphTest {
         PathWatcherService pathWatcher = runtimeRoot.createPathWatcherService();
         assertSame(pathWatcher, runtimeRoot.createPathWatcherService());
         assertNotNull(pathWatcher);
-        List<org.airsonic.player.service.playlist.PlaylistExportHandler> exportHandlers = List.of(
-                runtimeRoot.createDefaultPlaylistExportHandler(mediaFileDao),
-                runtimeRoot.createXspfPlaylistExportHandler(mediaFileDao, playlistDao, coverArtService));
-        List<org.airsonic.player.service.playlist.PlaylistImportHandler> importHandlers = List.of(
-                runtimeRoot.createDefaultPlaylistImportHandler(mediaFileService, settingsService),
-                runtimeRoot.createXspfPlaylistImportHandler(mediaFileService, settingsService));
         PlaylistService playlistService = runtimeRoot.createPlaylistService(
-                securityService, settingsService, exportHandlers, importHandlers);
+                securityService, settingsService, mediaFileService, coverArtService);
         assertSame(playlistService, runtimeRoot.createPlaylistService(
-                securityService, settingsService, exportHandlers, importHandlers));
+                securityService, settingsService, mediaFileService, coverArtService));
         CoverArtImageService coverArtImageService = runtimeRoot.createCoverArtImageService(mediaFileService,
                 coverArtService, transcodingService, settingsService, playlistService, artistDao, albumDao);
         assertSame(coverArtImageService, runtimeRoot.createCoverArtImageService(mediaFileService,

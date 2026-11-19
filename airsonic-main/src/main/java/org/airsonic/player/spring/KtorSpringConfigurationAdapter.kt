@@ -26,45 +26,14 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     ): org.airsonic.player.service.search.SearchServiceImpl = runtime.createSearchService(mediaFileService)
 
     @Bean
-    override fun defaultPlaylistExportHandler(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        graph: org.airsonic.player.runtime.DaoGraph,
-    ): org.airsonic.player.service.playlist.DefaultPlaylistExportHandler =
-        runtime.createDefaultPlaylistExportHandler(graph.mediaFileDao)
-
-    @Bean
-    override fun defaultPlaylistImportHandler(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-        settingsService: org.airsonic.player.service.SettingsService,
-    ): org.airsonic.player.service.playlist.DefaultPlaylistImportHandler =
-        runtime.createDefaultPlaylistImportHandler(mediaFileService, settingsService)
-
-    @Bean
-    override fun xspfPlaylistExportHandler(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        graph: org.airsonic.player.runtime.DaoGraph,
-        coverArtService: org.airsonic.player.service.CoverArtService,
-    ): org.airsonic.player.service.playlist.XspfPlaylistExportHandler =
-        runtime.createXspfPlaylistExportHandler(graph.mediaFileDao, graph.playlistDao, coverArtService)
-
-    @Bean
-    override fun xspfPlaylistImportHandler(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-        settingsService: org.airsonic.player.service.SettingsService,
-    ): org.airsonic.player.service.playlist.XspfPlaylistImportHandler =
-        runtime.createXspfPlaylistImportHandler(mediaFileService, settingsService)
-
-    @Bean
     override fun playlistService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         securityService: org.airsonic.player.service.SecurityService,
         settingsService: org.airsonic.player.service.SettingsService,
-        exportHandlers: List<org.airsonic.player.service.playlist.PlaylistExportHandler>,
-        importHandlers: List<org.airsonic.player.service.playlist.PlaylistImportHandler>,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        coverArtService: org.airsonic.player.service.CoverArtService,
     ): org.airsonic.player.service.PlaylistService =
-        runtime.createPlaylistService(securityService, settingsService, exportHandlers, importHandlers)
+        runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService)
 
     @Bean
     override fun hlsPlaylistService(
