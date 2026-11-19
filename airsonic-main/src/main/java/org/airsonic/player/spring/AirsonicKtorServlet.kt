@@ -1122,13 +1122,10 @@ class AirsonicKtorServlet(
             val context = request.servletContext
             request.setAttribute(AVATAR_REQUEST, AvatarRestController.Request(
                 parametersWithMappedId(request), webResource = { context.getResourceAsStream(it) }))
-        } else if (path in AvatarRestController.LEGACY_PATHS) {
-            val context = request.servletContext
-            request.setAttribute(AVATAR_REQUEST, AvatarRestController.Request(parameters(request), { context.getResourceAsStream(it) }, true))
         } else if (path in CoverArtRestController.PATHS) {
             playerResolver.getOrCreatePlayerId(request.remoteUser, request.getParameter("c"), request.remoteAddr, false)
             request.setAttribute(REST_PARAMETERS, parametersWithMappedId(request))
-        } else if (path in CoverArtRestController.LEGACY_PATHS) {
+        } else if (path in CoverArtRestController.EXTERNAL_PATHS) {
             val params = parameters(request)
             if (path.startsWith("/ext/coverArt") && request.userPrincipal is ExternalJwtPrincipal) {
                 val auth = request.userPrincipal as ExternalJwtPrincipal

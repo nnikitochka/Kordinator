@@ -111,20 +111,6 @@ public class CoverArtRestIntegrationTest {
             assertArrayEquals(first.get().body(), second.get().body());
             assertDimensions(first.get(), 47, 47);
             HttpResponse<byte[]> restScaled = request("/rest/getCoverArt?" + auth + "&id=" + dir.getId() + "&size=48", "GET", null, false);
-            for (String path : new String[]{"/coverArt", "/coverArt.view"}) {
-                HttpResponse<byte[]> web = request(path + "?id=" + dir.getId() + "&size=48", "GET", null, true);
-                assertDimensions(web, 48, 48);
-                assertArrayEquals(restScaled.body(), web.body());
-                assertFalse("The annotated Spring MVC handler did not emit Last-Modified",
-                        web.headers().firstValue("Last-Modified").isPresent());
-                if (path.endsWith(".view")) {
-                    assertEquals("max-age=36000", web.headers().firstValue("Cache-Control").orElseThrow());
-                }
-                HttpResponse<byte[]> head = request(path + "?id=" + dir.getId() + "&size=48", "HEAD", null, true);
-                assertEquals(200, head.statusCode());
-                assertEquals("image/jpeg", head.headers().firstValue("content-type").orElseThrow());
-                assertEquals(0, head.body().length);
-            }
 
             for (String path : new String[]{"/ext/coverArt", "/ext/coverArt.view"}) {
                 String signed = "/" + jwt.addJWTToken("admin", path.substring(1) + "?id=" + dir.getId() + "&size=48");

@@ -12,7 +12,7 @@ import io.ktor.server.routing.head
 import io.ktor.server.routing.post
 import org.airsonic.player.service.CoverArtImageService
 
-/** Serves cover art directly from Ktor, sharing image generation with the website. */
+/** Serves standard REST and signed external cover art responses directly from Ktor. */
 class CoverArtRestController(private val images: CoverArtImageService) {
     fun routes(root: Route, parameters: (ApplicationCall) -> Parameters) {
         with(root) {
@@ -21,7 +21,7 @@ class CoverArtRestController(private val images: CoverArtImageService) {
                 post(path) { respond(call, parameters(call), false) }
                 head(path) { respond(call, parameters(call), true) }
             }
-            LEGACY_PATHS.forEach { path ->
+            EXTERNAL_PATHS.forEach { path ->
                 get(path) { respond(call, parameters(call), false) }
                 head(path) { respond(call, parameters(call), true) }
             }
@@ -43,6 +43,6 @@ class CoverArtRestController(private val images: CoverArtImageService) {
 
     companion object {
         @JvmField val PATHS = arrayOf("/rest/getCoverArt", "/rest/getCoverArt.view")
-        @JvmField val LEGACY_PATHS = arrayOf("/coverArt", "/coverArt.view", "/ext/coverArt", "/ext/coverArt.view")
+        @JvmField val EXTERNAL_PATHS = arrayOf("/ext/coverArt", "/ext/coverArt.view")
     }
 }

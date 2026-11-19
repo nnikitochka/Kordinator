@@ -914,12 +914,11 @@ public class KtorConfiguration {
         registration.addUrlMappings(CacheStatisticsController.PATHS);
         registration.addUrlMappings(DownloadRestController.PATHS);
         registration.addUrlMappings(CoverArtRestController.PATHS);
-        registration.addUrlMappings(CoverArtRestController.LEGACY_PATHS);
+        registration.addUrlMappings(CoverArtRestController.EXTERNAL_PATHS);
         registration.addUrlMappings(CoverArtActionsController.PATHS);
         registration.addUrlMappings(MediaFileCommentController.PATH);
         registration.addUrlMappings(TagEditController.PATHS);
         registration.addUrlMappings(AvatarRestController.PATHS);
-        registration.addUrlMappings(AvatarRestController.LEGACY_PATHS);
         registration.addUrlMappings(AvatarUploadController.PATH);
         registration.addUrlMappings(UploadController.PATH);
         registration.addUrlMappings(PlaylistExportController.PATH);

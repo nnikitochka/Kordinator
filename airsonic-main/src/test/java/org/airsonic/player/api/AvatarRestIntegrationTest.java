@@ -77,32 +77,12 @@ public class AvatarRestIntegrationTest {
                 assertEquals("image/jpeg", head.headers().firstValue("content-type").orElseThrow());
                 assertEquals(0, head.body().length);
             }
-            for (String path : new String[]{"/avatar", "/avatar.view"}) {
-                HttpResponse<byte[]> byId = request(path + "?id=" + system.getId(), "GET", null, true);
-                assertEquals(200, byId.statusCode());
-                assertEquals(system.getMimeType(), byId.headers().firstValue("content-type").orElseThrow());
-                assertArrayEquals(systemBytes, byId.body());
-                assertArrayEquals(systemBytes, request(path + "?username=admin", "GET", null, true).body());
-                assertArrayEquals(custom, request(path + "?username=admin&forceCustom=true", "GET", null, true).body());
-                assertArrayEquals(systemBytes, request(path + "?username=admin&forceCustom=invalid", "GET", null, true).body());
-                HttpResponse<byte[]> head = request(path + "?username=admin", "HEAD", null, true);
-                assertEquals(200, head.statusCode());
-                assertEquals(system.getMimeType(), head.headers().firstValue("content-type").orElseThrow());
-                assertEquals(0, head.body().length);
-                assertFalse(byId.headers().firstValue("Last-Modified").isPresent());
-                if (path.endsWith(".view")) {
-                    assertEquals("max-age=36000", byId.headers().firstValue("Cache-Control").orElseThrow());
-                }
-                assertEquals(404, request(path, "GET", null, true).statusCode());
-            }
             assertArrayEquals(custom, request("/rest/getAvatar.view", "POST", auth + "&username=admin&forceCustom=true").body());
             assertEquals(403, request("/rest/getAvatar", "POST", auth + "&username=admin").statusCode());
             user.setAvatarScheme(AvatarScheme.NONE);
             settings.updateUserSettings(user);
             assertEquals(404, request("/rest/getAvatar?" + auth + "&username=admin", "GET", null).statusCode());
             assertArrayEquals(custom, request("/rest/getAvatar?" + auth + "&username=admin&forceCustom=yes", "GET", null).body());
-            assertEquals(404, request("/avatar?username=admin", "GET", null, true).statusCode());
-            assertArrayEquals(custom, request("/avatar.view?username=admin&forceCustom=yes", "GET", null, true).body());
             user.setAvatarScheme(AvatarScheme.CUSTOM);
             settings.updateUserSettings(user);
             assertArrayEquals(custom, request("/rest/getAvatar?" + auth + "&username=admin", "GET", null).body());

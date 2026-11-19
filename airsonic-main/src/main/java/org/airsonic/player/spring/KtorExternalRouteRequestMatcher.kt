@@ -19,7 +19,7 @@ class KtorExternalRouteRequestMatcher : RequestMatcher {
     private companion object {
         val exactPaths = buildSet {
             addAll(CaptionsRestController.PATHS.filter { it.startsWith("/ext/") })
-            addAll(CoverArtRestController.LEGACY_PATHS.filter { it.startsWith("/ext/") })
+            addAll(CoverArtRestController.EXTERNAL_PATHS)
             addAll(HlsRestController.PATHS.filter { it.startsWith("/ext/") })
             addAll(HlsRestController.EXTERNAL_PATHS)
             addAll(HlsSegmentRestController.PATHS.filter { it.startsWith("/ext/") })

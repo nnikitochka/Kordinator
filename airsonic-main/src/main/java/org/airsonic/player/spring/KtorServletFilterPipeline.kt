@@ -13,7 +13,6 @@ import org.airsonic.player.filter.ParameterDecodingFilter
 import org.airsonic.player.filter.RESTFilter
 import org.airsonic.player.filter.RequestEncodingFilter
 import org.airsonic.player.filter.RequestEncodingPolicy
-import org.airsonic.player.filter.ResponseHeaderFilter
 import org.airsonic.player.monitor.MetricsManager
 
 /** Runs the legacy servlet policies at the Ktor servlet boundary in their original order. */
@@ -25,9 +24,6 @@ internal class KtorServletFilterPipeline(metricsManager: MetricsManager) {
         Registration(ParameterDecodingFilter()) { true },
         Registration(RESTFilter()) { it == "/rest" || it.startsWith("/rest/") },
         Registration(RequestEncodingFilter(RequestEncodingPolicy.DEFAULT_ENCODING)) { true },
-        Registration(ResponseHeaderFilter(mapOf("Cache-Control" to "max-age=36000"))) {
-            it == "/coverArt.view" || it == "/avatar.view"
-        },
         Registration(MetricsFilter(metricsManager)) { true },
     )
 

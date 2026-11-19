@@ -26,7 +26,6 @@ class AvatarRestController(
     data class Request(
         val params: Parameters,
         val webResource: (String) -> InputStream?,
-        val lenientForceCustom: Boolean = false
     )
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
@@ -36,15 +35,11 @@ class AvatarRestController(
                 post(path) { respond(call, request(call), false) }
                 head(path) { respond(call, request(call), true) }
             }
-            LEGACY_PATHS.forEach { path ->
-                get(path) { respond(call, request(call), false) }
-                head(path) { respond(call, request(call), true) }
-            }
         }
     }
 
     private suspend fun respond(call: ApplicationCall, request: Request, head: Boolean) {
-        val avatar = findAvatar(request.params, request.lenientForceCustom)
+        val avatar = findAvatar(request.params)
         if (avatar == null) {
             call.respond(HttpStatusCode.NotFound)
             return
@@ -59,13 +54,13 @@ class AvatarRestController(
         }
     }
 
-    private fun findAvatar(params: Parameters, lenientForceCustom: Boolean): Avatar? {
+    private fun findAvatar(params: Parameters): Avatar? {
         params["id"]?.let { return settings.getSystemAvatar(it.toInt()) }
         val username = params["username"] ?: return null
         val forceCustom = when (params["forceCustom"]?.lowercase()) {
             null, "false", "off", "no", "0" -> false
             "true", "on", "yes", "1" -> true
-            else -> if (lenientForceCustom) false else throw IllegalArgumentException("Invalid forceCustom")
+            else -> throw IllegalArgumentException("Invalid forceCustom")
         }
         val userSettings = settings.getUserSettings(username)
         return when {
@@ -90,6 +85,5 @@ class AvatarRestController(
 
     companion object {
         @JvmField val PATHS = arrayOf("/rest/getAvatar", "/rest/getAvatar.view")
-        @JvmField val LEGACY_PATHS = arrayOf("/avatar", "/avatar.view")
     }
 }
