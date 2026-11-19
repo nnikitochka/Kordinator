@@ -421,6 +421,19 @@ class RuntimeCompositionRootGraphTest {
                         userAdministrationService),
                 runtimeRoot.createUsersController(securityService, settingsService, mediaFolderService,
                         userAdministrationService));
+        assertSame(runtimeRoot.createUploadController(uploadFileService, statusService,
+                        securityService, settingsService),
+                runtimeRoot.createUploadController(uploadFileService, statusService,
+                        securityService, settingsService));
+        assertSame(runtimeRoot.createPlaylistExportController(playlistService),
+                runtimeRoot.createPlaylistExportController(playlistService));
+        assertSame(runtimeRoot.createPlaylistImportController(playlistService),
+                runtimeRoot.createPlaylistImportController(playlistService));
+        assertSame(runtimeRoot.createLiveQueueExportController(transcodingService, jwtSecurityService, securityService),
+                runtimeRoot.createLiveQueueExportController(transcodingService, jwtSecurityService, securityService));
+        assertSame(runtimeRoot.createScrobbleController(mediaFileService, statusService, audioScrobblerService),
+                runtimeRoot.createScrobbleController(mediaFileService, statusService, audioScrobblerService));
+        assertSame(runtimeRoot.createDownloadRestController(), runtimeRoot.createDownloadRestController());
         assertSame(runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService),
                 runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService));
         assertSame(runtimeRoot.createMusicFolderSettingsController(musicFolderAdministrationService),

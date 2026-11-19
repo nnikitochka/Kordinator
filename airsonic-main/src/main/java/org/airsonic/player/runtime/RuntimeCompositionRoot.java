@@ -135,6 +135,12 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.starred.StarredController starredController;
     private org.airsonic.player.controller.rest.jukebox.JukeboxController jukeboxController;
     private org.airsonic.player.controller.rest.users.UsersController usersController;
+    private org.airsonic.player.controller.rest.upload.UploadController uploadController;
+    private org.airsonic.player.controller.rest.playlists.PlaylistExportController playlistExportController;
+    private org.airsonic.player.controller.rest.playlists.PlaylistImportController playlistImportController;
+    private org.airsonic.player.controller.rest.livequeue.LiveQueueExportController liveQueueExportController;
+    private org.airsonic.player.controller.rest.scrobble.ScrobbleController scrobbleController;
+    private org.airsonic.player.controller.rest.download.DownloadRestController downloadRestController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -743,6 +749,67 @@ public final class RuntimeCompositionRoot {
                     userAdministrationService, createSubsonicJaxbWriter());
         }
         return usersController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.upload.UploadController createUploadController(
+            org.airsonic.player.service.UploadFileService uploadFileService,
+            org.airsonic.player.service.StatusService statusService,
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.service.SettingsService settingsService) {
+        if (uploadController == null) {
+            uploadController = new org.airsonic.player.controller.rest.upload.UploadController(
+                    uploadFileService, statusService, securityService, settingsService, createSubsonicJaxbWriter());
+        }
+        return uploadController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.playlists.PlaylistExportController
+            createPlaylistExportController(org.airsonic.player.service.PlaylistService playlistService) {
+        if (playlistExportController == null) {
+            playlistExportController = new org.airsonic.player.controller.rest.playlists.PlaylistExportController(
+                    playlistService, createSubsonicJaxbWriter());
+        }
+        return playlistExportController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.playlists.PlaylistImportController
+            createPlaylistImportController(org.airsonic.player.service.PlaylistService playlistService) {
+        if (playlistImportController == null) {
+            playlistImportController = new org.airsonic.player.controller.rest.playlists.PlaylistImportController(
+                    playlistService, createSubsonicJaxbWriter());
+        }
+        return playlistImportController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.livequeue.LiveQueueExportController
+            createLiveQueueExportController(
+                    org.airsonic.player.service.TranscodingService transcodingService,
+                    org.airsonic.player.service.JWTSecurityService jwtSecurityService,
+                    org.airsonic.player.service.SecurityService securityService) {
+        if (liveQueueExportController == null) {
+            liveQueueExportController = new org.airsonic.player.controller.rest.livequeue.LiveQueueExportController(
+                    transcodingService, jwtSecurityService, securityService, createSubsonicJaxbWriter());
+        }
+        return liveQueueExportController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.scrobble.ScrobbleController createScrobbleController(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.StatusService statusService,
+            org.airsonic.player.service.AudioScrobblerService audioScrobblerService) {
+        if (scrobbleController == null) {
+            scrobbleController = new org.airsonic.player.controller.rest.scrobble.ScrobbleController(
+                    mediaFileService, statusService, audioScrobblerService, createSubsonicJaxbWriter());
+        }
+        return scrobbleController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.download.DownloadRestController createDownloadRestController() {
+        if (downloadRestController == null) {
+            downloadRestController = new org.airsonic.player.controller.rest.download.DownloadRestController(
+                    createSubsonicJaxbWriter());
+        }
+        return downloadRestController;
     }
 
     public synchronized DataSource createDataSource() {
