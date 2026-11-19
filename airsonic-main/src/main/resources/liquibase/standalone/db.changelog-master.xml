@@ -49,4 +49,20 @@
             <column name="expires_at"/>
         </createIndex>
     </changeSet>
+    <changeSet id="standalone-library-table-1" author="airsonic">
+        <createTable tableName="music_library">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_music_library"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_music_library_name"/>
+            </column>
+            <column name="root_path" type="VARCHAR(4096)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
 </databaseChangeLog>

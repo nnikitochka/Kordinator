@@ -30,6 +30,8 @@ import org.airsonic.player.security.LoginRateLimiter
 import org.airsonic.player.runtime.LifecycleRegistry
 import org.airsonic.player.runtime.RuntimeConfigurationLoader
 import org.airsonic.player.runtime.StandaloneDatabase
+import org.airsonic.player.service.StandaloneLibraryService
+import java.nio.file.Path
 
 private val authDispatcher = Dispatchers.IO.limitedParallelism(4)
 
@@ -42,7 +44,10 @@ fun Application.module() {
 }
 
 /** Minimal new API module used while the application is moving to a standalone Ktor process. */
-fun Application.standaloneModule(authService: LocalAuthService? = null) {
+fun Application.standaloneModule(
+    authService: LocalAuthService? = null,
+    libraryService: StandaloneLibraryService? = null,
+) {
     val loginRateLimiter = LoginRateLimiter()
     install(Authentication) {
         bearer("server-session") {
@@ -173,6 +178,53 @@ fun Application.standaloneModule(authService: LocalAuthService? = null) {
                             call.respondJson(ApiError("user_not_found", "User does not exist"), HttpStatusCode.NotFound)
                         }
                     }
+                    get("/admin/libraries") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val libraries = libraryService?.let { service ->
+                            withContext(authDispatcher) { service.list() }
+                                .map { LibraryResponse(it.id, it.name, it.rootPath, it.createdAt.toString()) }
+                        }.orEmpty()
+                        call.respondJson(libraries)
+                    }
+                    post("/admin/libraries") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@post
+                        }
+                        if (libraryService == null) {
+                            call.respondJson(ApiError("unavailable", "Library storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@post
+                        }
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), CreateLibraryRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected name and path"), HttpStatusCode.BadRequest)
+                            return@post
+                        }
+                        try {
+                            val library = withContext(authDispatcher) {
+                                libraryService.create(request.name, Path.of(request.path))
+                            }
+                            call.respondJson(LibraryResponse(library.id, library.name, library.rootPath, library.createdAt.toString()), HttpStatusCode.Created)
+                        } catch (_: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_library", "Library name or path is invalid"), HttpStatusCode.BadRequest)
+                        } catch (_: java.io.IOException) {
+                            call.respondJson(ApiError("invalid_library", "Library path is not accessible"), HttpStatusCode.BadRequest)
+                        } catch (failure: java.sql.SQLException) {
+                            if (failure.sqlState?.startsWith("23") == true) {
+                                call.respondJson(ApiError("library_exists", "A library with that name already exists"), HttpStatusCode.Conflict)
+                            } else {
+                                throw failure
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -187,6 +239,8 @@ data class ApiError(val code: String, val message: String)
 data class ChangePasswordRequest(val currentPassword: String, val newPassword: String)
 data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
 data class SetUserEnabledRequest(val enabled: Boolean)
+data class CreateLibraryRequest(val name: String, val path: String)
+data class LibraryResponse(val id: Long, val name: String, val path: String, val createdAt: String)
 
 private const val MAX_PASSWORD_LENGTH = 1_024
 
@@ -211,6 +265,7 @@ fun main(args: Array<String>) {
         throw failure
     }
     val authService = LocalAuthService(database.dataSource)
+    val libraryService = StandaloneLibraryService(database.dataSource)
     if (configuration.getBooleanProperty("airsonic.create-admin", false)) {
         try {
             val console = System.console()
@@ -232,7 +287,7 @@ fun main(args: Array<String>) {
         return
     }
     val server = embeddedServer(Netty, host = host, port = port) {
-        standaloneModule(authService)
+        standaloneModule(authService, libraryService)
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })
     server.start(wait = true)
