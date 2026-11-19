@@ -6,16 +6,14 @@ import org.airsonic.player.controller.rest.cover.CoverArtRestController
 import org.airsonic.player.controller.rest.hls.HlsRestController
 import org.airsonic.player.controller.rest.hls.HlsSegmentRestController
 import org.airsonic.player.controller.rest.stream.StreamRestController
+import org.airsonic.player.security.SecurityRoutePolicy
 import org.springframework.security.web.util.matcher.RequestMatcher
-import org.springframework.util.AntPathMatcher
 
 /** Identifies external routes explicitly registered on the Ktor servlet. */
 class KtorExternalRouteRequestMatcher : RequestMatcher {
-    private val pathMatcher = AntPathMatcher()
-
     override fun matches(request: HttpServletRequest): Boolean {
         val path = request.servletPath + (request.pathInfo ?: "")
-        return path in exactPaths || wildcardPaths.any { pathMatcher.match(it, path) }
+        return path in exactPaths || wildcardPaths.any { SecurityRoutePolicy.matchesPathPattern(it, path) }
     }
 
     private companion object {

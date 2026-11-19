@@ -4,6 +4,18 @@ package org.airsonic.player.security
 object SecurityRoutePolicy {
     data class RoleRule(val paths: List<String>, val role: String)
 
+    /** Matches the trailing wildcards used by these route policies without framework routing utilities. */
+    @JvmStatic
+    fun matchesPathPattern(pattern: String, path: String): Boolean {
+        val wildcardIndex = pattern.indexOf('*')
+        if (wildcardIndex < 0) return pattern == path
+
+        val prefix = pattern.substring(0, wildcardIndex)
+        val wildcard = pattern.substring(wildcardIndex)
+        if (wildcard.startsWith("**")) return path == prefix.removeSuffix("/") || path.startsWith(prefix)
+        return path.startsWith(prefix) && path.substring(prefix.length).none { it == '/' }
+    }
+
     @JvmField
     val WEB_PUBLIC_PATHS = listOf(
         "/rest/recover", "/recover*", "/accessDenied*", "/style/**", "/icons/**", "/flash/**", "/script/**",

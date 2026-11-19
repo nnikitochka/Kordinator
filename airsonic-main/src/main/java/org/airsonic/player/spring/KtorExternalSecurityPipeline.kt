@@ -10,7 +10,6 @@ import org.airsonic.player.security.SecurityRoutePolicy
 import org.airsonic.player.service.SettingsService
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.authority.SimpleGrantedAuthority
-import org.springframework.util.AntPathMatcher
 import java.security.Principal
 
 /** Temporary servlet boundary adapter for the stateless external player routes. */
@@ -20,7 +19,6 @@ internal class KtorExternalSecurityPipeline(
 ) {
     private val corsAdapter = KtorCorsAdapter()
     private val csrfAdapter = KtorCsrfAdapter(csrfRequestMatcher)
-    private val antPathMatcher = AntPathMatcher()
     private val jwtTokenVerifier = JwtTokenVerifier()
 
     fun service(request: HttpServletRequest, response: HttpServletResponse, terminal: FilterChain) {
@@ -76,7 +74,7 @@ internal class KtorExternalSecurityPipeline(
 
     private fun isAuthorizedForPath(request: HttpServletRequest, authentication: Authentication): Boolean {
         val path = request.servletPath + (request.pathInfo ?: "")
-        val requiresRole = SecurityRoutePolicy.EXT_ROLE_PATHS.any { antPathMatcher.match(it, path) }
+        val requiresRole = SecurityRoutePolicy.EXT_ROLE_PATHS.any { SecurityRoutePolicy.matchesPathPattern(it, path) }
         return !requiresRole || SecurityRoutePolicy.EXT_ROLE_NAMES.any { role ->
             authentication.authorities.any { it.authority == "ROLE_$role" }
         }
