@@ -23,18 +23,7 @@ object SecurityRoutePolicy {
 
     @JvmField
     val WEB_ROLE_RULES = listOf(
-        RoleRule(listOf("/personalSettings*", "/playerSettings*", "/shareSettings*", "/credentialsSettings*"), "SETTINGS"),
-        RoleRule(
-            listOf(
-                "/generalSettings*", "/advancedSettings*", "/userSettings*", "/musicFolderSettings*",
-                "/databaseSettings*", "/transcodeSettings*", "/rest/startScan*",
-            ),
-            "ADMIN",
-        ),
-        RoleRule(listOf("/deletePlaylist*", "/savePlaylist*"), "PLAYLIST"),
-        RoleRule(listOf("/upload*"), "UPLOAD"),
-        RoleRule(listOf("/createShare*"), "SHARE"),
-        RoleRule(listOf("/changeCoverArt*", "/editTags*"), "COVERART"),
+        RoleRule(listOf("/rest/startScan*"), "ADMIN"),
     )
 
     @JvmField

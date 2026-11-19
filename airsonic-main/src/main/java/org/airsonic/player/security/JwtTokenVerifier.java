@@ -71,7 +71,7 @@ public final class JwtTokenVerifier {
         if (!result.isVerified()) return result;
         DecodedJWT token = result.getToken();
         String claimedPath = token.getClaim(PATH_CLAIM).asString();
-        if (!StringUtils.contains(requestedPath, "/WEB-INF/jsp/") && !roughlyEqual(claimedPath, requestedPath)) {
+        if (!roughlyEqual(claimedPath, requestedPath)) {
             return Result.failed(Failure.PATH_MISMATCH);
         }
         List<Consumer<DecodedJWT>> checks = additionalChecks.get(parseUri(requestedPath).path);
