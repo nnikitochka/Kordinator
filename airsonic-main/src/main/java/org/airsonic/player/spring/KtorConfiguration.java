@@ -132,7 +132,6 @@ import org.airsonic.player.service.MediaScannerService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.RatingService;
 import org.airsonic.player.service.SearchService;
-import org.airsonic.player.service.ShareService;
 import org.airsonic.player.service.ConfigurationPropertiesService;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
@@ -366,11 +365,6 @@ public class KtorConfiguration {
         return runtime.createLastFmService(graph.getMediaFileDao(), mediaFileService, graph.getArtistDao());
     }
 
-    public ShareService shareService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph, MediaFileService mediaFileService,
-            JWTSecurityService jwtSecurityService) {
-        return runtime.createShareService(graph.getShareDao(), mediaFileService, jwtSecurityService);
-    }
-
     public MediaFolderService mediaFolderService(RuntimeCompositionRoot runtime) {
         return runtime.createMediaFolderService();
     }
@@ -431,7 +425,6 @@ public class KtorConfiguration {
             MediaFolderService mediaFolderService,
             PlayerService playerService,
             PlaylistService playlistService,
-            ShareService shareService,
             TagEditService tagEditService,
             JukeboxService jukeboxService,
             PlayQueueService playQueueService,
@@ -470,6 +463,8 @@ public class KtorConfiguration {
         ArtistsController artistsController = runtime.createSubsonicArtistsController(
                 musicIndexService, settingsService, mediaFolderService, responseMapper);
         RestPlayerResolver playerResolver = runtime.createRestPlayerResolver(playerService);
+        org.airsonic.player.service.ShareService shareService = runtime.createShareService(
+                graph.getShareDao(), mediaFileService, jwtSecurityService);
         ArtistDao artistDao = graph.getArtistDao();
         AlbumDao albumDao = graph.getAlbumDao();
         MediaFileDao mediaFileDao = graph.getMediaFileDao();
