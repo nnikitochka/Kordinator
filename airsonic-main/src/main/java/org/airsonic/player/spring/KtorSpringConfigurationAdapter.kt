@@ -404,6 +404,77 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     ): org.airsonic.player.service.PathWatcherService = runtime.createPathWatcherService()
 
     @Bean
+    override fun jukeboxLegacySubsonicService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        transcodingService: org.airsonic.player.service.TranscodingService,
+        audioScrobblerService: org.airsonic.player.service.AudioScrobblerService,
+        statusService: org.airsonic.player.service.StatusService,
+        settingsService: org.airsonic.player.service.SettingsService,
+        securityService: org.airsonic.player.service.SecurityService,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+    ): org.airsonic.player.service.JukeboxLegacySubsonicService = runtime.createJukeboxLegacySubsonicService(
+        transcodingService, audioScrobblerService, statusService, settingsService, securityService, mediaFileService)
+
+    @Bean
+    override fun jukeboxService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        legacyJukebox: org.airsonic.player.service.JukeboxLegacySubsonicService,
+    ): org.airsonic.player.service.JukeboxService = runtime.createJukeboxService(legacyJukebox)
+
+    @Bean
+    override fun playQueueService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        searchService: org.airsonic.player.service.SearchService,
+        jukeboxService: org.airsonic.player.service.JukeboxService,
+        settingsService: org.airsonic.player.service.SettingsService,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        lastFmService: org.airsonic.player.service.LastFmService,
+        ratingService: org.airsonic.player.service.RatingService,
+        playlistService: org.airsonic.player.service.PlaylistService,
+        mediaFileDao: org.airsonic.player.dao.MediaFileDao,
+        mediaFolderService: org.airsonic.player.service.MediaFolderService,
+        playQueueDao: org.airsonic.player.dao.PlayQueueDao,
+        jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
+    ): org.airsonic.player.service.PlayQueueService = runtime.createPlayQueueService(
+        searchService, jukeboxService, settingsService, mediaFileService, lastFmService, ratingService, playlistService,
+        mediaFileDao, mediaFolderService, playQueueDao, jwtSecurityService)
+
+    @Bean
+    override fun captionService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        mediaFolderService: org.airsonic.player.service.MediaFolderService,
+        settingsService: org.airsonic.player.service.SettingsService,
+        metaDataParserFactory: org.airsonic.player.service.metadata.MetaDataParserFactory,
+        jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
+    ): org.airsonic.player.service.CaptionService = runtime.createCaptionService(
+        mediaFileService, mediaFolderService, settingsService, metaDataParserFactory, jwtSecurityService)
+
+    @Bean
+    override fun videoPlaybackService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        captionService: org.airsonic.player.service.CaptionService,
+        jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
+        bookmarkService: org.airsonic.player.service.BookmarkService,
+        settingsService: org.airsonic.player.service.SettingsService,
+    ): org.airsonic.player.service.VideoPlaybackService = runtime.createVideoPlaybackService(
+        mediaFileService, captionService, jwtSecurityService, bookmarkService, settingsService)
+
+    @Bean
+    override fun mediaStreamService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        statusService: org.airsonic.player.service.StatusService,
+        securityService: org.airsonic.player.service.SecurityService,
+        settingsService: org.airsonic.player.service.SettingsService,
+        transcodingService: org.airsonic.player.service.TranscodingService,
+        audioScrobblerService: org.airsonic.player.service.AudioScrobblerService,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        searchService: org.airsonic.player.service.SearchService,
+    ): org.airsonic.player.service.MediaStreamService = runtime.createMediaStreamService(
+        statusService, securityService, settingsService, transcodingService, audioScrobblerService, mediaFileService, searchService)
+
+    @Bean
     override fun audioScrobblerService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         settingsService: org.airsonic.player.service.SettingsService,

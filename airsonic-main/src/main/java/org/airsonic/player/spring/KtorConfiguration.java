@@ -676,7 +676,6 @@ public class KtorConfiguration {
                 mediaFolderService, coverArtService);
     }
 
-    @Bean
     public PlayQueueService playQueueService(RuntimeCompositionRoot runtime, SearchService searchService, JukeboxService jukeboxService,
             SettingsService settingsService, MediaFileService mediaFileService, LastFmService lastFmService,
             RatingService ratingService, PlaylistService playlistService, MediaFileDao mediaFileDao,
@@ -687,7 +686,6 @@ public class KtorConfiguration {
                 jwtSecurityService);
     }
 
-    @Bean
     public JukeboxLegacySubsonicService jukeboxLegacySubsonicService(RuntimeCompositionRoot runtime,
             TranscodingService transcodingService,
             AudioScrobblerService audioScrobblerService, StatusService statusService,
@@ -696,7 +694,6 @@ public class KtorConfiguration {
                 settingsService, securityService, mediaFileService);
     }
 
-    @Bean
     public JukeboxService jukeboxService(RuntimeCompositionRoot runtime, JukeboxLegacySubsonicService legacyJukebox) {
         return runtime.createJukeboxService(legacyJukebox);
     }
@@ -718,7 +715,6 @@ public class KtorConfiguration {
         return runtime.createUploadFileService(securityService);
     }
 
-    @Bean
     public CaptionService captionService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService, MediaFolderService mediaFolderService,
             SettingsService settingsService, MetaDataParserFactory metaDataParserFactory,
             JWTSecurityService jwtSecurityService) {
@@ -726,7 +722,6 @@ public class KtorConfiguration {
                 metaDataParserFactory, jwtSecurityService);
     }
 
-    @Bean
     public VideoPlaybackService videoPlaybackService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService, CaptionService captionService,
             JWTSecurityService jwtSecurityService, BookmarkService bookmarkService, SettingsService settingsService) {
         return runtime.createVideoPlaybackService(mediaFileService, captionService, jwtSecurityService,
@@ -792,7 +787,6 @@ public class KtorConfiguration {
         return runtime.createMusicIndexStateService(scanner, settings);
     }
 
-    @Bean
     public MediaStreamService mediaStreamService(RuntimeCompositionRoot runtime, StatusService statusService, SecurityService securityService,
             SettingsService settingsService, TranscodingService transcodingService, AudioScrobblerService audioScrobblerService,
             MediaFileService mediaFileService, SearchService searchService) {
