@@ -98,6 +98,8 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.albums.AlbumsController subsonicAlbumsController;
     private org.airsonic.player.controller.rest.server.ServerInfoController serverInfoController;
     private org.airsonic.player.controller.rest.recovery.PasswordRecoveryController passwordRecoveryController;
+    private org.airsonic.player.controller.rest.ping.PingController pingController;
+    private org.airsonic.player.controller.rest.scan.ScanController scanController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -269,6 +271,22 @@ public final class RuntimeCompositionRoot {
                     passwordRecoveryService, objectMapper);
         }
         return passwordRecoveryController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.ping.PingController createPingController() {
+        if (pingController == null) {
+            pingController = new org.airsonic.player.controller.rest.ping.PingController(createSubsonicJaxbWriter());
+        }
+        return pingController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.scan.ScanController createScanController(
+            org.airsonic.player.service.MediaScannerService mediaScannerService) {
+        if (scanController == null) {
+            scanController = new org.airsonic.player.controller.rest.scan.ScanController(
+                    mediaScannerService, createSubsonicJaxbWriter());
+        }
+        return scanController;
     }
 
     public synchronized DataSource createDataSource() {

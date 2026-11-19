@@ -732,7 +732,7 @@ public class KtorConfiguration {
                 new ServletRegistrationBean<>(
                         new AirsonicKtorServlet(searchController,
                                 musicFoldersController, genresController,
-                                artistsController, new PingController(jaxbWriter), new ScanController(mediaScannerService, jaxbWriter),
+                                artistsController, runtime.createPingController(), runtime.createScanController(mediaScannerService),
                                 new SimilarSongsController(mediaFileService, artistDao, lastFmService,
                                         mediaFolderService, responseMapper, jaxbWriter),
                                 new ArtistInfoController(mediaFileService, artistDao, lastFmService,
