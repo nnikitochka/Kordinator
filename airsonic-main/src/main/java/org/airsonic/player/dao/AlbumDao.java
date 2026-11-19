@@ -4,9 +4,6 @@ import org.airsonic.player.domain.Album;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.apache.commons.lang.ObjectUtils;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -94,8 +91,8 @@ public class AlbumDao extends AbstractDao {
      *
      * @param album The album to create/update.
      */
-    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void createOrUpdateAlbum(Album album) {
+        inTransaction(TransactionManager.ISOLATION_READ_COMMITTED, status -> {
         String sql = "update album set " +
                      "path=?," +
                      "song_count=?," +
@@ -126,6 +123,8 @@ public class AlbumDao extends AbstractDao {
 
         int id = queryForInt("select id from album where artist=? and name=?", null, album.getArtist(), album.getName());
         album.setId(id);
+        return null;
+        });
     }
 
     /**

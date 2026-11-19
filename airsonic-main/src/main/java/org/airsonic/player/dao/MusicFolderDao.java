@@ -5,10 +5,6 @@ import org.airsonic.player.domain.MusicFolder;
 import org.apache.commons.lang3.EnumUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
-
-
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -62,18 +58,20 @@ public class MusicFolderDao extends AbstractDao {
         return queryOne(sql, MUSICFOLDER_ROW_MAPPER, path);
     }
 
-    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void createMusicFolder(MusicFolder musicFolder) {
-        if (getMusicFolderForPath(musicFolder.getPath().toString()) == null) {
-            Integer id = insert("music_folder", musicFolder);
+        inTransaction(TransactionManager.ISOLATION_READ_COMMITTED, status -> {
+            if (getMusicFolderForPath(musicFolder.getPath().toString()) == null) {
+                Integer id = insert("music_folder", musicFolder);
 
-            update("insert into music_folder_user (music_folder_id, username) select ?, username from users", id);
-            musicFolder.setId(id);
+                update("insert into music_folder_user (music_folder_id, username) select ?, username from users", id);
+                musicFolder.setId(id);
 
-            LOG.info("Created music folder {} with id {}", musicFolder.getPath(), musicFolder.getId());
-        } else {
-            LOG.info("Did NOT create music folder {}", musicFolder.getPath());
-        }
+                LOG.info("Created music folder {} with id {}", musicFolder.getPath(), musicFolder.getId());
+            } else {
+                LOG.info("Did NOT create music folder {}", musicFolder.getPath());
+            }
+            return null;
+        });
     }
 
     public void deleteMusicFolder(Integer id) {
@@ -92,8 +90,8 @@ public class MusicFolderDao extends AbstractDao {
         update(sql, newId, oldId);
     }
 
-    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void reassignChildren(MusicFolder from, MusicFolder to) {
+        inTransaction(TransactionManager.ISOLATION_READ_COMMITTED, status -> {
         if (to.getPath().getNameCount() > from.getPath().getNameCount()) {
             // assign ancestor -> descendant
             MusicFolder ancestor = from;
@@ -149,6 +147,8 @@ public class MusicFolderDao extends AbstractDao {
             sql = "update cover_art set folder_id=?, path=concat(?, path) where folder_id=?";
             update(sql, ancestor.getId(), relativePath + File.separator, descendant.getId());
         }
+        return null;
+        });
     }
 
     public void updateMusicFolder(MusicFolder musicFolder) {
@@ -163,12 +163,14 @@ public class MusicFolderDao extends AbstractDao {
         return query(sql, MUSICFOLDER_ROW_MAPPER, username);
     }
 
-    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void setMusicFoldersForUser(String username, Collection<Integer> musicFolderIds) {
-        update("delete from music_folder_user where username = ?", username);
-        for (Integer musicFolderId : musicFolderIds) {
-            update("insert into music_folder_user(music_folder_id, username) values (?, ?)", musicFolderId, username);
-        }
+        inTransaction(TransactionManager.ISOLATION_READ_COMMITTED, status -> {
+            update("delete from music_folder_user where username = ?", username);
+            for (Integer musicFolderId : musicFolderIds) {
+                update("insert into music_folder_user(music_folder_id, username) values (?, ?)", musicFolderId, username);
+            }
+            return null;
+        });
     }
 
     public static class MusicFolderRowMapper implements RowMapper<MusicFolder> {

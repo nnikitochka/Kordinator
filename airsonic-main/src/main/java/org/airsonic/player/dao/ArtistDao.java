@@ -2,9 +2,6 @@ package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.Artist;
 import org.airsonic.player.domain.MusicFolder;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -67,8 +64,8 @@ public class ArtistDao extends AbstractDao {
      *
      * @param artist The artist to create/update.
      */
-    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void createOrUpdateArtist(Artist artist) {
+        inTransaction(TransactionManager.ISOLATION_READ_COMMITTED, status -> {
         String sql = "update artist set " +
                      "album_count=?," +
                      "last_scanned=?," +
@@ -85,6 +82,8 @@ public class ArtistDao extends AbstractDao {
 
         int id = queryForInt("select id from artist where name=?", null, artist.getName());
         artist.setId(id);
+        return null;
+        });
     }
 
     /**
