@@ -525,7 +525,6 @@ public class KtorConfiguration {
     }
 
     public SettingsService settingsService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph,
-            javax.cache.CacheManager cacheManager,
             org.airsonic.player.service.ConfigurationPropertiesService properties) {
         // The graph argument preserves startup ordering while DAOs remain owned by RuntimeCompositionRoot.
         return runtime.createSettingsService();
@@ -689,7 +688,6 @@ public class KtorConfiguration {
             AudioScrobblerService audioScrobblerService,
             UPnPService upnpService,
             StatusService statusService,
-            javax.cache.CacheManager jCacheCacheManager,
             org.airsonic.player.health.HealthContributorRegistry healthContributors,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             TaskSchedulingService taskSchedulingService,
@@ -780,7 +778,7 @@ public class KtorConfiguration {
                                 runtime.createScheduledTasksController(taskSchedulingService),
                                 runtime.createPathWatchersController(pathWatcherService),
                                 runtime.createServerHealthController(healthContributors, objectMapper),
-                                runtime.createCacheStatisticsController(jCacheCacheManager),
+                                runtime.createCacheStatisticsController(runtime.createCacheManager()),
                                 runtime.createSongController(securityService, responseMapper),
                                 runtime.createVideosController(mediaFolderService, responseMapper),
                                 runtime.createLyricsController(lyricsService),

@@ -11,10 +11,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime.createDataSource().also { runtime.migrateDatabase() }
 
     @Bean
-    fun jCacheCacheManager(runtime: org.airsonic.player.runtime.RuntimeCompositionRoot): javax.cache.CacheManager =
-        runtime.createCacheManager()
-
-    @Bean
     fun serverHealthContributors(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
     ): org.airsonic.player.health.HealthContributorRegistry = runtime.createHealthContributorRegistry(runtime.createDataSource())
@@ -290,7 +286,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     override fun settingsService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         graph: org.airsonic.player.runtime.DaoGraph,
-        cacheManager: javax.cache.CacheManager,
         properties: org.airsonic.player.service.ConfigurationPropertiesService,
     ): org.airsonic.player.service.SettingsService = runtime.createSettingsService()
 
