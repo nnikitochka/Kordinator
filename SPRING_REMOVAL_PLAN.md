@@ -308,6 +308,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `4de4f25` удаляет `ServletRequestUtils` из framework-neutral `JAXBWriter`; формат ответа теперь выбирается из `HttpServletRequest.getParameter("f")` с тем же default `xml`. REST servlet compatibility, albums XML/JSON/JSONP и legacy `.view` regressions прошли 16/16.
 
+Срез `ef85a3c` заменяет Spring `AntPathMatcher` в Ktor external-route matcher/security pipeline на общий Kotlin matcher, реализующий ровно используемые trailing `*`/`**` правила. Добавлены boundary cases для совпадения, соседнего префикса и вложенных путей. Security policy, registered-route matcher и полный Ktor servlet integration suite прошли 21/21.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
