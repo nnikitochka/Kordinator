@@ -470,6 +470,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 20 ноября 2026:** удалён Spring bean wrapper для `HealthContributorRegistry`. Реестр создаётся в root при сборке server-health endpoint; graph test проверяет singleton identity.
 
+**Срез 20 ноября 2026:** удалён Spring bean wrapper для `LifecycleRegistry`. Servlet получает lifecycle напрямую от root; start/shutdown остаются в `init`/`destroy` servlet и больше не вызываются повторно при уничтожении Spring bean.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

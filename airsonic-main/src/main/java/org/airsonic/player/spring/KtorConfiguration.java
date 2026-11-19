@@ -242,11 +242,6 @@ public class KtorConfiguration {
         return new RuntimeCompositionRoot(configuration);
     }
 
-    @Bean(destroyMethod = "shutdown")
-    public org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry(RuntimeCompositionRoot runtime) {
-        return runtime.getLifecycleRegistry();
-    }
-
     @Bean
     public org.springframework.context.ApplicationListener<org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent>
             authenticationFailureListener(GlobalSecurityConfig securityConfig) {
@@ -704,8 +699,7 @@ public class KtorConfiguration {
             HlsPlaylistService hlsPlaylistService,
             HlsSegmentService hlsSegmentService,
             MediaStreamService mediaStreamService,
-            UploadFileService uploadFileService,
-            org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry
+            UploadFileService uploadFileService
     ) {
         ArtistDao artistDao = graph.getArtistDao();
         AlbumDao albumDao = graph.getAlbumDao();
@@ -800,7 +794,7 @@ public class KtorConfiguration {
                                 runtime.createPasswordRecoveryController(passwordRecoveryService, objectMapper),
                                 runtime.createServerInfoController(serverInfoService, objectMapper, settingsService), jaxbWriter,
                                 () -> InfrastructureErrorSettings.from(runtime.getConfiguration()),
-                                objectMapper, runtime.createMetricsManager(), lifecycleRegistry, settingsService),
+                                objectMapper, runtime.createMetricsManager(), runtime.getLifecycleRegistry(), settingsService),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);
