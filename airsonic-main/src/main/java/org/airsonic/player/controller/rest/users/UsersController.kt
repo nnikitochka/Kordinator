@@ -17,14 +17,9 @@ import org.airsonic.player.util.StringUtil.decodeSubsonicPassword
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.SettingsService
-import org.airsonic.player.service.TranscodingService
 import org.slf4j.LoggerFactory
 import org.subsonic.restapi.Response
 import org.subsonic.restapi.Users
-import org.subsonic.restapi.WebsiteUserAdministration
-import org.subsonic.restapi.WebsiteUserDetails
-import org.subsonic.restapi.WebsiteUserFolder
-import org.subsonic.restapi.WebsiteUserScheme
 import kotlin.coroutines.cancellation.CancellationException
 
 class UsersController(
@@ -32,7 +27,6 @@ class UsersController(
     private val settings: SettingsService,
     private val folders: MediaFolderService,
     private val userSettings: UserAdministrationService,
-    private val transcoding: TranscodingService,
     private val writer: JAXBWriter,
 ) {
     fun routes(root: Route, request: (ApplicationCall) -> UsersRequest) {
@@ -42,10 +36,6 @@ class UsersController(
                 get(path) { respond(call, request(call), operation) }
                 post(path) { respond(call, request(call), operation) }
             }
-            WEBSITE_PATHS.forEach { path ->
-                post(path) { respond(call, request(call), "saveWebsiteUser") }
-            }
-            get(WEBSITE_READ_PATH) { respond(call, request(call), "getWebsiteUserAdministration") }
         }
     }
     private suspend fun respond(call: ApplicationCall, request: UsersRequest, operation: String) {
@@ -80,8 +70,6 @@ class UsersController(
             }
             return denied("${current.username} is not authorized to $action.")
         }
-        if (operation == "saveWebsiteUser") return saveWebsiteUser(request)
-        if (operation == "getWebsiteUserAdministration") return getWebsiteUserAdministration(request)
         when (operation) {
             "getUsers" -> return writer.createResponse(true).apply {
                 users = Users().apply { security.allUsers.forEach { user.add(mapUser(it)) } }
@@ -123,76 +111,6 @@ class UsersController(
         }
         return writer.createResponse(true)
     }
-    private fun getWebsiteUserAdministration(request: UsersRequest): Response {
-        val allUsers = security.allUsers
-        val username = request.parameters["username"]
-        val index = request.parameters["userIndex"]?.toIntOrNull()
-        val selected = if (username != null) security.getUserByName(username) ?: return notFound(username)
-            else index?.let { allUsers.getOrNull(it) }
-        val allowed = selected?.let { folders.getMusicFoldersForUser(it.username).map { folder -> folder.id }.toSet() }.orEmpty()
-        val data = WebsiteUserAdministration().apply {
-            ldapEnabled = settings.isLdapEnabled
-            transcodingSupported = transcoding.isDownsamplingSupported(null)
-            users.user.addAll(allUsers.map { it.username })
-            folders.folder.addAll(this@UsersController.folders.allMusicFolders.map { folder ->
-                WebsiteUserFolder().apply {
-                    id = folder.id; name = folder.name; path = folder.path.toString(); this.allowed = folder.id in allowed
-                }
-            })
-            schemes.scheme.addAll(TranscodeScheme.values().map { scheme ->
-                WebsiteUserScheme().apply { name = scheme.name; description = scheme.toString() }
-            })
-            if (selected != null) this.user = WebsiteUserDetails().apply {
-                this.username = selected.username; email = selected.email ?: ""; newUser = false
-                currentUser = selected.username == request.user.username
-                ldapAuthenticated = selected.isLdapAuthenticated
-                adminRole = selected.isAdminRole; settingsRole = selected.isSettingsRole; streamRole = selected.isStreamRole
-                jukeboxRole = selected.isJukeboxRole; downloadRole = selected.isDownloadRole; uploadRole = selected.isUploadRole
-                shareRole = selected.isShareRole; coverArtRole = selected.isCoverArtRole; commentRole = selected.isCommentRole
-                transcodeSchemeName = settings.getUserSettings(selected.username).transcodeScheme.name
-            }
-        }
-        return writer.createResponse(true).apply { websiteUserAdministration = data }
-    }
-    private fun saveWebsiteUser(request: UsersRequest): Response {
-        val p = request.parameters
-        val username = p.required("username").trim()
-        if (username.isEmpty()) return invalid("Username is required")
-        val existing = security.getUserByName(username)
-        val creating = p.bool("newUser", false)
-        if (creating && existing != null) return invalid("User already exists")
-        if (!creating && existing == null) return notFound(username)
-        val deleting = p.bool("deleteUser", false)
-        if (deleting) {
-            if (username == User.USERNAME_ADMIN || username == request.user.username) return denied("Cannot delete this user")
-            security.deleteUser(username)
-            return writer.createResponse(true)
-        }
-        val ldap = p.bool("ldapAuthenticated", false)
-        val changePassword = p.bool("passwordChange", false)
-        val password = p["password"]?.trim().orEmpty()
-        if (creating && p["email"].isNullOrBlank()) return invalid("Email is required")
-        if (ldap && creating && !settings.isLdapEnabled) return invalid("LDAP is disabled")
-        if (ldap && (changePassword || creating && password.isNotEmpty())) return invalid("Password is not supported for LDAP users")
-        if (!ldap && (creating || changePassword) && (password.isEmpty() || password != p["confirmPassword"])) return invalid("Passwords must match and cannot be empty")
-        val command = UserSettingsCommand()
-        command.username = username
-        command.email = p["email"]
-        command.password = password
-        command.isPasswordChange = changePassword
-        fillRoles(command, p, null)
-        if (username == request.user.username && !command.isAdminRole) return denied("Cannot remove admin from the current user")
-        command.transcodeSchemeName = p["transcodeSchemeName"]?.takeIf { name -> TranscodeScheme.values().any { it.name == name } }
-            ?: return invalid("Invalid transcoding scheme")
-        val rawFolders = p.getAll("allowedMusicFolderIds").orEmpty()
-        val ids = rawFolders.map { it.toIntOrNull() ?: return invalid("Invalid music folder") }
-        val available = folders.allMusicFolders.map { it.id }.toSet()
-        if (!available.containsAll(ids)) return invalid("Invalid music folder")
-        command.allowedMusicFolderIds = ids.toIntArray()
-        if (creating) userSettings.createUser(command) else userSettings.updateUser(command)
-        return writer.createResponse(true)
-    }
-    private fun invalid(message: String) = writer.createErrorResponse(ErrorCode.GENERIC, message)
     private fun fillRoles(command: UserSettingsCommand, p: Parameters, user: User?) {
         command.isLdapAuthenticated = p.bool("ldapAuthenticated", user?.isLdapAuthenticated ?: false)
         command.isAdminRole = p.bool("adminRole", user?.isAdminRole ?: false)
@@ -226,7 +144,5 @@ class UsersController(
     companion object {
         private val LOG = LoggerFactory.getLogger(UsersController::class.java)
         @JvmField val PATHS = listOf("getUser", "getUsers", "createUser", "updateUser", "deleteUser").flatMap { listOf("/rest/$it", "/rest/$it.view") }.toTypedArray()
-        @JvmField val WEBSITE_PATHS = arrayOf("/rest/saveWebsiteUser")
-        const val WEBSITE_READ_PATH = "/rest/getWebsiteUserAdministration"
     }
 }

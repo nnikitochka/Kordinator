@@ -640,7 +640,7 @@ class AirsonicKtorServlet(
                 if (path == UploadController.PATH && (user.isAdminRole || user.isUploadRole))
                     transferPlayer = playerService.getPlayer(request, response, false, false)
             })
-        } else if (path == MediaFileCommentController.PATH || path == PlaylistExportController.PATH || path in CacheStatisticsController.PATHS || path == ServerHealthController.PATH || path == PathWatchersController.PATH || path == ScheduledTasksController.PATH || path in UsersController.PATHS || path in UsersController.WEBSITE_PATHS || path == UsersController.WEBSITE_READ_PATH ||
+        } else if (path == MediaFileCommentController.PATH || path == PlaylistExportController.PATH || path in CacheStatisticsController.PATHS || path == ServerHealthController.PATH || path == PathWatchersController.PATH || path == ScheduledTasksController.PATH || path in UsersController.PATHS ||
             path in DatabaseSettingsController.PATHS || path in PlayerSettingsController.PATHS || path in CredentialsManagementController.PATHS ||
             path == PersonalSettingsController.READ_PATH || path == PersonalSettingsController.SAVE_PATH ||
             path == DLNASettingsController.READ_PATH || path == DLNASettingsController.SAVE_PATH ||

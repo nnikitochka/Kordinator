@@ -821,7 +821,7 @@ public class KtorConfiguration {
                                 new BookmarksController(bookmarkService, mediaFileService, responseMapper, jaxbWriter),
                                 new StarredController(mediaFileDao, albumDao, artistDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),
-                                new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, transcodingService, jaxbWriter),
+                                new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, jaxbWriter),
                                 new DLNASettingsController(settingsService, upnpService, jaxbWriter),
                                 new DatabaseSettingsController(settingsService, databaseService, statusService, securityService, jaxbWriter,
                                         properties),
