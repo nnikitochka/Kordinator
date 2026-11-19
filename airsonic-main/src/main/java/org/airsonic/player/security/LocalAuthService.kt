@@ -24,7 +24,9 @@ class LocalAuthService(
 
     fun createUser(username: String, password: String, role: String = "USER"): Long {
         require(username.matches(USERNAME_PATTERN)) { "Username must be 3–64 letters, digits, dots, underscores or hyphens" }
-        require(password.length >= MIN_PASSWORD_LENGTH) { "Password must contain at least $MIN_PASSWORD_LENGTH characters" }
+        require(password.length in MIN_PASSWORD_LENGTH..MAX_PASSWORD_LENGTH) {
+            "Password must contain between $MIN_PASSWORD_LENGTH and $MAX_PASSWORD_LENGTH characters"
+        }
         require(role in ALLOWED_ROLES) { "Unsupported account role" }
 
         dataSource.connection.use { connection ->
@@ -54,6 +56,70 @@ class LocalAuthService(
             }
         }
         return createUser(username, password, "ADMIN")
+    }
+
+    fun changePassword(userId: Long, currentPassword: String, newPassword: String): Boolean {
+        require(newPassword.length in MIN_PASSWORD_LENGTH..MAX_PASSWORD_LENGTH) {
+            "Password must contain between $MIN_PASSWORD_LENGTH and $MAX_PASSWORD_LENGTH characters"
+        }
+        dataSource.connection.use { connection ->
+            connection.autoCommit = false
+            try {
+                val storedHash = connection.prepareStatement(
+                    "SELECT password_hash FROM local_user WHERE id = ? AND enabled = TRUE",
+                ).use { statement ->
+                    statement.setLong(1, userId)
+                    statement.executeQuery().use { rows -> if (rows.next()) rows.getString(1) else null }
+                }
+                if (storedHash == null || !verifyPassword(currentPassword, storedHash)) {
+                    connection.rollback()
+                    return false
+                }
+
+                connection.prepareStatement("UPDATE local_user SET password_hash = ? WHERE id = ?").use { statement ->
+                    statement.setString(1, hashPassword(newPassword))
+                    statement.setLong(2, userId)
+                    check(statement.executeUpdate() == 1) { "Account disappeared during password update" }
+                }
+                connection.prepareStatement("DELETE FROM user_session WHERE user_id = ?").use { statement ->
+                    statement.setLong(1, userId)
+                    statement.executeUpdate()
+                }
+                connection.commit()
+                return true
+            } catch (failure: Throwable) {
+                connection.rollback()
+                throw failure
+            }
+        }
+    }
+
+    fun setUserEnabled(userId: Long, enabled: Boolean): Boolean {
+        dataSource.connection.use { connection ->
+            connection.autoCommit = false
+            try {
+                val updated = connection.prepareStatement("UPDATE local_user SET enabled = ? WHERE id = ?").use { statement ->
+                    statement.setBoolean(1, enabled)
+                    statement.setLong(2, userId)
+                    statement.executeUpdate()
+                }
+                if (updated == 0) {
+                    connection.rollback()
+                    return false
+                }
+                if (!enabled) {
+                    connection.prepareStatement("DELETE FROM user_session WHERE user_id = ?").use { statement ->
+                        statement.setLong(1, userId)
+                        statement.executeUpdate()
+                    }
+                }
+                connection.commit()
+                return true
+            } catch (failure: Throwable) {
+                connection.rollback()
+                throw failure
+            }
+        }
     }
 
     fun login(username: String, password: String): LocalSessionToken? {
@@ -172,6 +238,7 @@ class LocalAuthService(
 
     private companion object {
         const val MIN_PASSWORD_LENGTH = 12
+        const val MAX_PASSWORD_LENGTH = 1_024
         const val TOKEN_BYTES = 32
         const val MAX_TOKEN_LENGTH = 128
         const val SALT_BYTES = 16

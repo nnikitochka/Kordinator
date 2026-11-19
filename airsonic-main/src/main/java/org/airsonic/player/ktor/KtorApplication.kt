@@ -18,6 +18,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.request.receiveText
 import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
@@ -63,6 +64,10 @@ fun Application.standaloneModule(authService: LocalAuthService? = null) {
                         call.respondJson(ApiError("invalid_request", "Expected username and password"), HttpStatusCode.BadRequest)
                         return@post
                     }
+                    if (request.username.length > 64 || request.password.length > MAX_PASSWORD_LENGTH) {
+                        call.respondJson(ApiError("invalid_request", "Username or password is too long"), HttpStatusCode.BadRequest)
+                        return@post
+                    }
                     val source = call.request.local.remoteHost
                     if (loginRateLimiter.isLimited(source)) {
                         call.respondJson(ApiError("login_rate_limited", "Too many attempts; try again later"), HttpStatusCode.TooManyRequests)
@@ -83,12 +88,90 @@ fun Application.standaloneModule(authService: LocalAuthService? = null) {
                             ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         call.respondJson(CurrentUserResponse(user.id, user.username, user.role))
                     }
+                    put("/me/password") {
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), ChangePasswordRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected currentPassword and newPassword"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        if (request.currentPassword.length > MAX_PASSWORD_LENGTH || request.newPassword.length > MAX_PASSWORD_LENGTH) {
+                            call.respondJson(ApiError("invalid_request", "Password is too long"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val changed = try {
+                            withContext(authDispatcher) {
+                                authService.changePassword(user.id, request.currentPassword, request.newPassword)
+                            }
+                        } catch (_: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_password", "New password does not meet the requirements"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        if (changed) call.respond(HttpStatusCode.NoContent) else {
+                            call.respondJson(ApiError("invalid_password", "Current password is invalid"), HttpStatusCode.BadRequest)
+                        }
+                    }
                     post("/auth/logout") {
                         val token = call.request.headers[HttpHeaders.Authorization]
                             ?.removePrefix("Bearer ")
                             ?.takeIf { it != call.request.headers[HttpHeaders.Authorization] }
                         if (token != null) withContext(authDispatcher) { authService.logout(token) }
                         call.respond(HttpStatusCode.NoContent)
+                    }
+                    post("/admin/users") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@post
+                        }
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), CreateUserRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected username, password and optional role"), HttpStatusCode.BadRequest)
+                            return@post
+                        }
+                        try {
+                            val id = withContext(authDispatcher) { authService.createUser(request.username, request.password, request.role) }
+                            call.respondJson(CurrentUserResponse(id, request.username, request.role), HttpStatusCode.Created)
+                        } catch (_: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_account", "Username, password or role is invalid"), HttpStatusCode.BadRequest)
+                        } catch (failure: java.sql.SQLException) {
+                            if (failure.sqlState?.startsWith("23") == true) {
+                                call.respondJson(ApiError("account_exists", "An account with that username already exists"), HttpStatusCode.Conflict)
+                            } else {
+                                throw failure
+                            }
+                        }
+                    }
+                    put("/admin/users/{id}/enabled") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@put
+                        }
+                        val targetId = call.parameters["id"]?.toLongOrNull()
+                        if (targetId == null) {
+                            call.respondJson(ApiError("invalid_request", "User ID must be a number"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        if (targetId == actor.id) {
+                            call.respondJson(ApiError("invalid_operation", "Cannot disable the current administrator account"), HttpStatusCode.Conflict)
+                            return@put
+                        }
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), SetUserEnabledRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected enabled"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val changed = withContext(authDispatcher) { authService.setUserEnabled(targetId, request.enabled) }
+                        if (changed) call.respond(HttpStatusCode.NoContent) else {
+                            call.respondJson(ApiError("user_not_found", "User does not exist"), HttpStatusCode.NotFound)
+                        }
                     }
                 }
             }
@@ -101,6 +184,11 @@ data class LoginRequest(val username: String, val password: String)
 data class LoginResponse(val accessToken: String, val tokenType: String = "Bearer", val expiresAt: String)
 data class CurrentUserResponse(val id: Long, val username: String, val role: String)
 data class ApiError(val code: String, val message: String)
+data class ChangePasswordRequest(val currentPassword: String, val newPassword: String)
+data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
+data class SetUserEnabledRequest(val enabled: Boolean)
+
+private const val MAX_PASSWORD_LENGTH = 1_024
 
 private val jsonMapper = jacksonObjectMapper()
 
