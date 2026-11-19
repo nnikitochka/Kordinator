@@ -83,12 +83,11 @@ public class KtorServletIntegrationTest {
     }
 
     @Test
-    public void ktorRemainsProtectedByExistingSecurity() throws Exception {
+    public void ktorRejectsRequestsWithoutAuthenticationWithoutRedirectingToWebsite() throws Exception {
         HttpResponse<String> response = get("/internal/ktor/ping", false);
 
-        assertEquals(response.body(), 302, response.statusCode());
-        String location = response.headers().firstValue("location").orElseThrow();
-        assertTrue(location, URI.create(location).getPath().endsWith("/airsonic/login"));
+        assertEquals(response.body(), 401, response.statusCode());
+        assertTrue(response.headers().firstValue("location").isEmpty());
     }
 
     @Test
