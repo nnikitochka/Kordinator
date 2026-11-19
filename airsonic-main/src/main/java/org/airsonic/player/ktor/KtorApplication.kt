@@ -16,6 +16,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondBytesWriter
 import io.ktor.server.response.respondText
 import io.ktor.server.request.receiveText
 import io.ktor.server.routing.post
@@ -23,6 +24,7 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import io.ktor.utils.io.writeFully
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -38,6 +40,9 @@ import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.service.StandaloneLibraryService
 import org.airsonic.player.service.StandaloneLibraryScanService
 import java.nio.file.Path
+import java.nio.channels.FileChannel
+import java.nio.ByteBuffer
+import java.nio.file.StandardOpenOption
 
 private val authDispatcher = Dispatchers.IO.limitedParallelism(4)
 private val scanDispatcher = Dispatchers.IO.limitedParallelism(2)
@@ -96,6 +101,52 @@ fun Application.standaloneModule(
                         )
                     }
                     call.respondJson(TrackPage(tracks, tracks.size, total, limit.coerceIn(1, 200), offset.coerceAtLeast(0)))
+                }
+                get("/tracks/{id}/stream") {
+                    if (libraryScanService == null) {
+                        call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
+                        return@get
+                    }
+                    val trackId = call.parameters["id"]?.toLongOrNull()
+                    if (trackId == null || trackId < 0) {
+                        call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                        return@get
+                    }
+                    val track = withContext(scanDispatcher) { libraryScanService.streamFile(trackId) }
+                    if (track == null) {
+                        call.respond(HttpStatusCode.NotFound)
+                        return@get
+                    }
+                    call.response.headers.append(HttpHeaders.AcceptRanges, "bytes")
+                    val rangeHeader = call.request.headers[HttpHeaders.Range]
+                    val range = if (rangeHeader == null) ByteRange(0, track.sizeBytes - 1) else parseByteRange(rangeHeader, track.sizeBytes)
+                    if (range == null) {
+                        call.response.headers.append(HttpHeaders.ContentRange, "bytes */${track.sizeBytes}")
+                        call.respond(HttpStatusCode.RequestedRangeNotSatisfiable)
+                        return@get
+                    }
+                    val partial = rangeHeader != null
+                    if (partial) call.response.headers.append(HttpHeaders.ContentRange, "bytes ${range.start}-${range.end}/${track.sizeBytes}")
+                    val length = if (track.sizeBytes == 0L && !partial) 0L else range.end - range.start + 1
+                    call.respondBytesWriter(
+                        contentType = ContentType.parse(track.contentType),
+                        status = if (partial) HttpStatusCode.PartialContent else HttpStatusCode.OK,
+                        contentLength = length,
+                    ) {
+                        FileChannel.open(track.path, StandardOpenOption.READ).use { file ->
+                            file.position(range.start)
+                            val buffer = ByteBuffer.allocate(64 * 1024)
+                            var remaining = length
+                            while (remaining > 0) {
+                                buffer.clear()
+                                buffer.limit(minOf(buffer.capacity().toLong(), remaining).toInt())
+                                val read = withContext(Dispatchers.IO) { file.read(buffer) }
+                                if (read <= 0) break
+                                writeFully(buffer.array(), 0, read)
+                                remaining -= read
+                            }
+                        }
+                    }
                 }
                 post("/auth/login") {
                     val request = try {
@@ -343,6 +394,28 @@ data class ScanResponse(
     val startedAt: String,
     val finishedAt: String?,
 )
+
+private data class ByteRange(val start: Long, val end: Long)
+
+private fun parseByteRange(header: String, size: Long): ByteRange? {
+    if (size <= 0 || !header.startsWith("bytes=") || header.contains(',')) return null
+    val value = header.removePrefix("bytes=").trim()
+    val separator = value.indexOf('-')
+    if (separator < 0 || separator != value.lastIndexOf('-')) return null
+    val first = value.substring(0, separator)
+    val last = value.substring(separator + 1)
+    return when {
+        first.isEmpty() -> {
+            val suffixLength = last.toLongOrNull()?.takeIf { it > 0 } ?: return null
+            ByteRange((size - suffixLength).coerceAtLeast(0), size - 1)
+        }
+        else -> {
+            val start = first.toLongOrNull()?.takeIf { it >= 0 && it < size } ?: return null
+            val end = if (last.isEmpty()) size - 1 else last.toLongOrNull()?.takeIf { it >= start }?.coerceAtMost(size - 1) ?: return null
+            ByteRange(start, end)
+        }
+    }
+}
 
 private const val MAX_PASSWORD_LENGTH = 1_024
 

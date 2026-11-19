@@ -6,6 +6,7 @@ import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsText
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.delay
@@ -71,6 +72,29 @@ class KtorStandaloneScanTest {
                 assertEquals(1, catalogBody.get("total").asInt())
                 assertEquals("01 - First Track", items[0].get("title").asText())
                 assertTrue(items[0].get("relativePath").asText().endsWith("01 - First Track.mp3"))
+
+                val trackId = items[0].get("id").asLong()
+                val fullStream = client.get("/api/v1/tracks/$trackId/stream") { bearerAuth(token) }
+                assertEquals(200, fullStream.status.value, fullStream.bodyAsText())
+                assertEquals("bytes", fullStream.headers["Accept-Ranges"])
+                assertTrue("not a decodable audio file".toByteArray().contentEquals(fullStream.bodyAsBytes()))
+
+                val partialStream = client.get("/api/v1/tracks/$trackId/stream") {
+                    bearerAuth(token)
+                    headers.append("Range", "bytes=2-5")
+                }
+                assertEquals(206, partialStream.status.value)
+                assertEquals("bytes 2-5/26", partialStream.headers["Content-Range"])
+                assertTrue("t a ".toByteArray().contentEquals(partialStream.bodyAsBytes()))
+
+                val invalidRange = client.get("/api/v1/tracks/$trackId/stream") {
+                    bearerAuth(token)
+                    headers.append("Range", "bytes=999-")
+                }
+                assertEquals(416, invalidRange.status.value)
+                assertEquals("bytes */26", invalidRange.headers["Content-Range"])
+                val missingStream = client.get("/api/v1/tracks/999999/stream") { bearerAuth(token) }
+                assertEquals(404, missingStream.status.value)
 
                 Files.delete(musicRoot.resolve("01 - First Track.mp3"))
                 val rescan = client.post("/api/v1/admin/libraries/${library.id}/scan") { bearerAuth(token) }

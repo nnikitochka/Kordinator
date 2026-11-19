@@ -34,6 +34,8 @@ data class StandaloneTrack(
     val modifiedAt: Instant?,
 )
 
+data class StandaloneTrackFile(val path: Path, val sizeBytes: Long, val contentType: String)
+
 /** Scans registered roots and serves indexed track metadata for the standalone API. */
 class StandaloneLibraryScanService(
     private val dataSource: DataSource,
@@ -155,6 +157,33 @@ class StandaloneLibraryScanService(
                     rows.getLong(1)
                 }
             }
+        }
+    }
+
+    fun streamFile(trackId: Long): StandaloneTrackFile? {
+        val locations = dataSource.connection.use { connection ->
+            connection.prepareStatement(
+                "SELECT l.root_path, t.relative_path FROM media_track t " +
+                    "JOIN music_library l ON l.id = t.library_id WHERE t.id = ?",
+            ).use { statement ->
+                statement.setLong(1, trackId)
+                statement.executeQuery().use { rows ->
+                    if (rows.next()) rows.getString(1) to rows.getString(2) else null
+                }
+            }
+        } ?: return null
+
+        return try {
+            val root = Path.of(locations.first).toRealPath()
+            val candidate = root.resolve(locations.second).normalize()
+            if (!candidate.startsWith(root) || Files.isSymbolicLink(candidate)) return null
+            val file = candidate.toRealPath()
+            if (!file.startsWith(root) || !Files.isRegularFile(file)) return null
+            val contentType = Files.probeContentType(file) ?: MIME_TYPES[file.fileName.toString().substringAfterLast('.', "").lowercase()]
+                ?: "application/octet-stream"
+            StandaloneTrackFile(file, Files.size(file), contentType)
+        } catch (_: Exception) {
+            null
         }
     }
 
@@ -304,5 +333,6 @@ class StandaloneLibraryScanService(
     private companion object {
         val LOG = LoggerFactory.getLogger(StandaloneLibraryScanService::class.java)
         val AUDIO_EXTENSIONS = setOf("mp3", "flac", "ogg", "opus", "m4a", "mp4", "wav", "aif", "aiff", "ape", "wma", "dsf", "dff", "wv")
+        val MIME_TYPES = mapOf("mp3" to "audio/mpeg", "flac" to "audio/flac", "ogg" to "audio/ogg", "opus" to "audio/ogg", "m4a" to "audio/mp4")
     }
 }
