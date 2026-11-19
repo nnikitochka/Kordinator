@@ -4,16 +4,13 @@ import com.google.common.io.Resources;
 import com.google.common.util.concurrent.RateLimiter;
 import org.airsonic.player.domain.TransferStatus;
 import org.airsonic.player.io.PipeStreams.MonitoredInputStream;
-import org.airsonic.player.io.PipeStreams.MonitoredResource;
 import org.airsonic.player.io.PipeStreams.PipedInputStream;
 import org.airsonic.player.io.PipeStreams.PipedOutputStream;
 import org.airsonic.player.util.FileUtil;
 import org.junit.Test;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
-
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
@@ -90,12 +87,16 @@ public class PipeStreamsTest {
     }
 
     @Test
-    public void testMonitoredResource() throws Exception {
+    public void testMonitoredInputStream() throws Exception {
         TransferStatus status = new TransferStatus(null);
         RateLimiter limit = RateLimiter.create(4.0);
         Path file = Paths.get(Resources.getResource("MEDIAS/piano.mp3").toURI());
         Set<String> eventSet = new HashSet<>();
-        Resource r = new MonitoredResource(new FileSystemResource(file), limit, () -> status, s -> {
+        assertThat(Files.size(file)).isEqualTo(FileUtil.size(file));
+        assertThat(eventSet).isEmpty();
+
+        // these are timed tests and a degree of variability is to be expected
+        try (InputStream is = new MonitoredInputStream(Files.newInputStream(file), limit, () -> status, s -> {
             if (!eventSet.add("statusClosed")) {
                 fail("statusClosed multiple times");
             }
@@ -103,13 +104,7 @@ public class PipeStreamsTest {
             if (!eventSet.add("inputStreamOpened")) {
                 fail("inputStream opened multiple times");
             }
-        });
-
-        assertThat(r.contentLength()).isEqualTo(FileUtil.size(file));
-        assertThat(eventSet).isEmpty();
-
-        // these are timed tests and a degree of variability is to be expected
-        try (InputStream is = r.getInputStream()) {
+        })) {
             assertThat(eventSet).containsOnly("inputStreamOpened");
 
             long start = System.currentTimeMillis();

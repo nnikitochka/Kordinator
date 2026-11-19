@@ -3,17 +3,12 @@ package org.airsonic.player.io;
 import com.google.common.util.concurrent.RateLimiter;
 import org.airsonic.player.domain.TransferStatus;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.core.io.Resource;
-
 import jakarta.annotation.Nonnull;
 
-import java.io.File;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URI;
-import java.net.URL;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -349,74 +344,6 @@ public class PipeStreams {
 
     } // PipedOutputStream
 
-    public static class DelayedResource implements Resource {
-        private final Resource delegate;
-        private final Consumer<InputStream> inputStreamInit;
-
-        public DelayedResource(Resource delegate, Consumer<InputStream> inputStreamInit) {
-            this.delegate = delegate;
-            this.inputStreamInit = inputStreamInit;
-        }
-
-        @NotNull
-        @Override
-        public InputStream getInputStream() throws IOException {
-            InputStream is = delegate.getInputStream();
-            inputStreamInit.accept(is);
-            return is;
-        }
-
-        @Override
-        public boolean exists() {
-            return delegate.exists();
-        }
-
-        @NotNull
-        @Override
-        public URL getURL() throws IOException {
-            return delegate.getURL();
-        }
-
-        @NotNull
-        @Override
-        public URI getURI() throws IOException {
-            return delegate.getURI();
-        }
-
-        @NotNull
-        @Override
-        public File getFile() throws IOException {
-            return delegate.getFile();
-        }
-
-        @Override
-        public long contentLength() throws IOException {
-            return delegate.contentLength();
-        }
-
-        @Override
-        public long lastModified() throws IOException {
-            return delegate.lastModified();
-        }
-
-        @NotNull
-        @Override
-        public Resource createRelative(@NotNull String relativePath) throws IOException {
-            return delegate.createRelative(relativePath);
-        }
-
-        @Override
-        public String getFilename() {
-            return delegate.getFilename();
-        }
-
-        @NotNull
-        @Override
-        public String getDescription() {
-            return delegate.getDescription();
-        }
-    }
-
     public static class MonitoredInputStream extends FilterInputStream {
         private final RateLimiter rateLimiter;
         private final TransferStatus status;
@@ -474,77 +401,4 @@ public class PipeStreams {
         }
     }
 
-    public static class MonitoredResource implements Resource {
-        private final Resource delegate;
-        private final RateLimiter rateLimiter;
-        private final Supplier<TransferStatus> statusSupplier;
-        private final Consumer<TransferStatus> statusCloser;
-        private final BiConsumer<InputStream, TransferStatus> inputStreamInit;
-
-        public MonitoredResource(Resource delegate, RateLimiter rateLimiter, Supplier<TransferStatus> statusSupplier,
-                Consumer<TransferStatus> statusCloser, BiConsumer<InputStream, TransferStatus> inputStreamInit) {
-            this.delegate = delegate;
-            this.rateLimiter = rateLimiter;
-            this.statusSupplier = statusSupplier;
-            this.statusCloser = statusCloser;
-            this.inputStreamInit = inputStreamInit;
-        }
-
-        @NotNull
-        @Override
-        public InputStream getInputStream() throws IOException {
-            return new MonitoredInputStream(delegate.getInputStream(), rateLimiter, statusSupplier, statusCloser, inputStreamInit);
-        }
-
-        @Override
-        public boolean exists() {
-            return delegate.exists();
-        }
-
-        @NotNull
-        @Override
-        public URL getURL() throws IOException {
-            return delegate.getURL();
-        }
-
-        @NotNull
-        @Override
-        public URI getURI() throws IOException {
-            return delegate.getURI();
-        }
-
-        @NotNull
-        @Override
-        public File getFile() throws IOException {
-            return delegate.getFile();
-        }
-
-        @Override
-        public long contentLength() throws IOException {
-            return delegate.contentLength();
-        }
-
-        @Override
-        public long lastModified() throws IOException {
-            return delegate.lastModified();
-        }
-
-        @NotNull
-        @Override
-        public Resource createRelative(@NotNull String relativePath) throws IOException {
-            return delegate.createRelative(relativePath);
-        }
-
-        @Override
-        public String getFilename() {
-            return delegate.getFilename();
-        }
-
-        @NotNull
-        @Override
-        public String getDescription() {
-            return delegate.getDescription();
-        }
-
-    }
 }
