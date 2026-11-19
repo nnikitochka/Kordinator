@@ -22,6 +22,17 @@ data class KordinatorAlbumSummary(
     val durationSeconds: Int,
 )
 
+data class KordinatorAlbumDetails(
+    val id: Int,
+    val name: String?,
+    val artist: String?,
+    val year: Int?,
+    val genre: String?,
+    val trackCount: Int,
+    val durationSeconds: Int,
+    val tracks: List<KordinatorTrackResponse>,
+)
+
 class KordinatorAlbumRoutes(
     private val mediaFileService: MediaFileService,
     private val mediaFolderService: MediaFolderService,
@@ -32,6 +43,50 @@ class KordinatorAlbumRoutes(
         currentUsername: (ApplicationCall) -> String?,
         objectMapper: ObjectMapper,
     ) {
+        root.get("/api/v1/albums/{id}") {
+            val username = currentUsername(call)
+            if (username.isNullOrBlank()) {
+                call.respond(HttpStatusCode.Unauthorized)
+                return@get
+            }
+
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id == null || id <= 0) {
+                call.respondText(
+                    objectMapper.writeValueAsString(ApiError("invalid_request", "Album ID must be a positive number")),
+                    ContentType.Application.Json,
+                    HttpStatusCode.BadRequest,
+                )
+                return@get
+            }
+
+            val album = mediaFileService.getMediaFile(id)
+            if (album == null || album.mediaType != MediaFile.MediaType.ALBUM ||
+                !securityService.isFolderAccessAllowed(album, username)
+            ) {
+                call.respond(HttpStatusCode.NotFound)
+                return@get
+            }
+
+            val tracks = mediaFileService.getChildrenOf(album, true, false, true)
+                .asSequence()
+                .filter { it.isAudio }
+                .filter { securityService.isFolderAccessAllowed(it, username) }
+                .map { it.toKordinatorTrack() }
+                .toList()
+            val details = KordinatorAlbumDetails(
+                id = requireNotNull(album.id),
+                name = album.albumName,
+                artist = album.artist,
+                year = album.year,
+                genre = album.genre,
+                trackCount = tracks.size,
+                durationSeconds = tracks.sumOf { it.durationSeconds },
+                tracks = tracks,
+            )
+            call.respondText(objectMapper.writeValueAsString(details), ContentType.Application.Json)
+        }
+
         root.get("/api/v1/albums") {
             val username = currentUsername(call)
             if (username.isNullOrBlank()) {
@@ -91,4 +146,18 @@ private fun MediaFile.toKordinatorAlbumSummary() = KordinatorAlbumSummary(
     year = year,
     genre = genre,
     durationSeconds = duration?.toInt() ?: 0,
+)
+
+private fun MediaFile.toKordinatorTrack() = KordinatorTrackResponse(
+    id = requireNotNull(id),
+    title = title,
+    artist = artist,
+    album = albumName,
+    albumArtist = albumArtist,
+    discNumber = discNumber,
+    trackNumber = trackNumber,
+    year = year,
+    durationSeconds = duration?.toInt() ?: 0,
+    fileSize = fileSize,
+    format = format,
 )
