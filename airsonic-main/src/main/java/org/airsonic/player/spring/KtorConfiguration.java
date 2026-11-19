@@ -124,7 +124,6 @@ import org.airsonic.player.service.JWTSecurityService;
 import org.airsonic.player.service.JukeboxService;
 import org.airsonic.player.service.JukeboxLegacySubsonicService;
 import org.airsonic.player.service.PlayQueueService;
-import org.airsonic.player.service.BookmarkService;
 import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.PlayerService;
@@ -298,11 +297,6 @@ public class KtorConfiguration {
         return runtime.createAudioScrobblerService(settingsService, securityService);
     }
 
-    public BookmarkService bookmarkService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph,
-            MediaFileService mediaFileService) {
-        return runtime.createBookmarkService(graph.getBookmarkDao(), mediaFileService);
-    }
-
     public RatingService ratingService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph, SecurityService securityService,
             MediaFileService mediaFileService) {
         return runtime.createRatingService(graph.getRatingDao(), securityService, mediaFileService);
@@ -439,7 +433,6 @@ public class KtorConfiguration {
             PlaylistService playlistService,
             ShareService shareService,
             TagEditService tagEditService,
-            BookmarkService bookmarkService,
             JukeboxService jukeboxService,
             PlayQueueService playQueueService,
             SecurityService securityService,
@@ -514,7 +507,8 @@ public class KtorConfiguration {
                                         responseMapper, playerService, playlistService, securityService),
                                 runtime.createSubsonicAlbumsController(mediaFileService, mediaFolderService,
                                         ratingService, albumSearchService, responseMapper),
-                                runtime.createBookmarksController(bookmarkService, mediaFileService, responseMapper),
+                                runtime.createBookmarksController(runtime.createBookmarkService(
+                                        graph.getBookmarkDao(), mediaFileService), mediaFileService, responseMapper),
                                 runtime.createStarredController(mediaFolderService, responseMapper),
                                 runtime.createJukeboxController(playQueueService, jukeboxService, responseMapper),
                                 runtime.createUsersController(securityService, settingsService, mediaFolderService,

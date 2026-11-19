@@ -293,13 +293,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime.createAudioScrobblerService(settingsService, securityService)
 
     @Bean
-    override fun bookmarkService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        graph: org.airsonic.player.runtime.DaoGraph,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-    ): org.airsonic.player.service.BookmarkService = runtime.createBookmarkService(graph.bookmarkDao, mediaFileService)
-
-    @Bean
     override fun ratingService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         graph: org.airsonic.player.runtime.DaoGraph,
