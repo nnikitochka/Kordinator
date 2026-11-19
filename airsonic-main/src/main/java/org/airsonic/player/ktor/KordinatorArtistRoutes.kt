@@ -8,7 +8,9 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import org.airsonic.player.dao.AlbumDao
 import org.airsonic.player.dao.ArtistDao
+import org.airsonic.player.domain.MusicFolder
 import org.airsonic.player.service.MediaFolderService
 
 data class KordinatorArtistSummary(
@@ -17,8 +19,26 @@ data class KordinatorArtistSummary(
     val albumCount: Int,
 )
 
+data class KordinatorArtistAlbum(
+    val id: Int,
+    val name: String,
+    val artist: String,
+    val year: Int?,
+    val genre: String?,
+    val trackCount: Int,
+    val durationSeconds: Int,
+)
+
+data class KordinatorArtistDetails(
+    val id: Int,
+    val name: String,
+    val albumCount: Int,
+    val albums: List<KordinatorArtistAlbum>,
+)
+
 class KordinatorArtistRoutes(
     private val artistDao: ArtistDao,
+    private val albumDao: AlbumDao,
     private val mediaFolderService: MediaFolderService,
 ) {
     fun routes(
@@ -26,6 +46,46 @@ class KordinatorArtistRoutes(
         currentUsername: (ApplicationCall) -> String?,
         objectMapper: ObjectMapper,
     ) {
+        root.get("/api/v1/artists/{id}") {
+            val username = currentUsername(call)
+            if (username.isNullOrBlank()) {
+                call.respond(HttpStatusCode.Unauthorized)
+                return@get
+            }
+
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id == null || id <= 0) {
+                call.respondText(
+                    objectMapper.writeValueAsString(ApiError("invalid_request", "Artist ID must be a positive number")),
+                    ContentType.Application.Json,
+                    HttpStatusCode.BadRequest,
+                )
+                return@get
+            }
+
+            val folders = mediaFolderService.getMusicFoldersForUser(username)
+            val visibleFolderIds = MusicFolder.toIdList(folders).toSet()
+            val artist = artistDao.getArtist(id)
+            if (artist == null || artist.folderId !in visibleFolderIds) {
+                call.respond(HttpStatusCode.NotFound)
+                return@get
+            }
+
+            val albums = albumDao.getAlbumsForArtist(artist.name, folders).map {
+                KordinatorArtistAlbum(
+                    id = it.id,
+                    name = it.name,
+                    artist = it.artist,
+                    year = it.year,
+                    genre = it.genre,
+                    trackCount = it.songCount,
+                    durationSeconds = it.duration.toInt(),
+                )
+            }
+            val details = KordinatorArtistDetails(artist.id, artist.name, albums.size, albums)
+            call.respondText(objectMapper.writeValueAsString(details), ContentType.Application.Json)
+        }
+
         root.get("/api/v1/artists") {
             val username = currentUsername(call)
             if (username.isNullOrBlank()) {
