@@ -608,7 +608,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>org.airsonic.player.Application</mainClass>
+                    <mainClass>org.airsonic.player.ktor.KtorApplicationKt</mainClass>
                     <layout>WAR</layout>
                 </configuration>
             </plugin>

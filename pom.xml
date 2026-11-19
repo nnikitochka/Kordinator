@@ -62,7 +62,6 @@
     </scm>
 
     <modules>
-        <module>youamp-server</module>
         <module>subsonic-rest-api</module>
         <module>airsonic-main</module>
     </modules>
@@ -405,7 +404,6 @@
         <profile>
             <id>docker</id>
             <modules>
-                <module>youamp-server</module>
                 <module>subsonic-rest-api</module>
                 <module>airsonic-main</module>
                 <module>install/docker</module>
@@ -414,7 +412,6 @@
         <profile>
             <id>integration-test</id>
             <modules>
-                <module>youamp-server</module>
                 <module>subsonic-rest-api</module>
                 <module>airsonic-main</module>
                 <module>install/docker</module>

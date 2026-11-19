@@ -2,7 +2,7 @@ package org.airsonic.player.service
 
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
-import org.jaudiotagger.tag.reference.PictureTypes
+import org.airsonic.player.service.metadata.JaudiotaggerParser
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
@@ -204,9 +204,7 @@ class StandaloneLibraryScanService(
         }
 
         return try {
-            val tag = AudioFileIO.read(track.path.toFile()).tag ?: return null
-            val artwork = tag.artworkList.firstOrNull { it.pictureType == PictureTypes.DEFAULT_ID } ?: tag.firstArtwork ?: return null
-            val bytes = artwork.binaryData
+            val bytes = JaudiotaggerParser.getArtwork(track.path)?.binaryData ?: return null
             if (bytes.isEmpty() || bytes.size > MAX_ARTWORK_BYTES) return null
             val contentType = imageContentType(bytes) ?: return null
             StandaloneArtwork(bytes, contentType)
