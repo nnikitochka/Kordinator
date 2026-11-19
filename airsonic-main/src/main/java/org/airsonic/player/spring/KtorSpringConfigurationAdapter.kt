@@ -159,44 +159,23 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         metaDataParserFactory, mediaFileService, securityService)
 
     @Bean
-    override fun dispatchingContentDirectory(
+    fun upnpService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        settingsService: org.airsonic.player.service.SettingsService,
         mediaFileService: org.airsonic.player.service.MediaFileService,
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
         playlistService: org.airsonic.player.service.PlaylistService,
         searchService: org.airsonic.player.service.SearchService,
         musicIndexService: org.airsonic.player.service.MusicIndexService,
         indexManager: org.airsonic.player.service.search.IndexManager,
-        settingsService: org.airsonic.player.service.SettingsService,
         playerService: org.airsonic.player.service.PlayerService,
         transcodingService: org.airsonic.player.service.TranscodingService,
         jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
-    ): org.airsonic.player.service.upnp.DispatchingContentDirectory = runtime.createDispatchingContentDirectory(
-        mediaFileService, mediaFolderService, playlistService, searchService, musicIndexService, indexManager,
-        settingsService, playerService, transcodingService, jwtSecurityService)
-
-    @Bean
-    override fun folderBasedContentDirectory(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-        mediaFolderService: org.airsonic.player.service.MediaFolderService,
-        playlistService: org.airsonic.player.service.PlaylistService,
-        indexManager: org.airsonic.player.service.search.IndexManager,
-        settingsService: org.airsonic.player.service.SettingsService,
-        playerService: org.airsonic.player.service.PlayerService,
-        transcodingService: org.airsonic.player.service.TranscodingService,
-        jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
-    ): org.airsonic.player.service.upnp.FolderBasedContentDirectory = runtime.createFolderBasedContentDirectory(
-        mediaFileService, mediaFolderService, playlistService, indexManager, settingsService, playerService,
-        transcodingService, jwtSecurityService)
-
-    @Bean
-    override fun upnpService(
-        settingsService: org.airsonic.player.service.SettingsService,
-        @org.springframework.beans.factory.annotation.Qualifier("dispatchingContentDirectory")
-        contentDirectory: org.airsonic.player.service.upnp.CustomContentDirectory,
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.UPnPService = runtime.createUpnpService(settingsService, contentDirectory)
+    ): org.airsonic.player.service.UPnPService = runtime.createUpnpService(
+        settingsService,
+        runtime.createDispatchingContentDirectory(
+            mediaFileService, mediaFolderService, playlistService, searchService, musicIndexService, indexManager,
+            settingsService, playerService, transcodingService, jwtSecurityService))
 
     @Bean
     override fun jwtSecurityService(

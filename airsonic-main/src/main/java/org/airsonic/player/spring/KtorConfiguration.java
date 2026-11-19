@@ -435,13 +435,6 @@ public class KtorConfiguration {
                 indexManager, settingsService, playerService, transcodingService, jwtSecurityService);
     }
 
-    public UPnPService upnpService(SettingsService settingsService,
-            @org.springframework.beans.factory.annotation.Qualifier("dispatchingContentDirectory")
-            org.airsonic.player.service.upnp.CustomContentDirectory contentDirectory,
-            RuntimeCompositionRoot runtime) {
-        return runtime.createUpnpService(settingsService, contentDirectory);
-    }
-
     public AudioScrobblerService audioScrobblerService(RuntimeCompositionRoot runtime, SettingsService settingsService,
             SecurityService securityService) {
         return runtime.createAudioScrobblerService(settingsService, securityService);
