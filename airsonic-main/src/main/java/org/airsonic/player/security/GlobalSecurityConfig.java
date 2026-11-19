@@ -240,7 +240,7 @@ public class GlobalSecurityConfig {
                         request.getMethod(), request.getServletPath(), request.getPathInfo(), request.getQueryString())))
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
                 .authorizeHttpRequests(authorize -> {
-                    authorize.dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.ERROR).permitAll();
+                    authorize.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll();
                     authorize.requestMatchers(SecurityRoutePolicy.WEB_PUBLIC_PATHS.toArray(String[]::new)).permitAll();
                     for (SecurityRoutePolicy.RoleRule rule : SecurityRoutePolicy.WEB_ROLE_RULES) {
                         authorize.requestMatchers(rule.getPaths().toArray(String[]::new)).hasRole(rule.getRole());

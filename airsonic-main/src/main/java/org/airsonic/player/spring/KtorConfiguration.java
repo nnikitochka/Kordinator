@@ -196,11 +196,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class KtorConfiguration {
 
     @Bean
-    public LegacyViewSuffixHandlerMapping legacyViewSuffixHandlerMapping() {
-        return new LegacyViewSuffixHandlerMapping();
-    }
-
-    @Bean
     public WebMvcConfigurer servletMvcCompatibility(MessageSource messageSource) {
         return new WebMvcConfigurer() {
             @Override
