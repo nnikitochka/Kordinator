@@ -9,6 +9,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import org.airsonic.player.runtime.LifecycleRegistry
 import org.airsonic.player.runtime.RuntimeConfigurationLoader
+import org.airsonic.player.runtime.StandaloneDatabase
 
 fun Application.module() {
     routing {
@@ -32,6 +33,14 @@ fun main(args: Array<String>) {
     val host = configuration.getProperty("airsonic.http.host", "0.0.0.0")
     val port = configuration.getIntProperty("airsonic.http.port", 8080)
     val lifecycle = LifecycleRegistry()
+    val database = StandaloneDatabase.connect(configuration)
+    lifecycle.registerShutdown("database", database)
+    try {
+        database.migrate()
+    } catch (failure: Throwable) {
+        lifecycle.shutdown()
+        throw failure
+    }
     val server = embeddedServer(Netty, host = host, port = port, module = Application::standaloneModule)
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })
     Runtime.getRuntime().addShutdownHook(Thread({ lifecycle.shutdown() }, "airsonic-shutdown"))
