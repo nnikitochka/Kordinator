@@ -456,6 +456,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** Kordinator bearer session service и auth routes переведены под ownership runtime root. JDBC session store теперь использует root-owned persistence datasource; Spring servlet registration больше не принимает отдельный `DataSource` только ради создания session store. Singleton identity проверяется graph test.
 
+**Срез 19 ноября 2026:** root теперь собирает Kordinator library, album, artist, search, playlist, favorite routes и legacy `PlaylistsController`. DAO внедряются из root-owned `PersistenceGraph`, без прямых `new` в Spring servlet factory; graph test проверяет singleton identity.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

@@ -466,6 +466,22 @@ class RuntimeCompositionRootGraphTest {
                 securityService, credentialEncoders, settingsService));
         assertSame(runtimeRoot.createKordinatorAuthRoutes(sessionService),
                 runtimeRoot.createKordinatorAuthRoutes(sessionService));
+        assertSame(runtimeRoot.createKordinatorPlaylistRoutes(playlistService, securityService, mediaFileService),
+                runtimeRoot.createKordinatorPlaylistRoutes(playlistService, securityService, mediaFileService));
+        assertSame(runtimeRoot.createKordinatorAlbumRoutes(mediaFileService, mediaFolderService, securityService),
+                runtimeRoot.createKordinatorAlbumRoutes(mediaFileService, mediaFolderService, securityService));
+        assertSame(runtimeRoot.createKordinatorArtistRoutes(mediaFolderService),
+                runtimeRoot.createKordinatorArtistRoutes(mediaFolderService));
+        assertSame(runtimeRoot.createKordinatorSearchRoutes(searchService, mediaFolderService, securityService),
+                runtimeRoot.createKordinatorSearchRoutes(searchService, mediaFolderService, securityService));
+        assertSame(runtimeRoot.createKordinatorFavoriteRoutes(mediaFileService, mediaFolderService, securityService),
+                runtimeRoot.createKordinatorFavoriteRoutes(mediaFileService, mediaFolderService, securityService));
+        assertSame(runtimeRoot.createKordinatorLibraryRoutes(mediaFileService, mediaFolderService, securityService),
+                runtimeRoot.createKordinatorLibraryRoutes(mediaFileService, mediaFolderService, securityService));
+        assertSame(runtimeRoot.createPlaylistsController(playlistService, mediaFileService, securityService,
+                        responseMapper, mediaFolderService, playerService, localeService),
+                runtimeRoot.createPlaylistsController(playlistService, mediaFileService, securityService,
+                        responseMapper, mediaFolderService, playerService, localeService));
         assertSame(runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService),
                 runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService));
         assertSame(runtimeRoot.createMusicFolderSettingsController(musicFolderAdministrationService),

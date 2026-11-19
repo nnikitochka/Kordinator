@@ -154,6 +154,13 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.shares.SharesController sharesController;
     private org.airsonic.player.ktor.KordinatorSessionService kordinatorSessionService;
     private org.airsonic.player.ktor.KordinatorAuthRoutes kordinatorAuthRoutes;
+    private org.airsonic.player.ktor.KordinatorPlaylistRoutes kordinatorPlaylistRoutes;
+    private org.airsonic.player.ktor.KordinatorAlbumRoutes kordinatorAlbumRoutes;
+    private org.airsonic.player.ktor.KordinatorArtistRoutes kordinatorArtistRoutes;
+    private org.airsonic.player.ktor.KordinatorSearchRoutes kordinatorSearchRoutes;
+    private org.airsonic.player.ktor.KordinatorFavoriteRoutes kordinatorFavoriteRoutes;
+    private org.airsonic.player.ktor.KordinatorLibraryRoutes kordinatorLibraryRoutes;
+    private org.airsonic.player.controller.rest.playlists.PlaylistsController playlistsController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -960,6 +967,98 @@ public final class RuntimeCompositionRoot {
                     sessionService, new org.airsonic.player.security.LoginRateLimiter());
         }
         return kordinatorAuthRoutes;
+    }
+
+    public synchronized org.airsonic.player.ktor.KordinatorPlaylistRoutes createKordinatorPlaylistRoutes(
+            org.airsonic.player.service.PlaylistService playlistService,
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.service.MediaFileService mediaFileService) {
+        if (kordinatorPlaylistRoutes == null) {
+            kordinatorPlaylistRoutes = new org.airsonic.player.ktor.KordinatorPlaylistRoutes(
+                    playlistService, securityService, mediaFileService);
+        }
+        return kordinatorPlaylistRoutes;
+    }
+
+    public synchronized org.airsonic.player.ktor.KordinatorAlbumRoutes createKordinatorAlbumRoutes(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.service.SecurityService securityService) {
+        if (kordinatorAlbumRoutes == null) {
+            kordinatorAlbumRoutes = new org.airsonic.player.ktor.KordinatorAlbumRoutes(
+                    mediaFileService, mediaFolderService, securityService);
+        }
+        return kordinatorAlbumRoutes;
+    }
+
+    public synchronized org.airsonic.player.ktor.KordinatorArtistRoutes createKordinatorArtistRoutes(
+            org.airsonic.player.service.MediaFolderService mediaFolderService) {
+        if (kordinatorArtistRoutes == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before KordinatorArtistRoutes");
+            }
+            DaoGraph daos = persistenceGraph.getDaos();
+            kordinatorArtistRoutes = new org.airsonic.player.ktor.KordinatorArtistRoutes(
+                    daos.getArtistDao(), daos.getAlbumDao(), mediaFolderService);
+        }
+        return kordinatorArtistRoutes;
+    }
+
+    public synchronized org.airsonic.player.ktor.KordinatorSearchRoutes createKordinatorSearchRoutes(
+            org.airsonic.player.service.SearchService searchService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.service.SecurityService securityService) {
+        if (kordinatorSearchRoutes == null) {
+            kordinatorSearchRoutes = new org.airsonic.player.ktor.KordinatorSearchRoutes(
+                    searchService, mediaFolderService, securityService);
+        }
+        return kordinatorSearchRoutes;
+    }
+
+    public synchronized org.airsonic.player.ktor.KordinatorFavoriteRoutes createKordinatorFavoriteRoutes(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.service.SecurityService securityService) {
+        if (kordinatorFavoriteRoutes == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before KordinatorFavoriteRoutes");
+            }
+            DaoGraph daos = persistenceGraph.getDaos();
+            kordinatorFavoriteRoutes = new org.airsonic.player.ktor.KordinatorFavoriteRoutes(
+                    daos.getMediaFileDao(), daos.getAlbumDao(), daos.getArtistDao(),
+                    mediaFileService, mediaFolderService, securityService);
+        }
+        return kordinatorFavoriteRoutes;
+    }
+
+    public synchronized org.airsonic.player.ktor.KordinatorLibraryRoutes createKordinatorLibraryRoutes(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.service.SecurityService securityService) {
+        if (kordinatorLibraryRoutes == null) {
+            kordinatorLibraryRoutes = new org.airsonic.player.ktor.KordinatorLibraryRoutes(
+                    mediaFileService, mediaFolderService, securityService);
+        }
+        return kordinatorLibraryRoutes;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.playlists.PlaylistsController createPlaylistsController(
+            org.airsonic.player.service.PlaylistService playlistService,
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.service.PlayerService playerService,
+            org.airsonic.player.i18n.LocaleService localeService) {
+        if (playlistsController == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before PlaylistsController");
+            }
+            playlistsController = new org.airsonic.player.controller.rest.playlists.PlaylistsController(
+                    playlistService, mediaFileService, securityService, responseMapper, createSubsonicJaxbWriter(),
+                    persistenceGraph.getDaos().getMediaFileDao(), mediaFolderService, playerService, localeService);
+        }
+        return playlistsController;
     }
 
     public synchronized DataSource createDataSource() {
