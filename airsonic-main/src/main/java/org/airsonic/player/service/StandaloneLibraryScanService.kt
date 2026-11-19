@@ -2,9 +2,12 @@ package org.airsonic.player.service
 
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
+import org.airsonic.player.service.metadata.JaudiotaggerParser
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
+import java.io.ByteArrayInputStream
+import javax.imageio.ImageIO
 import java.nio.file.attribute.BasicFileAttributes
 import java.sql.Timestamp
 import java.time.Instant
@@ -35,6 +38,7 @@ data class StandaloneTrack(
 )
 
 data class StandaloneTrackFile(val path: Path, val sizeBytes: Long, val contentType: String)
+data class StandaloneArtwork(val bytes: ByteArray, val contentType: String)
 
 /** Scans registered roots and serves indexed track metadata for the standalone API. */
 class StandaloneLibraryScanService(
@@ -187,6 +191,44 @@ class StandaloneLibraryScanService(
         }
     }
 
+    fun artwork(trackId: Long): StandaloneArtwork? {
+        val track = streamFile(trackId) ?: return null
+        val directory = track.path.parent
+        for (candidateName in COVER_FILE_NAMES) {
+            val candidate = directory.resolve(candidateName)
+            if (!Files.isRegularFile(candidate) || Files.isSymbolicLink(candidate)) continue
+            if (Files.size(candidate) > MAX_ARTWORK_BYTES) continue
+            val bytes = Files.readAllBytes(candidate)
+            val contentType = imageContentType(bytes) ?: continue
+            return StandaloneArtwork(bytes, contentType)
+        }
+
+        return try {
+            val bytes = JaudiotaggerParser.getArtwork(track.path)?.binaryData ?: return null
+            if (bytes.isEmpty() || bytes.size > MAX_ARTWORK_BYTES) return null
+            val contentType = imageContentType(bytes) ?: return null
+            StandaloneArtwork(bytes, contentType)
+        } catch (failure: Exception) {
+            LOG.debug("Could not read embedded cover art for track {}", trackId, failure)
+            null
+        }
+    }
+
+    private fun imageContentType(bytes: ByteArray): String? = try {
+        ImageIO.createImageInputStream(ByteArrayInputStream(bytes)).use { imageInput ->
+            val reader = ImageIO.getImageReaders(imageInput).asSequence().firstOrNull() ?: return null
+            when (reader.formatName.lowercase()) {
+                "jpg", "jpeg" -> "image/jpeg"
+                "png" -> "image/png"
+                "gif" -> "image/gif"
+                "bmp" -> "image/bmp"
+                else -> null
+            }
+        }
+    } catch (_: Exception) {
+        null
+    }
+
     private fun findScan(scanId: String): LibraryScan? = dataSource.connection.use { connection ->
         connection.prepareStatement(
             "SELECT id, library_id, state, tracks_scanned, error_count, started_at, finished_at " +
@@ -334,5 +376,9 @@ class StandaloneLibraryScanService(
         val LOG = LoggerFactory.getLogger(StandaloneLibraryScanService::class.java)
         val AUDIO_EXTENSIONS = setOf("mp3", "flac", "ogg", "opus", "m4a", "mp4", "wav", "aif", "aiff", "ape", "wma", "dsf", "dff", "wv")
         val MIME_TYPES = mapOf("mp3" to "audio/mpeg", "flac" to "audio/flac", "ogg" to "audio/ogg", "opus" to "audio/ogg", "m4a" to "audio/mp4")
+        val COVER_FILE_NAMES = listOf(
+            "cover.jpg", "cover.jpeg", "cover.png", "folder.jpg", "folder.jpeg", "folder.png", "front.jpg", "front.jpeg", "front.png",
+        )
+        const val MAX_ARTWORK_BYTES = 20L * 1024 * 1024
     }
 }

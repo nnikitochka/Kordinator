@@ -16,6 +16,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondBytesWriter
 import io.ktor.server.response.respondText
 import io.ktor.server.request.receiveText
@@ -80,7 +81,8 @@ fun Application.standaloneModule(
         }
         if (authService != null) {
             route("/api/v1") {
-                get("/tracks") {
+                authenticate("server-session") {
+                    get("/tracks") {
                     if (libraryScanService == null) {
                         call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
                         return@get
@@ -105,7 +107,7 @@ fun Application.standaloneModule(
                     }
                     call.respondJson(TrackPage(tracks, tracks.size, total, limit.coerceIn(1, 200), offset.coerceAtLeast(0)))
                 }
-                get("/tracks/{id}/stream") {
+                    get("/tracks/{id}/stream") {
                     if (libraryScanService == null) {
                         call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
                         return@get
@@ -149,6 +151,25 @@ fun Application.standaloneModule(
                                 remaining -= read
                             }
                         }
+                    }
+                }
+                    get("/tracks/{id}/artwork") {
+                    if (libraryScanService == null) {
+                        call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
+                        return@get
+                    }
+                    val trackId = call.parameters["id"]?.toLongOrNull()
+                    if (trackId == null || trackId < 0) {
+                        call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                        return@get
+                    }
+                    val artwork = withContext(scanDispatcher) { libraryScanService.artwork(trackId) }
+                    if (artwork == null) {
+                        call.respond(HttpStatusCode.NotFound)
+                        return@get
+                    }
+                    call.response.headers.append(HttpHeaders.CacheControl, "private, max-age=300")
+                    call.respondBytes(artwork.bytes, ContentType.parse(artwork.contentType))
                     }
                 }
                 post("/auth/login") {

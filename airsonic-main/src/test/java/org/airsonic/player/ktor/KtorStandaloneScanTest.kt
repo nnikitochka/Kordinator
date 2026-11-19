@@ -17,6 +17,9 @@ import org.airsonic.player.service.StandaloneLibraryService
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
+import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -28,6 +31,11 @@ class KtorStandaloneScanTest {
     @Test
     fun scanIndexesTrackFallbackMetadataAndExposesPaginatedCatalog() {
         Files.writeString(musicRoot.resolve("01 - First Track.mp3"), "not a decodable audio file")
+        val coverBytes = ByteArrayOutputStream().use { output ->
+            ImageIO.write(BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), "png", output)
+            output.toByteArray()
+        }
+        Files.write(musicRoot.resolve("cover.png"), coverBytes)
         val dataSource = HikariDataSource(HikariConfig().apply {
             jdbcUrl = "jdbc:hsqldb:mem:standalone_scan_api"
             driverClassName = "org.hsqldb.jdbc.JDBCDriver"
@@ -66,6 +74,7 @@ class KtorStandaloneScanTest {
                     bearerAuth(token)
                 }
                 assertEquals(200, catalog.status.value)
+                assertEquals(401, client.get("/api/v1/tracks").status.value)
                 val catalogBody = mapper.readTree(catalog.bodyAsText())
                 val items = catalogBody.get("items")
                 assertEquals(1, items.size())
@@ -76,8 +85,16 @@ class KtorStandaloneScanTest {
                 val trackId = items[0].get("id").asLong()
                 val fullStream = client.get("/api/v1/tracks/$trackId/stream") { bearerAuth(token) }
                 assertEquals(200, fullStream.status.value, fullStream.bodyAsText())
+                assertEquals(401, client.get("/api/v1/tracks/$trackId/stream").status.value)
                 assertEquals("bytes", fullStream.headers["Accept-Ranges"])
                 assertTrue("not a decodable audio file".toByteArray().contentEquals(fullStream.bodyAsBytes()))
+
+                val artwork = client.get("/api/v1/tracks/$trackId/artwork") { bearerAuth(token) }
+                assertEquals(200, artwork.status.value)
+                assertEquals("image/png", artwork.headers["Content-Type"]?.substringBefore(';'))
+                assertTrue(coverBytes.contentEquals(artwork.bodyAsBytes()))
+                assertEquals(401, client.get("/api/v1/tracks/$trackId/artwork").status.value)
+                assertEquals(404, client.get("/api/v1/tracks/999999/artwork") { bearerAuth(token) }.status.value)
 
                 val partialStream = client.get("/api/v1/tracks/$trackId/stream") {
                     bearerAuth(token)
