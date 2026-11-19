@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 
 /**
  * Framework-neutral transaction manager supporting thread-bound connections,
- * nested transactions, savepoints, rollback, and transition-period Spring synchronization.
+ * nested transactions, savepoints, rollback, and optional external transaction participation.
  */
 public class TransactionManager {
 
@@ -29,9 +29,17 @@ public class TransactionManager {
     private static final ThreadLocal<TransactionState> CURRENT_TRANSACTION = new ThreadLocal<>();
 
     private final DataSource dataSource;
+    private final ExternalTransactionConnectionContext externalTransactionContext;
 
     public TransactionManager(DataSource dataSource) {
+        this(dataSource, ExternalTransactionConnectionContext.NONE);
+    }
+
+    public TransactionManager(DataSource dataSource,
+            ExternalTransactionConnectionContext externalTransactionContext) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
+        this.externalTransactionContext = Objects.requireNonNull(externalTransactionContext,
+                "externalTransactionContext");
     }
 
     public DataSource getDataSource() {
@@ -44,10 +52,9 @@ public class TransactionManager {
             return state.connection;
         }
 
-        // Bridge to Spring's active transaction during transition phase if Spring is active on this thread
-        Connection springConn = getSpringTransactionConnection();
-        if (springConn != null) {
-            return springConn;
+        Connection externalConnection = externalTransactionContext.currentConnection(dataSource);
+        if (externalConnection != null) {
+            return externalConnection;
         }
 
         return dataSource.getConnection();
@@ -63,7 +70,7 @@ public class TransactionManager {
             return;
         }
 
-        if (releaseSpringTransactionConnection(conn)) {
+        if (externalTransactionContext.releaseConnection(conn, dataSource)) {
             return;
         }
 
@@ -181,33 +188,6 @@ public class TransactionManager {
                 }
             }
         }
-    }
-
-    private Connection getSpringTransactionConnection() {
-        try {
-            Class<?> syncManager = Class.forName("org.springframework.transaction.support.TransactionSynchronizationManager");
-            boolean active = (boolean) syncManager.getMethod("isActualTransactionActive").invoke(null);
-            if (active) {
-                Class<?> dsUtils = Class.forName("org.springframework.jdbc.datasource.DataSourceUtils");
-                return (Connection) dsUtils.getMethod("getConnection", DataSource.class).invoke(null, dataSource);
-            }
-        } catch (Throwable ignored) {
-        }
-        return null;
-    }
-
-    private boolean releaseSpringTransactionConnection(Connection conn) {
-        try {
-            Class<?> syncManager = Class.forName("org.springframework.transaction.support.TransactionSynchronizationManager");
-            boolean active = (boolean) syncManager.getMethod("isActualTransactionActive").invoke(null);
-            if (active) {
-                Class<?> dsUtils = Class.forName("org.springframework.jdbc.datasource.DataSourceUtils");
-                dsUtils.getMethod("releaseConnection", Connection.class, DataSource.class).invoke(null, conn, dataSource);
-                return true;
-            }
-        } catch (Throwable ignored) {
-        }
-        return false;
     }
 
     public static final class TransactionDefinition {
