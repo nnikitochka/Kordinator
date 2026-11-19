@@ -432,13 +432,6 @@ public class KtorConfiguration {
         return runtime.createPathWatcherService();
     }
 
-    @Bean
-    public org.airsonic.player.health.StatusAggregator serverHealthStatusAggregator(
-            RuntimeCompositionRoot runtime) {
-        return runtime.createStatusAggregator();
-    }
-
-
     public DownloadService downloadService(RuntimeCompositionRoot runtime, StatusService statusService, SecurityService securityService,
             PlaylistService playlistService, SettingsService settingsService, MediaFileService mediaFileService,
             CoverArtService coverArtService) {

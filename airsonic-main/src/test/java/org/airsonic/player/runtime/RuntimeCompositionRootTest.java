@@ -40,10 +40,10 @@ class RuntimeCompositionRootTest {
     }
 
     @Test
-    void springHealthAdapterUsesTheNeutralRuntimeOrder() {
+    void runtimeStatusAggregatorUsesConfiguredOrder() {
         RuntimeCompositionRoot runtime = new RuntimeCompositionRoot("FATAL, DOWN, UP");
         SimpleStatusAggregator aggregator = (SimpleStatusAggregator)
-                new KtorConfiguration().serverHealthStatusAggregator(runtime);
+                runtime.createStatusAggregator();
 
         assertEquals(new Status("FATAL"), aggregator.getAggregateStatus(Set.of(Status.DOWN, new Status("FATAL"))));
     }
