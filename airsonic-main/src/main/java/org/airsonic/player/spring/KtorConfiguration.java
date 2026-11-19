@@ -188,11 +188,10 @@ public class KtorConfiguration {
 
     @Bean
     public ArtistsController subsonicArtistsController(
-            org.airsonic.player.runtime.DaoGraph graph, MusicIndexService musicIndexService, SettingsService settingsService,
-            MediaFolderService mediaFolderService, SubsonicResponseMapper subsonicResponseMapper,
-            JAXBWriter subsonicJaxbWriter) {
-        return new ArtistsController(graph.getArtistDao(), graph.getAlbumDao(), musicIndexService, settingsService, mediaFolderService,
-                subsonicResponseMapper, subsonicJaxbWriter);
+            RuntimeCompositionRoot runtime, MusicIndexService musicIndexService, SettingsService settingsService,
+            MediaFolderService mediaFolderService, SubsonicResponseMapper subsonicResponseMapper) {
+        return runtime.createSubsonicArtistsController(
+                musicIndexService, settingsService, mediaFolderService, subsonicResponseMapper);
     }
 
     @Bean
@@ -758,8 +757,8 @@ public class KtorConfiguration {
                                 new PlaylistImportController(playlistService, jaxbWriter),
                                 new LiveQueueExportController(transcodingService, jwtSecurityService, securityService, jaxbWriter),
                                 new SharesController(shareService, mediaFileService, mediaFolderService, responseMapper, jaxbWriter, playerService, playlistService, securityService),
-                                new AlbumsController(albumDao, mediaFileDao, mediaFileService, mediaFolderService,
-                                        ratingService, albumSearchService, responseMapper, jaxbWriter),
+                                runtime.createSubsonicAlbumsController(mediaFileService, mediaFolderService,
+                                        ratingService, albumSearchService, responseMapper),
                                 new BookmarksController(bookmarkService, mediaFileService, responseMapper, jaxbWriter),
                                 new StarredController(mediaFileDao, albumDao, artistDao, mediaFolderService, responseMapper, jaxbWriter),
                                 new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),

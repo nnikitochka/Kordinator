@@ -94,6 +94,8 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.genres.GenresController subsonicGenresController;
     private org.airsonic.player.controller.rest.music.folder.MusicFoldersController subsonicMusicFoldersController;
     private org.airsonic.player.controller.rest.search.SearchController subsonicSearchController;
+    private org.airsonic.player.controller.rest.artists.ArtistsController subsonicArtistsController;
+    private org.airsonic.player.controller.rest.albums.AlbumsController subsonicAlbumsController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -208,6 +210,41 @@ public final class RuntimeCompositionRoot {
                     searchService, createSubsonicJaxbWriter());
         }
         return subsonicSearchController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.artists.ArtistsController createSubsonicArtistsController(
+            org.airsonic.player.service.MusicIndexService musicIndexService,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
+        if (subsonicArtistsController == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before Subsonic ArtistsController");
+            }
+            DaoGraph daos = persistenceGraph.getDaos();
+            subsonicArtistsController = new org.airsonic.player.controller.rest.artists.ArtistsController(
+                    daos.getArtistDao(), daos.getAlbumDao(), musicIndexService, settingsService,
+                    mediaFolderService, responseMapper, createSubsonicJaxbWriter());
+        }
+        return subsonicArtistsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.albums.AlbumsController createSubsonicAlbumsController(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.service.RatingService ratingService,
+            org.airsonic.player.service.SearchService searchService,
+            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
+        if (subsonicAlbumsController == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before Subsonic AlbumsController");
+            }
+            DaoGraph daos = persistenceGraph.getDaos();
+            subsonicAlbumsController = new org.airsonic.player.controller.rest.albums.AlbumsController(
+                    daos.getAlbumDao(), daos.getMediaFileDao(), mediaFileService, mediaFolderService,
+                    ratingService, searchService, responseMapper, createSubsonicJaxbWriter());
+        }
+        return subsonicAlbumsController;
     }
 
     public synchronized DataSource createDataSource() {

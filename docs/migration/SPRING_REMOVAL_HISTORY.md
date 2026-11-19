@@ -422,6 +422,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** `GenresController`, `MusicFoldersController` и `SearchController` также перемещены под ownership `RuntimeCompositionRoot`; Spring factory methods теперь публикуют их root-owned экземпляры, а dependencies контроллеров остаются явными параметрами. `RuntimeCompositionRootGraphTest` прошёл 3/3.
 
+**Срез 19 ноября 2026:** `ArtistsController` и `AlbumsController` переведены на создание и singleton ownership через `RuntimeCompositionRoot`; существующие Ktor routes и REST поведение не менялись. Spring bean method artists и Ktor servlet assembly albums теперь получают root-owned instances. `RuntimeCompositionRootGraphTest` прошёл 3/3 без Spring context.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
