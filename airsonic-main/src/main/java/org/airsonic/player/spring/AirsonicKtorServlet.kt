@@ -135,6 +135,9 @@ import org.airsonic.player.ktor.KordinatorPlaylistRoutes
 import org.airsonic.player.ktor.KordinatorAlbumRoutes
 import org.airsonic.player.ktor.KordinatorArtistRoutes
 import org.airsonic.player.ktor.KordinatorSearchRoutes
+import org.airsonic.player.ktor.KordinatorAuthRoutes
+import org.airsonic.player.ktor.KordinatorSessionService
+import org.airsonic.player.ktor.bearerToken
 class AirsonicKtorServlet(
     private val searchController: SearchController,
     private val musicFoldersController: MusicFoldersController,
@@ -150,6 +153,8 @@ class AirsonicKtorServlet(
     private val kordinatorAlbumRoutes: KordinatorAlbumRoutes,
     private val kordinatorArtistRoutes: KordinatorArtistRoutes,
     private val kordinatorSearchRoutes: KordinatorSearchRoutes,
+    private val kordinatorAuthRoutes: KordinatorAuthRoutes,
+    private val kordinatorSessionService: KordinatorSessionService,
     private val uploadController: UploadController,
     private val playlistExportController: PlaylistExportController,
     private val playlistImportController: PlaylistImportController,
@@ -342,10 +347,11 @@ class AirsonicKtorServlet(
         }
         val kordinatorTrackLookup = MediaFileTrackLookup(mediaFileService, securityService)
         val kordinatorUsername: (ApplicationCall) -> String? = { call ->
-            (call.request as? ServletApplicationRequest)?.servletRequest?.let(securityService::getCurrentUsername)
+            kordinatorSessionService.authenticate(call.bearerToken())?.username
         }
         application.routing {
             infrastructureRoutes(errorProperties, objectMapper)
+            kordinatorAuthRoutes.routes(this, objectMapper)
             kordinatorTrackRoutes(
                 kordinatorTrackLookup,
                 currentUsername = kordinatorUsername,
@@ -930,6 +936,20 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST)
                 return
             }
+            val kordinatorPrincipal = if (isKordinatorTrackStreamPath(path)) {
+                val authorization = request.getHeader("Authorization")
+                val bearer = authorization?.takeIf { it.regionMatches(0, "Bearer ", 0, 7, true) }
+                    ?.substring(7)?.trim()
+                kordinatorSessionService.authenticate(bearer)
+            } else null
+            if (isKordinatorTrackStreamPath(path) && kordinatorPrincipal == null) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                return
+            }
+            val userWrapped = if (kordinatorPrincipal != null) object : HttpServletRequestWrapper(request) {
+                override fun getUserPrincipal(): Principal = Principal { kordinatorPrincipal.username }
+                override fun getRemoteUser(): String = kordinatorPrincipal.username
+            } else request
             val restStream = path in StreamRestController.PATHS || isKordinatorTrackStreamPath(path)
             val rawPlayer = if (restStream) null else request.getParameter("player")?.trim()?.takeIf { it.isNotEmpty() }
             if (rawPlayer != null && rawPlayer.toIntOrNull() == null) {
@@ -947,16 +967,23 @@ class AirsonicKtorServlet(
                 return
             }
             val playerId = if (restStream) playerResolver.getOrCreatePlayerId(
-                request.remoteUser, request.getParameter("c"), request.remoteAddr, false) else null
-            val wrapped = if (restStream) object : HttpServletRequestWrapper(request) {
+                userWrapped.remoteUser, request.getParameter("c"), request.remoteAddr, false) else null
+            val wrapped = if (restStream) object : HttpServletRequestWrapper(userWrapped) {
                 override fun getParameter(name: String): String? = when (name) {
                     "player" -> playerId?.toString()
                     "id" -> kordinatorTrackId?.toString() ?: mapRestId(super.getParameter(name))
                     else -> super.getParameter(name)
                 }
-            } else request
-            val authentication = request.userPrincipal as Principal
-            val restUser = if (restStream) requireNotNull(securityService.getUserByName(authentication.name)) else null
+            } else userWrapped
+            val authentication = wrapped.userPrincipal ?: run {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                return
+            }
+            val restUser = if (restStream) securityService.getUserByName(authentication.name) else null
+            if (restStream && restUser == null) {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                return
+            }
             if (restUser != null && !restUser.isStreamRole) {
                 if (isKordinatorTrackStreamPath(path)) {
                     response.sendError(HttpServletResponse.SC_FORBIDDEN)
@@ -981,7 +1008,11 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_NOT_FOUND)
                 return
             }
-             val callerContext = callerContextAdapter.fromRequest(request)
+             val callerContext = if (kordinatorPrincipal != null) {
+                 securityService.createCallerContext(kordinatorPrincipal.username, true)
+             } else {
+                 callerContextAdapter.fromRequest(request)
+             }
              if (file != null && (restStream || jwt == null)
                  && !securityService.isFolderAccessAllowed(file, callerContext)) {
                 if (isKordinatorTrackStreamPath(path)) {

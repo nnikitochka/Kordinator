@@ -755,6 +755,7 @@ public class KtorConfiguration {
             PlayQueueDao playQueueDao,
             javax.sql.DataSource dataSource,
             SecurityService securityService,
+            CredentialEncoderRegistry credentialEncoderRegistry,
             SettingsService settingsService,
             org.airsonic.player.service.ConfigurationPropertiesService properties,
             VersionService versionService,
@@ -787,6 +788,13 @@ public class KtorConfiguration {
             org.airsonic.player.monitor.MetricsManager metricsManager,
             org.airsonic.player.dao.TransactionManager transactionManager
     ) {
+        org.airsonic.player.ktor.KordinatorSessionService kordinatorSessionService =
+                new org.airsonic.player.ktor.KordinatorSessionService(
+                        securityService, credentialEncoderRegistry,
+                        new org.airsonic.player.ktor.JdbcKordinatorSessionStore(dataSource));
+        org.airsonic.player.ktor.KordinatorAuthRoutes kordinatorAuthRoutes =
+                new org.airsonic.player.ktor.KordinatorAuthRoutes(
+                        kordinatorSessionService, new org.airsonic.player.security.LoginRateLimiter());
         ServletRegistrationBean<ServletApplicationEngine> registration =
                 new ServletRegistrationBean<>(
                         new AirsonicKtorServlet(searchController,
@@ -803,6 +811,8 @@ public class KtorConfiguration {
                                 new org.airsonic.player.ktor.KordinatorAlbumRoutes(mediaFileService, mediaFolderService, securityService),
                                 new org.airsonic.player.ktor.KordinatorArtistRoutes(artistDao, albumDao, mediaFolderService),
                                 new org.airsonic.player.ktor.KordinatorSearchRoutes(albumSearchService, mediaFolderService, securityService),
+                                kordinatorAuthRoutes,
+                                kordinatorSessionService,
                                 new UploadController(uploadFileService, statusService, securityService, settingsService, jaxbWriter),
                                 new PlaylistExportController(playlistService, jaxbWriter),
                                 new PlaylistImportController(playlistService, jaxbWriter),

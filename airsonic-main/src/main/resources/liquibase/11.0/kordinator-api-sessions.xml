@@ -1,0 +1,31 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+    <changeSet id="create-kordinator-api-sessions" author="kordinator">
+        <createTable tableName="kordinator_api_session">
+            <column name="token_hash" type="varchar(64)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_kordinator_api_session"/>
+            </column>
+            <column name="username" type="${varchar_type}">
+                <constraints nullable="false" foreignKeyName="kas_user_fk" referencedTableName="users" referencedColumnNames="username" deleteCascade="true"/>
+            </column>
+            <column name="credential_version" type="datetime"/>
+            <column name="created_at" type="datetime">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="datetime">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="kordinator_api_session" indexName="idx_kordinator_api_session_username">
+            <column name="username"/>
+        </createIndex>
+        <createIndex tableName="kordinator_api_session" indexName="idx_kordinator_api_session_expiry">
+            <column name="expires_at"/>
+        </createIndex>
+        <rollback>
+            <dropTable tableName="kordinator_api_session"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

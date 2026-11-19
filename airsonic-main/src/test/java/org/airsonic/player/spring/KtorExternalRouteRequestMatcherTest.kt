@@ -11,6 +11,9 @@ class KtorExternalRouteRequestMatcherTest {
     @Test
     fun matchesExternalRoutesRegisteredOnKtorServlet() {
         listOf(
+            "/api/v1/auth/login",
+            "/api/v1/me",
+            "/api/v1/tracks/42/stream",
             "/ext/stream",
             "/ext/stream/song.mp3",
             "/ext/rest/share/PublicName",

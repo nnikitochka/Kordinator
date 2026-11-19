@@ -30,4 +30,5 @@
     <include file="podcast-episode-indices.xml" relativeToChangelogFile="true"/>
     <include file="drop-podcasts.xml" relativeToChangelogFile="true"/>
     <include file="drop-internet-radio.xml" relativeToChangelogFile="true"/>
+    <include file="kordinator-api-sessions.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>
