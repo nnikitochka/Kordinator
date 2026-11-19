@@ -32,7 +32,6 @@ import org.airsonic.player.service.MusicIndexStateService;
 import org.airsonic.player.service.hls.HlsPlaylistService;
 import org.airsonic.player.controller.rest.shares.PublicShareController;
 import org.airsonic.player.controller.captions.CaptionsRestController;
-import org.airsonic.player.controller.rest.video.VideoPlayerRestController;
 import org.airsonic.player.controller.rest.recovery.PasswordRecoveryController;
 import org.airsonic.player.service.PasswordRecoveryService;
 import org.airsonic.player.service.ServerInfoService;
@@ -748,7 +747,6 @@ public class KtorConfiguration {
             JAXBWriter jaxbWriter,
             JWTSecurityService jwtSecurityService,
             CaptionService captionService,
-            VideoPlaybackService videoPlaybackService,
             PasswordRecoveryService passwordRecoveryService,
             ServerInfoService serverInfoService,
             org.airsonic.player.service.metadata.MetaDataParserFactory metadataParsers,
@@ -869,13 +867,13 @@ public class KtorConfiguration {
                                 new WebsiteSettingsController(settingsService, jaxbWriter),
                                 new LiveQueueController(playQueueService, jaxbWriter, mediaFileService, playlistService, securityService, playQueueDao, playerService),
                                 new RatingController(mediaFileService, ratingService, jaxbWriter),
-                                new DownloadRestController(jaxbWriter, downloadService, mediaFileService, playlistService, securityService), downloadService,
+                                new DownloadRestController(jaxbWriter), downloadService,
                                 shareService, mediaFileService,
                                 playerResolver, playerService, securityService, localeResolver,
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService), new AvatarUploadController(settingsService, jaxbWriter),
                                 new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(mediaStreamService),
                                 new PublicShareController(shareService, mediaFileService, mediaFolderService, jwtSecurityService, metadataParsers, objectMapper), new CaptionsRestController(captionService, mediaFolderService, objectMapper),
-                                new VideoPlayerRestController(videoPlaybackService, objectMapper), new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), jaxbWriter, () -> new InfrastructureErrorSettings(
+                                new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), jaxbWriter, () -> new InfrastructureErrorSettings(
                                         serverProperties.getError().getPath(), serverProperties.getError().isIncludeException(),
                                         ErrorAttributeMode.valueOf(serverProperties.getError().getIncludeMessage().name()),
                                         ErrorAttributeMode.valueOf(serverProperties.getError().getIncludeStacktrace().name()),
@@ -898,8 +896,6 @@ public class KtorConfiguration {
         registration.addUrlMappings(StarredController.PATHS);
         registration.addUrlMappings(JukeboxController.PATHS);
         registration.addUrlMappings(UsersController.PATHS);
-        registration.addUrlMappings(UsersController.WEBSITE_PATHS);
-        registration.addUrlMappings(UsersController.WEBSITE_READ_PATH);
         registration.addUrlMappings(TranscodingSettingsController.READ_PATH, TranscodingSettingsController.SAVE_PATH);
         registration.addUrlMappings(CredentialsManagementController.READ_PATH, CredentialsManagementController.KEYS_PATH, CredentialsManagementController.CREATE_PATH, CredentialsManagementController.UPDATE_PATH, CredentialsManagementController.ADMIN_PATH);
         registration.addUrlMappings(DLNASettingsController.READ_PATH, DLNASettingsController.SAVE_PATH);
@@ -931,7 +927,6 @@ public class KtorConfiguration {
         registration.addUrlMappings(ServerHealthController.PATH);
         registration.addUrlMappings(CacheStatisticsController.PATHS);
         registration.addUrlMappings(DownloadRestController.PATHS);
-        registration.addUrlMappings(DownloadRestController.WEBSITE_PATH);
         registration.addUrlMappings(CoverArtRestController.PATHS);
         registration.addUrlMappings(CoverArtRestController.LEGACY_PATHS);
         registration.addUrlMappings(CoverArtActionsController.PATHS);
@@ -952,7 +947,6 @@ public class KtorConfiguration {
         registration.addUrlMappings(CaptionsRestController.PATHS);
         registration.addUrlMappings(ServerInfoController.PATHS);
         registration.addUrlMappings(PasswordRecoveryController.PATH);
-        registration.addUrlMappings(VideoPlayerRestController.PATH);
         registration.addUrlMappings(HlsRestController.PATHS);
         registration.addUrlMappings(HlsRestController.WEBSITE_PATHS);
         registration.addUrlMappings("/ext/hls/segment/*");

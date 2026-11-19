@@ -7,7 +7,6 @@ import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.call
 import io.ktor.server.application.isHandled
 import io.ktor.server.response.respond
-import io.ktor.server.response.respondRedirect
 import io.ktor.server.routing.get
 import io.ktor.server.routing.head
 import io.ktor.server.routing.RoutingFailureStatusCode
@@ -25,7 +24,6 @@ import org.airsonic.player.controller.rest.stream.StreamRestController
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.server.ServerInfoController
 import org.airsonic.player.controller.rest.recovery.PasswordRecoveryController
-import org.airsonic.player.controller.rest.video.VideoPlayerRestController
 import org.airsonic.player.controller.captions.CaptionsRestController
 import org.airsonic.player.controller.rest.shares.PublicShareController
 import org.airsonic.player.controller.rest.hls.HlsRestController
@@ -207,7 +205,6 @@ class AirsonicKtorServlet(
     private val streamRestController: StreamRestController,
     private val publicShareController: PublicShareController,
     private val captionsRestController: CaptionsRestController,
-    private val videoPlayerRestController: VideoPlayerRestController,
     private val passwordRecoveryController: PasswordRecoveryController,
     private val serverInfoController: ServerInfoController,
     private val jaxbWriter: JAXBWriter,
@@ -272,8 +269,6 @@ class AirsonicKtorServlet(
             if (playQueueRequest != null) call.attributes.put(PLAY_QUEUE_REQUEST_KEY, playQueueRequest)
             val scrobbleRequest = request.getAttribute(SCROBBLE_REQUEST) as? ScrobbleRequest
             if (scrobbleRequest != null) call.attributes.put(SCROBBLE_REQUEST_KEY, scrobbleRequest)
-            val websiteDownload = request.getAttribute(WEBSITE_DOWNLOAD_REQUEST) as? DownloadRestController.WebsiteRequest
-            if (websiteDownload != null) call.attributes.put(WEBSITE_DOWNLOAD_REQUEST_KEY, websiteDownload)
             val downloadRequest = request.getAttribute(DOWNLOAD_REQUEST) as? DownloadRequest
             if (downloadRequest != null) call.attributes.put(DOWNLOAD_REQUEST_KEY, downloadRequest)
             val randomSongsRequest = request.getAttribute(RANDOM_SONGS_REQUEST) as? RandomSongsRequest
@@ -342,9 +337,6 @@ class AirsonicKtorServlet(
             (request.getAttribute(RECOVERY_REQUEST) as? PasswordRecoveryController.Request)?.let {
                 call.attributes.put(RECOVERY_REQUEST_KEY, it)
             }
-            (request.getAttribute(VIDEO_PLAYER_REQUEST) as? VideoPlayerRestController.Request)?.let {
-                call.attributes.put(VIDEO_PLAYER_REQUEST_KEY, it)
-            }
             (request.getAttribute(CAPTIONS_REQUEST) as? CaptionsRestController.Request)?.let {
                 call.attributes.put(CAPTIONS_REQUEST_KEY, it)
             }
@@ -359,10 +351,6 @@ class AirsonicKtorServlet(
         application.routing {
             infrastructureRoutes(errorProperties, objectMapper)
             proxyRestController.routes(this)
-            for (path in listOf("/settings", "/settings.view")) {
-                get(path) { redirectSettings(call) }
-                head(path) { redirectSettings(call) }
-            }
             searchController.routes(this) { call -> call.attributes[SEARCH_REQUEST_KEY] }
             musicFoldersController.routes(this) { call -> call.attributes[MUSIC_FOLDERS_REQUEST_KEY] }
             genresController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
@@ -397,8 +385,7 @@ class AirsonicKtorServlet(
             playQueueController.routes(this) { call -> call.attributes[PLAY_QUEUE_REQUEST_KEY] }
             indexesController.routes(this) { call -> call.attributes[INDEXES_REQUEST_KEY] }
             songsByGenreController.routes(this) { call -> call.attributes[GENRE_SONGS_REQUEST_KEY] }
-            downloadRestController.routes(this, { call -> call.attributes[DOWNLOAD_REQUEST_KEY] },
-                { call -> call.attributes[WEBSITE_DOWNLOAD_REQUEST_KEY] })
+            downloadRestController.routes(this) { call -> call.attributes[DOWNLOAD_REQUEST_KEY] }
             uploadStatusController.routes(this) { call -> call.attributes[UPLOAD_STATUS_REQUEST_KEY] }
             statisticsController.routes(this) { call -> call.attributes[STATISTICS_REQUEST_KEY] }
             scheduledTasksController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
@@ -424,7 +411,6 @@ class AirsonicKtorServlet(
             jukeboxController.routes(this) { call -> call.attributes[JUKEBOX_REQUEST_KEY] }
             serverInfoController.routes(this) { call -> call.attributes[SERVER_INFO_REQUEST_KEY] }
             passwordRecoveryController.routes(this) { call -> call.attributes[RECOVERY_REQUEST_KEY] }
-            videoPlayerRestController.routes(this) { call -> call.attributes[VIDEO_PLAYER_REQUEST_KEY] }
             captionsRestController.routes(this) { call -> call.attributes[CAPTIONS_REQUEST_KEY] }
             publicShareController.routes(this) { call -> call.attributes[PUBLIC_SHARE_REQUEST_KEY] }
             hlsRestController.routes(this) { call -> call.attributes[HLS_REQUEST_KEY] }
@@ -442,17 +428,6 @@ class AirsonicKtorServlet(
                 )
             }
         }
-    }
-
-    private suspend fun redirectSettings(call: ApplicationCall) {
-        val user = call.attributes[USERS_REQUEST_KEY].user
-        call.response.headers.append("Cache-Control", "no-store")
-        if (!user.isAdminRole && !user.isSettingsRole) {
-            call.respond(HttpStatusCode.Forbidden)
-            return
-        }
-        // Relative locations preserve the servlet context, including deployments below '/'.
-        call.respondRedirect(if (user.isAdminRole) "musicFolderSettings" else "personalSettings")
     }
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
@@ -504,48 +479,6 @@ class AirsonicKtorServlet(
             request.setAttribute(RECOVERY_REQUEST, PasswordRecoveryController.Request(
                 request.getParameter("usernameOrEmail"), request.getParameter("g-recaptcha-response"),
                 csrf?.headerName, csrf?.token))
-        }
-        if (path == VideoPlayerRestController.PATH) {
-            if (request.method !in setOf("GET", "HEAD")) {
-                response.setHeader("Allow", "GET, HEAD")
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
-                return
-            }
-            val user = securityService.getCurrentUser(request)
-            if (!user.isStreamRole) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN)
-                return
-            }
-            val id = request.getParameter("id")?.toIntOrNull()
-            val rawPosition = request.getParameter("position")
-            val position = rawPosition?.toLongOrNull()
-            val rawPlayer = request.getParameter("player")
-            if (id == null || (rawPosition != null && (position == null || position < 0)) ||
-                (rawPlayer != null && rawPlayer.toIntOrNull() == null)) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST)
-                return
-            }
-            val file = mediaFileService.getMediaFile(id)
-            if (file == null || !file.isVideo) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND)
-                return
-            }
-            if (!securityService.isFolderAccessAllowed(file, callerContextAdapter.fromRequest(request))) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN)
-                return
-            }
-            if (rawPlayer != null) {
-                val explicit = playerService.getPlayerById(rawPlayer.toInt())
-                if (explicit == null || explicit.username != user.username) {
-                    response.sendError(HttpServletResponse.SC_FORBIDDEN)
-                    return
-                }
-            }
-            val player = playerService.getPlayer(request, response)
-            val csrf = request.getAttribute(org.springframework.security.web.csrf.CsrfToken::class.java.name)
-                as? org.springframework.security.web.csrf.CsrfToken
-            request.setAttribute(VIDEO_PLAYER_REQUEST, VideoPlayerRestController.Request(file, user, player.id,
-                NetworkService.getBaseUrl(request), position, csrf?.headerName, csrf?.token))
         }
         if (path in CaptionsRestController.PATHS) {
             if (request.method !in setOf("GET", "HEAD")) {
@@ -705,8 +638,6 @@ class AirsonicKtorServlet(
                 return
             }
             request.setAttribute(ALBUM_INFO_REQUEST, AlbumInfoRequest(parameters(request), id))
-        } else if (path == "/settings" || path == "/settings.view") {
-            request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)), callerContextAdapter.fromRequest(request), Parameters.Empty))
         } else if (path == UploadController.PATH || path == PlaylistImportController.PATH || path == AvatarUploadController.PATH || path == DatabaseSettingsController.IMPORT_PATH) {
             // Multipart bodies belong to Ktor; capture only authentication and query parameters.
             request.setAttribute(USERS_REQUEST, UsersRequest(requireNotNull(securityService.getCurrentUser(request)), callerContextAdapter.fromRequest(request),
@@ -755,18 +686,6 @@ class AirsonicKtorServlet(
             val username = if (listing) requireNotNull(securityService.getCurrentUsername(request))
                 else requireNotNull(securityService.getCurrentUser(request)).username
             request.setAttribute(STARRED_REQUEST, StarredRequest(username, parameters(request), player))
-        } else if (path == DownloadRestController.WEBSITE_PATH && request.method in setOf("GET", "HEAD")) {
-            val user = requireNotNull(securityService.getCurrentUser(request))
-            val explicit = request.getParameter("player")
-            val player = if (!user.isDownloadRole) null
-                else if (explicit != null) explicit.toIntOrNull()?.let { playerService.getPlayerById(it) }
-                else playerService.getPlayer(request, response, false, false)
-            val callerContext = callerContextAdapter.fromRequest(request)
-            val webRequest = ServletWebRequest(request, response)
-            request.setAttribute(WEBSITE_DOWNLOAD_REQUEST, DownloadRestController.WebsiteRequest(
-                user, callerContext, player?.takeIf { it.username == user.username }, parameters(request),
-                java.util.function.BiPredicate { tag, modified -> webRequest.checkNotModified(tag, modified) },
-                { response.status }))
         } else if (path in DownloadRestController.PATHS) {
             val params = parameters(request)
             val rawPlaylist = params["playlist"]
@@ -1302,8 +1221,6 @@ class AirsonicKtorServlet(
         val SERVER_INFO_REQUEST_KEY = AttributeKey<ServerInfoController.Request>(SERVER_INFO_REQUEST)
         const val RECOVERY_REQUEST = "org.airsonic.player.recoveryRequest"
         val RECOVERY_REQUEST_KEY = AttributeKey<PasswordRecoveryController.Request>(RECOVERY_REQUEST)
-        const val VIDEO_PLAYER_REQUEST = "org.airsonic.player.videoPlayerRequest"
-        val VIDEO_PLAYER_REQUEST_KEY = AttributeKey<VideoPlayerRestController.Request>(VIDEO_PLAYER_REQUEST)
         const val CAPTIONS_REQUEST = "org.airsonic.player.captionsRequest"
         val CAPTIONS_REQUEST_KEY = AttributeKey<CaptionsRestController.Request>(CAPTIONS_REQUEST)
         const val PUBLIC_SHARE_REQUEST = "org.airsonic.player.publicShareRequest"
@@ -1344,8 +1261,6 @@ class AirsonicKtorServlet(
         val PLAY_QUEUE_REQUEST_KEY = AttributeKey<PlayQueueRequest>(PLAY_QUEUE_REQUEST)
         const val SCROBBLE_REQUEST = "org.airsonic.player.scrobbleRequest"
         val SCROBBLE_REQUEST_KEY = AttributeKey<ScrobbleRequest>(SCROBBLE_REQUEST)
-        const val WEBSITE_DOWNLOAD_REQUEST = "org.airsonic.player.websiteDownloadRequest"
-        val WEBSITE_DOWNLOAD_REQUEST_KEY = AttributeKey<DownloadRestController.WebsiteRequest>(WEBSITE_DOWNLOAD_REQUEST)
         const val DOWNLOAD_REQUEST = "org.airsonic.player.downloadRequest"
         val DOWNLOAD_REQUEST_KEY = AttributeKey<DownloadRequest>(DOWNLOAD_REQUEST)
         const val RANDOM_SONGS_REQUEST = "org.airsonic.player.randomSongsRequest"

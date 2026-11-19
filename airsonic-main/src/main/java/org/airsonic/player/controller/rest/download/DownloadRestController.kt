@@ -1,6 +1,5 @@
 package org.airsonic.player.controller.rest.download
 
-import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -16,109 +15,23 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.head
 import io.ktor.server.routing.post
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.error.ErrorCode
-import org.airsonic.player.domain.Player
-import org.airsonic.player.domain.User
-import org.airsonic.player.service.DownloadService
-import org.airsonic.player.service.MediaFileService
-import org.airsonic.player.service.PlaylistService
-import org.airsonic.player.service.SecurityService
-import org.airsonic.player.security.CallerContext
-import org.airsonic.player.security.AuthorizationDeniedException
-import org.airsonic.player.util.StringUtil
-import org.apache.commons.io.FilenameUtils
-import org.slf4j.LoggerFactory
-import java.util.Optional
-import java.util.function.BiPredicate
-import kotlin.coroutines.cancellation.CancellationException
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.UUID
 
 class DownloadRestController(
     private val writer: JAXBWriter,
-    private val downloads: DownloadService,
-    private val media: MediaFileService,
-    private val playlists: PlaylistService,
-    private val security: SecurityService,
 ) {
-    data class WebsiteRequest(val user: User, val callerContext: CallerContext, val player: Player?, val parameters: Parameters,
-                              val notModified: BiPredicate<String?, Long>, val conditionalStatus: () -> Int)
-
-    fun routes(root: Route, request: (ApplicationCall) -> DownloadRequest, websiteRequest: (ApplicationCall) -> WebsiteRequest) {
+    fun routes(root: Route, request: (ApplicationCall) -> DownloadRequest) {
         with(root) {
-            get(WEBSITE_PATH) { respondWebsite(call, websiteRequest(call), false) }
-            head(WEBSITE_PATH) { respondWebsite(call, websiteRequest(call), true) }
             PATHS.forEach { path ->
                 get(path) { respond(call, request(call)) }
                 post(path) { respond(call, request(call)) }
                 head(path) { respond(call, request(call), true) }
             }
         }
-    }
-
-    private suspend fun respondWebsite(call: ApplicationCall, r: WebsiteRequest, head: Boolean) {
-        call.response.header(HttpHeaders.CacheControl, "no-store")
-        val prepared = try {
-            withContext(Dispatchers.IO) { prepareWebsite(r) }
-        } catch (e: CancellationException) { throw e
-        } catch (_: AuthorizationDeniedException) {
-            DownloadRequest(r.parameters, null, ErrorCode.NOT_AUTHORIZED, "Music folder access denied")
-        } catch (e: Exception) {
-            LOG.warn("Website download failed", e)
-            DownloadRequest(r.parameters, null, ErrorCode.GENERIC, "Download failed")
-        }
-        val download = prepared.download
-        if (download != null && r.notModified.test(download.size.toString(), download.changed)) {
-            call.respond(HttpStatusCode.fromValue(r.conditionalStatus()))
-            return
-        }
-        respond(call, prepared, head)
-    }
-
-    private fun prepareWebsite(r: WebsiteRequest): DownloadRequest {
-        val p = r.parameters
-        fun fail(code: ErrorCode, message: String) = DownloadRequest(p, null, code, message)
-        if (!r.user.isDownloadRole) return fail(ErrorCode.NOT_AUTHORIZED, "Downloading is not allowed")
-        val sources = listOf("id", "playlist", "player").filter { p.contains(it) }
-        if (sources.isEmpty()) return fail(ErrorCode.MISSING_PARAMETER, "A media, playlist or player selection is required")
-        if (sources.size != 1) return fail(ErrorCode.GENERIC, "Specify one selection source")
-        val source = sources.single()
-        val id = p[source]?.toIntOrNull() ?: return fail(ErrorCode.GENERIC, "Invalid selection id")
-        val player = r.player ?: return fail(ErrorCode.NOT_AUTHORIZED, "Player access denied")
-        if (player.username != r.user.username) return fail(ErrorCode.NOT_AUTHORIZED, "Player access denied")
-        val files = when (source) {
-            "id" -> {
-                val file = media.getMediaFile(id) ?: return fail(ErrorCode.NOT_FOUND, "Media not found")
-                if (!security.isFolderAccessAllowed(file, r.callerContext)) return fail(ErrorCode.NOT_AUTHORIZED, "Music folder access denied")
-                if (file.isFile) listOf(file) else media.getChildrenOf(file, true, false, true)
-            }
-            "playlist" -> {
-                val playlist = playlists.getPlaylist(id) ?: return fail(ErrorCode.NOT_FOUND, "Playlist not found")
-                if (!playlists.isReadAllowed(playlist, r.user.username)) return fail(ErrorCode.NOT_AUTHORIZED, "Playlist access denied")
-                playlists.getFilesInPlaylist(id)
-            }
-            else -> player.playQueue.files.toList()
-        }
-        val indices = p.getAll("i")?.flatMap { it.split(',') }?.map { raw ->
-            raw.trim().toIntOrNull()?.takeIf { it in files.indices }
-                ?: return fail(ErrorCode.GENERIC, "Invalid selection index")
-        }
-        val selected = indices?.map { files[it] } ?: files
-        if (selected.any { !security.isFolderAccessAllowed(it, r.callerContext) })
-            return fail(ErrorCode.NOT_AUTHORIZED, "Music folder access denied")
-        val download = downloads.prepare(r.user, r.callerContext, player, Optional.ofNullable(if (source == "id") id else null),
-            if (source == "playlist") id else null, if (source == "player") id else null, indices, files)
-            ?: return fail(ErrorCode.NOT_FOUND, "Download not found")
-        val name = download.filename.filter { !it.isISOControl() }
-        val disposition = ContentDisposition.Attachment
-            .withParameter(ContentDisposition.Parameters.FileName, name.map { if (it.code in 32..126) it else '_' }.joinToString(""))
-            .withParameter(ContentDisposition.Parameters.FileNameAsterisk, name).toString()
-        return DownloadRequest(p, download, contentDisposition = disposition,
-            contentType = StringUtil.getMimeType(FilenameUtils.getExtension(name)))
     }
 
     private suspend fun respond(call: ApplicationCall, request: DownloadRequest, head: Boolean = false) {
@@ -229,8 +142,6 @@ class DownloadRestController(
     }
 
     companion object {
-        const val WEBSITE_PATH = "/rest/downloadMedia"
-        private val LOG = LoggerFactory.getLogger(DownloadRestController::class.java)
         @JvmField val PATHS = arrayOf("/rest/download", "/rest/download.view")
     }
 }
