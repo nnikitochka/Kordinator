@@ -72,7 +72,6 @@ import org.airsonic.player.service.MusicIndexService;
 import org.airsonic.player.service.DownloadService;
 import org.airsonic.player.service.CoverArtService;
 import org.airsonic.player.service.CoverArtImageService;
-import org.airsonic.player.service.CoverArtAccentColorBackfill;
 import org.airsonic.player.service.DatabaseService;
 import org.airsonic.player.controller.rest.playqueue.PlayQueueController;
 import org.airsonic.player.dao.PlayQueueDao;
@@ -245,11 +244,6 @@ public class KtorConfiguration {
             PlaylistService playlistService, org.airsonic.player.runtime.DaoGraph graph) {
         return runtime.createCoverArtImageService(mediaFileService, coverArtService, transcodingService,
                 settingsService, playlistService, graph.getArtistDao(), graph.getAlbumDao());
-    }
-
-    public CoverArtAccentColorBackfill coverArtAccentColorBackfill(RuntimeCompositionRoot runtime,
-            CoverArtService coverArtService) {
-        return runtime.createCoverArtAccentColorBackfill(coverArtService);
     }
 
     public TagEditService tagEditService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService,
@@ -514,6 +508,7 @@ public class KtorConfiguration {
             MediaStreamService mediaStreamService,
             UploadFileService uploadFileService
     ) throws java.io.IOException {
+        runtime.createCoverArtAccentColorBackfill(coverArtService);
         JAXBWriter jaxbWriter = runtime.createSubsonicJaxbWriter();
         SubsonicResponseMapper responseMapper = runtime.createSubsonicResponseMapper(
                 mediaFileService, ratingService, coverArtService, transcodingService);

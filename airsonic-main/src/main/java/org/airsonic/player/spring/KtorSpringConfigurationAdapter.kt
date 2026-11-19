@@ -72,12 +72,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         graph.artistDao, graph.albumDao)
 
     @Bean
-    override fun coverArtAccentColorBackfill(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        coverArtService: org.airsonic.player.service.CoverArtService,
-    ): org.airsonic.player.service.CoverArtAccentColorBackfill = runtime.createCoverArtAccentColorBackfill(coverArtService)
-
-    @Bean
     override fun tagEditService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         mediaFileService: org.airsonic.player.service.MediaFileService,
