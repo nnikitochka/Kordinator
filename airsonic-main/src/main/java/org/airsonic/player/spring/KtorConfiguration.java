@@ -791,7 +791,8 @@ public class KtorConfiguration {
         org.airsonic.player.ktor.KordinatorSessionService kordinatorSessionService =
                 new org.airsonic.player.ktor.KordinatorSessionService(
                         securityService, credentialEncoderRegistry,
-                        new org.airsonic.player.ktor.JdbcKordinatorSessionStore(dataSource));
+                        new org.airsonic.player.ktor.JdbcKordinatorSessionStore(dataSource),
+                        settingsService.getNonDecodablePasswordEncoder());
         org.airsonic.player.ktor.KordinatorAuthRoutes kordinatorAuthRoutes =
                 new org.airsonic.player.ktor.KordinatorAuthRoutes(
                         kordinatorSessionService, new org.airsonic.player.security.LoginRateLimiter());

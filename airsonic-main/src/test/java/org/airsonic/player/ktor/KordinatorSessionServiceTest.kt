@@ -33,7 +33,6 @@ class KordinatorSessionServiceTest {
         Mockito.`when`(security.getUserByName("alice")).thenReturn(
             User("alice", null, false, 0, 0, 0, setOf(User.Role.STREAM)),
         )
-        Mockito.`when`(security.getPreferredPasswordEncoder(true)).thenReturn("argon2")
         Mockito.`when`(encoders.matches("argon2", "correct horse", "stored-hash")).thenReturn(true)
         Mockito.`when`(encoders.isOpenText("argon2")).thenReturn(false)
         val service = service(security, encoders, store)
@@ -63,7 +62,6 @@ class KordinatorSessionServiceTest {
         Mockito.`when`(security.getUserByName("alice")).thenReturn(
             User("alice", null, false, 0, 0, 0, setOf(User.Role.STREAM)),
         )
-        Mockito.`when`(security.getPreferredPasswordEncoder(true)).thenReturn("argon2")
         Mockito.`when`(encoders.matches("legacynoop", "plain-password", "plain-password")).thenReturn(true)
         Mockito.`when`(encoders.isOpenText("legacynoop")).thenReturn(true)
         Mockito.`when`(security.updateCredentials(
@@ -95,7 +93,6 @@ class KordinatorSessionServiceTest {
         Mockito.`when`(security.getUserByName("alice")).thenReturn(
             User("alice", null, false, 0, 0, 0, setOf(User.Role.STREAM)),
         )
-        Mockito.`when`(security.getPreferredPasswordEncoder(true)).thenReturn("argon2")
         Mockito.`when`(encoders.encode("argon2", "kordinator-authentication-dummy-password")).thenReturn("dummy-hash")
         Mockito.`when`(encoders.matches("argon2", "wrong password", "stored-hash")).thenReturn(false)
         Mockito.`when`(encoders.matches("argon2", "wrong password", "dummy-hash")).thenReturn(false)
@@ -130,7 +127,6 @@ class KordinatorSessionServiceTest {
         val security = Mockito.mock(SecurityService::class.java)
         val encoders = Mockito.mock(CredentialEncoderRegistry::class.java)
         val store = Mockito.mock(KordinatorSessionStore::class.java)
-        Mockito.`when`(security.getPreferredPasswordEncoder(true)).thenReturn("argon2")
         Mockito.`when`(encoders.encode("argon2", "kordinator-authentication-dummy-password")).thenReturn("dummy-hash")
         Mockito.`when`(encoders.matches("argon2", "attempt", "dummy-hash")).thenReturn(false)
         Mockito.`when`(security.findUserIdentity("missing", true)).thenReturn(null)
@@ -151,7 +147,7 @@ class KordinatorSessionServiceTest {
         encoders: CredentialEncoderRegistry,
         store: KordinatorSessionStore,
     ) = KordinatorSessionService(
-        security, encoders, store, Clock.fixed(now, ZoneOffset.UTC),
+        security, encoders, store, "argon2", Clock.fixed(now, ZoneOffset.UTC),
         secureRandom = object : SecureRandom() {
             override fun nextBytes(bytes: ByteArray) = bytes.fill(7)
         },

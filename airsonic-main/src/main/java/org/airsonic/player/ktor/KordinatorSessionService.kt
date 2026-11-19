@@ -18,13 +18,13 @@ class KordinatorSessionService @JvmOverloads constructor(
     private val securityService: SecurityService,
     private val credentialEncoders: CredentialEncoderRegistry,
     private val sessions: KordinatorSessionStore,
+    private val nonDecodablePasswordEncoder: String,
     private val clock: Clock = Clock.systemUTC(),
     private val sessionDuration: Duration = Duration.ofDays(30),
     private val secureRandom: SecureRandom = SecureRandom(),
 ) {
     private val dummyPasswordHash: String by lazy {
-        val encoder = securityService.getPreferredPasswordEncoder(true)
-        credentialEncoders.encode(encoder, "kordinator-authentication-dummy-password")
+        credentialEncoders.encode(nonDecodablePasswordEncoder, "kordinator-authentication-dummy-password")
     }
 
     init {
@@ -56,7 +56,7 @@ class KordinatorSessionService @JvmOverloads constructor(
         if (credential.expiration?.let { !it.isAfter(clock.instant()) } == true) return null
 
         var credentialVersion = identity.credentials.mapNotNull(UserCredential::getUpdated).maxOrNull()
-        val preferredEncoder = securityService.getPreferredPasswordEncoder(true)
+        val preferredEncoder = nonDecodablePasswordEncoder
         if (credential.encoder != preferredEncoder || credentialEncoders.isOpenText(credential.encoder)) {
             val upgraded = UserCredential(credential).apply {
                 encoder = preferredEncoder
@@ -102,8 +102,7 @@ class KordinatorSessionService @JvmOverloads constructor(
 
     private fun burnPasswordVerification(password: String) {
         try {
-            val encoder = securityService.getPreferredPasswordEncoder(true)
-            credentialEncoders.matches(encoder, password, dummyPasswordHash)
+            credentialEncoders.matches(nonDecodablePasswordEncoder, password, dummyPasswordHash)
         } catch (_: IllegalArgumentException) {
             // Keep missing-user behavior uniform even if a configured encoder is unavailable.
         }

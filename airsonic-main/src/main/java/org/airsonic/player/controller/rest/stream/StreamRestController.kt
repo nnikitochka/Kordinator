@@ -32,8 +32,6 @@ class StreamRestController(private val streams: MediaStreamService) {
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
         with(root) {
-            get(API_TRACK_STREAM_PATH) { respond(call, request(call), false) }
-            head(API_TRACK_STREAM_PATH) { respond(call, request(call), true) }
             EXTERNAL_PATHS.forEach { path ->
                 for (route in listOf(path, "$path/{tail...}")) {
                     get(route) { respond(call, request(call), false) }
@@ -48,7 +46,7 @@ class StreamRestController(private val streams: MediaStreamService) {
         }
     }
 
-    private suspend fun respond(call: ApplicationCall, request: Request, head: Boolean) {
+    internal suspend fun respond(call: ApplicationCall, request: Request, head: Boolean) {
         val result = try {
             streams.open(request.jwtAuthenticated, request.callerContext, request.player, request.user, request.format, request.suffix,
                 Optional.ofNullable(request.bitRate), Optional.ofNullable(request.id), Optional.ofNullable(request.path),
