@@ -346,9 +346,8 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         graph: org.airsonic.player.runtime.DaoGraph,
         settingsService: org.airsonic.player.service.SettingsService,
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
-        playerServiceProvider: org.springframework.beans.factory.ObjectProvider<org.airsonic.player.service.PlayerService>,
     ): org.airsonic.player.service.TranscodingService = runtime.createTranscodingService(
-        graph.transcodingDao, settingsService, mediaFolderService, playerServiceProvider::getObject)
+        graph.transcodingDao, settingsService, mediaFolderService)
 
     @Bean
     override fun playerService(

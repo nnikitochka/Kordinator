@@ -602,10 +602,8 @@ public class KtorConfiguration {
     }
 
     public TranscodingService transcodingService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph,
-            SettingsService settingsService, MediaFolderService mediaFolderService,
-            org.springframework.beans.factory.ObjectProvider<PlayerService> playerServiceProvider) {
-        return runtime.createTranscodingService(graph.getTranscodingDao(), settingsService, mediaFolderService,
-                playerServiceProvider::getObject);
+            SettingsService settingsService, MediaFolderService mediaFolderService) {
+        return runtime.createTranscodingService(graph.getTranscodingDao(), settingsService, mediaFolderService);
     }
 
     public PlayerService playerService(RuntimeCompositionRoot runtime, StatusService statusService,
