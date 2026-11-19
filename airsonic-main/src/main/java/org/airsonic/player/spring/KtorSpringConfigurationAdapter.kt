@@ -11,21 +11,8 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime.createDataSource().also { runtime.migrateDatabase() }
 
     @Bean
-    fun persistenceGraph(runtime: org.airsonic.player.runtime.RuntimeCompositionRoot):
-            org.airsonic.player.runtime.PersistenceGraph = runtime.createPersistenceGraph()
-
-    @Bean
-    override fun airsonicTransactionManager(
-        persistenceGraph: org.airsonic.player.runtime.PersistenceGraph,
-    ): org.airsonic.player.dao.TransactionManager = persistenceGraph.transactionManager
-
-    @Bean
-    override fun jdbcHelper(persistenceGraph: org.airsonic.player.runtime.PersistenceGraph): org.airsonic.player.dao.JdbcHelper =
-        persistenceGraph.jdbcHelper
-
-    @Bean
-    override fun daoGraph(persistenceGraph: org.airsonic.player.runtime.PersistenceGraph): org.airsonic.player.runtime.DaoGraph =
-        persistenceGraph.daos
+    override fun daoGraph(runtime: org.airsonic.player.runtime.RuntimeCompositionRoot): org.airsonic.player.runtime.DaoGraph =
+        runtime.createPersistenceGraph().daos
 
     @Bean
     override fun analyzerFactory(

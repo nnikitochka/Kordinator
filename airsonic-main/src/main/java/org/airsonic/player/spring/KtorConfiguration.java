@@ -260,22 +260,8 @@ public class KtorConfiguration {
         return new MultipleCredsMatchingAuthenticationProvider(authenticationService);
     }
 
-    public org.airsonic.player.runtime.PersistenceGraph persistenceGraph(RuntimeCompositionRoot runtime,
-            javax.sql.DataSource dataSource) {
-        return runtime.createPersistenceGraph(dataSource);
-    }
-
-    public org.airsonic.player.dao.TransactionManager airsonicTransactionManager(
-            org.airsonic.player.runtime.PersistenceGraph persistenceGraph) {
-        return persistenceGraph.getTransactionManager();
-    }
-
-    public org.airsonic.player.dao.JdbcHelper jdbcHelper(org.airsonic.player.runtime.PersistenceGraph persistenceGraph) {
-        return persistenceGraph.getJdbcHelper();
-    }
-
-    public org.airsonic.player.runtime.DaoGraph daoGraph(org.airsonic.player.runtime.PersistenceGraph persistenceGraph) {
-        return persistenceGraph.getDaos();
+    public org.airsonic.player.runtime.DaoGraph daoGraph(RuntimeCompositionRoot runtime) {
+        return runtime.createPersistenceGraph().getDaos();
     }
 
     public PlayerDao playerDao(RuntimeCompositionRoot runtime) throws Exception {
