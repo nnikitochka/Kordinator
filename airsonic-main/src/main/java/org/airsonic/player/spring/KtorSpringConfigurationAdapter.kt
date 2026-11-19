@@ -60,29 +60,22 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     override fun daoGraph(persistenceGraph: org.airsonic.player.runtime.PersistenceGraph): org.airsonic.player.runtime.DaoGraph =
         persistenceGraph.daos
 
-    @Bean override fun albumDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.AlbumDao = graph.albumDao
-    @Bean override fun artistDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.ArtistDao = graph.artistDao
-    @Bean override fun avatarDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.AvatarDao = graph.avatarDao
-    @Bean override fun bookmarkDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.BookmarkDao = graph.bookmarkDao
-    @Bean override fun coverArtDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.CoverArtDao = graph.coverArtDao
-    @Bean override fun databaseDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.DatabaseDao = graph.databaseDao
-    @Bean override fun mediaFileDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.MediaFileDao = graph.mediaFileDao
-    @Bean override fun musicFolderDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.MusicFolderDao = graph.musicFolderDao
-    @Bean override fun playQueueDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.PlayQueueDao = graph.playQueueDao
-    @Bean override fun playlistDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.PlaylistDao = graph.playlistDao
-    @Bean("musicFileInfoDao") override fun ratingDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.RatingDao = graph.ratingDao
-    @Bean override fun shareDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.ShareDao = graph.shareDao
-    @Bean override fun transcodingDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.TranscodingDao = graph.transcodingDao
-    @Bean override fun userDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.UserDao = graph.userDao
-
-    @Bean
-    override fun playerDao(runtime: org.airsonic.player.runtime.RuntimeCompositionRoot): org.airsonic.player.dao.PlayerDao =
-        runtime.createPlayerDao()
-
-    @Bean
-    override fun playerDaoPlayQueueFactory(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.dao.PlayerDaoPlayQueueFactory = runtime.createPlayerDaoPlayQueueFactory()
+    // Transitional aliases remain for the existing Spring-based DAO test fixtures.
+    // Runtime service factories consume DaoGraph directly and do not depend on these beans.
+    @Bean fun albumDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.AlbumDao = graph.albumDao
+    @Bean fun artistDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.ArtistDao = graph.artistDao
+    @Bean fun avatarDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.AvatarDao = graph.avatarDao
+    @Bean fun bookmarkDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.BookmarkDao = graph.bookmarkDao
+    @Bean fun coverArtDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.CoverArtDao = graph.coverArtDao
+    @Bean fun databaseDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.DatabaseDao = graph.databaseDao
+    @Bean fun mediaFileDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.MediaFileDao = graph.mediaFileDao
+    @Bean fun musicFolderDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.MusicFolderDao = graph.musicFolderDao
+    @Bean fun playQueueDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.PlayQueueDao = graph.playQueueDao
+    @Bean fun playlistDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.PlaylistDao = graph.playlistDao
+    @Bean("musicFileInfoDao") fun ratingDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.RatingDao = graph.ratingDao
+    @Bean fun shareDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.ShareDao = graph.shareDao
+    @Bean fun transcodingDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.TranscodingDao = graph.transcodingDao
+    @Bean fun userDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.UserDao = graph.userDao
 
     @Bean
     override fun analyzerFactory(
@@ -139,9 +132,9 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     override fun defaultPlaylistExportHandler(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        mediaFileDao: org.airsonic.player.dao.MediaFileDao,
+        graph: org.airsonic.player.runtime.DaoGraph,
     ): org.airsonic.player.service.playlist.DefaultPlaylistExportHandler =
-        runtime.createDefaultPlaylistExportHandler(mediaFileDao)
+        runtime.createDefaultPlaylistExportHandler(graph.mediaFileDao)
 
     @Bean
     override fun defaultPlaylistImportHandler(
@@ -154,11 +147,10 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     override fun xspfPlaylistExportHandler(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        mediaFileDao: org.airsonic.player.dao.MediaFileDao,
-        playlistDao: org.airsonic.player.dao.PlaylistDao,
+        graph: org.airsonic.player.runtime.DaoGraph,
         coverArtService: org.airsonic.player.service.CoverArtService,
     ): org.airsonic.player.service.playlist.XspfPlaylistExportHandler =
-        runtime.createXspfPlaylistExportHandler(mediaFileDao, playlistDao, coverArtService)
+        runtime.createXspfPlaylistExportHandler(graph.mediaFileDao, graph.playlistDao, coverArtService)
 
     @Bean
     override fun xspfPlaylistImportHandler(
@@ -198,8 +190,8 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     override fun coverArtService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        coverArtDao: org.airsonic.player.dao.CoverArtDao,
-    ): org.airsonic.player.service.CoverArtService = runtime.createCoverArtService(coverArtDao)
+        graph: org.airsonic.player.runtime.DaoGraph,
+    ): org.airsonic.player.service.CoverArtService = runtime.createCoverArtService(graph.coverArtDao)
 
     @Bean
     override fun coverArtImageService(
@@ -209,10 +201,10 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         transcodingService: org.airsonic.player.service.TranscodingService,
         settingsService: org.airsonic.player.service.SettingsService,
         playlistService: org.airsonic.player.service.PlaylistService,
-        artistDao: org.airsonic.player.dao.ArtistDao,
-        albumDao: org.airsonic.player.dao.AlbumDao,
+        graph: org.airsonic.player.runtime.DaoGraph,
     ): org.airsonic.player.service.CoverArtImageService = runtime.createCoverArtImageService(
-        mediaFileService, coverArtService, transcodingService, settingsService, playlistService, artistDao, albumDao)
+        mediaFileService, coverArtService, transcodingService, settingsService, playlistService,
+        graph.artistDao, graph.albumDao)
 
     @Bean
     override fun coverArtAccentColorBackfill(
@@ -232,20 +224,20 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     override fun albumUpnpProcessor(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        albumDao: org.airsonic.player.dao.AlbumDao,
-    ): org.airsonic.player.service.upnp.AlbumUpnpProcessor = runtime.createAlbumUpnpProcessor(albumDao)
+        graph: org.airsonic.player.runtime.DaoGraph,
+    ): org.airsonic.player.service.upnp.AlbumUpnpProcessor = runtime.createAlbumUpnpProcessor(graph.albumDao)
 
     @Bean
     override fun recentAlbumUpnpProcessor(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        albumDao: org.airsonic.player.dao.AlbumDao,
-    ): org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor = runtime.createRecentAlbumUpnpProcessor(albumDao)
+        graph: org.airsonic.player.runtime.DaoGraph,
+    ): org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor = runtime.createRecentAlbumUpnpProcessor(graph.albumDao)
 
     @Bean
     override fun artistUpnpProcessor(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        artistDao: org.airsonic.player.dao.ArtistDao,
-    ): org.airsonic.player.service.upnp.ArtistUpnpProcessor = runtime.createArtistUpnpProcessor(artistDao)
+        graph: org.airsonic.player.runtime.DaoGraph,
+    ): org.airsonic.player.service.upnp.ArtistUpnpProcessor = runtime.createArtistUpnpProcessor(graph.artistDao)
 
     @Bean
     override fun genreUpnpProcessor(
@@ -255,8 +247,8 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     override fun mediaFileUpnpProcessor(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        mediaFileDao: org.airsonic.player.dao.MediaFileDao,
-    ): org.airsonic.player.service.upnp.MediaFileUpnpProcessor = runtime.createMediaFileUpnpProcessor(mediaFileDao)
+        graph: org.airsonic.player.runtime.DaoGraph,
+    ): org.airsonic.player.service.upnp.MediaFileUpnpProcessor = runtime.createMediaFileUpnpProcessor(graph.mediaFileDao)
 
     @Bean
     override fun playlistUpnpProcessor(
@@ -323,12 +315,12 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     override fun securityService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        userDao: org.airsonic.player.dao.UserDao,
+        graph: org.airsonic.player.runtime.DaoGraph,
         settingsService: org.airsonic.player.service.SettingsService,
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
         credentialEncoders: org.airsonic.player.security.CredentialEncoderRegistry,
     ): org.airsonic.player.service.SecurityService =
-        runtime.createSecurityService(userDao, settingsService, mediaFolderService, credentialEncoders)
+        runtime.createSecurityService(graph.userDao, settingsService, mediaFolderService, credentialEncoders)
 
     @Bean
     override fun configurationPropertiesService(
@@ -338,8 +330,7 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     override fun settingsService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        userDao: org.airsonic.player.dao.UserDao,
-        avatarDao: org.airsonic.player.dao.AvatarDao,
+        graph: org.airsonic.player.runtime.DaoGraph,
         cacheManager: javax.cache.CacheManager,
         properties: org.airsonic.player.service.ConfigurationPropertiesService,
     ): org.airsonic.player.service.SettingsService = runtime.createSettingsService()
@@ -354,14 +345,13 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         securityService: org.airsonic.player.service.SecurityService,
         settingsService: org.airsonic.player.service.SettingsService,
-        mediaFileDao: org.airsonic.player.dao.MediaFileDao,
-        albumDao: org.airsonic.player.dao.AlbumDao,
+        graph: org.airsonic.player.runtime.DaoGraph,
         parser: org.airsonic.player.service.metadata.JaudiotaggerParser,
         metaDataParserFactory: org.airsonic.player.service.metadata.MetaDataParserFactory,
         coverArtService: org.airsonic.player.service.CoverArtService,
         localeService: org.airsonic.player.i18n.LocaleService,
     ): org.airsonic.player.service.MediaFileService = runtime.createMediaFileService(
-        securityService, settingsService, mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeService)
+        securityService, settingsService, graph.mediaFileDao, graph.albumDao, parser, metaDataParserFactory, coverArtService, localeService)
 
     @Bean
     override fun mediaScannerService(
@@ -385,22 +375,21 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     override fun transcodingService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        transcodingDao: org.airsonic.player.dao.TranscodingDao,
+        graph: org.airsonic.player.runtime.DaoGraph,
         settingsService: org.airsonic.player.service.SettingsService,
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
         playerServiceProvider: org.springframework.beans.factory.ObjectProvider<org.airsonic.player.service.PlayerService>,
     ): org.airsonic.player.service.TranscodingService = runtime.createTranscodingService(
-        transcodingDao, settingsService, mediaFolderService, playerServiceProvider::getObject)
+        graph.transcodingDao, settingsService, mediaFolderService, playerServiceProvider::getObject)
 
     @Bean
     override fun playerService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        playerDao: org.airsonic.player.dao.PlayerDao,
         statusService: org.airsonic.player.service.StatusService,
         securityService: org.airsonic.player.service.SecurityService,
         transcodingService: org.airsonic.player.service.TranscodingService,
     ): org.airsonic.player.service.PlayerService = runtime.createPlayerService(
-        playerDao, statusService, securityService, transcodingService)
+        runtime.createPlayerDao(), statusService, securityService, transcodingService)
 
     @Bean
     override fun taskSchedulingService(
@@ -440,13 +429,12 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         lastFmService: org.airsonic.player.service.LastFmService,
         ratingService: org.airsonic.player.service.RatingService,
         playlistService: org.airsonic.player.service.PlaylistService,
-        mediaFileDao: org.airsonic.player.dao.MediaFileDao,
+        graph: org.airsonic.player.runtime.DaoGraph,
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
-        playQueueDao: org.airsonic.player.dao.PlayQueueDao,
         jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
     ): org.airsonic.player.service.PlayQueueService = runtime.createPlayQueueService(
         searchService, jukeboxService, settingsService, mediaFileService, lastFmService, ratingService, playlistService,
-        mediaFileDao, mediaFolderService, playQueueDao, jwtSecurityService)
+        graph.mediaFileDao, mediaFolderService, graph.playQueueDao, jwtSecurityService)
 
     @Bean
     override fun captionService(
@@ -486,18 +474,19 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     override fun lastFmService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        mediaFileDao: org.airsonic.player.dao.MediaFileDao,
+        graph: org.airsonic.player.runtime.DaoGraph,
         mediaFileService: org.airsonic.player.service.MediaFileService,
-        artistDao: org.airsonic.player.dao.ArtistDao,
-    ): org.airsonic.player.service.LastFmService = runtime.createLastFmService(mediaFileDao, mediaFileService, artistDao)
+    ): org.airsonic.player.service.LastFmService = runtime.createLastFmService(
+        graph.mediaFileDao, mediaFileService, graph.artistDao)
 
     @Bean
     override fun shareService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        shareDao: org.airsonic.player.dao.ShareDao,
+        graph: org.airsonic.player.runtime.DaoGraph,
         mediaFileService: org.airsonic.player.service.MediaFileService,
         jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
-    ): org.airsonic.player.service.ShareService = runtime.createShareService(shareDao, mediaFileService, jwtSecurityService)
+    ): org.airsonic.player.service.ShareService = runtime.createShareService(
+        graph.shareDao, mediaFileService, jwtSecurityService)
 
     @Bean
     override fun uploadFileService(
@@ -572,9 +561,9 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     override fun bookmarkService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        bookmarkDao: org.airsonic.player.dao.BookmarkDao,
+        graph: org.airsonic.player.runtime.DaoGraph,
         mediaFileService: org.airsonic.player.service.MediaFileService,
-    ): org.airsonic.player.service.BookmarkService = runtime.createBookmarkService(bookmarkDao, mediaFileService)
+    ): org.airsonic.player.service.BookmarkService = runtime.createBookmarkService(graph.bookmarkDao, mediaFileService)
 
     @Bean
     override fun lyricsService(
@@ -584,10 +573,10 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     override fun ratingService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        ratingDao: org.airsonic.player.dao.RatingDao,
+        graph: org.airsonic.player.runtime.DaoGraph,
         securityService: org.airsonic.player.service.SecurityService,
         mediaFileService: org.airsonic.player.service.MediaFileService,
-    ): org.airsonic.player.service.RatingService = runtime.createRatingService(ratingDao, securityService, mediaFileService)
+    ): org.airsonic.player.service.RatingService = runtime.createRatingService(graph.ratingDao, securityService, mediaFileService)
 
     @Bean
     override fun musicIndexService(
@@ -600,8 +589,8 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     override fun databaseService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         settingsService: org.airsonic.player.service.SettingsService,
-        databaseDao: org.airsonic.player.dao.DatabaseDao,
+        graph: org.airsonic.player.runtime.DaoGraph,
         taskSchedulingService: org.airsonic.player.service.TaskSchedulingService,
     ): org.airsonic.player.service.DatabaseService =
-        runtime.createDatabaseService(settingsService, databaseDao, taskSchedulingService)
+        runtime.createDatabaseService(settingsService, graph.databaseDao, taskSchedulingService)
 }

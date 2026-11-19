@@ -376,6 +376,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** удалены неиспользуемый `SpringUserDetailsServiceAdapter` и его bean: `GlobalSecurityConfig` не обращался к `UserDetailsService`, потому что аутентификацией управляет собственный `AuthenticationManager` с явно добавленными providers. Выдача LDAP authorities теперь выполняется непосредственно Spring LDAP boundary provider-ом. `UserDaoTestCase` и `SpringLdapAuthenticationProviderTest` прошли 15/15; в старте тестового контекста исчезло прежнее предупреждение о неиспользуемом `UserDetailsService`.
 
+**Срез 19 ноября 2026:** production-фабрики сервисов в `KtorConfiguration` переведены с инъекции отдельных DAO на единый `DaoGraph` из `RuntimeCompositionRoot`; PlayerService также получает `PlayerDao`, созданный самим runtime root. Spring DAO aliases пока оставлены только как переходный слой для текущих DAO test fixtures. `UserDaoTestCase` и `RuntimeCompositionRootGraphTest` прошли 10/10. Полный Checkstyle пока не может завершиться из-за существующего парсинга `switch` в `domain/PlayQueue.java:430` текущим Checkstyle-парсером; ошибка возникает до проверки изменённых файлов.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

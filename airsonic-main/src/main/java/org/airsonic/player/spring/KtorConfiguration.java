@@ -174,8 +174,10 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public org.airsonic.player.controller.rest.genres.GenresService subsonicGenresService(MediaFileDao mediaFileDao) {
-        return new org.airsonic.player.controller.rest.genres.GenresService(() -> mediaFileDao.getGenres(false));
+    public org.airsonic.player.controller.rest.genres.GenresService subsonicGenresService(
+            org.airsonic.player.runtime.DaoGraph graph) {
+        return new org.airsonic.player.controller.rest.genres.GenresService(
+                () -> graph.getMediaFileDao().getGenres(false));
     }
 
     @Bean
@@ -186,10 +188,10 @@ public class KtorConfiguration {
 
     @Bean
     public ArtistsController subsonicArtistsController(
-            ArtistDao artistDao, AlbumDao albumDao, MusicIndexService musicIndexService, SettingsService settingsService,
+            org.airsonic.player.runtime.DaoGraph graph, MusicIndexService musicIndexService, SettingsService settingsService,
             MediaFolderService mediaFolderService, SubsonicResponseMapper subsonicResponseMapper,
             JAXBWriter subsonicJaxbWriter) {
-        return new ArtistsController(artistDao, albumDao, musicIndexService, settingsService, mediaFolderService,
+        return new ArtistsController(graph.getArtistDao(), graph.getAlbumDao(), musicIndexService, settingsService, mediaFolderService,
                 subsonicResponseMapper, subsonicJaxbWriter);
     }
 
@@ -209,11 +211,10 @@ public class KtorConfiguration {
 
     @Bean
     public SubsonicResponseMapper subsonicResponseMapper(
-            MediaFileService mediaFileService, MediaFileDao mediaFileDao, RatingService ratingService,
-            CoverArtService coverArtService, TranscodingService transcodingService, AlbumDao albumDao,
-            ArtistDao artistDao, JAXBWriter subsonicJaxbWriter) {
-        return new SubsonicResponseMapper(mediaFileService, mediaFileDao, ratingService, coverArtService,
-                transcodingService, albumDao, artistDao, subsonicJaxbWriter);
+            MediaFileService mediaFileService, org.airsonic.player.runtime.DaoGraph graph, RatingService ratingService,
+            CoverArtService coverArtService, TranscodingService transcodingService, JAXBWriter subsonicJaxbWriter) {
+        return new SubsonicResponseMapper(mediaFileService, graph.getMediaFileDao(), ratingService, coverArtService,
+                transcodingService, graph.getAlbumDao(), graph.getArtistDao(), subsonicJaxbWriter);
     }
 
     @Bean
@@ -290,34 +291,6 @@ public class KtorConfiguration {
         return persistenceGraph.getDaos();
     }
 
-    public AlbumDao albumDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getAlbumDao(); }
-
-    public ArtistDao artistDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getArtistDao(); }
-
-    public AvatarDao avatarDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getAvatarDao(); }
-
-    public BookmarkDao bookmarkDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getBookmarkDao(); }
-
-    public CoverArtDao coverArtDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getCoverArtDao(); }
-
-    public DatabaseDao databaseDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getDatabaseDao(); }
-
-    public MediaFileDao mediaFileDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getMediaFileDao(); }
-
-    public MusicFolderDao musicFolderDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getMusicFolderDao(); }
-
-    public PlayQueueDao playQueueDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getPlayQueueDao(); }
-
-    public PlaylistDao playlistDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getPlaylistDao(); }
-
-    public RatingDao ratingDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getRatingDao(); }
-
-    public ShareDao shareDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getShareDao(); }
-
-    public TranscodingDao transcodingDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getTranscodingDao(); }
-
-    public UserDao userDao(org.airsonic.player.runtime.DaoGraph graph) { return graph.getUserDao(); }
-
     public PlayerDao playerDao(RuntimeCompositionRoot runtime) throws Exception {
         return runtime.createPlayerDao();
     }
@@ -380,8 +353,8 @@ public class KtorConfiguration {
     }
 
     public DefaultPlaylistExportHandler defaultPlaylistExportHandler(RuntimeCompositionRoot runtime,
-            MediaFileDao mediaFileDao) {
-        return runtime.createDefaultPlaylistExportHandler(mediaFileDao);
+            org.airsonic.player.runtime.DaoGraph graph) {
+        return runtime.createDefaultPlaylistExportHandler(graph.getMediaFileDao());
     }
 
     public DefaultPlaylistImportHandler defaultPlaylistImportHandler(RuntimeCompositionRoot runtime,
@@ -391,8 +364,9 @@ public class KtorConfiguration {
     }
 
     public XspfPlaylistExportHandler xspfPlaylistExportHandler(RuntimeCompositionRoot runtime,
-            MediaFileDao mediaFileDao, PlaylistDao playlistDao, CoverArtService coverArtService) {
-        return runtime.createXspfPlaylistExportHandler(mediaFileDao, playlistDao, coverArtService);
+            org.airsonic.player.runtime.DaoGraph graph, CoverArtService coverArtService) {
+        return runtime.createXspfPlaylistExportHandler(
+                graph.getMediaFileDao(), graph.getPlaylistDao(), coverArtService);
     }
 
     public XspfPlaylistImportHandler xspfPlaylistImportHandler(RuntimeCompositionRoot runtime,
@@ -434,15 +408,16 @@ public class KtorConfiguration {
                 settingsService, transcodingService);
     }
 
-    public CoverArtService coverArtService(RuntimeCompositionRoot runtime, CoverArtDao coverArtDao) {
-        return runtime.createCoverArtService(coverArtDao);
+    public CoverArtService coverArtService(
+            RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph) {
+        return runtime.createCoverArtService(graph.getCoverArtDao());
     }
 
     public CoverArtImageService coverArtImageService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService,
             CoverArtService coverArtService, TranscodingService transcodingService, SettingsService settingsService,
-            PlaylistService playlistService, ArtistDao artistDao, AlbumDao albumDao) {
+            PlaylistService playlistService, org.airsonic.player.runtime.DaoGraph graph) {
         return runtime.createCoverArtImageService(mediaFileService, coverArtService, transcodingService,
-                settingsService, playlistService, artistDao, albumDao);
+                settingsService, playlistService, graph.getArtistDao(), graph.getAlbumDao());
     }
 
     public CoverArtAccentColorBackfill coverArtAccentColorBackfill(RuntimeCompositionRoot runtime,
@@ -456,24 +431,24 @@ public class KtorConfiguration {
         return runtime.createTagEditService(metaDataParserFactory, mediaFileService, securityService);
     }
 
-    public AlbumUpnpProcessor albumUpnpProcessor(RuntimeCompositionRoot runtime, AlbumDao albumDao) {
-        return runtime.createAlbumUpnpProcessor(albumDao);
+    public AlbumUpnpProcessor albumUpnpProcessor(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph) {
+        return runtime.createAlbumUpnpProcessor(graph.getAlbumDao());
     }
 
-    public RecentAlbumUpnpProcessor recentAlbumUpnpProcessor(RuntimeCompositionRoot runtime, AlbumDao albumDao) {
-        return runtime.createRecentAlbumUpnpProcessor(albumDao);
+    public RecentAlbumUpnpProcessor recentAlbumUpnpProcessor(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph) {
+        return runtime.createRecentAlbumUpnpProcessor(graph.getAlbumDao());
     }
 
-    public ArtistUpnpProcessor artistUpnpProcessor(RuntimeCompositionRoot runtime, ArtistDao artistDao) {
-        return runtime.createArtistUpnpProcessor(artistDao);
+    public ArtistUpnpProcessor artistUpnpProcessor(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph) {
+        return runtime.createArtistUpnpProcessor(graph.getArtistDao());
     }
 
     public GenreUpnpProcessor genreUpnpProcessor(RuntimeCompositionRoot runtime) {
         return runtime.createGenreUpnpProcessor();
     }
 
-    public MediaFileUpnpProcessor mediaFileUpnpProcessor(RuntimeCompositionRoot runtime, MediaFileDao mediaFileDao) {
-        return runtime.createMediaFileUpnpProcessor(mediaFileDao);
+    public MediaFileUpnpProcessor mediaFileUpnpProcessor(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph) {
+        return runtime.createMediaFileUpnpProcessor(graph.getMediaFileDao());
     }
 
     public PlaylistUpnpProcessor playlistUpnpProcessor(RuntimeCompositionRoot runtime, PlaylistService playlistService) {
@@ -515,18 +490,18 @@ public class KtorConfiguration {
         return runtime.createAudioScrobblerService(settingsService, securityService);
     }
 
-    public BookmarkService bookmarkService(RuntimeCompositionRoot runtime, BookmarkDao bookmarkDao,
+    public BookmarkService bookmarkService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph,
             MediaFileService mediaFileService) {
-        return runtime.createBookmarkService(bookmarkDao, mediaFileService);
+        return runtime.createBookmarkService(graph.getBookmarkDao(), mediaFileService);
     }
 
     public LyricsService lyricsService(RuntimeCompositionRoot runtime) {
         return runtime.createLyricsService();
     }
 
-    public RatingService ratingService(RuntimeCompositionRoot runtime, RatingDao ratingDao, SecurityService securityService,
+    public RatingService ratingService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph, SecurityService securityService,
             MediaFileService mediaFileService) {
-        return runtime.createRatingService(ratingDao, securityService, mediaFileService);
+        return runtime.createRatingService(graph.getRatingDao(), securityService, mediaFileService);
     }
 
     public MusicIndexService musicIndexService(RuntimeCompositionRoot runtime, SettingsService settingsService,
@@ -534,18 +509,18 @@ public class KtorConfiguration {
         return runtime.createMusicIndexService(settingsService, mediaFileService);
     }
 
-    public DatabaseService databaseService(RuntimeCompositionRoot runtime, SettingsService settingsService, DatabaseDao databaseDao,
+    public DatabaseService databaseService(RuntimeCompositionRoot runtime, SettingsService settingsService, org.airsonic.player.runtime.DaoGraph graph,
             TaskSchedulingService taskSchedulingService) {
-        return runtime.createDatabaseService(settingsService, databaseDao, taskSchedulingService);
+        return runtime.createDatabaseService(settingsService, graph.getDatabaseDao(), taskSchedulingService);
     }
 
     public JWTSecurityService jwtSecurityService(RuntimeCompositionRoot runtime, SettingsService settingsService) {
         return runtime.createJwtSecurityService(settingsService);
     }
 
-    public SecurityService securityService(RuntimeCompositionRoot runtime, UserDao userDao, SettingsService settingsService,
+    public SecurityService securityService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph, SettingsService settingsService,
             MediaFolderService mediaFolderService, CredentialEncoderRegistry credentialEncoders) {
-        return runtime.createSecurityService(userDao, settingsService, mediaFolderService, credentialEncoders);
+        return runtime.createSecurityService(graph.getUserDao(), settingsService, mediaFolderService, credentialEncoders);
     }
 
     public CredentialEncoderRegistry credentialEncoderRegistry() {
@@ -557,10 +532,10 @@ public class KtorConfiguration {
         return runtime.createConfigurationPropertiesService();
     }
 
-    public SettingsService settingsService(RuntimeCompositionRoot runtime, UserDao userDao, AvatarDao avatarDao,
+    public SettingsService settingsService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph,
             javax.cache.CacheManager cacheManager,
             org.airsonic.player.service.ConfigurationPropertiesService properties) {
-        // Keep the DAO/cache parameters as bootstrap dependencies so PersistenceGraph exists first.
+        // The graph argument preserves startup ordering while DAOs remain owned by RuntimeCompositionRoot.
         return runtime.createSettingsService();
     }
 
@@ -574,11 +549,12 @@ public class KtorConfiguration {
 
     public PlayQueueService playQueueService(RuntimeCompositionRoot runtime, SearchService searchService, JukeboxService jukeboxService,
             SettingsService settingsService, MediaFileService mediaFileService, LastFmService lastFmService,
-            RatingService ratingService, PlaylistService playlistService, MediaFileDao mediaFileDao,
-            MediaFolderService mediaFolderService, PlayQueueDao playQueueDao,
+            RatingService ratingService, PlaylistService playlistService, org.airsonic.player.runtime.DaoGraph graph,
+            MediaFolderService mediaFolderService,
             JWTSecurityService jwtSecurityService) {
         return runtime.createPlayQueueService(searchService, jukeboxService, settingsService, mediaFileService,
-                lastFmService, ratingService, playlistService, mediaFileDao, mediaFolderService, playQueueDao,
+                lastFmService, ratingService, playlistService, graph.getMediaFileDao(), mediaFolderService,
+                graph.getPlayQueueDao(),
                 jwtSecurityService);
     }
 
@@ -594,14 +570,14 @@ public class KtorConfiguration {
         return runtime.createJukeboxService(legacyJukebox);
     }
 
-    public LastFmService lastFmService(RuntimeCompositionRoot runtime, MediaFileDao mediaFileDao, MediaFileService mediaFileService,
-            ArtistDao artistDao) {
-        return runtime.createLastFmService(mediaFileDao, mediaFileService, artistDao);
+    public LastFmService lastFmService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph,
+            MediaFileService mediaFileService) {
+        return runtime.createLastFmService(graph.getMediaFileDao(), mediaFileService, graph.getArtistDao());
     }
 
-    public ShareService shareService(RuntimeCompositionRoot runtime, ShareDao shareDao, MediaFileService mediaFileService,
+    public ShareService shareService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph, MediaFileService mediaFileService,
             JWTSecurityService jwtSecurityService) {
-        return runtime.createShareService(shareDao, mediaFileService, jwtSecurityService);
+        return runtime.createShareService(graph.getShareDao(), mediaFileService, jwtSecurityService);
     }
 
     public UploadFileService uploadFileService(RuntimeCompositionRoot runtime, SecurityService securityService) {
@@ -626,23 +602,23 @@ public class KtorConfiguration {
     }
 
     public MediaFileService mediaFileService(RuntimeCompositionRoot runtime, SecurityService securityService, SettingsService settingsService,
-            MediaFileDao mediaFileDao, AlbumDao albumDao,
+            org.airsonic.player.runtime.DaoGraph graph,
             JaudiotaggerParser parser, MetaDataParserFactory metaDataParserFactory, CoverArtService coverArtService,
             LocaleService localeService) {
-        return runtime.createMediaFileService(securityService, settingsService, mediaFileDao, albumDao,
+        return runtime.createMediaFileService(securityService, settingsService, graph.getMediaFileDao(), graph.getAlbumDao(),
                 parser, metaDataParserFactory, coverArtService, localeService);
     }
 
-    public TranscodingService transcodingService(RuntimeCompositionRoot runtime, TranscodingDao transcodingDao,
+    public TranscodingService transcodingService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph,
             SettingsService settingsService, MediaFolderService mediaFolderService,
             org.springframework.beans.factory.ObjectProvider<PlayerService> playerServiceProvider) {
-        return runtime.createTranscodingService(transcodingDao, settingsService, mediaFolderService,
+        return runtime.createTranscodingService(graph.getTranscodingDao(), settingsService, mediaFolderService,
                 playerServiceProvider::getObject);
     }
 
-    public PlayerService playerService(RuntimeCompositionRoot runtime, PlayerDao playerDao, StatusService statusService,
-            SecurityService securityService, TranscodingService transcodingService) {
-        return runtime.createPlayerService(playerDao, statusService, securityService, transcodingService);
+    public PlayerService playerService(RuntimeCompositionRoot runtime, StatusService statusService,
+            SecurityService securityService, TranscodingService transcodingService) throws Exception {
+        return runtime.createPlayerService(runtime.createPlayerDao(), statusService, securityService, transcodingService);
     }
 
     public TaskSchedulingService taskSchedulingService(RuntimeCompositionRoot runtime) {
@@ -700,9 +676,7 @@ public class KtorConfiguration {
             org.airsonic.player.service.metadata.MetaDataParserFactory metadataParsers,
             MediaScannerService mediaScannerService,
             MediaFileService mediaFileService,
-            ArtistDao artistDao,
-            AlbumDao albumDao,
-            MediaFileDao mediaFileDao,
+            org.airsonic.player.runtime.DaoGraph graph,
             RatingService ratingService,
             SearchService albumSearchService,
             LastFmService lastFmService,
@@ -717,7 +691,6 @@ public class KtorConfiguration {
             BookmarkService bookmarkService,
             JukeboxService jukeboxService,
             PlayQueueService playQueueService,
-            PlayQueueDao playQueueDao,
             javax.sql.DataSource dataSource,
             SecurityService securityService,
             CredentialEncoderRegistry credentialEncoderRegistry,
@@ -753,6 +726,10 @@ public class KtorConfiguration {
             org.airsonic.player.monitor.MetricsManager metricsManager,
             org.airsonic.player.dao.TransactionManager transactionManager
     ) {
+        ArtistDao artistDao = graph.getArtistDao();
+        AlbumDao albumDao = graph.getAlbumDao();
+        MediaFileDao mediaFileDao = graph.getMediaFileDao();
+        PlayQueueDao playQueueDao = graph.getPlayQueueDao();
         org.airsonic.player.ktor.KordinatorSessionService kordinatorSessionService =
                 new org.airsonic.player.ktor.KordinatorSessionService(
                         securityService, credentialEncoderRegistry,
