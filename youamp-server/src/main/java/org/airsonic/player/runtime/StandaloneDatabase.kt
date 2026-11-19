@@ -21,7 +21,7 @@ class StandaloneDatabase private constructor(
 
     companion object {
         private const val CHANGELOG = "liquibase/standalone/db.changelog-master.xml"
-        fun connect(configuration: RuntimeConfiguration): StandaloneDatabase {
+        fun connect(configuration: StandaloneConfiguration): StandaloneDatabase {
             val home = configuration.airsonicHome
             val defaultDatabase = home.resolve("db/youamp")
             Files.createDirectories(defaultDatabase.parent)

@@ -36,8 +36,7 @@ import kotlinx.coroutines.withContext
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.security.LoginRateLimiter
-import org.airsonic.player.runtime.LifecycleRegistry
-import org.airsonic.player.runtime.RuntimeConfigurationLoader
+import org.airsonic.player.runtime.StandaloneConfiguration
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.service.StandaloneLibraryService
 import org.airsonic.player.service.StandaloneLibraryScanService
@@ -569,17 +568,14 @@ private fun org.airsonic.player.service.StandalonePlaylist.toResponse() = Playli
 )
 
 fun main(args: Array<String>) {
-    val configuration = RuntimeConfigurationLoader().load(args, System.getProperties(), System.getenv(), null, emptyMap())
+    val configuration = StandaloneConfiguration.load(args, System.getProperties(), System.getenv())
     val host = configuration.getProperty("airsonic.http.host", "0.0.0.0")
     val port = configuration.getIntProperty("airsonic.http.port", 8080)
-    val lifecycle = LifecycleRegistry()
     val database = StandaloneDatabase.connect(configuration)
-    lifecycle.registerShutdown("database", database)
-    Runtime.getRuntime().addShutdownHook(Thread({ lifecycle.shutdown() }, "airsonic-shutdown"))
     try {
         database.migrate()
     } catch (failure: Throwable) {
-        lifecycle.shutdown()
+        database.close()
         throw failure
     }
     val authService = LocalAuthService(database.dataSource)
@@ -602,13 +598,22 @@ fun main(args: Array<String>) {
                 confirmation.fill('\u0000')
             }
         } finally {
-            lifecycle.shutdown()
+            database.close()
         }
         return
     }
     val server = embeddedServer(Netty, host = host, port = port) {
         standaloneModule(authService, libraryService, libraryScanService, playlistService)
     }
-    lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })
-    server.start(wait = true)
+    val shutdown = Thread({
+        server.stop(1_000, 5_000)
+        database.close()
+    }, "youamp-shutdown")
+    Runtime.getRuntime().addShutdownHook(shutdown)
+    try {
+        server.start(wait = true)
+    } finally {
+        server.stop(1_000, 5_000)
+        database.close()
+    }
 }
