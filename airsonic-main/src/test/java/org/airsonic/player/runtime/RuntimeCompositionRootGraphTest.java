@@ -456,6 +456,10 @@ class RuntimeCompositionRootGraphTest {
                         jwtSecurityService, metaDataParserFactory, objectMapper));
         assertSame(runtimeRoot.createCaptionsRestController(captionService, mediaFolderService, objectMapper),
                 runtimeRoot.createCaptionsRestController(captionService, mediaFolderService, objectMapper));
+        assertSame(runtimeRoot.createSharesController(shareService, mediaFileService, mediaFolderService,
+                        responseMapper, playerService, playlistService, securityService),
+                runtimeRoot.createSharesController(shareService, mediaFileService, mediaFolderService,
+                        responseMapper, playerService, playlistService, securityService));
         assertSame(runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService),
                 runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService));
         assertSame(runtimeRoot.createMusicFolderSettingsController(musicFolderAdministrationService),

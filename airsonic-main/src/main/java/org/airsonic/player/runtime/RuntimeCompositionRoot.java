@@ -151,6 +151,7 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.stream.StreamRestController streamRestController;
     private org.airsonic.player.controller.rest.shares.PublicShareController publicShareController;
     private org.airsonic.player.controller.captions.CaptionsRestController captionsRestController;
+    private org.airsonic.player.controller.rest.shares.SharesController sharesController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -916,6 +917,22 @@ public final class RuntimeCompositionRoot {
                     captionService, mediaFolderService, objectMapper);
         }
         return captionsRestController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.shares.SharesController createSharesController(
+            org.airsonic.player.service.ShareService shareService,
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper,
+            org.airsonic.player.service.PlayerService playerService,
+            org.airsonic.player.service.PlaylistService playlistService,
+            org.airsonic.player.service.SecurityService securityService) {
+        if (sharesController == null) {
+            sharesController = new org.airsonic.player.controller.rest.shares.SharesController(
+                    shareService, mediaFileService, mediaFolderService, responseMapper, createSubsonicJaxbWriter(),
+                    playerService, playlistService, securityService);
+        }
+        return sharesController;
     }
 
     public synchronized DataSource createDataSource() {
