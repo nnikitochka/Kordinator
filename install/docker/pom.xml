@@ -9,8 +9,8 @@
         <groupId>org.airsonic.player</groupId>
     </parent>
     <packaging>pom</packaging>
-    <artifactId>airsonic-docker</artifactId>
-    <name>Airsonic Docker Image</name>
+    <artifactId>kordinator-docker</artifactId>
+    <name>Kordinator Docker Image</name>
 
     <build>
         <plugins>
@@ -19,16 +19,16 @@
                 <artifactId>maven-antrun-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>stage-youamp-server</id>
+                        <id>stage-kordinator-server</id>
                         <phase>generate-sources</phase>
                         <goals><goal>run</goal></goals>
                         <configuration>
                             <target>
                                 <mkdir dir="${project.build.directory}/dependency/lib"/>
-                                <copy file="${maven.multiModuleProjectDirectory}/youamp-server/target/youamp-server.jar"
-                                      tofile="${project.build.directory}/dependency/youamp-server-11.0.0-SNAPSHOT.jar"/>
+                                <copy file="${maven.multiModuleProjectDirectory}/kordinator-server/target/kordinator-server.jar"
+                                      tofile="${project.build.directory}/dependency/kordinator-server-11.0.0-SNAPSHOT.jar"/>
                                 <copy todir="${project.build.directory}/dependency/lib">
-                                    <fileset dir="${maven.multiModuleProjectDirectory}/youamp-server/target/lib"/>
+                                    <fileset dir="${maven.multiModuleProjectDirectory}/kordinator-server/target/lib"/>
                                 </copy>
                             </target>
                         </configuration>

@@ -608,7 +608,7 @@ fun main(args: Array<String>) {
     val shutdown = Thread({
         server.stop(1_000, 5_000)
         database.close()
-    }, "youamp-shutdown")
+    }, "kordinator-shutdown")
     Runtime.getRuntime().addShutdownHook(shutdown)
     try {
         server.start(wait = true)

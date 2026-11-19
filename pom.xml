@@ -6,7 +6,7 @@
     <groupId>org.airsonic.player</groupId>
     <artifactId>airsonic</artifactId>
     <version>11.0.0-SNAPSHOT</version>
-    <name>Airsonic</name>
+    <name>Kordinator</name>
     <packaging>pom</packaging>
     <organization>
         <name>Airsonic</name>
@@ -29,7 +29,8 @@
         <ktor.version>3.6.0</ktor.version>
         <kotlin-coroutines.version>1.11.0</kotlin-coroutines.version>
         <kotlin-serialization.version>1.11.0</kotlin-serialization.version>
-        <docker.container.repo>airsonicadvanced/airsonic-advanced</docker.container.repo>
+        <netty.version>4.1.124.Final</netty.version>
+        <docker.container.repo>kordinator/music-server</docker.container.repo>
     </properties>
 
     <repositories>
@@ -62,7 +63,7 @@
     </scm>
 
     <modules>
-        <module>youamp-server</module>
+        <module>kordinator-server</module>
         <module>subsonic-rest-api</module>
         <module>airsonic-main</module>
     </modules>
@@ -75,6 +76,40 @@
                 <version>${kotlin.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>${netty.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>5.12.2</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>2.0.17</version>
+            </dependency>
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>2.4</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents.client5</groupId>
+                <artifactId>httpclient5</artifactId>
+                <version>5.5</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.18.0</version>
             </dependency>
             <!-- Fix convergence issues -->
             <dependency>
@@ -193,17 +228,6 @@
                     <version>0.34.1</version>
                 </plugin>
                 <plugin>
-                    <artifactId>maven-war-plugin</artifactId>
-                    <configuration>
-                        <failOnMissingWebXml>false</failOnMissingWebXml>
-                        <archive>
-                            <manifest>
-                                <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-                            </manifest>
-                        </archive>
-                    </configuration>
-                </plugin>
-                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
                     <version>3.1.1</version>
@@ -275,6 +299,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.5.3</version>
                         <configuration>
                             <!-- #1186 Temporarily skip a test. -->
                             <excludes>
@@ -311,6 +336,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.0</version>
                 <configuration>
                     <encoding>UTF-8</encoding>
                     <verbose>false</verbose>
@@ -383,6 +409,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
                 <inherited>true</inherited>
                 <executions>
                     <execution>
@@ -405,7 +432,7 @@
         <profile>
             <id>docker</id>
             <modules>
-                <module>youamp-server</module>
+                <module>kordinator-server</module>
                 <module>subsonic-rest-api</module>
                 <module>airsonic-main</module>
                 <module>install/docker</module>
@@ -414,7 +441,7 @@
         <profile>
             <id>integration-test</id>
             <modules>
-                <module>youamp-server</module>
+                <module>kordinator-server</module>
                 <module>subsonic-rest-api</module>
                 <module>airsonic-main</module>
                 <module>install/docker</module>
