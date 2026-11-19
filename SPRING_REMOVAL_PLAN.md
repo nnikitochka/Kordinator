@@ -292,6 +292,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `077d787` удаляет Spring `@Transactional` с `PlayQueueDao`, `PlaylistDao` и `TranscodingDao`; сохранённые очереди, замена playlist files и настройки transcoding теперь выполняются через `AbstractDao.inTransaction`/root `TransactionManager`. Менеджер присоединяет локальную операцию к внешней Spring транзакции через явный connection context, чтобы сохранить тестовый/legacy boundary и rollback-only behavior. DAO, root graph, JDBC, queue/import/export и transcoding REST tests прошли 28/28. Spring transaction annotations и AspectJ всё ещё нужны остальным DAO; следующий срез должен перенести оставшиеся транзакционные методы в явные boundaries, затем отключить `@EnableTransactionManagement`/Spring AspectJ.
 
+Срез `1080c28` удаляет `@Transactional` из `CoverArtDao`, `AvatarDao`, `ShareDao`; multi-statement upsert/expunge/avatar replace и batch share files теперь используют явные framework-neutral transactions. Cover-art accent/REST, avatar upload, share/public/web-share, JDBC и root graph tests прошли 19/19. В DAO осталось 7 `@Transactional` деклараций (Album, Artist, MusicFolder, MediaFile и class-level UserDao), вместо 16 до двух последних срезов.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
