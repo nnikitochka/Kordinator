@@ -91,6 +91,9 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.genres.GenresService subsonicGenresService;
     private org.airsonic.player.controller.rest.music.folder.MusicFoldersService subsonicMusicFoldersService;
     private org.airsonic.player.controller.rest.search.SearchService subsonicSearchService;
+    private org.airsonic.player.controller.rest.genres.GenresController subsonicGenresController;
+    private org.airsonic.player.controller.rest.music.folder.MusicFoldersController subsonicMusicFoldersController;
+    private org.airsonic.player.controller.rest.search.SearchController subsonicSearchController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -178,6 +181,33 @@ public final class RuntimeCompositionRoot {
                     searchService, mediaFolderService, responseMapper, createSubsonicJaxbWriter());
         }
         return subsonicSearchService;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.genres.GenresController createSubsonicGenresController() {
+        if (subsonicGenresController == null) {
+            subsonicGenresController = new org.airsonic.player.controller.rest.genres.GenresController(
+                    createSubsonicGenresService(), createSubsonicJaxbWriter());
+        }
+        return subsonicGenresController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.music.folder.MusicFoldersController
+            createSubsonicMusicFoldersController(
+                    org.airsonic.player.controller.rest.music.folder.MusicFoldersService musicFoldersService) {
+        if (subsonicMusicFoldersController == null) {
+            subsonicMusicFoldersController = new org.airsonic.player.controller.rest.music.folder.MusicFoldersController(
+                    musicFoldersService, createSubsonicJaxbWriter());
+        }
+        return subsonicMusicFoldersController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.search.SearchController createSubsonicSearchController(
+            org.airsonic.player.controller.rest.search.SearchService searchService) {
+        if (subsonicSearchController == null) {
+            subsonicSearchController = new org.airsonic.player.controller.rest.search.SearchController(
+                    searchService, createSubsonicJaxbWriter());
+        }
+        return subsonicSearchController;
     }
 
     public synchronized DataSource createDataSource() {

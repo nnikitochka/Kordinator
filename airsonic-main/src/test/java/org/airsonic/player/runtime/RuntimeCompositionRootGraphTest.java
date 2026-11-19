@@ -166,8 +166,13 @@ class RuntimeCompositionRootGraphTest {
         assertSame(mediaFileService, runtimeRoot.createMediaFileService(securityService, settingsService,
                 mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeService));
         assertSame(runtimeRoot.createSubsonicGenresService(), runtimeRoot.createSubsonicGenresService());
+        assertSame(runtimeRoot.createSubsonicGenresController(), runtimeRoot.createSubsonicGenresController());
         assertSame(runtimeRoot.createSubsonicMusicFoldersService(mediaFolderService),
                 runtimeRoot.createSubsonicMusicFoldersService(mediaFolderService));
+        org.airsonic.player.controller.rest.music.folder.MusicFoldersService subsonicMusicFoldersService =
+                runtimeRoot.createSubsonicMusicFoldersService(mediaFolderService);
+        assertSame(runtimeRoot.createSubsonicMusicFoldersController(subsonicMusicFoldersService),
+                runtimeRoot.createSubsonicMusicFoldersController(subsonicMusicFoldersService));
         org.airsonic.player.service.search.SearchServiceUtilities searchServiceUtilities =
                 runtimeRoot.createSearchServiceUtilities(mediaFileService);
         assertSame(searchServiceUtilities, runtimeRoot.createSearchServiceUtilities(mediaFileService));
@@ -319,6 +324,8 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createSubsonicSearchService(searchService, mediaFolderService, responseMapper);
         assertSame(subsonicSearchService,
                 runtimeRoot.createSubsonicSearchService(searchService, mediaFolderService, responseMapper));
+        assertSame(runtimeRoot.createSubsonicSearchController(subsonicSearchService),
+                runtimeRoot.createSubsonicSearchController(subsonicSearchService));
 
         org.airsonic.player.service.upnp.DispatchingContentDirectory dispatchingContentDirectory =
                 runtimeRoot.createDispatchingContentDirectory(mediaFileService, mediaFolderService, playlistService,

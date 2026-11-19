@@ -182,9 +182,8 @@ public class KtorConfiguration {
     }
 
     @Bean
-    public GenresController subsonicGenresController(
-            org.airsonic.player.controller.rest.genres.GenresService genresService, JAXBWriter subsonicJaxbWriter) {
-        return new GenresController(genresService, subsonicJaxbWriter);
+    public GenresController subsonicGenresController(RuntimeCompositionRoot runtime) {
+        return runtime.createSubsonicGenresController();
     }
 
     @Bean
@@ -204,9 +203,8 @@ public class KtorConfiguration {
 
     @Bean
     public MusicFoldersController subsonicMusicFoldersController(
-            org.airsonic.player.controller.rest.music.folder.MusicFoldersService musicFoldersService,
-            JAXBWriter subsonicJaxbWriter) {
-        return new MusicFoldersController(musicFoldersService, subsonicJaxbWriter);
+            RuntimeCompositionRoot runtime, org.airsonic.player.controller.rest.music.folder.MusicFoldersService service) {
+        return runtime.createSubsonicMusicFoldersController(service);
     }
 
     @Bean
@@ -218,8 +216,8 @@ public class KtorConfiguration {
 
     @Bean
     public SearchController subsonicSearchController(
-            org.airsonic.player.controller.rest.search.SearchService searchService, JAXBWriter subsonicJaxbWriter) {
-        return new SearchController(searchService, subsonicJaxbWriter);
+            RuntimeCompositionRoot runtime, org.airsonic.player.controller.rest.search.SearchService service) {
+        return runtime.createSubsonicSearchController(service);
     }
 
     @Bean
