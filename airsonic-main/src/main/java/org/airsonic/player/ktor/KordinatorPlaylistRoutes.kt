@@ -10,7 +10,9 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.service.PlaylistService
+import org.airsonic.player.service.SecurityService
 import org.airsonic.player.domain.Playlist
 import java.time.Instant
 
@@ -23,7 +25,10 @@ data class KordinatorPlaylistSummary(
     val updatedAt: String?,
 )
 
-class KordinatorPlaylistRoutes(private val playlists: PlaylistService) {
+class KordinatorPlaylistRoutes(
+    private val playlists: PlaylistService,
+    private val securityService: SecurityService,
+) {
     fun routes(
         root: Route,
         currentUsername: (ApplicationCall) -> String?,
@@ -47,6 +52,46 @@ class KordinatorPlaylistRoutes(private val playlists: PlaylistService) {
                 )
             }
             call.respondText(objectMapper.writeValueAsString(visiblePlaylists), ContentType.Application.Json)
+        }
+
+        root.get("/api/v1/playlists/{id}") {
+            val username = currentUsername(call)
+            if (username.isNullOrBlank()) {
+                call.respond(HttpStatusCode.Unauthorized)
+                return@get
+            }
+
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id == null || id <= 0) {
+                call.respondText(
+                    objectMapper.writeValueAsString(ApiError("invalid_request", "Playlist ID must be a positive number")),
+                    ContentType.Application.Json,
+                    HttpStatusCode.BadRequest,
+                )
+                return@get
+            }
+
+            val playlist = playlists.getPlaylist(id)
+            if (playlist == null || !playlists.isReadAllowed(playlist, username)) {
+                call.respond(HttpStatusCode.NotFound)
+                return@get
+            }
+
+            val tracks = playlists.getFilesInPlaylist(id).mapNotNull { file ->
+                if (!securityService.isFolderAccessAllowed(file, username)) return@mapNotNull null
+                file.toKordinatorTrack()
+            }
+            val details = KordinatorPlaylistDetails(
+                id = playlist.id,
+                name = playlist.name,
+                comment = playlist.comment,
+                trackCount = tracks.size,
+                durationSeconds = tracks.sumOf { it.durationSeconds },
+                createdAt = playlist.created?.toString(),
+                updatedAt = playlist.changed?.toString(),
+                tracks = tracks,
+            )
+            call.respondText(objectMapper.writeValueAsString(details), ContentType.Application.Json)
         }
 
         root.post("/api/v1/playlists") {
@@ -96,6 +141,17 @@ class KordinatorPlaylistRoutes(private val playlists: PlaylistService) {
 
 data class CreateKordinatorPlaylistRequest(val name: String?)
 
+data class KordinatorPlaylistDetails(
+    val id: Int,
+    val name: String,
+    val comment: String?,
+    val trackCount: Int,
+    val durationSeconds: Int,
+    val createdAt: String?,
+    val updatedAt: String?,
+    val tracks: List<KordinatorTrackResponse>,
+)
+
 private fun Playlist.toSummary() = KordinatorPlaylistSummary(
     id = id,
     name = name,
@@ -103,4 +159,18 @@ private fun Playlist.toSummary() = KordinatorPlaylistSummary(
     durationSeconds = duration.toInt(),
     createdAt = created?.toString(),
     updatedAt = changed?.toString(),
+)
+
+private fun MediaFile.toKordinatorTrack() = KordinatorTrackResponse(
+    id = requireNotNull(id),
+    title = title,
+    artist = artist,
+    album = albumName,
+    albumArtist = albumArtist,
+    discNumber = discNumber,
+    trackNumber = trackNumber,
+    year = year,
+    durationSeconds = duration?.toInt() ?: 0,
+    fileSize = fileSize,
+    format = format,
 )
