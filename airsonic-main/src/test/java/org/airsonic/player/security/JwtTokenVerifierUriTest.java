@@ -4,18 +4,11 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import org.airsonic.player.service.JWTSecurityService;
 import org.junit.Test;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.CredentialsExpiredException;
-import org.springframework.security.authentication.InsufficientAuthenticationException;
-import org.springframework.security.core.Authentication;
-
 import java.time.Instant;
 import java.util.Date;
-import java.util.Optional;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class JwtTokenVerifierUriTest {
@@ -70,23 +63,19 @@ public class JwtTokenVerifierUriTest {
     }
 
     @Test
-    public void jwtServletFilterMapsNeutralVerificationResultsToSpringPrincipal() {
+    public void verifiesSignatureExpiryAndSignedPathWithoutFrameworkAuthenticationTypes() {
         String key = "provider-test-key";
         String path = "/rest/item?id=1";
         String rawToken = token(key, path, Instant.now().plusSeconds(60));
-        JWTRequestParameterProcessingFilter filter = new JWTRequestParameterProcessingFilter(key, "/login?error");
+        JwtTokenVerifier verifier = new JwtTokenVerifier();
 
-        Authentication authenticated = filter.attemptAuthentication(Optional.of(
-                new JWTAuthenticationToken(null, rawToken, path + "&jwt=client-value")));
-
-        assertEquals("listener", authenticated.getName());
-        assertTrue(authenticated.getAuthorities().stream().anyMatch(authority -> "ROLE_TEMP".equals(authority.getAuthority())));
-        assertThrows(CredentialsExpiredException.class, () -> filter.attemptAuthentication(Optional.of(
-                new JWTAuthenticationToken(null, token(key, path, Instant.now().minusSeconds(60)), path))));
-        assertThrows(InsufficientAuthenticationException.class, () -> filter.attemptAuthentication(Optional.of(
-                new JWTAuthenticationToken(null, rawToken, "/rest/other"))));
-        assertThrows(BadCredentialsException.class, () -> filter.attemptAuthentication(Optional.of(
-                new JWTAuthenticationToken(null, "invalid", path))));
+        JwtTokenVerifier.Result accepted = verifier.verifyRequest(key, rawToken, path + "&jwt=client-value");
+        assertTrue(accepted.isVerified());
+        assertEquals("listener", accepted.getToken().getSubject());
+        assertEquals(JwtTokenVerifier.Failure.EXPIRED, verifier.verifyRequest(
+                key, token(key, path, Instant.now().minusSeconds(60)), path).getFailure());
+        assertEquals(JwtTokenVerifier.Failure.PATH_MISMATCH, verifier.verifyRequest(key, rawToken, "/rest/other").getFailure());
+        assertEquals(JwtTokenVerifier.Failure.INVALID, verifier.verifyRequest(key, "invalid", path).getFailure());
     }
 
     private static String token(String key, String path, Instant expiration) {

@@ -827,6 +827,7 @@ public final class RuntimeCompositionRoot {
     public synchronized org.airsonic.player.service.JWTSecurityService createJwtSecurityService(
             org.airsonic.player.service.SettingsService settingsService) {
         if (jwtSecurityService == null) {
+            org.airsonic.player.service.JWTSecurityService.initializeSigningKey(settingsService);
             jwtSecurityService = new org.airsonic.player.service.JWTSecurityService(settingsService);
         }
         return jwtSecurityService;

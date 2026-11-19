@@ -24,7 +24,7 @@ class KtorExternalRouteRequestMatcherTest {
     }
 
     @Test
-    fun leavesUnmappedExternalPathsForSpringCorsAnd404Handling() {
+    fun leavesUnmappedExternalPathsForCorsFallback() {
         listOf("/ext/hls/test", "/ext/captions/test", "/ext/unknown").forEach { path ->
             assertFalse(path, matcher.matches(request(path)))
         }

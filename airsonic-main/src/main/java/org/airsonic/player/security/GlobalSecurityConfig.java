@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -22,7 +21,6 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.keygen.KeyGenerators;
@@ -32,10 +30,8 @@ import org.springframework.security.crypto.password.Pbkdf2PasswordEncoder;
 import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.RequestMatcher;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
-import org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -213,13 +209,8 @@ public class GlobalSecurityConfig {
     }
 
     @Bean
-    @Order(1)
-    public SecurityFilterChain extSecurityFilterChain(HttpSecurity http) throws Exception {
-        http = http.addFilter(new WebAsyncManagerIntegrationFilter());
-        http = http.addFilterBefore(
-                new JWTRequestParameterProcessingFilter(getJwtKey(), FAILURE_URL),
-                UsernamePasswordAuthenticationFilter.class);
-
+    @org.springframework.core.annotation.Order(1)
+    public SecurityFilterChain unmappedExternalCorsFallback(HttpSecurity http) throws Exception {
         RequestMatcher ktorExternalRoutes = new org.airsonic.player.spring.KtorExternalRouteRequestMatcher();
         http
                 .securityMatcher(request -> {
@@ -228,26 +219,13 @@ public class GlobalSecurityConfig {
                             && !ktorExternalRoutes.matches(request);
                 })
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.requireCsrfProtectionMatcher(request -> csrfPolicy.requiresProtection(
-                        request.getMethod(), request.getServletPath(), request.getPathInfo(), request.getQueryString())))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(SecurityRoutePolicy.EXT_ROLE_PATHS.toArray(String[]::new))
-                        .hasAnyRole(SecurityRoutePolicy.EXT_ROLE_NAMES.toArray(String[]::new))
-                        .anyRequest().authenticated())
-                .sessionManagement(manager -> manager
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                        .sessionFixation().none())
-                .exceptionHandling(Customizer.withDefaults())
-                .securityContext(Customizer.withDefaults())
-                .requestCache(Customizer.withDefaults())
-                .anonymous(Customizer.withDefaults())
-                .servletApi(Customizer.withDefaults());
+                .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
         return http.build();
     }
 
     @Bean
-    @Order(2)
+    @org.springframework.core.annotation.Order(2)
     public SecurityFilterChain webSecurityFilterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws Exception {
         RESTRequestParameterProcessingFilter restAuthenticationFilter = new RESTRequestParameterProcessingFilter();
         restAuthenticationFilter.setAuthenticationManager(authenticationManager);
@@ -267,10 +245,11 @@ public class GlobalSecurityConfig {
             LOG.info("Using a fixed 'remember me' key from properties, this is insecure.");
         }
 
-        RequestMatcher ktorExternalRoutes = new org.airsonic.player.spring.KtorExternalRouteRequestMatcher();
         http
-                // Explicit Ktor external routes are secured at the Ktor servlet boundary.
-                .securityMatcher(request -> !ktorExternalRoutes.matches(request))
+                // Registered external URLs are secured at the Ktor servlet boundary.
+                .securityMatcher(request -> {
+                    return !new org.airsonic.player.spring.KtorExternalRouteRequestMatcher().matches(request);
+                })
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .httpBasic(Customizer.withDefaults())
                 .addFilterAfter(restAuthenticationFilter, BasicAuthenticationFilter.class)
@@ -304,17 +283,6 @@ public class GlobalSecurityConfig {
                         .key(rememberMeKey)
                         .userDetailsService(userDetailsService));
         return http.build();
-    }
-
-    private String getJwtKey() {
-        String jwtKey = settingsService.getJWTKey();
-        if (StringUtils.isBlank(jwtKey)) {
-            LOG.warn("Generating new jwt key");
-            jwtKey = JWTSecurityService.generateKey();
-            settingsService.setJWTKey(jwtKey);
-            settingsService.save();
-        }
-        return jwtKey;
     }
 
     @Bean

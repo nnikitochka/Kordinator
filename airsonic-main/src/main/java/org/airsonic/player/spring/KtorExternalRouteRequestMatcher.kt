@@ -9,7 +9,7 @@ import org.airsonic.player.controller.rest.stream.StreamRestController
 import org.airsonic.player.security.SecurityRoutePolicy
 import org.springframework.security.web.util.matcher.RequestMatcher
 
-/** Identifies external routes explicitly registered on the Ktor servlet. */
+/** Identifies external routes registered on Ktor so Spring does not secure them twice. */
 class KtorExternalRouteRequestMatcher : RequestMatcher {
     override fun matches(request: HttpServletRequest): Boolean {
         val path = request.servletPath + (request.pathInfo ?: "")

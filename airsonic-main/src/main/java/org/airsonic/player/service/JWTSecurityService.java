@@ -5,7 +5,6 @@ import com.auth0.jwt.JWTCreator.Builder;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import org.airsonic.player.security.JWTAuthenticationToken;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +19,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 
 public class JWTSecurityService {
     private static final Logger LOG = LoggerFactory.getLogger(JWTSecurityService.class);
@@ -172,11 +170,11 @@ public class JWTSecurityService {
         return JWT.decode(token);
     }
 
-    public static Instant getExpiration(JWTAuthenticationToken auth) {
-        return Optional.ofNullable(auth)
-                .map(x -> (DecodedJWT) x.getDetails())
-                .map(x -> x.getExpiresAt())
-                .map(x -> x.toInstant())
-                .orElse(null);
+    public static void initializeSigningKey(SettingsService settingsService) {
+        if (StringUtils.isBlank(settingsService.getJWTKey())) {
+            LOG.warn("Generating new jwt key");
+            settingsService.setJWTKey(generateKey());
+            settingsService.save();
+        }
     }
 }

@@ -18,6 +18,8 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
@@ -91,6 +93,30 @@ public class JWTSecurityServiceTest {
         assertEquals("xyz", decoded.getSubject());
         assertTrue(decoded.getExpiresAt().toInstant().isAfter(Instant.now().plusSeconds(6 * 86400L)));
         assertTrue(decoded.getExpiresAt().toInstant().isBefore(Instant.now().plusSeconds(7 * 86400L + 2)));
+    }
+
+    @Test
+    public void initializesAndPersistsMissingSigningKey() {
+        SettingsService settings = mock(SettingsService.class);
+        when(settings.getJWTKey()).thenReturn("");
+
+        JWTSecurityService.initializeSigningKey(settings);
+
+        org.mockito.ArgumentCaptor<String> key = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(settings).setJWTKey(key.capture());
+        assertTrue(key.getValue().length() >= 20);
+        verify(settings).save();
+    }
+
+    @Test
+    public void leavesExistingSigningKeyUntouched() {
+        SettingsService settings = mock(SettingsService.class);
+        when(settings.getJWTKey()).thenReturn("existing-signing-key");
+
+        JWTSecurityService.initializeSigningKey(settings);
+
+        verify(settings, never()).setJWTKey(org.mockito.ArgumentMatchers.anyString());
+        verify(settings, never()).save();
     }
 
     @Test
