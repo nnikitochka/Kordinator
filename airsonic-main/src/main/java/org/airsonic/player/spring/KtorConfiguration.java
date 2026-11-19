@@ -767,17 +767,19 @@ public class KtorConfiguration {
                                 new PlayerSettingsController(playerService, transcodingService, playQueueService, jaxbWriter),
                                 new AdvancedSettingsController(settingsService, jaxbWriter),
                                 new TranscodingSettingsController(transcodingService, settingsService, jaxbWriter),
-                                new GeneralSettingsController(runtime.createGeneralSettingsAdministrationService(
-                                        settingsService, playlistService), jaxbWriter),
-                                new MusicFolderSettingsController(runtime.createMusicFolderAdministrationService(
+                                runtime.createGeneralSettingsController(runtime.createGeneralSettingsAdministrationService(
+                                        settingsService, playlistService)),
+                                runtime.createMusicFolderSettingsController(runtime.createMusicFolderAdministrationService(
                                         settingsService, mediaScannerService, mediaFolderService, artistDao, albumDao,
-                                        mediaFileDao, indexManager, playlistService, coverArtService), jaxbWriter),
-                                new PasswordController(securityService, jaxbWriter),
-                                new PlayQueueController(playQueueDao, mediaFileService, responseMapper, jaxbWriter),
-                                new IndexesController(settingsService, mediaFolderService, musicIndexService, musicIndexStateService, mediaFileDao, ratingService, responseMapper, jaxbWriter, playerService),
+                                        mediaFileDao, indexManager, playlistService, coverArtService)),
+                                runtime.createPasswordController(securityService),
+                                runtime.createPlayQueueController(mediaFileService, responseMapper),
+                                runtime.createIndexesController(settingsService, mediaFolderService, musicIndexService,
+                                        musicIndexStateService, ratingService, responseMapper, playerService),
                                 runtime.createSongsByGenreController(mediaFolderService, responseMapper),
                                 runtime.createTopSongsController(lastFmService, mediaFolderService, responseMapper),
-                                new MusicDirectoryController(mediaFileService, mediaFileDao, securityService, ratingService, responseMapper, jaxbWriter),
+                                runtime.createMusicDirectoryController(mediaFileService, securityService,
+                                        ratingService, responseMapper),
                                 runtime.createRandomSongsController(albumSearchService, mediaFolderService, responseMapper),
                                 new ScrobbleController(mediaFileService, statusService, audioScrobblerService, jaxbWriter),
                                 runtime.createNowPlayingController(statusService, responseMapper),

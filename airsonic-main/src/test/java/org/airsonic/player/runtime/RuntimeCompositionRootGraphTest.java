@@ -395,6 +395,22 @@ class RuntimeCompositionRootGraphTest {
 
         DatabaseService databaseService = runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler);
         assertSame(databaseService, runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler));
+        assertSame(runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService),
+                runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService));
+        assertSame(runtimeRoot.createMusicFolderSettingsController(musicFolderAdministrationService),
+                runtimeRoot.createMusicFolderSettingsController(musicFolderAdministrationService));
+        assertSame(runtimeRoot.createPasswordController(securityService),
+                runtimeRoot.createPasswordController(securityService));
+        assertSame(runtimeRoot.createPlayQueueController(mediaFileService, responseMapper),
+                runtimeRoot.createPlayQueueController(mediaFileService, responseMapper));
+        assertSame(runtimeRoot.createIndexesController(settingsService, mediaFolderService, musicIndexService,
+                        musicIndexStateService, ratingService, responseMapper, playerService),
+                runtimeRoot.createIndexesController(settingsService, mediaFolderService, musicIndexService,
+                        musicIndexStateService, ratingService, responseMapper, playerService));
+        assertSame(runtimeRoot.createMusicDirectoryController(mediaFileService, securityService,
+                        ratingService, responseMapper),
+                runtimeRoot.createMusicDirectoryController(mediaFileService, securityService,
+                        ratingService, responseMapper));
         org.airsonic.player.health.HealthContributorRegistry healthContributors =
                 runtimeRoot.createHealthContributorRegistry(dataSource);
         assertSame(runtimeRoot.createStatisticsController(statusService, securityService),

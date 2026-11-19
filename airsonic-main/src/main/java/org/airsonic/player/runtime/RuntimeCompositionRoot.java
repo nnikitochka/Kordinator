@@ -118,6 +118,12 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.statistics.CacheStatisticsController cacheStatisticsController;
     private org.airsonic.player.controller.rest.upload.UploadStatusController uploadStatusController;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
+    private org.airsonic.player.controller.rest.admin.GeneralSettingsController generalSettingsController;
+    private org.airsonic.player.controller.rest.admin.MusicFolderSettingsController musicFolderSettingsController;
+    private org.airsonic.player.controller.rest.users.PasswordController passwordController;
+    private org.airsonic.player.controller.rest.playqueue.PlayQueueController playQueueController;
+    private org.airsonic.player.controller.rest.indexes.IndexesController indexesController;
+    private org.airsonic.player.controller.rest.music.directory.MusicDirectoryController musicDirectoryController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -514,6 +520,86 @@ public final class RuntimeCompositionRoot {
                     statusService, createSubsonicJaxbWriter(), databaseService);
         }
         return uploadStatusController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.admin.GeneralSettingsController
+            createGeneralSettingsController(
+                    org.airsonic.player.service.GeneralSettingsAdministrationService service) {
+        if (generalSettingsController == null) {
+            generalSettingsController = new org.airsonic.player.controller.rest.admin.GeneralSettingsController(
+                    service, createSubsonicJaxbWriter());
+        }
+        return generalSettingsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.admin.MusicFolderSettingsController
+            createMusicFolderSettingsController(
+                    org.airsonic.player.service.MusicFolderAdministrationService service) {
+        if (musicFolderSettingsController == null) {
+            musicFolderSettingsController = new org.airsonic.player.controller.rest.admin.MusicFolderSettingsController(
+                    service, createSubsonicJaxbWriter());
+        }
+        return musicFolderSettingsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.users.PasswordController createPasswordController(
+            org.airsonic.player.service.SecurityService securityService) {
+        if (passwordController == null) {
+            passwordController = new org.airsonic.player.controller.rest.users.PasswordController(
+                    securityService, createSubsonicJaxbWriter());
+        }
+        return passwordController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.playqueue.PlayQueueController createPlayQueueController(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
+        if (playQueueController == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before PlayQueueController");
+            }
+            playQueueController = new org.airsonic.player.controller.rest.playqueue.PlayQueueController(
+                    persistenceGraph.getDaos().getPlayQueueDao(), mediaFileService,
+                    responseMapper, createSubsonicJaxbWriter());
+        }
+        return playQueueController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.indexes.IndexesController createIndexesController(
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.service.MusicIndexService musicIndexService,
+            org.airsonic.player.service.MusicIndexStateService musicIndexStateService,
+            org.airsonic.player.service.RatingService ratingService,
+            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper,
+            org.airsonic.player.service.PlayerService playerService) {
+        if (indexesController == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before IndexesController");
+            }
+            indexesController = new org.airsonic.player.controller.rest.indexes.IndexesController(
+                    settingsService, mediaFolderService, musicIndexService, musicIndexStateService,
+                    persistenceGraph.getDaos().getMediaFileDao(), ratingService, responseMapper,
+                    createSubsonicJaxbWriter(), playerService);
+        }
+        return indexesController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.music.directory.MusicDirectoryController
+            createMusicDirectoryController(
+                    org.airsonic.player.service.MediaFileService mediaFileService,
+                    org.airsonic.player.service.SecurityService securityService,
+                    org.airsonic.player.service.RatingService ratingService,
+                    org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
+        if (musicDirectoryController == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before MusicDirectoryController");
+            }
+            musicDirectoryController = new org.airsonic.player.controller.rest.music.directory.MusicDirectoryController(
+                    mediaFileService, persistenceGraph.getDaos().getMediaFileDao(), securityService,
+                    ratingService, responseMapper, createSubsonicJaxbWriter());
+        }
+        return musicDirectoryController;
     }
 
     public synchronized DataSource createDataSource() {

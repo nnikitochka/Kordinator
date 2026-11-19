@@ -440,6 +440,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** runtime root теперь владеет и health/statistics REST-контроллерами (`Statistics`, `ScheduledTasks`, `PathWatchers`, `ServerHealth`, `CacheStatistics`, `UploadStatus`) и `StatusAggregator`. Удалена отдельная Spring-сборка агрегатора; servlet wiring использует root-owned controllers. Graph test проверяет singleton identity объектов.
 
+**Срез 19 ноября 2026:** под root ownership переведены admin/settings `GeneralSettings`, `MusicFolderSettings`, `Password`, а также `PlayQueue`, `Indexes` и `MusicDirectory`. DAO этих контроллеров берутся из единого persistence graph, а bean assembly больше не конструирует их напрямую. Проверка singleton identity добавлена в graph test.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
