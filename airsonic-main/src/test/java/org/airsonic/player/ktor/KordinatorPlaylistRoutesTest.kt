@@ -2,6 +2,7 @@ package org.airsonic.player.ktor
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.ktor.client.request.get
+import io.ktor.client.request.delete
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
@@ -208,6 +209,60 @@ class KordinatorPlaylistRoutesTest {
 
         assertEquals(HttpStatusCode.NotFound, response.status)
         Mockito.verify(playlistService, Mockito.never()).updatePlaylist(Mockito.any(Playlist::class.java))
+    }
+
+    @Test
+    fun deletesPlaylistOnlyForItsOwner() = testApplication {
+        val playlistService = Mockito.mock(PlaylistService::class.java)
+        val securityService = Mockito.mock(SecurityService::class.java)
+        val playlist = Playlist().apply {
+            id = 7
+            username = "alice"
+            name = "To delete"
+        }
+        Mockito.`when`(playlistService.getPlaylist(7)).thenReturn(playlist)
+        Mockito.`when`(playlistService.isWriteAllowed(playlist, "alice")).thenReturn(true)
+        application {
+            routing {
+                KordinatorPlaylistRoutes(playlistService, securityService).routes(
+                    this,
+                    currentUsername = { call -> call.request.headers["X-Test-User"] },
+                    objectMapper = jacksonObjectMapper(),
+                )
+            }
+        }
+
+        val response = client.delete("/api/v1/playlists/7") { headers.append("X-Test-User", "alice") }
+
+        assertEquals(HttpStatusCode.NoContent, response.status)
+        Mockito.verify(playlistService).deletePlaylist(7)
+    }
+
+    @Test
+    fun rejectsPlaylistDeletionFromNonOwner() = testApplication {
+        val playlistService = Mockito.mock(PlaylistService::class.java)
+        val securityService = Mockito.mock(SecurityService::class.java)
+        val playlist = Playlist().apply {
+            id = 7
+            username = "bob"
+            name = "Private"
+        }
+        Mockito.`when`(playlistService.getPlaylist(7)).thenReturn(playlist)
+        Mockito.`when`(playlistService.isWriteAllowed(playlist, "alice")).thenReturn(false)
+        application {
+            routing {
+                KordinatorPlaylistRoutes(playlistService, securityService).routes(
+                    this,
+                    currentUsername = { call -> call.request.headers["X-Test-User"] },
+                    objectMapper = jacksonObjectMapper(),
+                )
+            }
+        }
+
+        val response = client.delete("/api/v1/playlists/7") { headers.append("X-Test-User", "alice") }
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        Mockito.verify(playlistService, Mockito.never()).deletePlaylist(7)
     }
 
     @Test

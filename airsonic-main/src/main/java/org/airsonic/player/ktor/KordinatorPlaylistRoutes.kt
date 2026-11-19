@@ -9,6 +9,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import org.airsonic.player.domain.MediaFile
@@ -145,6 +146,33 @@ class KordinatorPlaylistRoutes(
             }
             playlists.updatePlaylist(updated)
             call.respondText(objectMapper.writeValueAsString(updated.toSummary()), ContentType.Application.Json)
+        }
+
+        root.delete("/api/v1/playlists/{id}") {
+            val username = currentUsername(call)
+            if (username.isNullOrBlank()) {
+                call.respond(HttpStatusCode.Unauthorized)
+                return@delete
+            }
+
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id == null || id <= 0) {
+                call.respondText(
+                    objectMapper.writeValueAsString(ApiError("invalid_request", "Playlist ID must be a positive number")),
+                    ContentType.Application.Json,
+                    HttpStatusCode.BadRequest,
+                )
+                return@delete
+            }
+
+            val playlist = playlists.getPlaylist(id)
+            if (playlist == null || !playlists.isWriteAllowed(playlist, username)) {
+                call.respond(HttpStatusCode.NotFound)
+                return@delete
+            }
+
+            playlists.deletePlaylist(id)
+            call.respond(HttpStatusCode.NoContent)
         }
 
         root.post("/api/v1/playlists") {
