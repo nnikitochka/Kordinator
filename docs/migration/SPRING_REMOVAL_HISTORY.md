@@ -408,6 +408,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** `RuntimeCompositionRoot` теперь создаёт и владеет единственным JDBC `DataSource`; Spring adapter лишь публикует root-owned объект и запускает на нём Liquibase. Выдача DataSource и PersistenceGraph регистрирует ровно одно закрытие в lifecycle, включая прямое создание графа для тестовых источников. `RuntimeCompositionRootGraphTest`, `RuntimeLiquibaseMigratorTest`, `LegacyDatabaseStartupTestCase` и `UserDaoTestCase` прошли 13/13.
 
+**Срез 19 ноября 2026:** persistence graph теперь собирается непосредственно из root-owned `DataSource`; Spring больше не передаёт пул аргументом в фабрику `PersistenceGraph`/health registry. Путь `createPersistenceGraph(DataSource)` сохранён для тестовых и externally managed источников. `RuntimeCompositionRootGraphTest`, `RuntimeLiquibaseMigratorTest` и `LegacyDatabaseStartupTestCase` прошли 5/5.
+
 **Срез 19 ноября 2026:** удалён глобальный JVM shutdown hook из Spring lifecycle factory. Ktor servlet закрывает runtime resources из `destroy()` после остановки engine; Spring context shutdown остаётся временным fallback через destroy method bean, а общий `LifecycleRegistry` делает двойной вызов безопасным. `RuntimeCompositionRootGraphTest`, `LifecycleRegistryTest` и `LegacyDatabaseStartupTestCase` прошли 11/11; deploy/undeploy HTTP regression не запускался из-за sandbox loopback ограничения.
 
 ## 6. Основание и связанные аудиты

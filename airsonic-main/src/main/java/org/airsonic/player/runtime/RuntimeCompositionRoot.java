@@ -129,6 +129,10 @@ public final class RuntimeCompositionRoot {
         }
     }
 
+    public synchronized PersistenceGraph createPersistenceGraph() {
+        return createPersistenceGraph(createDataSource());
+    }
+
     public synchronized org.airsonic.player.monitor.MetricsManager createMetricsManager() {
         if (metricsManager == null) {
             metricsManager = new org.airsonic.player.monitor.MetricsManager(configuration);

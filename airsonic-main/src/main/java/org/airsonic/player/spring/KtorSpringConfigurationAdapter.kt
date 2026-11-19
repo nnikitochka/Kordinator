@@ -34,14 +34,11 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     fun serverHealthContributors(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        dataSource: javax.sql.DataSource,
-    ): org.airsonic.player.health.HealthContributorRegistry = runtime.createHealthContributorRegistry(dataSource)
+    ): org.airsonic.player.health.HealthContributorRegistry = runtime.createHealthContributorRegistry(runtime.createDataSource())
 
     @Bean
-    override fun persistenceGraph(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        dataSource: javax.sql.DataSource,
-    ): org.airsonic.player.runtime.PersistenceGraph = runtime.createPersistenceGraph(dataSource)
+    fun persistenceGraph(runtime: org.airsonic.player.runtime.RuntimeCompositionRoot):
+            org.airsonic.player.runtime.PersistenceGraph = runtime.createPersistenceGraph()
 
     @Bean
     override fun airsonicTransactionManager(

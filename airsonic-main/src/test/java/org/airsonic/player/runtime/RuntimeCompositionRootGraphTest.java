@@ -356,10 +356,10 @@ class RuntimeCompositionRootGraphTest {
                 "spring.datasource.password", ""));
         RuntimeCompositionRoot root = new RuntimeCompositionRoot(configuration, lifecycle);
 
+        PersistenceGraph graph = root.createPersistenceGraph();
         javax.sql.DataSource dataSource = root.createDataSource();
-        assertSame(dataSource, root.createDataSource());
-        PersistenceGraph graph = root.createPersistenceGraph(dataSource);
         assertSame(graph, root.createPersistenceGraph(dataSource));
+        assertSame(dataSource, root.createDataSource());
         assertSame(dataSource, graph.getDataSource());
         assertEquals(1, lifecycle.getShutdownItems().stream()
                 .filter(item -> item.name().equals("dataSource")).count());
