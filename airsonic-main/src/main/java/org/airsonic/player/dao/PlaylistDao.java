@@ -4,9 +4,6 @@ import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.Playlist;
 import org.airsonic.player.util.LambdaUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.transaction.annotation.Transactional;
-
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -73,11 +70,13 @@ public class PlaylistDao extends AbstractDao {
         playlist.setId(id);
     }
 
-    @Transactional
     public void setFilesInPlaylist(int id, List<MediaFile> files) {
-        update("delete from playlist_file where playlist_id=?", id);
-        batchedUpdate("insert into playlist_file (playlist_id, media_file_id) values (?, ?)",
-                files.stream().map(x -> new Object[] { id, x.getId() }).collect(Collectors.toList()));
+        inTransaction(status -> {
+            update("delete from playlist_file where playlist_id=?", id);
+            batchedUpdate("insert into playlist_file (playlist_id, media_file_id) values (?, ?)",
+                    files.stream().map(x -> new Object[] { id, x.getId() }).collect(Collectors.toList()));
+            return null;
+        });
     }
 
     public Pair<Integer, Double> getPlaylistFileStats(int id) {

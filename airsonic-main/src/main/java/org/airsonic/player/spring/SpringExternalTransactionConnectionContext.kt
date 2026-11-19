@@ -3,6 +3,7 @@ package org.airsonic.player.spring
 import org.airsonic.player.dao.ExternalTransactionConnectionContext
 import org.springframework.jdbc.datasource.DataSourceUtils
 import org.springframework.transaction.support.TransactionSynchronizationManager
+import org.springframework.transaction.interceptor.TransactionAspectSupport
 import java.sql.Connection
 import javax.sql.DataSource
 
@@ -19,5 +20,9 @@ class SpringExternalTransactionConnectionContext : ExternalTransactionConnection
         if (!TransactionSynchronizationManager.isActualTransactionActive()) return false
         DataSourceUtils.releaseConnection(connection, dataSource)
         return true
+    }
+
+    override fun markRollbackOnly(dataSource: DataSource) {
+        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()
     }
 }

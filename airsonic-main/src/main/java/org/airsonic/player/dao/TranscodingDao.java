@@ -3,9 +3,6 @@ package org.airsonic.player.dao;
 import org.airsonic.player.domain.Transcoding;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.transaction.annotation.Transactional;
-
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -58,13 +55,15 @@ public class TranscodingDao extends AbstractDao {
      * @param playerId       The player ID.
      * @param transcodingIds ID's of the active transcodings.
      */
-    @Transactional
     public void setTranscodingsForPlayer(Integer playerId, int[] transcodingIds) {
-        update("delete from player_transcoding where player_id = ?", playerId);
-        String sql = "insert into player_transcoding(player_id, transcoding_id) values (?, ?)";
-        for (int transcodingId : transcodingIds) {
-            update(sql, playerId, transcodingId);
-        }
+        inTransaction(status -> {
+            update("delete from player_transcoding where player_id = ?", playerId);
+            String sql = "insert into player_transcoding(player_id, transcoding_id) values (?, ?)";
+            for (int transcodingId : transcodingIds) {
+                update(sql, playerId, transcodingId);
+            }
+            return null;
+        });
     }
 
     /**

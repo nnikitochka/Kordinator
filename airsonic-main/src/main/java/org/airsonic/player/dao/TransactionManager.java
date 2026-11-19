@@ -102,6 +102,13 @@ public class TransactionManager {
     public <T> T execute(TransactionDefinition def, TransactionCallback<T> action) {
         TransactionState parent = CURRENT_TRANSACTION.get();
 
+        if (parent == null) {
+            Connection externalConnection = externalTransactionContext.currentConnection(dataSource);
+            if (externalConnection != null) {
+                return executeInExternalTransaction(externalConnection, action);
+            }
+        }
+
         if (parent != null && def.propagation == PROPAGATION_REQUIRED) {
             // Join existing transaction
             TransactionStatus status = new TransactionStatus(false);
@@ -187,6 +194,34 @@ public class TransactionManager {
                     LOG.warn("Failed to close transaction connection", ex);
                 }
             }
+        }
+    }
+
+    private <T> T executeInExternalTransaction(Connection connection, TransactionCallback<T> action) {
+        TransactionState state = new TransactionState(connection, null);
+        TransactionStatus status = new TransactionStatus(false);
+        CURRENT_TRANSACTION.set(state);
+        try {
+            T result = action.doInTransaction(status);
+            if (status.isRollbackOnly() || state.rollbackOnly) {
+                externalTransactionContext.markRollbackOnly(dataSource);
+            }
+            return result;
+        } catch (Throwable t) {
+            try {
+                externalTransactionContext.markRollbackOnly(dataSource);
+            } catch (Throwable markFailure) {
+                t.addSuppressed(markFailure);
+            }
+            if (t instanceof RuntimeException) {
+                throw (RuntimeException) t;
+            }
+            if (t instanceof Error) {
+                throw (Error) t;
+            }
+            throw new RuntimeException("Joined external transaction action failed", t);
+        } finally {
+            CURRENT_TRANSACTION.remove();
         }
     }
 

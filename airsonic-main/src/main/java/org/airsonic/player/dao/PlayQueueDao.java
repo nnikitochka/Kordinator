@@ -1,9 +1,6 @@
 package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.SavedPlayQueue;
-import org.springframework.transaction.annotation.Transactional;
-
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -28,25 +25,28 @@ public class PlayQueueDao extends AbstractDao {
         registerInserts("play_queue", "id", Arrays.asList(INSERT_COLUMNS.split(", ")), SavedPlayQueue.class);
     }
 
-    @Transactional
     public SavedPlayQueue getPlayQueue(String username) {
-        SavedPlayQueue playQueue = queryOne("select " + QUERY_COLUMNS + " from play_queue where username=?", rowMapper, username);
-        if (playQueue == null) {
-            return null;
-        }
-        List<Integer> mediaFileIds = queryForInts("select media_file_id from play_queue_file where play_queue_id = ?", playQueue.getId());
-        playQueue.setMediaFileIds(mediaFileIds);
-        return playQueue;
+        return inTransaction(status -> {
+            SavedPlayQueue playQueue = queryOne("select " + QUERY_COLUMNS + " from play_queue where username=?", rowMapper, username);
+            if (playQueue == null) {
+                return null;
+            }
+            List<Integer> mediaFileIds = queryForInts("select media_file_id from play_queue_file where play_queue_id = ?", playQueue.getId());
+            playQueue.setMediaFileIds(mediaFileIds);
+            return playQueue;
+        });
     }
 
-    @Transactional
     public void savePlayQueue(SavedPlayQueue playQueue) {
-        update("delete from play_queue where username=?", playQueue.getUsername());
-        Integer id = insert("play_queue", playQueue);
-        playQueue.setId(id);
+        inTransaction(status -> {
+            update("delete from play_queue where username=?", playQueue.getUsername());
+            Integer id = insert("play_queue", playQueue);
+            playQueue.setId(id);
 
-        batchedUpdate("insert into play_queue_file(play_queue_id, media_file_id) values (?, ?)",
-                playQueue.getMediaFileIds().stream().map(x -> new Object[] { id, x }).collect(Collectors.toList()));
+            batchedUpdate("insert into play_queue_file(play_queue_id, media_file_id) values (?, ?)",
+                    playQueue.getMediaFileIds().stream().map(x -> new Object[] { id, x }).collect(Collectors.toList()));
+            return null;
+        });
     }
 
     private static class PlayQueueMapper implements RowMapper<SavedPlayQueue> {

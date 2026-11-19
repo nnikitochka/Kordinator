@@ -25,11 +25,14 @@ class SpringExternalTransactionConnectionContextTest {
         val transactionTemplate = TransactionTemplate(DataSourceTransactionManager(dataSource))
 
         transactionTemplate.execute {
-            val connection = transactionManager.getConnection()
-            connection.createStatement().use { it.executeUpdate("INSERT INTO tx_probe (id) VALUES (1)") }
-            transactionManager.releaseConnection(connection)
+            transactionManager.execute { status ->
+                val connection = transactionManager.getConnection()
+                connection.createStatement().use { it.executeUpdate("INSERT INTO tx_probe (id) VALUES (1)") }
+                transactionManager.releaseConnection(connection)
 
-            assertFalse(connection.isClosed, "Spring still owns the connection until transaction completion")
+                assertFalse(connection.isClosed, "Spring still owns the connection until transaction completion")
+                null
+            }
             null
         }
 

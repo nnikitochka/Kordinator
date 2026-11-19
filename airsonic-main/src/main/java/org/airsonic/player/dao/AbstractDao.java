@@ -44,6 +44,10 @@ public class AbstractDao {
         return jdbcHelper;
     }
 
+    protected <T> T inTransaction(TransactionManager.TransactionCallback<T> action) {
+        return getJdbcHelper().getTransactionManager().execute(action);
+    }
+
     protected static String questionMarks(String columns) {
         int numberOfColumns = StringUtils.countMatches(columns, ",") + 1;
         return StringUtils.repeat("?", ", ", numberOfColumns);
