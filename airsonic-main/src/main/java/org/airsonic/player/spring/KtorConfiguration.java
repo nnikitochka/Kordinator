@@ -28,7 +28,6 @@ import org.airsonic.player.controller.captions.CaptionsRestController;
 import org.airsonic.player.controller.rest.recovery.PasswordRecoveryController;
 import org.airsonic.player.service.PasswordRecoveryService;
 import org.airsonic.player.controller.rest.server.ServerInfoController;
-import org.airsonic.player.service.VideoPlaybackService;
 import org.airsonic.player.service.CaptionService;
 import org.airsonic.player.controller.rest.hls.HlsRestController;
 import org.airsonic.player.controller.rest.hls.HlsSegmentRestController;
@@ -394,12 +393,6 @@ public class KtorConfiguration {
             JWTSecurityService jwtSecurityService) {
         return runtime.createCaptionService(mediaFileService, mediaFolderService, settingsService,
                 runtime.createMetaDataParserFactory(), jwtSecurityService);
-    }
-
-    public VideoPlaybackService videoPlaybackService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService, CaptionService captionService,
-            JWTSecurityService jwtSecurityService, BookmarkService bookmarkService, SettingsService settingsService) {
-        return runtime.createVideoPlaybackService(mediaFileService, captionService, jwtSecurityService,
-                bookmarkService, settingsService);
     }
 
     public MediaFolderService mediaFolderService(RuntimeCompositionRoot runtime) {

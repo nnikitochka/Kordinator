@@ -234,17 +234,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         mediaFileService, mediaFolderService, settingsService, runtime.createMetaDataParserFactory(), jwtSecurityService)
 
     @Bean
-    override fun videoPlaybackService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-        captionService: org.airsonic.player.service.CaptionService,
-        jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
-        bookmarkService: org.airsonic.player.service.BookmarkService,
-        settingsService: org.airsonic.player.service.SettingsService,
-    ): org.airsonic.player.service.VideoPlaybackService = runtime.createVideoPlaybackService(
-        mediaFileService, captionService, jwtSecurityService, bookmarkService, settingsService)
-
-    @Bean
     override fun lastFmService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         graph: org.airsonic.player.runtime.DaoGraph,
