@@ -1057,8 +1057,8 @@ public class KtorConfiguration {
         registration.addUrlMappings(HlsSegmentRestController.PATHS);
         registration.addUrlMappings(StreamRestController.PATHS);
         registration.addUrlMappings("/stream", "/stream/*", "/ext/stream", "/ext/stream/*");
-        // Explicit mappings keep the migrated browser assets and error dispatch in Ktor.
-        registration.addUrlMappings("/script/*", "/style/*", "/icons/*", "/favicon.ico", "/browserconfig.xml", "/index.html", serverProperties.getError().getPath(), "");
+        // Keep container error dispatch in Ktor.
+        registration.addUrlMappings(serverProperties.getError().getPath(), "");
         registration.setName("ktor");
         registration.setAsyncSupported(true);
         registration.setLoadOnStartup(1);

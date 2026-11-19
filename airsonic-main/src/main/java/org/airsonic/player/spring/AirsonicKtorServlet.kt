@@ -267,12 +267,10 @@ class AirsonicKtorServlet(
             val request = (call.request as ServletApplicationRequest).servletRequest
             val requestPath = request.requestURI.removePrefix(request.contextPath)
             val servletPath = request.servletPath
-            val isStaticRequest = listOf("/script", "/style", "/icons").any { servletPath == it || servletPath.startsWith("$it/") } ||
-                requestPath in setOf("/", "/favicon.ico", "/browserconfig.xml", "/index.html")
             val errorPath = errorProperties.get().path
             val isErrorRequest = requestPath == errorPath || servletPath == errorPath ||
                 request.getAttribute(jakarta.servlet.RequestDispatcher.ERROR_STATUS_CODE) != null
-            if (isStaticRequest || isErrorRequest) {
+            if (isErrorRequest) {
                 call.attributes.put(INFRASTRUCTURE_REQUEST, infrastructureRequestSnapshot(request))
             }
             val searchRequest = request.getAttribute(SEARCH_REQUEST) as? SearchController.Request
@@ -555,6 +553,10 @@ class AirsonicKtorServlet(
 
     private fun serviceRequest(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
+        if (isRemovedWebsitePage(path)) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
+        }
         val errorDispatch = path == errorProperties.get().path &&
             (request.dispatcherType == jakarta.servlet.DispatcherType.ERROR ||
                 request.getAttribute(jakarta.servlet.RequestDispatcher.ERROR_STATUS_CODE) != null)
@@ -1864,6 +1866,11 @@ class AirsonicKtorServlet(
         super.service(request, response)
     }
 
+    private fun isRemovedWebsitePage(path: String): Boolean {
+        val pagePath = path.removeSuffix(".view").ifEmpty { "/" }
+        return pagePath in REMOVED_WEBSITE_PAGES
+    }
+
     private fun parameters(request: HttpServletRequest): Parameters = Parameters.build {
         // Security filters may already have consumed a POST body. Use the servlet's parsed parameters.
         request.parameterNames.asSequence().distinct().forEach { name ->
@@ -1898,6 +1905,16 @@ class AirsonicKtorServlet(
     }
 
     private companion object {
+        val REMOVED_WEBSITE_PAGES = setOf(
+            "/", "/index", "/login", "/logout", "/recover", "/accessDenied", "/notFound",
+            "/home", "/main", "/left", "/right", "/more", "/search", "/starred",
+            "/bookmarks", "/playlist", "/playlists", "/playQueue", "/nowPlaying",
+            "/editTags", "/changeCoverArt", "/lyrics", "/createShare", "/importPlaylist",
+            "/videoPlayer", "/help", "/gettingStarted", "/userSettings", "/musicFolderSettings",
+            "/generalSettings", "/transcodingSettings", "/advancedSettings", "/playerSettings",
+            "/personalSettings", "/shareSettings", "/credentialsSettings", "/databaseSettings",
+            "/dlnaSettings", "/settings", "/top", "/status",
+        )
         const val STREAM_REQUEST = "org.airsonic.player.streamRequest"
         val STREAM_REQUEST_KEY = AttributeKey<StreamRestController.Request>(STREAM_REQUEST)
         const val HLS_SEGMENT_REQUEST = "org.airsonic.player.hlsSegmentRequest"

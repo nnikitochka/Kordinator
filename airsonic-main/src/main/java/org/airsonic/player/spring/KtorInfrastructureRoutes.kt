@@ -29,25 +29,6 @@ import java.util.function.Supplier
 
 /** Servlet-backed static files and the shared error endpoint used during the servlet migration. */
 internal fun Route.infrastructureRoutes(errorProperties: Supplier<InfrastructureErrorSettings>, objectMapper: ObjectMapper) {
-    for (prefix in listOf("script", "style", "icons")) {
-        route("/$prefix/{asset...}") {
-            get { serveStatic(call, "/$prefix/") }
-            head { serveStatic(call, "/$prefix/") }
-            handle { call.response.headers.append(HttpHeaders.Allow, "GET, HEAD"); call.respond(HttpStatusCode.MethodNotAllowed) }
-        }
-    }
-    route("/") {
-        get { serveStatic(call, "/", "/index.html") }
-        head { serveStatic(call, "/", "/index.html") }
-        handle { call.response.headers.append(HttpHeaders.Allow, "GET, HEAD"); call.respond(HttpStatusCode.MethodNotAllowed) }
-    }
-    for (name in listOf("favicon.ico", "browserconfig.xml", "index.html")) {
-        route("/$name") {
-            get { serveStatic(call, "/") }
-            head { serveStatic(call, "/") }
-            handle { call.response.headers.append(HttpHeaders.Allow, "GET, HEAD"); call.respond(HttpStatusCode.MethodNotAllowed) }
-        }
-    }
     route(errorProperties.get().path) { handle { serveError(call, errorProperties.get(), objectMapper) } }
 }
 
