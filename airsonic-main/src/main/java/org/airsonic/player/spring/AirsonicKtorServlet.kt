@@ -431,7 +431,6 @@ class AirsonicKtorServlet(
                 head(path) { redirectSettings(call) }
             }
             searchController.routes(this) { call -> call.attributes[SEARCH_REQUEST_KEY] }
-            searchPageController.routes(this) { call -> call.attributes[SEARCH_PAGE_REQUEST_KEY] }
             musicFoldersController.routes(this) { call -> call.attributes[MUSIC_FOLDERS_REQUEST_KEY] }
             genresController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             artistsController.routes(this) { call -> call.attributes[ARTISTS_REQUEST_KEY] }
@@ -450,7 +449,6 @@ class AirsonicKtorServlet(
             albumsController.routes(this) { call -> call.attributes[ALBUMS_REQUEST_KEY] }
             bookmarksController.routes(this) { call -> call.attributes[BOOKMARKS_REQUEST_KEY] }
             starredController.routes(this) { call -> call.attributes[STARRED_REQUEST_KEY] }
-            starredPageController.routes(this) { call -> call.attributes[STARRED_PAGE_REQUEST_KEY] }
             usersController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             avatarUploadController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             dlnaSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
@@ -464,7 +462,6 @@ class AirsonicKtorServlet(
             musicFolderSettingsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             passwordController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             playQueueController.routes(this) { call -> call.attributes[PLAY_QUEUE_REQUEST_KEY] }
-            playQueuePageController.routes(this) { call -> call.attributes[PLAY_QUEUE_PAGE_REQUEST_KEY] }
             indexesController.routes(this) { call -> call.attributes[INDEXES_REQUEST_KEY] }
             songsByGenreController.routes(this) { call -> call.attributes[GENRE_SONGS_REQUEST_KEY] }
             downloadRestController.routes(this, { call -> call.attributes[DOWNLOAD_REQUEST_KEY] },
@@ -476,16 +473,6 @@ class AirsonicKtorServlet(
             serverHealthController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             cacheStatisticsController.routes(this) { call -> call.attributes[USERS_REQUEST_KEY] }
             nowPlayingController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
-            nowPlayingPageController.routes(this) { call -> call.attributes[NOW_PLAYING_PAGE_REQUEST_KEY] }
-            rightPageController.routes(this) { call -> call.attributes[RIGHT_PAGE_REQUEST_KEY] }
-            indexPageController.routes(this) { call -> call.attributes[INDEX_PAGE_REQUEST_KEY] }
-            morePageController.routes(this) { call -> call.attributes[MORE_PAGE_REQUEST_KEY] }
-            leftPageController.routes(this, { call -> call.attributes[LEFT_PAGE_REQUEST_KEY] }, { call -> call.attributes[LEFT_PAGE_SELECTION_KEY] })
-            bookmarksPageController.routes(this) { call -> call.attributes[BOOKMARKS_PAGE_REQUEST_KEY] }
-            playlistPageController.routes(this) { call -> call.attributes[PLAYLIST_PAGE_REQUEST_KEY] }
-            mainPageController.routes(this) { call -> call.attributes[MAIN_PAGE_REQUEST_KEY] }
-            playlistsPageController.routes(this) { call -> call.attributes[PLAYLISTS_PAGE_REQUEST_KEY] }
-            homePageController.routes(this) { call -> call.attributes[HOME_PAGE_REQUEST_KEY] }
             scrobbleController.routes(this) { call -> call.attributes[SCROBBLE_REQUEST_KEY] }
             randomSongsController.routes(this) { call -> call.attributes[RANDOM_SONGS_REQUEST_KEY] }
             musicDirectoryController.routes(this) { call -> call.attributes[MUSIC_DIRECTORY_REQUEST_KEY] }
@@ -495,7 +482,6 @@ class AirsonicKtorServlet(
             liveQueueController.routes(this) { call -> call.attributes[LIVE_QUEUE_REQUEST_KEY] }
             websiteSettingsController.routes(this) { call -> call.attributes[WEBSITE_SETTINGS_REQUEST_KEY] }
             tagEditController.routes(this) { call -> call.attributes[TAG_EDIT_REQUEST_KEY] }
-            tagEditorPageController.routes(this) { call -> call.attributes[TAG_EDITOR_PAGE_REQUEST_KEY] }
             coverArtRestController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
             avatarRestController.routes(this) { call -> call.attributes[AVATAR_REQUEST_KEY] }
             coverArtActionsController.routes(this) { call -> call.attributes[COVER_ACTIONS_REQUEST_KEY] }
