@@ -3,11 +3,11 @@ package org.airsonic.player.api;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.airsonic.player.dao.MediaFileDao;
-import org.airsonic.player.dao.ShareDao;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.Share;
 import org.airsonic.player.domain.User;
+import org.airsonic.player.runtime.DaoGraph;
 import org.airsonic.player.service.*;
 import org.airsonic.player.util.HomeRule;
 import org.airsonic.player.util.MusicFolderTestData;
@@ -44,7 +44,7 @@ public class PublicShareIntegrationTest {
     @Autowired private MediaFolderService folders;
     @Autowired private MediaScannerService scanner;
     @Autowired private MediaFileDao files;
-    @Autowired private ShareDao shareDao;
+    @Autowired private DaoGraph daoGraph;
     @Autowired private ShareService shares;
     @Autowired private JWTSecurityService jwt;
     @Autowired private PlayerService players;
@@ -181,7 +181,7 @@ public class PublicShareIntegrationTest {
     private Share create(String name, List<MediaFile> media, String description) {
         Share share = new Share(); share.setName(name); share.setUsername("admin");
         share.setDescription(description); share.setCreated(Instant.now()); share.setExpires(Instant.now().plusSeconds(3600));
-        shareDao.createShare(share); shareDao.createSharedFiles(share.getId(), media.stream().map(MediaFile::getId).toList());
+        daoGraph.getShareDao().createShare(share); daoGraph.getShareDao().createSharedFiles(share.getId(), media.stream().map(MediaFile::getId).toList());
         return share;
     }
 

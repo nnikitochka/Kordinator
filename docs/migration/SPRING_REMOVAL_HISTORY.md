@@ -390,6 +390,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** `UserDaoTestCase` и credentials integration fixture обращаются к `UserDao` через `DaoGraph`. Удалён отдельный Spring alias `UserDao`; DAO regression и composition-root graph прошли 10/10. HTTP integration suite для credentials не запускался.
 
+**Срез 19 ноября 2026:** `ShareSettingsIntegrationTest` и `PublicShareIntegrationTest` используют `DaoGraph` для подготовки данных. Удалён отдельный Spring alias `ShareDao`; весь test source компилируется, `RuntimeCompositionRootGraphTest` прошёл 2/2. HTTP integration tests не запускались.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

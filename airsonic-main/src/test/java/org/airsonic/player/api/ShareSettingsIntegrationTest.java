@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.domain.User;
+import org.airsonic.player.runtime.DaoGraph;
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.util.HomeRule;
@@ -38,7 +39,7 @@ public class ShareSettingsIntegrationTest {
     @ClassRule public static final HomeRule home = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private SecurityService security;
-    @Autowired private org.airsonic.player.dao.ShareDao shareDao;
+    @Autowired private DaoGraph daoGraph;
     @Autowired private org.airsonic.player.service.ShareService shares;
     @Autowired private org.airsonic.player.dao.MediaFileDao mediaFiles;
     @Autowired private org.airsonic.player.service.MediaFolderService folders;
@@ -130,8 +131,8 @@ public class ShareSettingsIntegrationTest {
     private org.airsonic.player.domain.Share seed(String username, String name, Integer file) {
         org.airsonic.player.domain.Share share = new org.airsonic.player.domain.Share();
         share.setUsername(username); share.setName(name); share.setDescription(name); share.setCreated(java.time.Instant.now());
-        share.setExpires(java.time.Instant.now().plusSeconds(86400)); shareDao.createShare(share);
-        if (file != null) shareDao.createSharedFiles(share.getId(), java.util.List.of(file)); return share;
+        share.setExpires(java.time.Instant.now().plusSeconds(86400)); daoGraph.getShareDao().createShare(share);
+        if (file != null) daoGraph.getShareDao().createSharedFiles(share.getId(), java.util.List.of(file)); return share;
     }
 
     private HttpResponse<String> raw(String operation, String body) throws Exception {
