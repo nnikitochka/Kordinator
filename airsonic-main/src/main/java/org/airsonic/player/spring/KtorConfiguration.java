@@ -71,7 +71,6 @@ import org.airsonic.player.service.CoverArtImageService;
 import org.airsonic.player.service.DatabaseService;
 import org.airsonic.player.controller.rest.playqueue.PlayQueueController;
 import org.airsonic.player.dao.PlayQueueDao;
-import org.airsonic.player.service.UserAdministrationService;
 import org.airsonic.player.controller.rest.users.UsersController;
 import org.airsonic.player.controller.rest.admin.MusicFolderSettingsController;
 import org.airsonic.player.controller.rest.admin.GeneralSettingsController;
@@ -401,11 +400,6 @@ public class KtorConfiguration {
                 mediaFileService, coverArtService);
     }
 
-    public UserAdministrationService userAdministrationService(RuntimeCompositionRoot runtime,
-            SecurityService securityService, SettingsService settingsService) {
-        return runtime.createUserAdministrationService(securityService, settingsService);
-    }
-
     public MusicIndexStateService musicIndexStateService(RuntimeCompositionRoot runtime, MediaScannerService scanner,
             SettingsService settings) {
         return runtime.createMusicIndexStateService(scanner, settings);
@@ -441,7 +435,6 @@ public class KtorConfiguration {
             org.airsonic.player.service.DatabaseService databaseService,
             DownloadService downloadService,
             MusicIndexStateService musicIndexStateService,
-            UserAdministrationService userAdministrationService,
             CoverArtService coverArtService,
             IndexManager indexManager,
             TranscodingService transcodingService,
@@ -507,7 +500,7 @@ public class KtorConfiguration {
                                 runtime.createStarredController(mediaFolderService, responseMapper),
                                 runtime.createJukeboxController(playQueueService, jukeboxService, responseMapper),
                                 runtime.createUsersController(securityService, settingsService, mediaFolderService,
-                                        userAdministrationService),
+                                        runtime.createUserAdministrationService(securityService, settingsService)),
                                 runtime.createDLNASettingsController(settingsService, upnpService),
                                 runtime.createDatabaseSettingsController(settingsService, databaseService,
                                         statusService, securityService, runtime.createConfigurationPropertiesService()),

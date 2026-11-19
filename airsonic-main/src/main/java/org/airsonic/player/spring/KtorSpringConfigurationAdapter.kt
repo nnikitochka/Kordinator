@@ -244,14 +244,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         statusService, securityService, playlistService, settingsService, mediaFileService, coverArtService)
 
     @Bean
-    override fun userAdministrationService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        securityService: org.airsonic.player.service.SecurityService,
-        settingsService: org.airsonic.player.service.SettingsService,
-    ): org.airsonic.player.service.UserAdministrationService =
-        runtime.createUserAdministrationService(securityService, settingsService)
-
-    @Bean
     override fun localeService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         settingsService: org.airsonic.player.service.SettingsService,
