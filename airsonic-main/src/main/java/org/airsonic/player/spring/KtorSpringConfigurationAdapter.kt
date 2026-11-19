@@ -224,16 +224,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         graph.mediaFileDao, mediaFolderService, graph.playQueueDao, jwtSecurityService)
 
     @Bean
-    override fun captionService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-        mediaFolderService: org.airsonic.player.service.MediaFolderService,
-        settingsService: org.airsonic.player.service.SettingsService,
-        jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
-    ): org.airsonic.player.service.CaptionService = runtime.createCaptionService(
-        mediaFileService, mediaFolderService, settingsService, runtime.createMetaDataParserFactory(), jwtSecurityService)
-
-    @Bean
     override fun lastFmService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         graph: org.airsonic.player.runtime.DaoGraph,

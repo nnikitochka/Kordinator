@@ -28,7 +28,6 @@ import org.airsonic.player.controller.captions.CaptionsRestController;
 import org.airsonic.player.controller.rest.recovery.PasswordRecoveryController;
 import org.airsonic.player.service.PasswordRecoveryService;
 import org.airsonic.player.controller.rest.server.ServerInfoController;
-import org.airsonic.player.service.CaptionService;
 import org.airsonic.player.controller.rest.hls.HlsRestController;
 import org.airsonic.player.controller.rest.hls.HlsSegmentRestController;
 import org.airsonic.player.service.hls.HlsSegmentService;
@@ -383,13 +382,6 @@ public class KtorConfiguration {
         return runtime.createShareService(graph.getShareDao(), mediaFileService, jwtSecurityService);
     }
 
-    public CaptionService captionService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService, MediaFolderService mediaFolderService,
-            SettingsService settingsService,
-            JWTSecurityService jwtSecurityService) {
-        return runtime.createCaptionService(mediaFileService, mediaFolderService, settingsService,
-                runtime.createMetaDataParserFactory(), jwtSecurityService);
-    }
-
     public MediaFolderService mediaFolderService(RuntimeCompositionRoot runtime) {
         return runtime.createMediaFolderService();
     }
@@ -440,7 +432,6 @@ public class KtorConfiguration {
     public ServletRegistrationBean<ServletApplicationEngine> ktorServletRegistration(
             RuntimeCompositionRoot runtime,
             JWTSecurityService jwtSecurityService,
-            CaptionService captionService,
             PasswordRecoveryService passwordRecoveryService,
             MediaScannerService mediaScannerService,
             MediaFileService mediaFileService,
@@ -585,7 +576,9 @@ public class KtorConfiguration {
                                         audioScrobblerService, mediaFileService, albumSearchService)),
                                 runtime.createPublicShareController(shareService, mediaFileService, mediaFolderService,
                                         jwtSecurityService, runtime.createMetaDataParserFactory(), objectMapper),
-                                runtime.createCaptionsRestController(captionService, mediaFolderService, objectMapper),
+                                runtime.createCaptionsRestController(runtime.createCaptionService(mediaFileService,
+                                        mediaFolderService, settingsService, runtime.createMetaDataParserFactory(),
+                                        jwtSecurityService), mediaFolderService, objectMapper),
                                 runtime.createPasswordRecoveryController(passwordRecoveryService, objectMapper),
                                 runtime.createServerInfoController(
                                         runtime.createServerInfoService(runtime.createVersionService(), settingsService),
