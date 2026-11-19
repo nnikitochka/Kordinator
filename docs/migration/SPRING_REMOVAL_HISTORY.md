@@ -366,6 +366,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** `spring-boot-starter-web` заменён прямым `spring-web`; servlet Tomcat и Jackson остаются отдельными зависимостями, `spring-webmvc` уже исключён. `UserDaoTestCase` прошёл 8/8, а dependency tree показывает только `spring-web` среди выбранных web artifacts. Boot JDBC starter пока сохранён, потому что его удаление до замены Liquibase auto-configuration снимает database initializer и `liquibase` bean, от которого зависит startup ordering.
 
+**Срез 19 ноября 2026:** `spring-boot-starter-json` заменён прямыми Jackson-зависимостями (`databind`, JDK 8, JSR-310, parameter names); Kotlin и JAXB модули уже подключены отдельно. `UtilTest` и `VersionTestCase` прошли 14/14; dependency tree для выбранных артефактов содержит Jackson databind и не содержит Boot JSON starter.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
