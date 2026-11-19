@@ -1653,7 +1653,7 @@ class AirsonicKtorServlet(
                 throw AccessDeniedException("Access to file ${file.id} is forbidden for user ${user.username}")
             }
             val webRequest = ServletWebRequest(wrapped, response)
-             request.setAttribute(STREAM_REQUEST, StreamRestController.Request(authentication, callerContext, player, user,
+             request.setAttribute(STREAM_REQUEST, StreamRestController.Request(authentication is JWTAuthenticationToken, callerContext, player, user,
                 request.getParameter("format"), request.getParameter("suffix"), bitRate, id, request.getParameter("path"), offset,
                 MediaStreamService.VideoOptions(request.getParameter("maxBitRate"), request.getParameter("timeOffset"),
                     request.getParameter("duration"), request.getParameter("size")), request.getHeader("icy-metadata"),
@@ -1705,7 +1705,7 @@ class AirsonicKtorServlet(
                     response.sendError(HttpServletResponse.SC_BAD_REQUEST)
                     return
                 }
-                request.setAttribute(HLS_SEGMENT_REQUEST, HlsSegmentRestController.Request(auth, user, callerContext, player,
+                request.setAttribute(HLS_SEGMENT_REQUEST, HlsSegmentRestController.Request(auth is JWTAuthenticationToken, user, callerContext, player,
                     id, rawPlayer, index, bitRate, size, duration, audioTrack, false))
             }
         } else if (path in HlsRestController.PATHS && request.method in setOf("GET", "POST", "HEAD")) {
@@ -1795,7 +1795,7 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
-            request.setAttribute(HLS_SEGMENT_REQUEST, HlsSegmentRestController.Request(auth, user, callerContext, player,
+            request.setAttribute(HLS_SEGMENT_REQUEST, HlsSegmentRestController.Request(auth is JWTAuthenticationToken, user, callerContext, player,
                 id, playerId, index, bitRate, size, duration, audioTrack))
         } else if (path == LiveQueueExportController.PATH && request.method in setOf("GET", "HEAD")) {
             val username = requireNotNull(securityService.getCurrentUsername(request))

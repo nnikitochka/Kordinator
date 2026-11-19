@@ -17,9 +17,7 @@ import org.airsonic.player.service.MediaStreamService
 import org.airsonic.player.domain.Player
 import org.airsonic.player.domain.User
 import org.airsonic.player.security.CallerContext
-import org.airsonic.player.security.JWTAuthenticationToken
 import org.airsonic.player.security.AuthorizationDeniedException
-import org.springframework.security.core.Authentication
 import java.util.Optional
 import java.util.function.BiPredicate
 import java.io.InputStream
@@ -27,7 +25,7 @@ import java.io.OutputStream
 import java.util.UUID
 
 class StreamRestController(private val streams: MediaStreamService) {
-    data class Request(val authentication: Authentication, val callerContext: CallerContext, val player: Player, val user: User,
+    data class Request(val jwtAuthenticated: Boolean, val callerContext: CallerContext, val player: Player, val user: User,
                        val format: String?, val suffix: String?, val bitRate: Int?, val id: Int?,
                        val path: String?, val offset: Double?, val video: MediaStreamService.VideoOptions,
                        val icyMetadata: String?, val notModified: BiPredicate<String?, Long>, val conditionalStatus: () -> Int)
@@ -50,7 +48,7 @@ class StreamRestController(private val streams: MediaStreamService) {
 
     private suspend fun respond(call: ApplicationCall, request: Request, head: Boolean) {
         val result = try {
-            streams.open(request.authentication is JWTAuthenticationToken, request.callerContext, request.player, request.user, request.format, request.suffix,
+            streams.open(request.jwtAuthenticated, request.callerContext, request.player, request.user, request.format, request.suffix,
                 Optional.ofNullable(request.bitRate), Optional.ofNullable(request.id), Optional.ofNullable(request.path),
                 request.offset, request.video, request.icyMetadata, request.notModified)
         } catch (_: NumberFormatException) {
