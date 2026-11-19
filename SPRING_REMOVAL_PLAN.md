@@ -306,6 +306,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `021a506` убирает `Environment` и `EmbeddedDatabaseConnection` Spring Boot из `LegacyHsqlMigrationUtil`: утилита принимает `Function<String, String>` для настроек, а HSQLDB driver загружается по своему штатному классу до старта DataSource. Spring event listener остаётся только bootstrap adapter. Runtime configuration, composition graph, database status и database settings regressions прошли 20/20.
 
+Срез `4de4f25` удаляет `ServletRequestUtils` из framework-neutral `JAXBWriter`; формат ответа теперь выбирается из `HttpServletRequest.getParameter("f")` с тем же default `xml`. REST servlet compatibility, albums XML/JSON/JSONP и legacy `.view` regressions прошли 16/16.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
