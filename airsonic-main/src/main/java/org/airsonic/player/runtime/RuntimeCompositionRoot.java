@@ -428,13 +428,7 @@ public final class RuntimeCompositionRoot {
 
 
     public synchronized PersistenceGraph createPersistenceGraph(DataSource dataSource) {
-        return createPersistenceGraph(dataSource, org.airsonic.player.dao.ExternalTransactionConnectionContext.NONE);
-    }
-
-    public synchronized PersistenceGraph createPersistenceGraph(DataSource dataSource,
-            org.airsonic.player.dao.ExternalTransactionConnectionContext externalTransactionContext) {
         Objects.requireNonNull(dataSource, "dataSource");
-        Objects.requireNonNull(externalTransactionContext, "externalTransactionContext");
         if (persistenceGraph != null) {
             if (persistenceGraph.getDataSource() != dataSource) {
                 throw new IllegalStateException("Persistence graph already created for another DataSource");
@@ -444,7 +438,7 @@ public final class RuntimeCompositionRoot {
 
         JdbcFactory jdbcFactory = new JdbcFactory();
         org.airsonic.player.dao.TransactionManager transactionManager =
-                jdbcFactory.transactionManager(dataSource, externalTransactionContext);
+                jdbcFactory.transactionManager(dataSource);
         org.airsonic.player.dao.JdbcHelper jdbcHelper = jdbcFactory.jdbcHelper(dataSource, transactionManager);
         DaoGraph daoGraph = new DaoFactory().create(jdbcHelper, transactionManager);
         persistenceGraph = new PersistenceGraph(dataSource, transactionManager, jdbcHelper, daoGraph);

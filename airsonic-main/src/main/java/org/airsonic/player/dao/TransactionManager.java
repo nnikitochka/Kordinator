@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 
 /**
  * Framework-neutral transaction manager supporting thread-bound connections,
- * nested transactions, savepoints, rollback, and optional external transaction participation.
+ * nested transactions, savepoints, and rollback.
  */
 public class TransactionManager {
 
@@ -29,17 +29,9 @@ public class TransactionManager {
     private static final ThreadLocal<TransactionState> CURRENT_TRANSACTION = new ThreadLocal<>();
 
     private final DataSource dataSource;
-    private final ExternalTransactionConnectionContext externalTransactionContext;
 
     public TransactionManager(DataSource dataSource) {
-        this(dataSource, ExternalTransactionConnectionContext.NONE);
-    }
-
-    public TransactionManager(DataSource dataSource,
-            ExternalTransactionConnectionContext externalTransactionContext) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
-        this.externalTransactionContext = Objects.requireNonNull(externalTransactionContext,
-                "externalTransactionContext");
     }
 
     public DataSource getDataSource() {
@@ -52,11 +44,6 @@ public class TransactionManager {
             return state.connection;
         }
 
-        Connection externalConnection = externalTransactionContext.currentConnection(dataSource);
-        if (externalConnection != null) {
-            return externalConnection;
-        }
-
         return dataSource.getConnection();
     }
 
@@ -67,10 +54,6 @@ public class TransactionManager {
         TransactionState state = CURRENT_TRANSACTION.get();
         if (state != null && conn == state.connection) {
             // Connection is managed by active transaction; do not close now
-            return;
-        }
-
-        if (externalTransactionContext.releaseConnection(conn, dataSource)) {
             return;
         }
 
@@ -101,13 +84,6 @@ public class TransactionManager {
 
     public <T> T execute(TransactionDefinition def, TransactionCallback<T> action) {
         TransactionState parent = CURRENT_TRANSACTION.get();
-
-        if (parent == null) {
-            Connection externalConnection = externalTransactionContext.currentConnection(dataSource);
-            if (externalConnection != null) {
-                return executeInExternalTransaction(externalConnection, action);
-            }
-        }
 
         if (parent != null && def.propagation == PROPAGATION_REQUIRED) {
             // Join existing transaction
@@ -194,34 +170,6 @@ public class TransactionManager {
                     LOG.warn("Failed to close transaction connection", ex);
                 }
             }
-        }
-    }
-
-    private <T> T executeInExternalTransaction(Connection connection, TransactionCallback<T> action) {
-        TransactionState state = new TransactionState(connection, null);
-        TransactionStatus status = new TransactionStatus(false);
-        CURRENT_TRANSACTION.set(state);
-        try {
-            T result = action.doInTransaction(status);
-            if (status.isRollbackOnly() || state.rollbackOnly) {
-                externalTransactionContext.markRollbackOnly(dataSource);
-            }
-            return result;
-        } catch (Throwable t) {
-            try {
-                externalTransactionContext.markRollbackOnly(dataSource);
-            } catch (Throwable markFailure) {
-                t.addSuppressed(markFailure);
-            }
-            if (t instanceof RuntimeException) {
-                throw (RuntimeException) t;
-            }
-            if (t instanceof Error) {
-                throw (Error) t;
-            }
-            throw new RuntimeException("Joined external transaction action failed", t);
-        } finally {
-            CURRENT_TRANSACTION.remove();
         }
     }
 

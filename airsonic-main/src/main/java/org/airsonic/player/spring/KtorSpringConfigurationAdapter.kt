@@ -25,8 +25,7 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     override fun persistenceGraph(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         dataSource: javax.sql.DataSource,
-    ): org.airsonic.player.runtime.PersistenceGraph = runtime.createPersistenceGraph(
-        dataSource, org.airsonic.player.spring.SpringExternalTransactionConnectionContext())
+    ): org.airsonic.player.runtime.PersistenceGraph = runtime.createPersistenceGraph(dataSource)
 
     @Bean
     override fun airsonicTransactionManager(
