@@ -802,6 +802,7 @@ public class KtorConfiguration {
                                 new org.airsonic.player.ktor.KordinatorPlaylistRoutes(playlistService, securityService, mediaFileService),
                                 new org.airsonic.player.ktor.KordinatorAlbumRoutes(mediaFileService, mediaFolderService, securityService),
                                 new org.airsonic.player.ktor.KordinatorArtistRoutes(artistDao, albumDao, mediaFolderService),
+                                new org.airsonic.player.ktor.KordinatorSearchRoutes(albumSearchService, mediaFolderService, securityService),
                                 new UploadController(uploadFileService, statusService, securityService, settingsService, jaxbWriter),
                                 new PlaylistExportController(playlistService, jaxbWriter),
                                 new PlaylistImportController(playlistService, jaxbWriter),
