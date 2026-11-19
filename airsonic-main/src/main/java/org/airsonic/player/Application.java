@@ -11,10 +11,8 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
-import org.springframework.context.annotation.AdviceMode;
 import org.springframework.context.annotation.Import;
 import org.springframework.boot.SpringBootConfiguration;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import java.lang.reflect.Method;
 
@@ -25,7 +23,6 @@ import java.lang.reflect.Method;
     ErrorMvcAutoConfiguration.class
 })
 @Import({org.airsonic.player.spring.KtorSpringConfigurationAdapter.class, org.airsonic.player.security.GlobalSecurityConfig.class})
-@EnableTransactionManagement(mode = AdviceMode.ASPECTJ)
 public class Application extends SpringBootServletInitializer implements WebServerFactoryCustomizer<ConfigurableServletWebServerFactory> {
 
     private static final Logger LOG = LoggerFactory.getLogger(Application.class);

@@ -10,8 +10,9 @@ import org.airsonic.player.domain.UserSettings;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -34,6 +35,9 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
 
     @Autowired
     UserDao userDao;
+
+    @Autowired
+    PlatformTransactionManager platformTransactionManager;
 
     @Before
     public void setUp() {
@@ -79,9 +83,8 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
         assertThat(userDao.getUserByName("muff1nman6", true)).isNull();
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     private void createTestUser(User user, UserCredential uc) {
-        userDao.createUser(user, uc);
+        inNewTransaction(() -> userDao.createUser(user, uc));
     }
 
     @Test
@@ -216,8 +219,13 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
         assertNull("Error in cascading delete.", userDao.getUserSettings("sindre"));
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     private void updateUserSettings(UserSettings settings) {
-        userDao.updateUserSettings(settings);
+        inNewTransaction(() -> userDao.updateUserSettings(settings));
+    }
+
+    private void inNewTransaction(Runnable action) {
+        TransactionTemplate transaction = new TransactionTemplate(platformTransactionManager);
+        transaction.setPropagationBehavior(Propagation.REQUIRES_NEW.value());
+        transaction.executeWithoutResult(status -> action.run());
     }
 }

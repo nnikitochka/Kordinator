@@ -17,7 +17,6 @@
         <tomcat.server.scope>provided</tomcat.server.scope>
         <!-- For fixing import/export due to https://github.com/liquibase/liquibase/issues/1598 -->
         <liquibase.version>4.33.0</liquibase.version>
-        <aspectj.version>1.9.25</aspectj.version>
     </properties>
 
     <dependencies>
@@ -122,10 +121,6 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>jcache</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-aspects</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -696,42 +691,6 @@
             <plugin>
                 <groupId>net.nicoulaj.maven.plugins</groupId>
                 <artifactId>checksum-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <!-- Official plugin home moved to dev.aspectj; aspectjtools 1.9.24+ supports Java 25 -->
-                <groupId>dev.aspectj</groupId>
-                <artifactId>aspectj-maven-plugin</artifactId>
-                <version>1.14.1</version>
-                <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
-                    <proc>none</proc>
-                    <!-- Spring 6 SpEL resolves named cache parameters from bytecode metadata. -->
-                    <parameters>true</parameters>
-                    <complianceLevel>${java.version}</complianceLevel>
-                    <showWeaveInfo>true</showWeaveInfo>
-                     <aspectLibraries>
-                         <aspectLibrary>
-                             <groupId>org.springframework</groupId>
-                             <artifactId>spring-aspects</artifactId>
-                         </aspectLibrary>
-                     </aspectLibraries>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>compile</goal>
-                            <goal>test-compile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.aspectj</groupId>
-                        <artifactId>aspectjtools</artifactId>
-                        <version>${aspectj.version}</version>
-                    </dependency>
-                </dependencies>
             </plugin>
         </plugins>
     </build>
