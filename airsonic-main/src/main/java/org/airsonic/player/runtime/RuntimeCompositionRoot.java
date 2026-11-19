@@ -129,6 +129,8 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.admin.PlayerSettingsController playerSettingsController;
     private org.airsonic.player.controller.rest.admin.AdvancedSettingsController advancedSettingsController;
     private org.airsonic.player.controller.rest.admin.TranscodingSettingsController transcodingSettingsController;
+    private org.airsonic.player.controller.rest.admin.DatabaseSettingsController databaseSettingsController;
+    private org.airsonic.player.controller.rest.settings.CredentialsManagementController credentialsManagementController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -657,6 +659,36 @@ public final class RuntimeCompositionRoot {
                     transcodingService, settingsService, createSubsonicJaxbWriter());
         }
         return transcodingSettingsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.admin.DatabaseSettingsController createDatabaseSettingsController(
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.DatabaseService databaseService,
+            org.airsonic.player.service.StatusService statusService,
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.service.ConfigurationPropertiesService properties) {
+        if (databaseSettingsController == null) {
+            databaseSettingsController = new org.airsonic.player.controller.rest.admin.DatabaseSettingsController(
+                    settingsService, databaseService, statusService, securityService,
+                    createSubsonicJaxbWriter(), properties);
+        }
+        return databaseSettingsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.settings.CredentialsManagementController
+            createCredentialsManagementController(
+                    org.airsonic.player.service.SecurityService securityService,
+                    org.airsonic.player.service.SettingsService settingsService) {
+        if (credentialsManagementController == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException(
+                        "Persistence graph must be created before CredentialsManagementController");
+            }
+            credentialsManagementController = new org.airsonic.player.controller.rest.settings.CredentialsManagementController(
+                    securityService, settingsService, createSubsonicJaxbWriter(),
+                    persistenceGraph.getTransactionManager());
+        }
+        return credentialsManagementController;
     }
 
     public synchronized DataSource createDataSource() {

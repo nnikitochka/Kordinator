@@ -711,8 +711,7 @@ public class KtorConfiguration {
             MediaStreamService mediaStreamService,
             UploadFileService uploadFileService,
             org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry,
-            org.airsonic.player.monitor.MetricsManager metricsManager,
-            org.airsonic.player.dao.TransactionManager transactionManager
+            org.airsonic.player.monitor.MetricsManager metricsManager
     ) {
         ArtistDao artistDao = graph.getArtistDao();
         AlbumDao albumDao = graph.getAlbumDao();
@@ -760,9 +759,9 @@ public class KtorConfiguration {
                                 new JukeboxController(playQueueService, jukeboxService, responseMapper, jaxbWriter),
                                 new UsersController(securityService, settingsService, mediaFolderService, userAdministrationService, jaxbWriter),
                                 runtime.createDLNASettingsController(settingsService, upnpService),
-                                new DatabaseSettingsController(settingsService, databaseService, statusService, securityService, jaxbWriter,
-                                        properties),
-                                new CredentialsManagementController(securityService, settingsService, jaxbWriter, transactionManager),
+                                runtime.createDatabaseSettingsController(settingsService, databaseService,
+                                        statusService, securityService, properties),
+                                runtime.createCredentialsManagementController(securityService, settingsService),
                                 runtime.createPersonalSettingsController(settingsService, securityService),
                                 runtime.createPlayerSettingsController(playerService, transcodingService, playQueueService),
                                 runtime.createAdvancedSettingsController(settingsService),

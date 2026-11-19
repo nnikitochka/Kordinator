@@ -405,6 +405,12 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createAdvancedSettingsController(settingsService));
         assertSame(runtimeRoot.createTranscodingSettingsController(transcodingService, settingsService),
                 runtimeRoot.createTranscodingSettingsController(transcodingService, settingsService));
+        assertSame(runtimeRoot.createDatabaseSettingsController(settingsService, databaseService,
+                        statusService, securityService, properties),
+                runtimeRoot.createDatabaseSettingsController(settingsService, databaseService,
+                        statusService, securityService, properties));
+        assertSame(runtimeRoot.createCredentialsManagementController(securityService, settingsService),
+                runtimeRoot.createCredentialsManagementController(securityService, settingsService));
         assertSame(runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService),
                 runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService));
         assertSame(runtimeRoot.createMusicFolderSettingsController(musicFolderAdministrationService),
