@@ -11,11 +11,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime.createDataSource().also { runtime.migrateDatabase() }
 
     @Bean
-    fun serverHealthContributors(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.health.HealthContributorRegistry = runtime.createHealthContributorRegistry(runtime.createDataSource())
-
-    @Bean
     fun persistenceGraph(runtime: org.airsonic.player.runtime.RuntimeCompositionRoot):
             org.airsonic.player.runtime.PersistenceGraph = runtime.createPersistenceGraph()
 

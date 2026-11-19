@@ -688,7 +688,6 @@ public class KtorConfiguration {
             AudioScrobblerService audioScrobblerService,
             UPnPService upnpService,
             StatusService statusService,
-            org.airsonic.player.health.HealthContributorRegistry healthContributors,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             TaskSchedulingService taskSchedulingService,
             org.airsonic.player.service.PathWatcherService pathWatcherService,
@@ -777,7 +776,8 @@ public class KtorConfiguration {
                                 runtime.createStatisticsController(statusService, securityService),
                                 runtime.createScheduledTasksController(taskSchedulingService),
                                 runtime.createPathWatchersController(pathWatcherService),
-                                runtime.createServerHealthController(healthContributors, objectMapper),
+                                runtime.createServerHealthController(
+                                        runtime.createHealthContributorRegistry(runtime.createDataSource()), objectMapper),
                                 runtime.createCacheStatisticsController(runtime.createCacheManager()),
                                 runtime.createSongController(securityService, responseMapper),
                                 runtime.createVideosController(mediaFolderService, responseMapper),
