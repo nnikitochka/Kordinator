@@ -18,8 +18,6 @@ import org.airsonic.player.security.MultipleCredsMatchingAuthenticationProvider;
 import org.airsonic.player.security.SpringUserDetailsServiceAdapter;
 import org.airsonic.player.security.CredentialEncoderRegistry;
 import org.airsonic.player.security.SpringCredentialEncoderRegistry;
-import org.airsonic.player.theme.CustomThemeResolver;
-import org.airsonic.player.theme.CustomThemeSource;
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController;
 import org.airsonic.player.controller.rest.tags.TagEditController;
 import org.airsonic.player.controller.rest.tags.TagEditorPageController;
@@ -332,22 +330,6 @@ public class KtorConfiguration {
     @Bean
     public SpringUserDetailsServiceAdapter springUserDetailsServiceAdapter(SecurityService securityService) {
         return new SpringUserDetailsServiceAdapter(securityService);
-    }
-
-    @Bean(name = "themeResolver")
-    public CustomThemeResolver customThemeResolver(SecurityService securityService, SettingsService settingsService) {
-        CustomThemeResolver resolver = new CustomThemeResolver();
-        resolver.setSecurityService(securityService);
-        resolver.setSettingsService(settingsService);
-        return resolver;
-    }
-
-    @Bean(name = org.springframework.ui.context.support.UiApplicationContextUtils.THEME_SOURCE_BEAN_NAME)
-    public CustomThemeSource customThemeSource(SettingsService settingsService) {
-        CustomThemeSource source = new CustomThemeSource();
-        source.setBasenamePrefix("org.airsonic.player.theme.");
-        source.setSettingsService(settingsService);
-        return source;
     }
 
     @Bean
@@ -847,8 +829,6 @@ public class KtorConfiguration {
             UploadFileService uploadFileService,
             org.springframework.boot.autoconfigure.web.ServerProperties serverProperties,
             org.airsonic.player.monitor.MetricsManager metricsManager,
-            org.airsonic.player.theme.CustomThemeResolver themeResolver,
-            org.airsonic.player.theme.CustomThemeSource themeSource,
             org.airsonic.player.dao.TransactionManager transactionManager
     ) {
         ServletRegistrationBean<ServletApplicationEngine> registration =
@@ -939,7 +919,7 @@ public class KtorConfiguration {
                                         ErrorAttributeMode.valueOf(serverProperties.getError().getIncludeMessage().name()),
                                         ErrorAttributeMode.valueOf(serverProperties.getError().getIncludeStacktrace().name()),
                                         ErrorAttributeMode.valueOf(serverProperties.getError().getIncludePath().name())),
-                                objectMapper, metricsManager, settingsService, themeResolver, themeSource),
+                                objectMapper, metricsManager, settingsService),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(SearchPageController.DATA_PATH);

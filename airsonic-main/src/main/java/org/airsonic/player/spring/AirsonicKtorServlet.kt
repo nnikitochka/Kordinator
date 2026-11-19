@@ -250,8 +250,6 @@ class AirsonicKtorServlet(
     private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
     metricsManager: MetricsManager,
     settingsService: org.airsonic.player.service.SettingsService,
-    private val themeResolver: org.springframework.web.servlet.ThemeResolver,
-    private val themeSource: org.springframework.ui.context.ThemeSource,
 ) : ServletApplicationEngine() {
     private val proxyRestController = ProxyRestController()
     private val callerContextAdapter = ServletCallerContextAdapter(securityService)
@@ -576,15 +574,7 @@ class AirsonicKtorServlet(
                 return
             }
             accessDeniedPageController.logAccessDenied(request.remoteAddr, request.requestURL.toString())
-            val context = org.springframework.web.context.support.WebApplicationContextUtils
-                .getRequiredWebApplicationContext(request.servletContext)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
             return
         }
         if (path in NotFoundPageController.PATHS) {
@@ -593,15 +583,7 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
                 return
             }
-            val context = org.springframework.web.context.support.WebApplicationContextUtils
-                .getRequiredWebApplicationContext(request.servletContext)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
             return
         }
         if (path in LoginPageController.PATHS) {
@@ -614,15 +596,7 @@ class AirsonicKtorServlet(
                 response.sendRedirect(response.encodeRedirectURL(it))
                 return
             }
-            request.setAttribute("model", loginPageController.jspModel(request))
-            val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
             return
         }
         if (path in IndexPageController.PAGE_PATHS) {
@@ -636,16 +610,8 @@ class AirsonicKtorServlet(
                 return
             }
             val user = requireNotNull(securityService.getCurrentUser(request))
-            request.setAttribute("model", playQueuePageController.jspModel(user))
             response.setHeader("Cache-Control", "no-store")
-            val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
             return
         }
         if (path in RightPageController.PAGE_PATHS) {
@@ -659,14 +625,7 @@ class AirsonicKtorServlet(
                 return
             }
             response.setHeader("Cache-Control", "no-store")
-            val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
             return
         }
         if (path in StarredPageController.PAGE_PATHS) {
@@ -680,14 +639,7 @@ class AirsonicKtorServlet(
                 return
             }
             response.setHeader("Cache-Control", "no-store")
-            val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
             return
         }
         if (path in TagEditorPageController.PAGE_PATHS) {
@@ -701,14 +653,7 @@ class AirsonicKtorServlet(
                 return
             }
             response.setHeader("Cache-Control", "no-store")
-            val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
             return
         }
         if (path == "/changeCoverArt" || path == "/changeCoverArt.view") {
@@ -730,14 +675,7 @@ class AirsonicKtorServlet(
             }
             request.setAttribute("model", model)
             response.setHeader("Cache-Control", "no-store")
-            val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
             return
         }
         if (path == "/lyrics" || path == "/lyrics.view") {
@@ -751,14 +689,7 @@ class AirsonicKtorServlet(
                 return
             }
             response.setHeader("Cache-Control", "no-store")
-            val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
             return
         }
         if (path == BookmarksPageController.DATA_PATH || path in BookmarksPageController.PAGE_PATHS) {
@@ -771,12 +702,6 @@ class AirsonicKtorServlet(
             request.setAttribute(BookmarksPageController.REQUEST_ATTRIBUTE, BookmarksPageController.Request(username))
             if (path in BookmarksPageController.PAGE_PATHS) {
                 response.setHeader("Cache-Control", "no-store")
-                val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-                org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
                 response.sendError(HttpServletResponse.SC_NOT_FOUND)
                 return
                 return
@@ -794,12 +719,6 @@ class AirsonicKtorServlet(
             request.setAttribute(PlaylistPageController.REQUEST_ATTRIBUTE, PlaylistPageController.Request(username, playlistId))
             if (path in PlaylistPageController.PAGE_PATHS) {
                 response.setHeader("Cache-Control", "no-store")
-                val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-                org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
                 response.sendError(HttpServletResponse.SC_NOT_FOUND)
                 return
                 return
@@ -820,12 +739,6 @@ class AirsonicKtorServlet(
             request.setAttribute(MainPageController.REQUEST_ATTRIBUTE, MainPageController.Request(username, ids, paths))
             if (path in MainPageController.PAGE_PATHS) {
                 response.setHeader("Cache-Control", "no-store")
-                val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-                org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
                 response.sendError(HttpServletResponse.SC_NOT_FOUND)
                 return
                 return
@@ -841,12 +754,6 @@ class AirsonicKtorServlet(
             request.setAttribute(PlaylistsPageController.REQUEST_ATTRIBUTE, PlaylistsPageController.Request(username))
             if (path in PlaylistsPageController.PAGE_PATHS) {
                 response.setHeader("Cache-Control", "no-store")
-                val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-                org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
                 response.sendError(HttpServletResponse.SC_NOT_FOUND)
                 return
                 return
@@ -864,12 +771,6 @@ class AirsonicKtorServlet(
             request.setAttribute(LeftPageController.REQUEST_ATTRIBUTE, requestData)
             if (path != LeftPageController.DATA_PATH) {
                 response.setHeader("Cache-Control", "no-store")
-                val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-                org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
                 response.sendError(HttpServletResponse.SC_NOT_FOUND)
                 return
                 return
@@ -908,15 +809,7 @@ class AirsonicKtorServlet(
             request.setAttribute(MorePageController.REQUEST_ATTRIBUTE,
                 MorePageController.Request(user, player.isExternalWithPlaylist || player.isWeb))
             response.setHeader("Cache-Control", "no-store")
-            val context = org.springframework.web.context.support.WebApplicationContextUtils
-                .getRequiredWebApplicationContext(request.servletContext)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
             return
         }
         if (path in NowPlayingPageController.PATHS) {
@@ -959,15 +852,7 @@ class AirsonicKtorServlet(
                 return
             }
             response.setHeader("Cache-Control", "no-store")
-            val context = org.springframework.web.context.support.WebApplicationContextUtils
-                .getRequiredWebApplicationContext(request.servletContext)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
             return
         }
         if (path in ServerInfoController.PATHS || path == ServerInfoController.GETTING_STARTED_PATH) {
@@ -1000,15 +885,7 @@ class AirsonicKtorServlet(
                 return
             }
             response.setHeader("Cache-Control", "no-store")
-            val context = org.springframework.web.context.support.WebApplicationContextUtils
-                .getRequiredWebApplicationContext(request.servletContext)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
             return
         }
         if (path == VideoPlayerRestController.PATH) {
@@ -1117,13 +994,6 @@ class AirsonicKtorServlet(
                 request.setAttribute("publicSharePreview", publicShareController.preview(publicRequest))
                 request.setAttribute("publicShareDataUrl", publicShareController.dataUrl(name,
                     NetworkService.getBaseUrl(request), expiration))
-                val context = org.springframework.web.context.support.WebApplicationContextUtils
-                    .getRequiredWebApplicationContext(request.servletContext)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-                request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-                org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
                 response.sendError(HttpServletResponse.SC_NOT_FOUND)
                 return
                 return
@@ -1144,18 +1014,10 @@ class AirsonicKtorServlet(
             }
             if (path in setOf("/createShare", "/createShare.view", "/videoPlayer", "/videoPlayer.view", "/help", "/help.view", "/gettingStarted", "/gettingStarted.view")) response.setHeader("Cache-Control", "no-store")
             // JSP tags still need the view context while the page loads its data from Ktor REST.
-            val context = org.springframework.web.context.support.WebApplicationContextUtils
-                .getRequiredWebApplicationContext(request.servletContext)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             request.setAttribute("playerSettingsAdmin", user.isAdminRole)
             request.setAttribute("personalSettingsUsername", user.username)
             val page = path.removePrefix("/").removeSuffix(".view")
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
             return
         }
         if (path.startsWith("/ext/rest-hls/")) {
@@ -1185,14 +1047,7 @@ class AirsonicKtorServlet(
             }
             request.setAttribute(HomePageController.REQUEST_ATTRIBUTE, HomePageController.Request(username))
             response.setHeader("Cache-Control", "no-store")
-            val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
             return
         }
         if (path == HomePageController.DATA_PATH) {
@@ -1216,14 +1071,7 @@ class AirsonicKtorServlet(
             request.setAttribute(SearchPageController.REQUEST_ATTRIBUTE, SearchPageController.Request(username, player))
             request.setAttribute(SearchPageController.INITIAL_QUERY_ATTRIBUTE, initialQuery)
             response.setHeader("Cache-Control", "no-store")
-            val context = org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(request.servletContext)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.WEB_APPLICATION_CONTEXT_ATTRIBUTE, context)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.LOCALE_RESOLVER_ATTRIBUTE, localeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
-            request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
-            org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
             return
         }
         if (path == SearchPageController.DATA_PATH) {
