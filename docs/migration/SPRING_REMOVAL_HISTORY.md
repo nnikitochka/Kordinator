@@ -490,6 +490,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 20 ноября 2026:** удалены Spring bean projections четырёх playlist import/export handlers. `RuntimeCompositionRoot.createPlaylistService` теперь собирает их из root-owned services/DAOs и единолично передаёт в `PlaylistService`.
 
+**Срез 20 ноября 2026:** удалены Spring projections Subsonic `JAXBWriter`, `RestPlayerResolver`, response mapper и четырёх route controllers вместе с их вспомогательными service wrappers. Servlet registration запрашивает всё это напрямую из `RuntimeCompositionRoot`.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

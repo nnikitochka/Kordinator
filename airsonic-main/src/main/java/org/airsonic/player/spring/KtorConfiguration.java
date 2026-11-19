@@ -151,67 +151,6 @@ import org.springframework.context.annotation.Lazy;
 public class KtorConfiguration {
 
     @Bean
-    public JAXBWriter subsonicJaxbWriter(RuntimeCompositionRoot runtime) {
-        return runtime.createSubsonicJaxbWriter();
-    }
-
-    @Bean
-    public RestPlayerResolver restPlayerResolver(RuntimeCompositionRoot runtime, PlayerService playerService) {
-        return runtime.createRestPlayerResolver(playerService);
-    }
-
-    @Bean
-    public org.airsonic.player.controller.rest.genres.GenresService subsonicGenresService(
-            RuntimeCompositionRoot runtime) {
-        return runtime.createSubsonicGenresService();
-    }
-
-    @Bean
-    public GenresController subsonicGenresController(RuntimeCompositionRoot runtime) {
-        return runtime.createSubsonicGenresController();
-    }
-
-    @Bean
-    public ArtistsController subsonicArtistsController(
-            RuntimeCompositionRoot runtime, MusicIndexService musicIndexService, SettingsService settingsService,
-            MediaFolderService mediaFolderService, SubsonicResponseMapper subsonicResponseMapper) {
-        return runtime.createSubsonicArtistsController(
-                musicIndexService, settingsService, mediaFolderService, subsonicResponseMapper);
-    }
-
-    @Bean
-    public org.airsonic.player.controller.rest.music.folder.MusicFoldersService subsonicMusicFoldersService(
-            RuntimeCompositionRoot runtime, MediaFolderService mediaFolderService) {
-        return runtime.createSubsonicMusicFoldersService(mediaFolderService);
-    }
-
-    @Bean
-    public MusicFoldersController subsonicMusicFoldersController(
-            RuntimeCompositionRoot runtime, org.airsonic.player.controller.rest.music.folder.MusicFoldersService service) {
-        return runtime.createSubsonicMusicFoldersController(service);
-    }
-
-    @Bean
-    public SubsonicResponseMapper subsonicResponseMapper(
-            MediaFileService mediaFileService, RatingService ratingService, CoverArtService coverArtService,
-            TranscodingService transcodingService, RuntimeCompositionRoot runtime) {
-        return runtime.createSubsonicResponseMapper(mediaFileService, ratingService, coverArtService, transcodingService);
-    }
-
-    @Bean
-    public SearchController subsonicSearchController(
-            RuntimeCompositionRoot runtime, org.airsonic.player.controller.rest.search.SearchService service) {
-        return runtime.createSubsonicSearchController(service);
-    }
-
-    @Bean
-    public org.airsonic.player.controller.rest.search.SearchService subsonicSearchService(
-            SearchService searchService, MediaFolderService mediaFolderService,
-            SubsonicResponseMapper subsonicResponseMapper, RuntimeCompositionRoot runtime) {
-        return runtime.createSubsonicSearchService(searchService, mediaFolderService, subsonicResponseMapper);
-    }
-
-    @Bean
     public org.springframework.boot.web.server.ErrorPageRegistrar ktorErrorPageRegistrar(
             org.springframework.boot.autoconfigure.web.ServerProperties serverProperties) {
         return factory -> factory.addErrorPages(new org.springframework.boot.web.server.ErrorPage(serverProperties.getError().getPath()));
@@ -533,11 +472,6 @@ public class KtorConfiguration {
     @Bean
     public ServletRegistrationBean<ServletApplicationEngine> ktorServletRegistration(
             RuntimeCompositionRoot runtime,
-            SearchController searchController,
-            MusicFoldersController musicFoldersController,
-            GenresController genresController,
-            ArtistsController artistsController,
-            JAXBWriter jaxbWriter,
             JWTSecurityService jwtSecurityService,
             CaptionService captionService,
             PasswordRecoveryService passwordRecoveryService,
@@ -548,8 +482,6 @@ public class KtorConfiguration {
             SearchService albumSearchService,
             LastFmService lastFmService,
             MediaFolderService mediaFolderService,
-            SubsonicResponseMapper responseMapper,
-            RestPlayerResolver playerResolver,
             PlayerService playerService,
             PlaylistService playlistService,
             ShareService shareService,
@@ -582,6 +514,18 @@ public class KtorConfiguration {
             MediaStreamService mediaStreamService,
             UploadFileService uploadFileService
     ) throws java.io.IOException {
+        JAXBWriter jaxbWriter = runtime.createSubsonicJaxbWriter();
+        SubsonicResponseMapper responseMapper = runtime.createSubsonicResponseMapper(
+                mediaFileService, ratingService, coverArtService, transcodingService);
+        org.airsonic.player.controller.rest.search.SearchService subsonicSearchService =
+                runtime.createSubsonicSearchService(albumSearchService, mediaFolderService, responseMapper);
+        SearchController searchController = runtime.createSubsonicSearchController(subsonicSearchService);
+        MusicFoldersController musicFoldersController = runtime.createSubsonicMusicFoldersController(
+                runtime.createSubsonicMusicFoldersService(mediaFolderService));
+        GenresController genresController = runtime.createSubsonicGenresController();
+        ArtistsController artistsController = runtime.createSubsonicArtistsController(
+                musicIndexService, settingsService, mediaFolderService, responseMapper);
+        RestPlayerResolver playerResolver = runtime.createRestPlayerResolver(playerService);
         ArtistDao artistDao = graph.getArtistDao();
         AlbumDao albumDao = graph.getAlbumDao();
         MediaFileDao mediaFileDao = graph.getMediaFileDao();
