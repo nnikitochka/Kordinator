@@ -395,6 +395,23 @@ class RuntimeCompositionRootGraphTest {
 
         DatabaseService databaseService = runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler);
         assertSame(databaseService, runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler));
+        org.airsonic.player.health.HealthContributorRegistry healthContributors =
+                runtimeRoot.createHealthContributorRegistry(dataSource);
+        assertSame(runtimeRoot.createStatisticsController(statusService, securityService),
+                runtimeRoot.createStatisticsController(statusService, securityService));
+        assertSame(runtimeRoot.createScheduledTasksController(scheduler),
+                runtimeRoot.createScheduledTasksController(scheduler));
+        assertSame(runtimeRoot.createPathWatchersController(pathWatcher),
+                runtimeRoot.createPathWatchersController(pathWatcher));
+        assertSame(runtimeRoot.createStatusAggregator(), runtimeRoot.createStatusAggregator());
+        assertSame(runtimeRoot.createServerHealthController(healthContributors, objectMapper),
+                runtimeRoot.createServerHealthController(healthContributors, objectMapper));
+        io.micrometer.core.instrument.MeterRegistry testMeterRegistry =
+                new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        assertSame(runtimeRoot.createCacheStatisticsController(cacheManager, testMeterRegistry),
+                runtimeRoot.createCacheStatisticsController(cacheManager, testMeterRegistry));
+        assertSame(runtimeRoot.createUploadStatusController(statusService, databaseService),
+                runtimeRoot.createUploadStatusController(statusService, databaseService));
 
         // Custom lifecycle items to verify ordering and shutdown
         AtomicBoolean customStarted = new AtomicBoolean(false);

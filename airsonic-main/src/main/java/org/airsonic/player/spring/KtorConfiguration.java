@@ -622,8 +622,7 @@ public class KtorConfiguration {
     @Bean
     public org.airsonic.player.health.StatusAggregator serverHealthStatusAggregator(
             RuntimeCompositionRoot runtime) {
-        return new org.airsonic.player.health.SimpleStatusAggregator(
-                runtime.getConfiguration().getHealthStatusOrder());
+        return runtime.createStatusAggregator();
     }
 
 
@@ -693,7 +692,6 @@ public class KtorConfiguration {
             StatusService statusService,
             javax.cache.CacheManager jCacheCacheManager,
             org.airsonic.player.health.HealthContributorRegistry healthContributors,
-            org.airsonic.player.health.StatusAggregator healthStatusAggregator,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             io.micrometer.core.instrument.MeterRegistry meterRegistry,
             TaskSchedulingService taskSchedulingService,
@@ -783,12 +781,12 @@ public class KtorConfiguration {
                                 runtime.createRandomSongsController(albumSearchService, mediaFolderService, responseMapper),
                                 new ScrobbleController(mediaFileService, statusService, audioScrobblerService, jaxbWriter),
                                 runtime.createNowPlayingController(statusService, responseMapper),
-                                new UploadStatusController(statusService, jaxbWriter, databaseService),
-                                new StatisticsController(statusService, securityService, jaxbWriter),
-                                new ScheduledTasksController(taskSchedulingService, jaxbWriter),
-                                new PathWatchersController(pathWatcherService, jaxbWriter),
-                                new ServerHealthController(healthContributors, healthStatusAggregator, objectMapper, jaxbWriter),
-                                new CacheStatisticsController(jCacheCacheManager, meterRegistry, jaxbWriter),
+                                runtime.createUploadStatusController(statusService, databaseService),
+                                runtime.createStatisticsController(statusService, securityService),
+                                runtime.createScheduledTasksController(taskSchedulingService),
+                                runtime.createPathWatchersController(pathWatcherService),
+                                runtime.createServerHealthController(healthContributors, objectMapper),
+                                runtime.createCacheStatisticsController(jCacheCacheManager, meterRegistry),
                                 runtime.createSongController(securityService, responseMapper),
                                 runtime.createVideosController(mediaFolderService, responseMapper),
                                 runtime.createLyricsController(lyricsService),

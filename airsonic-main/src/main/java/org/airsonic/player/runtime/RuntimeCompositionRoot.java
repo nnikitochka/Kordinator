@@ -111,6 +111,13 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.lyrics.LyricsController lyricsController;
     private org.airsonic.player.controller.rest.nowplaying.NowPlayingController nowPlayingController;
     private org.airsonic.player.controller.rest.rating.RatingController ratingController;
+    private org.airsonic.player.controller.rest.statistics.StatisticsController statisticsController;
+    private org.airsonic.player.controller.rest.statistics.ScheduledTasksController scheduledTasksController;
+    private org.airsonic.player.controller.rest.statistics.PathWatchersController pathWatchersController;
+    private org.airsonic.player.controller.rest.statistics.ServerHealthController serverHealthController;
+    private org.airsonic.player.controller.rest.statistics.CacheStatisticsController cacheStatisticsController;
+    private org.airsonic.player.controller.rest.upload.UploadStatusController uploadStatusController;
+    private org.airsonic.player.health.StatusAggregator statusAggregator;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -440,6 +447,73 @@ public final class RuntimeCompositionRoot {
                     mediaFileService, ratingService, createSubsonicJaxbWriter());
         }
         return ratingController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.statistics.StatisticsController createStatisticsController(
+            org.airsonic.player.service.StatusService statusService,
+            org.airsonic.player.service.SecurityService securityService) {
+        if (statisticsController == null) {
+            statisticsController = new org.airsonic.player.controller.rest.statistics.StatisticsController(
+                    statusService, securityService, createSubsonicJaxbWriter());
+        }
+        return statisticsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.statistics.ScheduledTasksController
+            createScheduledTasksController(org.airsonic.player.service.TaskSchedulingService scheduler) {
+        if (scheduledTasksController == null) {
+            scheduledTasksController = new org.airsonic.player.controller.rest.statistics.ScheduledTasksController(
+                    scheduler, createSubsonicJaxbWriter());
+        }
+        return scheduledTasksController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.statistics.PathWatchersController createPathWatchersController(
+            org.airsonic.player.service.PathWatcherService pathWatcherService) {
+        if (pathWatchersController == null) {
+            pathWatchersController = new org.airsonic.player.controller.rest.statistics.PathWatchersController(
+                    pathWatcherService, createSubsonicJaxbWriter());
+        }
+        return pathWatchersController;
+    }
+
+    public synchronized org.airsonic.player.health.StatusAggregator createStatusAggregator() {
+        if (statusAggregator == null) {
+            statusAggregator = new org.airsonic.player.health.SimpleStatusAggregator(
+                    configuration.getHealthStatusOrder());
+        }
+        return statusAggregator;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.statistics.ServerHealthController
+            createServerHealthController(
+                    org.airsonic.player.health.HealthContributorRegistry contributors,
+                    com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+        if (serverHealthController == null) {
+            serverHealthController = new org.airsonic.player.controller.rest.statistics.ServerHealthController(
+                    contributors, createStatusAggregator(), objectMapper, createSubsonicJaxbWriter());
+        }
+        return serverHealthController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.statistics.CacheStatisticsController
+            createCacheStatisticsController(javax.cache.CacheManager cacheManager,
+                    io.micrometer.core.instrument.MeterRegistry meterRegistry) {
+        if (cacheStatisticsController == null) {
+            cacheStatisticsController = new org.airsonic.player.controller.rest.statistics.CacheStatisticsController(
+                    cacheManager, meterRegistry, createSubsonicJaxbWriter());
+        }
+        return cacheStatisticsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.upload.UploadStatusController createUploadStatusController(
+            org.airsonic.player.service.StatusService statusService,
+            org.airsonic.player.service.DatabaseService databaseService) {
+        if (uploadStatusController == null) {
+            uploadStatusController = new org.airsonic.player.controller.rest.upload.UploadStatusController(
+                    statusService, createSubsonicJaxbWriter(), databaseService);
+        }
+        return uploadStatusController;
     }
 
     public synchronized DataSource createDataSource() {
