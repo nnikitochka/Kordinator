@@ -348,6 +348,27 @@ class RuntimeCompositionRootGraphTest {
     }
 
     @Test
+    void rootCreatesAndOwnsOneDataSourceForThePersistenceGraph() {
+        LifecycleRegistry lifecycle = new LifecycleRegistry();
+        RuntimeConfiguration configuration = new RuntimeConfiguration(java.util.Map.of(
+                "spring.datasource.url", "jdbc:hsqldb:mem:runtime_root_datasource;hsqldb.tx=mvcc",
+                "spring.datasource.username", "sa",
+                "spring.datasource.password", ""));
+        RuntimeCompositionRoot root = new RuntimeCompositionRoot(configuration, lifecycle);
+
+        javax.sql.DataSource dataSource = root.createDataSource();
+        assertSame(dataSource, root.createDataSource());
+        PersistenceGraph graph = root.createPersistenceGraph(dataSource);
+        assertSame(graph, root.createPersistenceGraph(dataSource));
+        assertSame(dataSource, graph.getDataSource());
+        assertEquals(1, lifecycle.getShutdownItems().stream()
+                .filter(item -> item.name().equals("dataSource")).count());
+
+        root.getLifecycleRegistry().shutdown();
+        assertTrue(((com.zaxxer.hikari.HikariDataSource) dataSource).isClosed());
+    }
+
+    @Test
     void healthContributorsAreOwnedByCompositionRoot() {
         RuntimeCompositionRoot runtimeRoot = new RuntimeCompositionRoot();
         JDBCDataSource dataSource = new JDBCDataSource();

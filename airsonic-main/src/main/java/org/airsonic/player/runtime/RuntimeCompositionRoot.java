@@ -8,6 +8,8 @@ public final class RuntimeCompositionRoot {
 
     private final RuntimeConfiguration configuration;
     private final LifecycleRegistry lifecycleRegistry;
+    private DataSource dataSource;
+    private boolean dataSourceShutdownRegistered;
     private PersistenceGraph persistenceGraph;
     private javax.cache.CacheManager cacheManager;
     private org.airsonic.player.service.MediaFolderService mediaFolderService;
@@ -106,6 +108,25 @@ public final class RuntimeCompositionRoot {
 
     public LifecycleRegistry getLifecycleRegistry() {
         return lifecycleRegistry;
+    }
+
+    public synchronized DataSource createDataSource() {
+        if (dataSource == null) {
+            ownDataSource(RuntimeDataSourceFactory.INSTANCE.create(configuration));
+        }
+        return dataSource;
+    }
+
+    private void ownDataSource(DataSource candidate) {
+        Objects.requireNonNull(candidate, "dataSource");
+        if (dataSource != null && dataSource != candidate) {
+            throw new IllegalStateException("Runtime composition root already owns another DataSource");
+        }
+        dataSource = candidate;
+        if (candidate instanceof AutoCloseable closeable && !dataSourceShutdownRegistered) {
+            lifecycleRegistry.registerShutdown("dataSource", closeable);
+            dataSourceShutdownRegistered = true;
+        }
     }
 
     public synchronized org.airsonic.player.monitor.MetricsManager createMetricsManager() {
@@ -428,6 +449,7 @@ public final class RuntimeCompositionRoot {
 
     public synchronized PersistenceGraph createPersistenceGraph(DataSource dataSource) {
         Objects.requireNonNull(dataSource, "dataSource");
+        ownDataSource(dataSource);
         if (persistenceGraph != null) {
             if (persistenceGraph.getDataSource() != dataSource) {
                 throw new IllegalStateException("Persistence graph already created for another DataSource");
@@ -441,9 +463,6 @@ public final class RuntimeCompositionRoot {
         org.airsonic.player.dao.JdbcHelper jdbcHelper = jdbcFactory.jdbcHelper(dataSource, transactionManager);
         DaoGraph daoGraph = new DaoFactory().create(jdbcHelper, transactionManager);
         persistenceGraph = new PersistenceGraph(dataSource, transactionManager, jdbcHelper, daoGraph);
-        if (dataSource instanceof AutoCloseable closeable) {
-            lifecycleRegistry.registerShutdown("dataSource", closeable);
-        }
         return persistenceGraph;
     }
 

@@ -4,7 +4,6 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Bean
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
-import org.airsonic.player.runtime.RuntimeDataSourceFactory
 import org.airsonic.player.runtime.RuntimeLiquibaseMigrator
 
 /** Spring bootstrap adapter for the explicit Ktor bean factories. */
@@ -12,15 +11,12 @@ import org.airsonic.player.runtime.RuntimeLiquibaseMigrator
 class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     fun dataSource(runtime: org.airsonic.player.runtime.RuntimeCompositionRoot): javax.sql.DataSource =
-        RuntimeDataSourceFactory.create(runtime.configuration).also { dataSource ->
+        runtime.createDataSource().also { dataSource ->
             try {
                 RuntimeLiquibaseMigrator.update(runtime.configuration, dataSource)
             } catch (failure: Throwable) {
                 (dataSource as? AutoCloseable)?.close()
                 throw failure
-            }
-            if (dataSource is AutoCloseable) {
-                runtime.lifecycleRegistry.registerShutdown("dataSource", dataSource)
             }
         }
 

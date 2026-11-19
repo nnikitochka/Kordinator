@@ -406,6 +406,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** запуск `LifecycleRegistry` перенесён со Spring `ApplicationReadyEvent` внутрь инициализации Ktor servlet engine, после регистрации routes. Контекст больше не зависит от Spring application event для запуска backfill обложек и других runtime startup actions. `LifecycleRegistryTest`, `RuntimeCompositionRootGraphTest`, `LegacyDatabaseStartupTestCase` и `CoverArtServiceAccentColorTest` прошли 13/13; HTTP startup integration test не запускался из-за запрещённого sandbox loopback socket.
 
+**Срез 19 ноября 2026:** `RuntimeCompositionRoot` теперь создаёт и владеет единственным JDBC `DataSource`; Spring adapter лишь публикует root-owned объект и запускает на нём Liquibase. Выдача DataSource и PersistenceGraph регистрирует ровно одно закрытие в lifecycle, включая прямое создание графа для тестовых источников. `RuntimeCompositionRootGraphTest`, `RuntimeLiquibaseMigratorTest`, `LegacyDatabaseStartupTestCase` и `UserDaoTestCase` прошли 13/13.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
