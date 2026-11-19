@@ -251,12 +251,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         graph.shareDao, mediaFileService, jwtSecurityService)
 
     @Bean
-    override fun uploadFileService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        securityService: org.airsonic.player.service.SecurityService,
-    ): org.airsonic.player.service.UploadFileService = runtime.createUploadFileService(securityService)
-
-    @Bean
     override fun downloadService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         statusService: org.airsonic.player.service.StatusService,

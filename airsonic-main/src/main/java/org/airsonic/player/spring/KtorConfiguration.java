@@ -103,7 +103,6 @@ import org.airsonic.player.controller.rest.music.folder.MusicFoldersController;
 import org.airsonic.player.controller.rest.ping.PingController;
 import org.airsonic.player.controller.rest.playlists.PlaylistsController;
 import org.airsonic.player.controller.rest.upload.UploadController;
-import org.airsonic.player.service.UploadFileService;
 import org.airsonic.player.controller.rest.playlists.PlaylistExportController;
 import org.airsonic.player.controller.rest.playlists.PlaylistImportController;
 import org.airsonic.player.controller.rest.scan.ScanController;
@@ -384,10 +383,6 @@ public class KtorConfiguration {
         return runtime.createShareService(graph.getShareDao(), mediaFileService, jwtSecurityService);
     }
 
-    public UploadFileService uploadFileService(RuntimeCompositionRoot runtime, SecurityService securityService) {
-        return runtime.createUploadFileService(securityService);
-    }
-
     public CaptionService captionService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService, MediaFolderService mediaFolderService,
             SettingsService settingsService,
             JWTSecurityService jwtSecurityService) {
@@ -482,8 +477,7 @@ public class KtorConfiguration {
             LocaleService localeService,
             CoverArtImageService coverArtImageService,
             HlsPlaylistService hlsPlaylistService,
-            HlsSegmentService hlsSegmentService,
-            UploadFileService uploadFileService
+            HlsSegmentService hlsSegmentService
     ) throws java.io.IOException {
         runtime.createCoverArtAccentColorBackfill(coverArtService);
         JAXBWriter jaxbWriter = runtime.createSubsonicJaxbWriter();
@@ -526,7 +520,8 @@ public class KtorConfiguration {
                                 runtime.createKordinatorFavoriteRoutes(mediaFileService, mediaFolderService, securityService),
                                 runtime.createKordinatorLibraryRoutes(mediaFileService, mediaFolderService, securityService),
                                 kordinatorSessionService,
-                                runtime.createUploadController(uploadFileService, statusService, securityService, settingsService),
+                                runtime.createUploadController(runtime.createUploadFileService(securityService),
+                                        statusService, securityService, settingsService),
                                 runtime.createPlaylistExportController(playlistService),
                                 runtime.createPlaylistImportController(playlistService),
                                 runtime.createLiveQueueExportController(transcodingService, jwtSecurityService, securityService),
