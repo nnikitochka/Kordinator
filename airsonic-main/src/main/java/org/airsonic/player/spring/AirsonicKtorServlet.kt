@@ -61,7 +61,6 @@ import org.airsonic.player.service.MediaStreamService
 import org.airsonic.player.service.CoverArtImageService
 import org.airsonic.player.filter.RequestEncodingPolicy
 import org.airsonic.player.controller.rest.avatar.AvatarRestController
-import org.airsonic.player.controller.rest.proxy.ProxyRestController
 import org.airsonic.player.controller.rest.avatar.AvatarUploadController
 import io.ktor.http.parseQueryString
 import org.airsonic.player.controller.rest.cover.CoverArtActionsController
@@ -207,7 +206,6 @@ class AirsonicKtorServlet(
     metricsManager: MetricsManager,
     settingsService: org.airsonic.player.service.SettingsService,
 ) : ServletApplicationEngine() {
-    private val proxyRestController = ProxyRestController()
     private val callerContextAdapter = ServletCallerContextAdapter(securityService)
     private val requestFilterPipeline = KtorServletFilterPipeline(metricsManager)
     private val externalSecurityPipeline = KtorExternalSecurityPipeline(
@@ -338,7 +336,6 @@ class AirsonicKtorServlet(
         }
         application.routing {
             infrastructureRoutes(errorProperties, objectMapper)
-            proxyRestController.routes(this)
             searchController.routes(this) { call -> call.attributes[SEARCH_REQUEST_KEY] }
             musicFoldersController.routes(this) { call -> call.attributes[MUSIC_FOLDERS_REQUEST_KEY] }
             genresController.routes(this) { call -> call.attributes[REST_PARAMETERS_KEY] }
