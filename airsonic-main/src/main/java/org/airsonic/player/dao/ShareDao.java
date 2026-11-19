@@ -2,9 +2,6 @@ package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.Share;
-import org.springframework.transaction.annotation.Transactional;
-
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -70,13 +67,15 @@ public class ShareDao extends AbstractDao {
                 share.getLastVisited(), share.getVisitCount(), share.getId());
     }
 
-    @Transactional
     public void createSharedFiles(int shareId, List<Integer> mediaFileIds) {
         if (mediaFileIds == null || mediaFileIds.isEmpty()) {
             return;
         }
-        String sql = "insert into share_file (share_id, media_file_id) values (?, ?)";
-        batchedUpdate(sql, mediaFileIds.stream().map(x -> new Object[] { shareId, x }).collect(Collectors.toList()));
+        inTransaction(status -> {
+            String sql = "insert into share_file (share_id, media_file_id) values (?, ?)";
+            batchedUpdate(sql, mediaFileIds.stream().map(x -> new Object[] { shareId, x }).collect(Collectors.toList()));
+            return null;
+        });
     }
 
     public List<Integer> getSharedFiles(final int shareId, final List<MusicFolder> musicFolders) {

@@ -2,10 +2,6 @@ package org.airsonic.player.dao;
 
 import org.airsonic.player.domain.CoverArt;
 import org.airsonic.player.domain.CoverArt.EntityType;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
-
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -26,13 +22,15 @@ public class CoverArtDao extends AbstractDao {
         registerInserts("cover_art", null, Arrays.asList(COLUMNS.split(", ")), CoverArt.class);
     }
 
-    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void upsert(CoverArt art) {
-        int n = update(art);
+        inTransaction(TransactionManager.ISOLATION_READ_COMMITTED, status -> {
+            int n = update(art);
 
-        if (n == 0) {
-            insert("cover_art", art);
-        }
+            if (n == 0) {
+                insert("cover_art", art);
+            }
+            return null;
+        });
     }
 
     public int update(CoverArt art) {
@@ -57,11 +55,13 @@ public class CoverArtDao extends AbstractDao {
         update("delete from cover_art where entity_id=? and entity_type=?", id, type);
     }
 
-    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void expunge() {
-        update("delete from cover_art where entity_type='MEDIA_FILE' and entity_id in (select ca.entity_id from cover_art ca left join media_file m on ca.entity_id=m.id where m.id is null and ca.entity_type='MEDIA_FILE')");
-        update("delete from cover_art where entity_type='ALBUM' and entity_id in (select ca.entity_id from cover_art ca left join album a on ca.entity_id=a.id where a.id is null and ca.entity_type='ALBUM')");
-        update("delete from cover_art where entity_type='ARTTIST' and entity_id in (select ca.entity_id from cover_art ca left join artist a on ca.entity_id=a.id where a.id is null and ca.entity_type='ARTIST')");
+        inTransaction(TransactionManager.ISOLATION_READ_COMMITTED, status -> {
+            update("delete from cover_art where entity_type='MEDIA_FILE' and entity_id in (select ca.entity_id from cover_art ca left join media_file m on ca.entity_id=m.id where m.id is null and ca.entity_type='MEDIA_FILE')");
+            update("delete from cover_art where entity_type='ALBUM' and entity_id in (select ca.entity_id from cover_art ca left join album a on ca.entity_id=a.id where a.id is null and ca.entity_type='ALBUM')");
+            update("delete from cover_art where entity_type='ARTTIST' and entity_id in (select ca.entity_id from cover_art ca left join artist a on ca.entity_id=a.id where a.id is null and ca.entity_type='ARTIST')");
+            return null;
+        });
     }
 
     private static class CoverArtRowMapper implements RowMapper<CoverArt> {
