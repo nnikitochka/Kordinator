@@ -517,6 +517,42 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime.createUserAdministrationService(securityService, settingsService)
 
     @Bean
+    override fun versionService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+    ): org.airsonic.player.service.VersionService = runtime.createVersionService()
+
+    @Bean
+    override fun serverInfoService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        versionService: org.airsonic.player.service.VersionService,
+        settingsService: org.airsonic.player.service.SettingsService,
+    ): org.airsonic.player.service.ServerInfoService = runtime.createServerInfoService(versionService, settingsService)
+
+    @Bean
+    override fun localeService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        settingsService: org.airsonic.player.service.SettingsService,
+    ): org.airsonic.player.i18n.LocaleService = runtime.createLocaleService(settingsService)
+
+    @Bean
+    override fun statusService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        mediaFolderService: org.airsonic.player.service.MediaFolderService,
+        settingsService: org.airsonic.player.service.SettingsService,
+        taskSchedulingService: org.airsonic.player.service.TaskSchedulingService,
+    ): org.airsonic.player.service.StatusService = runtime.createStatusService(
+        mediaFileService, mediaFolderService, settingsService, taskSchedulingService)
+
+    @Bean
+    override fun passwordRecoveryService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        settingsService: org.airsonic.player.service.SettingsService,
+        securityService: org.airsonic.player.service.SecurityService,
+    ): org.airsonic.player.service.PasswordRecoveryService =
+        runtime.createPasswordRecoveryService(settingsService, securityService)
+
+    @Bean
     override fun audioScrobblerService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         settingsService: org.airsonic.player.service.SettingsService,

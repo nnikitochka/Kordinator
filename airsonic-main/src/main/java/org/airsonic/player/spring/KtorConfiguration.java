@@ -415,18 +415,15 @@ public class KtorConfiguration {
         return runtime.createPlayerDaoPlayQueueFactory();
     }
 
-    @Bean
     public VersionService versionService(RuntimeCompositionRoot runtime) throws java.io.IOException {
         return runtime.createVersionService();
     }
 
-    @Bean
     public ServerInfoService serverInfoService(RuntimeCompositionRoot runtime, VersionService versionService,
             SettingsService settingsService) {
         return runtime.createServerInfoService(versionService, settingsService);
     }
 
-    @Bean
     public LocaleService localeService(RuntimeCompositionRoot runtime, SettingsService settingsService) {
         return runtime.createLocaleService(settingsService);
     }
@@ -436,7 +433,6 @@ public class KtorConfiguration {
         return new LocaleResolver(securityService, localeService);
     }
 
-    @Bean
     public StatusService statusService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService,
             MediaFolderService mediaFolderService, SettingsService settingsService,
             TaskSchedulingService taskSchedulingService) {
@@ -467,7 +463,6 @@ public class KtorConfiguration {
         return runtime.createSearchService(mediaFileService);
     }
 
-    @Bean
     public PasswordRecoveryService passwordRecoveryService(RuntimeCompositionRoot runtime, SettingsService settingsService,
             SecurityService securityService) {
         return runtime.createPasswordRecoveryService(settingsService, securityService);
