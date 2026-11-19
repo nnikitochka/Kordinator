@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.jmx.JmxAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.MultipartAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration;
+import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
@@ -20,7 +21,8 @@ import java.lang.reflect.Method;
 @EnableAutoConfiguration(exclude = {
     JmxAutoConfiguration.class,
     MultipartAutoConfiguration.class, // TODO: update to use spring boot builtin multipart support
-    ErrorMvcAutoConfiguration.class
+    ErrorMvcAutoConfiguration.class,
+    LiquibaseAutoConfiguration.class
 })
 @Import({org.airsonic.player.spring.KtorSpringConfigurationAdapter.class, org.airsonic.player.security.GlobalSecurityConfig.class})
 public class Application extends SpringBootServletInitializer implements WebServerFactoryCustomizer<ConfigurableServletWebServerFactory> {

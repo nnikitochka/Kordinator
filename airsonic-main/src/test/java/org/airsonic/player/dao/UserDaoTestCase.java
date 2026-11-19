@@ -10,9 +10,6 @@ import org.airsonic.player.domain.UserSettings;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -37,7 +34,7 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
     UserDao userDao;
 
     @Autowired
-    PlatformTransactionManager platformTransactionManager;
+    TransactionManager transactionManager;
 
     @Before
     public void setUp() {
@@ -224,8 +221,10 @@ public class UserDaoTestCase extends DaoTestCaseBean2 {
     }
 
     private void inNewTransaction(Runnable action) {
-        TransactionTemplate transaction = new TransactionTemplate(platformTransactionManager);
-        transaction.setPropagationBehavior(Propagation.REQUIRES_NEW.value());
-        transaction.executeWithoutResult(status -> action.run());
+        transactionManager.executeWithoutResult(
+                new TransactionManager.TransactionDefinition(
+                        TransactionManager.PROPAGATION_REQUIRES_NEW,
+                        TransactionManager.ISOLATION_DEFAULT),
+                status -> action.run());
     }
 }

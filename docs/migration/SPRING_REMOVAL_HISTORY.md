@@ -368,6 +368,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** `spring-boot-starter-json` заменён прямыми Jackson-зависимостями (`databind`, JDK 8, JSR-310, parameter names); Kotlin и JAXB модули уже подключены отдельно. `UtilTest` и `VersionTestCase` прошли 14/14; dependency tree для выбранных артефактов содержит Jackson databind и не содержит Boot JSON starter.
 
+**Срез 19 ноября 2026:** `spring-boot-starter-jdbc` удалён. JDBC pool теперь создаётся через нейтральный `RuntimeDataSourceFactory`, а production Liquibase changelog применяется `RuntimeLiquibaseMigrator` до сборки DAO-графа; Boot Liquibase auto-configuration отключена. Сохранены передача Liquibase parameters, contexts/labels, Hikari settings и JNDI datasource. Тест проверяет применение production changelog на HSQL, а `RuntimeLiquibaseMigratorTest` + `UserDaoTestCase` прошли 9/9. DAO test base больше не требует Spring test `@Transactional`: тесты выполняют явные транзакции проектным `TransactionManager`.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

@@ -2,13 +2,28 @@ package org.airsonic.player.spring
 
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.DependsOn
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import org.airsonic.player.runtime.RuntimeDataSourceFactory
+import org.airsonic.player.runtime.RuntimeLiquibaseMigrator
 
 /** Spring bootstrap adapter for the explicit Ktor bean factories. */
 @Configuration
 class KtorSpringConfigurationAdapter : KtorConfiguration() {
+    @Bean
+    fun dataSource(runtime: org.airsonic.player.runtime.RuntimeCompositionRoot): javax.sql.DataSource =
+        RuntimeDataSourceFactory.create(runtime.configuration).also { dataSource ->
+            try {
+                RuntimeLiquibaseMigrator.update(runtime.configuration, dataSource)
+            } catch (failure: Throwable) {
+                (dataSource as? AutoCloseable)?.close()
+                throw failure
+            }
+            if (dataSource is AutoCloseable) {
+                runtime.lifecycleRegistry.registerShutdown("dataSource", dataSource)
+            }
+        }
+
     @Bean
     fun meterRegistry(): MeterRegistry = SimpleMeterRegistry()
 
@@ -378,7 +393,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         transcodingDao, settingsService, mediaFolderService, playerServiceProvider::getObject)
 
     @Bean
-    @DependsOn("liquibase")
     override fun playerService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         playerDao: org.airsonic.player.dao.PlayerDao,
