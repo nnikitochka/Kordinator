@@ -583,7 +583,8 @@ class AirsonicKtorServlet(
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-            request.getRequestDispatcher("/WEB-INF/jsp/accessDenied.jsp").forward(request, response)
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
             return
         }
         if (path in NotFoundPageController.PATHS) {
@@ -599,7 +600,8 @@ class AirsonicKtorServlet(
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-            request.getRequestDispatcher("/WEB-INF/jsp/notFound.jsp").forward(request, response)
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
             return
         }
         if (path in LoginPageController.PATHS) {
@@ -619,7 +621,8 @@ class AirsonicKtorServlet(
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-            request.getRequestDispatcher("/WEB-INF/jsp/login.jsp").forward(request, response)
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
             return
         }
         if (path in IndexPageController.PAGE_PATHS) {
@@ -641,7 +644,8 @@ class AirsonicKtorServlet(
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-            request.getRequestDispatcher("/WEB-INF/jsp/index.jsp").forward(request, response)
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
             return
         }
         if (path in RightPageController.PAGE_PATHS) {
@@ -661,7 +665,8 @@ class AirsonicKtorServlet(
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-            request.getRequestDispatcher("/WEB-INF/jsp/right.jsp").forward(request, response)
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
             return
         }
         if (path in StarredPageController.PAGE_PATHS) {
@@ -681,7 +686,8 @@ class AirsonicKtorServlet(
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-            request.getRequestDispatcher("/WEB-INF/jsp/starred.jsp").forward(request, response)
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
             return
         }
         if (path in TagEditorPageController.PAGE_PATHS) {
@@ -701,7 +707,8 @@ class AirsonicKtorServlet(
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-            request.getRequestDispatcher("/WEB-INF/jsp/editTags.jsp").forward(request, response)
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
             return
         }
         if (path == "/changeCoverArt" || path == "/changeCoverArt.view") {
@@ -729,7 +736,8 @@ class AirsonicKtorServlet(
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-            request.getRequestDispatcher("/WEB-INF/jsp/changeCoverArt.jsp").forward(request, response)
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
             return
         }
         if (path == "/lyrics" || path == "/lyrics.view") {
@@ -749,7 +757,8 @@ class AirsonicKtorServlet(
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-            request.getRequestDispatcher("/WEB-INF/jsp/lyrics.jsp").forward(request, response)
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
             return
         }
         if (path == BookmarksPageController.DATA_PATH || path in BookmarksPageController.PAGE_PATHS) {
@@ -768,7 +777,8 @@ class AirsonicKtorServlet(
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
                 org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-                request.getRequestDispatcher("/WEB-INF/jsp/bookmarks.jsp").forward(request, response)
+                response.sendError(HttpServletResponse.SC_NOT_FOUND)
+                return
                 return
             }
         }
@@ -790,7 +800,8 @@ class AirsonicKtorServlet(
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
                 org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-                request.getRequestDispatcher("/WEB-INF/jsp/playlist.jsp").forward(request, response)
+                response.sendError(HttpServletResponse.SC_NOT_FOUND)
+                return
                 return
             }
         }
@@ -815,7 +826,8 @@ class AirsonicKtorServlet(
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
                 org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-                request.getRequestDispatcher("/WEB-INF/jsp/mediaMain.jsp").forward(request, response)
+                response.sendError(HttpServletResponse.SC_NOT_FOUND)
+                return
                 return
             }
         }
@@ -835,7 +847,8 @@ class AirsonicKtorServlet(
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
                 org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-                request.getRequestDispatcher("/WEB-INF/jsp/playlists.jsp").forward(request, response)
+                response.sendError(HttpServletResponse.SC_NOT_FOUND)
+                return
                 return
             }
         }
@@ -857,7 +870,8 @@ class AirsonicKtorServlet(
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
                 org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-                request.getRequestDispatcher("/WEB-INF/jsp/left.jsp").forward(request, response)
+                response.sendError(HttpServletResponse.SC_NOT_FOUND)
+                return
                 return
             }
         }
@@ -901,7 +915,8 @@ class AirsonicKtorServlet(
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-            request.getRequestDispatcher("/WEB-INF/jsp/more.jsp").forward(request, response)
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
             return
         }
         if (path in NowPlayingPageController.PATHS) {
@@ -951,7 +966,8 @@ class AirsonicKtorServlet(
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-            request.getRequestDispatcher("/WEB-INF/jsp/playQueue.jsp").forward(request, response)
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
             return
         }
         if (path in ServerInfoController.PATHS || path == ServerInfoController.GETTING_STARTED_PATH) {
@@ -991,7 +1007,8 @@ class AirsonicKtorServlet(
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-            request.getRequestDispatcher("/WEB-INF/jsp/recover.jsp").forward(request, response)
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
             return
         }
         if (path == VideoPlayerRestController.PATH) {
@@ -1107,7 +1124,8 @@ class AirsonicKtorServlet(
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
                 request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
                 org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-                request.getRequestDispatcher("/WEB-INF/jsp/externalPlayer.jsp").forward(request, response)
+                response.sendError(HttpServletResponse.SC_NOT_FOUND)
+                return
                 return
             }
             request.setAttribute(PUBLIC_SHARE_REQUEST, publicRequest)
@@ -1136,7 +1154,8 @@ class AirsonicKtorServlet(
             request.setAttribute("playerSettingsAdmin", user.isAdminRole)
             request.setAttribute("personalSettingsUsername", user.username)
             val page = path.removePrefix("/").removeSuffix(".view")
-            request.getRequestDispatcher("/WEB-INF/jsp/$page.jsp").forward(request, response)
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
             return
         }
         if (path.startsWith("/ext/rest-hls/")) {
@@ -1172,7 +1191,8 @@ class AirsonicKtorServlet(
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-            request.getRequestDispatcher("/WEB-INF/jsp/home.jsp").forward(request, response)
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
             return
         }
         if (path == HomePageController.DATA_PATH) {
@@ -1202,7 +1222,8 @@ class AirsonicKtorServlet(
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_RESOLVER_ATTRIBUTE, themeResolver)
             request.setAttribute(org.springframework.web.servlet.DispatcherServlet.THEME_SOURCE_ATTRIBUTE, themeSource)
             org.springframework.web.servlet.support.JstlUtils.exposeLocalizationContext(request, context)
-            request.getRequestDispatcher("/WEB-INF/jsp/search.jsp").forward(request, response)
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
             return
         }
         if (path == SearchPageController.DATA_PATH) {
@@ -1913,7 +1934,7 @@ class AirsonicKtorServlet(
             "/videoPlayer", "/help", "/gettingStarted", "/userSettings", "/musicFolderSettings",
             "/generalSettings", "/transcodingSettings", "/advancedSettings", "/playerSettings",
             "/personalSettings", "/shareSettings", "/credentialsSettings", "/databaseSettings",
-            "/dlnaSettings", "/settings", "/top", "/status",
+            "/dlnaSettings", "/settings", "/top", "/status", "/ext/share",
         )
         const val STREAM_REQUEST = "org.airsonic.player.streamRequest"
         val STREAM_REQUEST_KEY = AttributeKey<StreamRestController.Request>(STREAM_REQUEST)

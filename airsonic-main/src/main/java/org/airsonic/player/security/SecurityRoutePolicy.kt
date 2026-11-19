@@ -18,8 +18,7 @@ object SecurityRoutePolicy {
 
     @JvmField
     val WEB_PUBLIC_PATHS = listOf(
-        "/rest/recover", "/recover*", "/accessDenied*", "/style/**", "/icons/**", "/flash/**", "/script/**",
-        "/login", "/error",
+        "/rest/recover", "/error",
     )
 
     @JvmField
