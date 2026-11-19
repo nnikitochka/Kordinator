@@ -177,9 +177,8 @@ public class KtorConfiguration {
 
     @Bean
     public org.airsonic.player.controller.rest.genres.GenresService subsonicGenresService(
-            org.airsonic.player.runtime.DaoGraph graph) {
-        return new org.airsonic.player.controller.rest.genres.GenresService(
-                () -> graph.getMediaFileDao().getGenres(false));
+            RuntimeCompositionRoot runtime) {
+        return runtime.createSubsonicGenresService();
     }
 
     @Bean
@@ -199,9 +198,8 @@ public class KtorConfiguration {
 
     @Bean
     public org.airsonic.player.controller.rest.music.folder.MusicFoldersService subsonicMusicFoldersService(
-            MediaFolderService mediaFolderService) {
-        return new org.airsonic.player.controller.rest.music.folder.MusicFoldersService(
-                mediaFolderService::getMusicFoldersForUser);
+            RuntimeCompositionRoot runtime, MediaFolderService mediaFolderService) {
+        return runtime.createSubsonicMusicFoldersService(mediaFolderService);
     }
 
     @Bean
@@ -227,9 +225,8 @@ public class KtorConfiguration {
     @Bean
     public org.airsonic.player.controller.rest.search.SearchService subsonicSearchService(
             SearchService searchService, MediaFolderService mediaFolderService,
-            SubsonicResponseMapper subsonicResponseMapper, JAXBWriter subsonicJaxbWriter) {
-        return new org.airsonic.player.controller.rest.search.SearchService(
-                searchService, mediaFolderService, subsonicResponseMapper, subsonicJaxbWriter);
+            SubsonicResponseMapper subsonicResponseMapper, RuntimeCompositionRoot runtime) {
+        return runtime.createSubsonicSearchService(searchService, mediaFolderService, subsonicResponseMapper);
     }
 
     @Bean

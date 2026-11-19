@@ -418,6 +418,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** `RuntimeCompositionRoot` теперь владеет singleton `JAXBWriter`, `SubsonicResponseMapper` и `RestPlayerResolver`; Spring bean factory только публикует root-owned instances. Graph test проверяет singleton identity всех трёх и проходит 3/3 без Spring context.
 
+**Срез 19 ноября 2026:** root теперь также владеет прикладными Subsonic `GenresService`, `MusicFoldersService` и REST `SearchService`; singleton identity и создание без Spring проверяются через `RuntimeCompositionRootGraphTest` (3/3). REST integration suite собрался, но HTTP application-context tests не смогли поднять Tomcat из-за sandbox-запрета loopback socket (`Operation not permitted`).
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
