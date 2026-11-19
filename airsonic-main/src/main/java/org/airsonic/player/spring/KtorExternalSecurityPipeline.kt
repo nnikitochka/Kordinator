@@ -4,12 +4,11 @@ import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
-import org.airsonic.player.security.JWTAuthenticationToken
+import org.airsonic.player.security.ExternalJwtPrincipal
 import org.airsonic.player.security.JwtTokenVerifier
 import org.airsonic.player.security.SecurityRoutePolicy
+import org.airsonic.player.service.JWTSecurityService
 import org.airsonic.player.service.SettingsService
-import org.springframework.security.core.Authentication
-import org.springframework.security.core.authority.SimpleGrantedAuthority
 import java.security.Principal
 
 /** Temporary servlet boundary adapter for the stateless external player routes. */
@@ -56,28 +55,25 @@ internal class KtorExternalSecurityPipeline(
             return
         }
         val token = verification.token
-        val authentication = JWTAuthenticationToken(
+        val principal = ExternalJwtPrincipal(
             token.subject,
-            rawToken,
-            requestedPath,
-            JWT_AUTHORITIES,
-            token,
+            token.getClaim(JWTSecurityService.CLAIM_PATH).asString(),
+            token.expiresAt?.toInstant(),
+            JWT_ROLES,
         )
 
-        if (!authentication.isAuthenticated || !isAuthorizedForPath(request, authentication)) {
+        if (!isAuthorizedForPath(request, principal)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN)
             return
         }
 
-        terminal.doFilter(AuthenticatedRequest(request, authentication), response)
+        terminal.doFilter(AuthenticatedRequest(request, principal), response)
     }
 
-    private fun isAuthorizedForPath(request: HttpServletRequest, authentication: Authentication): Boolean {
+    private fun isAuthorizedForPath(request: HttpServletRequest, principal: ExternalJwtPrincipal): Boolean {
         val path = request.servletPath + (request.pathInfo ?: "")
         val requiresRole = SecurityRoutePolicy.EXT_ROLE_PATHS.any { SecurityRoutePolicy.matchesPathPattern(it, path) }
-        return !requiresRole || SecurityRoutePolicy.EXT_ROLE_NAMES.any { role ->
-            authentication.authorities.any { it.authority == "ROLE_$role" }
-        }
+        return !requiresRole || SecurityRoutePolicy.EXT_ROLE_NAMES.any(principal::hasRole)
     }
 
     private fun isExternalPath(servletPath: String): Boolean =
@@ -96,22 +92,17 @@ internal class KtorExternalSecurityPipeline(
 
     private class AuthenticatedRequest(
         request: HttpServletRequest,
-        private val authentication: Authentication,
+        private val principal: ExternalJwtPrincipal,
     ) : HttpServletRequestWrapper(request) {
-        override fun getUserPrincipal(): Principal = authentication
+        override fun getUserPrincipal(): Principal = principal
 
-        override fun getRemoteUser(): String = authentication.name
+        override fun getRemoteUser(): String = principal.name
 
-        override fun isUserInRole(role: String): Boolean = authentication.authorities.any {
-            it.authority == "ROLE_$role"
-        }
+        override fun isUserInRole(role: String): Boolean = principal.hasRole(role)
     }
 
     private companion object {
         const val FAILURE_URL = "/login?error"
-        val JWT_AUTHORITIES = mutableListOf(
-            SimpleGrantedAuthority("IS_AUTHENTICATED_FULLY"),
-            SimpleGrantedAuthority("ROLE_TEMP"),
-        )
+        val JWT_ROLES = setOf("ROLE_TEMP")
     }
 }

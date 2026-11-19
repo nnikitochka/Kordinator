@@ -31,9 +31,6 @@ import org.airsonic.player.controller.captions.CaptionsRestController
 import org.airsonic.player.controller.rest.shares.PublicShareController
 import org.airsonic.player.controller.rest.hls.HlsRestController
 import org.airsonic.player.controller.rest.hls.HlsSegmentRestController
-import org.airsonic.player.service.JWTSecurityService
-import com.auth0.jwt.interfaces.DecodedJWT
-import org.springframework.security.core.Authentication
 import org.airsonic.player.controller.rest.starred.StarredController
 import org.airsonic.player.controller.rest.starred.StarredPageController
 import org.airsonic.player.controller.rest.starred.StarredRequest
@@ -109,7 +106,7 @@ import org.airsonic.player.controller.rest.music.top.TopSongsController
 import org.airsonic.player.controller.rest.music.top.TopSongsRequest
 import org.airsonic.player.controller.rest.music.directory.MusicDirectoryController
 import org.airsonic.player.controller.rest.music.directory.MusicDirectoryRequest
-import org.airsonic.player.security.SpringCallerContextAdapter
+import org.airsonic.player.security.ServletCallerContextAdapter
 import org.airsonic.player.controller.rest.music.random.RandomSongsController
 import org.airsonic.player.controller.rest.music.random.RandomSongsRequest
 import org.airsonic.player.controller.rest.scrobble.ScrobbleController
@@ -143,14 +140,13 @@ import org.airsonic.player.controller.rest.error.ErrorCode
 import org.airsonic.player.service.DownloadService
 import org.springframework.http.ContentDisposition
 import org.springframework.web.context.request.ServletWebRequest
-import org.springframework.security.access.AccessDeniedException
 import org.apache.commons.io.FilenameUtils
 import java.nio.charset.StandardCharsets
 import java.util.Optional
 import org.airsonic.player.i18n.LocaleResolver
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.NetworkService
-import org.airsonic.player.security.JWTAuthenticationToken
+import org.airsonic.player.security.ExternalJwtPrincipal
 import org.airsonic.player.security.HlsLinkContext
 import org.airsonic.player.security.AuthorizationDeniedException
 import org.airsonic.player.service.PlayerService
@@ -158,6 +154,7 @@ import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.ShareService
 import org.airsonic.player.util.StringUtil
 import org.apache.commons.lang.StringUtils
+import java.security.Principal
 class AirsonicKtorServlet(
     private val searchController: SearchController,
     private val searchPageController: SearchPageController,
@@ -259,7 +256,7 @@ class AirsonicKtorServlet(
     private val themeSource: org.springframework.ui.context.ThemeSource,
 ) : ServletApplicationEngine() {
     private val proxyRestController = ProxyRestController()
-    private val callerContextAdapter = SpringCallerContextAdapter(securityService)
+    private val callerContextAdapter = ServletCallerContextAdapter(securityService)
     private val requestFilterPipeline = KtorServletFilterPipeline(metricsManager)
     private val externalSecurityPipeline = KtorExternalSecurityPipeline(
         settingsService,
@@ -554,10 +551,9 @@ class AirsonicKtorServlet(
         })
     }
 
-    private fun hlsLinkContext(authentication: Authentication): HlsLinkContext {
-        val jwt = authentication as? JWTAuthenticationToken
-        val expiration = (jwt?.details as? DecodedJWT)?.expiresAt?.toInstant()
-        return HlsLinkContext(authentication.name, jwt != null, expiration)
+    private fun hlsLinkContext(principal: Principal): HlsLinkContext {
+        val jwt = principal as? ExternalJwtPrincipal
+        return HlsLinkContext(principal.name, jwt != null, jwt?.expiresAt)
     }
 
     private fun serviceRequest(request: HttpServletRequest, response: HttpServletResponse) {
@@ -1047,7 +1043,7 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
                 return
             }
-            val auth = request.userPrincipal as Authentication
+            val auth = request.userPrincipal as Principal
             val id = request.getParameter("id")?.toIntOrNull()
             if (id == null) {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST)
@@ -1058,9 +1054,10 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_NOT_FOUND)
                 return
             }
-            val signed = auth is JWTAuthenticationToken
-            if (auth is JWTAuthenticationToken) {
-                val expected = (auth.details as? DecodedJWT)?.getClaim(JWTSecurityService.CLAIM_PATH)?.asString()
+            val jwt = auth as? ExternalJwtPrincipal
+            val signed = jwt != null
+            if (jwt != null) {
+                val expected = jwt.signedPath
                 val valid = try {
                     val params = parseQueryParams(expected)
                     // A public link grants access to this video's subtitles only.
@@ -1077,7 +1074,7 @@ class AirsonicKtorServlet(
             }
             request.setAttribute(CAPTIONS_REQUEST, CaptionsRestController.Request(file,
                 org.airsonic.player.service.NetworkService.getBaseUrl(request), if (signed) auth.name else null,
-                if (auth is JWTAuthenticationToken) JWTSecurityService.getExpiration(auth) else null,
+                jwt?.expiresAt,
                 request.getParameter("captionId"), request.getParameter("format")))
         }
         if (path == PublicShareController.PAGE_PATH || path == PublicShareController.DATA_PATH) {
@@ -1092,12 +1089,12 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_NOT_FOUND)
                 return
             }
-            val auth = request.userPrincipal as? JWTAuthenticationToken
+            val auth = request.userPrincipal as? ExternalJwtPrincipal
             if (auth == null) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
-            val expiration = JWTSecurityService.getExpiration(auth)
+            val expiration = auth.expiresAt
             val publicRequest = PublicShareController.Request(name, playerService.getGuestPlayer(request),
                 NetworkService.getBaseUrl(request), expiration)
             if (path == PublicShareController.PAGE_PATH) {
@@ -1144,9 +1141,8 @@ class AirsonicKtorServlet(
             return
         }
         if (path.startsWith("/ext/rest-hls/")) {
-            val auth = request.userPrincipal as? JWTAuthenticationToken
-            val token = auth?.details as? DecodedJWT
-            val expected = token?.getClaim(JWTSecurityService.CLAIM_PATH)?.asString()
+            val auth = request.userPrincipal as? ExternalJwtPrincipal
+            val expected = auth?.signedPath
             val actual = request.requestURI.substring(request.contextPath.length + 1) + "?" + request.queryString
             val valid = try {
                 val signed = parseUriComponents(expected)
@@ -1411,12 +1407,6 @@ class AirsonicKtorServlet(
                         return
                     }
                     request.setAttribute(DOWNLOAD_REQUEST, DownloadRequest(params, null, ErrorCode.GENERIC, "Request processing failed: $e"))
-                } catch (e: AccessDeniedException) {
-                    if (path.endsWith(".view")) {
-                        response.sendError(HttpServletResponse.SC_FORBIDDEN)
-                        return
-                    }
-                    request.setAttribute(DOWNLOAD_REQUEST, DownloadRequest(params, null, ErrorCode.GENERIC, "Request processing failed: $e"))
                 }
             }
         } else if (path in NowPlayingController.PATHS) {
@@ -1629,7 +1619,7 @@ class AirsonicKtorServlet(
                     else -> super.getParameter(name)
                 }
             } else request
-            val authentication = request.userPrincipal as Authentication
+            val authentication = request.userPrincipal as Principal
             val restUser = if (restStream) requireNotNull(securityService.getUserByName(authentication.name)) else null
             if (restUser != null && !restUser.isStreamRole) {
                 jaxbWriter.writeErrorResponse(wrapped, response, ErrorCode.NOT_AUTHORIZED,
@@ -1638,23 +1628,24 @@ class AirsonicKtorServlet(
             }
             val player = playerService.getPlayer(wrapped, response, false, true)
             val user = restUser ?: requireNotNull(securityService.getUserByName(player.username))
-            if (!restStream && authentication !is JWTAuthenticationToken && !user.isStreamRole) {
+            val jwt = authentication as? ExternalJwtPrincipal
+            if (!restStream && jwt == null && !user.isStreamRole) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
             val file = request.getParameter("path")?.let { mediaFileService.getMediaFile(it) }
                 ?: id?.let { mediaFileService.getMediaFile(it) }
              val callerContext = callerContextAdapter.fromRequest(request)
-             if (file != null && (restStream || authentication !is JWTAuthenticationToken)
+             if (file != null && (restStream || jwt == null)
                  && !securityService.isFolderAccessAllowed(file, callerContext)) {
                 if (!restStream || path.endsWith(".view")) {
                     response.sendError(HttpServletResponse.SC_FORBIDDEN)
                     return
                 }
-                throw AccessDeniedException("Access to file ${file.id} is forbidden for user ${user.username}")
+                throw AuthorizationDeniedException("Access to file ${file.id} is forbidden for user ${user.username}")
             }
             val webRequest = ServletWebRequest(wrapped, response)
-             request.setAttribute(STREAM_REQUEST, StreamRestController.Request(authentication is JWTAuthenticationToken, callerContext, player, user,
+            request.setAttribute(STREAM_REQUEST, StreamRestController.Request(jwt != null, callerContext, player, user,
                 request.getParameter("format"), request.getParameter("suffix"), bitRate, id, request.getParameter("path"), offset,
                 MediaStreamService.VideoOptions(request.getParameter("maxBitRate"), request.getParameter("timeOffset"),
                     request.getParameter("duration"), request.getParameter("size")), request.getHeader("icy-metadata"),
@@ -1662,7 +1653,7 @@ class AirsonicKtorServlet(
                 { response.status }))
         } else if ((path in HlsRestController.WEBSITE_PATHS || path == "/hls/segment" || path == "/ext/hls/segment")
             && request.method in setOf("GET", "HEAD")) {
-            val auth = request.userPrincipal as Authentication
+            val auth = request.userPrincipal as Principal
             val rawPlayer = request.getParameter("player")
             val id = request.getParameter("id")?.toIntOrNull()
             if (id == null || (rawPlayer != null && rawPlayer.toIntOrNull() == null)) {
@@ -1676,7 +1667,8 @@ class AirsonicKtorServlet(
             }
             val player = playerService.getPlayer(request, response)
             val user = requireNotNull(securityService.getUserByName(auth.name))
-            val signed = auth is JWTAuthenticationToken
+            val jwt = auth as? ExternalJwtPrincipal
+            val signed = jwt != null
             val callerContext = callerContextAdapter.fromRequest(request)
             if (!signed && !securityService.isFolderAccessAllowed(media, callerContext)) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
@@ -1706,7 +1698,7 @@ class AirsonicKtorServlet(
                     response.sendError(HttpServletResponse.SC_BAD_REQUEST)
                     return
                 }
-                request.setAttribute(HLS_SEGMENT_REQUEST, HlsSegmentRestController.Request(auth is JWTAuthenticationToken, user, callerContext, player,
+                request.setAttribute(HLS_SEGMENT_REQUEST, HlsSegmentRestController.Request(jwt != null, user, callerContext, player,
                     id, rawPlayer, index, bitRate, size, duration, audioTrack, false))
             }
         } else if (path in HlsRestController.PATHS && request.method in setOf("GET", "POST", "HEAD")) {
@@ -1736,7 +1728,7 @@ class AirsonicKtorServlet(
                     "${user.username} is not authorized to play files.")
                 return
             }
-            val authentication = request.userPrincipal as Authentication
+            val authentication = request.userPrincipal as Principal
             val mediaFile = mediaFileService.getMediaFile(id)
             val player = playerService.getPlayer(wrapped, response)
             if (mediaFile == null || mediaFile.isDirectory) {
@@ -1749,7 +1741,7 @@ class AirsonicKtorServlet(
                     response.sendError(HttpServletResponse.SC_FORBIDDEN)
                     return
                 }
-                throw AccessDeniedException("Access to file ${mediaFile.id} is forbidden for user ${player.username}")
+                throw AuthorizationDeniedException("Access to file ${mediaFile.id} is forbidden for user ${player.username}")
             }
             val duration = mediaFile.duration
             if (duration == null || duration < 0.0001) {
@@ -1761,7 +1753,7 @@ class AirsonicKtorServlet(
                 NetworkService.getBaseUrl(request), prefix, request.getParameterValues("maxBitRate"),
                 request.getParameter("size")))
         } else if (path in HlsSegmentRestController.PATHS && request.method in setOf("GET", "HEAD")) {
-            val auth = request.userPrincipal as Authentication
+            val auth = request.userPrincipal as Principal
             val user = securityService.getUserByName(auth.name)
             if (user == null || !user.isStreamRole) {
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
@@ -1796,7 +1788,7 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
-            request.setAttribute(HLS_SEGMENT_REQUEST, HlsSegmentRestController.Request(auth is JWTAuthenticationToken, user, callerContext, player,
+            request.setAttribute(HLS_SEGMENT_REQUEST, HlsSegmentRestController.Request(auth is ExternalJwtPrincipal, user, callerContext, player,
                 id, playerId, index, bitRate, size, duration, audioTrack))
         } else if (path == LiveQueueExportController.PATH && request.method in setOf("GET", "HEAD")) {
             val username = requireNotNull(securityService.getCurrentUsername(request))
@@ -1859,9 +1851,9 @@ class AirsonicKtorServlet(
             request.setAttribute(REST_PARAMETERS, parametersWithMappedId(request))
         } else if (path in CoverArtRestController.LEGACY_PATHS) {
             val params = parameters(request)
-            if (path.startsWith("/ext/coverArt") && request.userPrincipal is JWTAuthenticationToken) {
-                val auth = request.userPrincipal as JWTAuthenticationToken
-                val expected = (auth.details as? DecodedJWT)?.getClaim(JWTSecurityService.CLAIM_PATH)?.asString()
+            if (path.startsWith("/ext/coverArt") && request.userPrincipal is ExternalJwtPrincipal) {
+                val auth = request.userPrincipal as ExternalJwtPrincipal
+                val expected = auth.signedPath
                 val signedId = try {
                     parseQueryParams(expected)["id"]?.firstOrNull()
                 } catch (_: IllegalArgumentException) { null }
