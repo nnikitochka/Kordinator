@@ -492,6 +492,18 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 20 ноября 2026:** удалены Spring projections Subsonic `JAXBWriter`, `RestPlayerResolver`, response mapper и четырёх route controllers вместе с их вспомогательными service wrappers. Servlet registration запрашивает всё это напрямую из `RuntimeCompositionRoot`.
 
+**Срез 20 ноября 2026:** удалён Spring wrapper для `CoverArtAccentColorBackfill`; startup action регистрируется при сборке Ktor servlet из root-owned service и остаётся в `LifecycleRegistry`. `RuntimeCompositionRootGraphTest` и `LegacyDatabaseStartupTestCase` прошли 4/4.
+
+**Срез 20 ноября 2026:** удалена отдельная Spring projection `StatusAggregator`; `ServerHealthController` уже получает root-owned aggregator из runtime factory. Тест больше не вызывает Spring configuration method. `RuntimeCompositionRootTest`, `RuntimeCompositionRootGraphTest` и `LegacyDatabaseStartupTestCase` прошли 9/9.
+
+**Срез 20 ноября 2026:** удалены Spring projections `MediaStreamService` и `VideoPlaybackService`. Media stream теперь создаётся прямо при сборке Ktor stream controller, а `VideoPlaybackService` projection не имела production consumers. Root graph, service, и legacy startup tests прошли 11/11 и 9/9 соответственно.
+
+**Срез 20 ноября 2026:** удалена Spring projection `UploadFileService`; Ktor upload controller получает singleton напрямую из runtime root. `RuntimeCompositionRootTest`, `RuntimeCompositionRootGraphTest` и `LegacyDatabaseStartupTestCase` прошли 9/9.
+
+**Срез 20 ноября 2026:** удалены Spring projections `CaptionService` и `LyricsService`; captions и lyrics REST controllers создаются с root-owned services непосредственно в servlet wiring. Для каждого среза `RuntimeCompositionRootTest`, `RuntimeCompositionRootGraphTest` и `LegacyDatabaseStartupTestCase` прошли 9/9.
+
+**Срез 20 ноября 2026:** удалена Spring projection `BookmarkService`; bookmarks REST controller запрашивает singleton через runtime root и root-owned DAO graph. `RuntimeCompositionRootTest`, `RuntimeCompositionRootGraphTest` и `LegacyDatabaseStartupTestCase` прошли 9/9. Отдельный старый `BookmarkDaoTestCase` всё ещё требует отсутствующий Spring `JdbcHelper` bean и не относится к этому runtime wiring срезу.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
