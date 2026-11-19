@@ -1,13 +1,10 @@
-package org.airsonic.player.spring
+package org.airsonic.player.security
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.springframework.mock.web.MockHttpServletRequest
 
-class KtorExternalRouteRequestMatcherTest {
-    private val matcher = KtorExternalRouteRequestMatcher()
-
+class KtorExternalRoutePolicyTest {
     @Test
     fun matchesExternalRoutesRegisteredOnKtorServlet() {
         listOf(
@@ -22,18 +19,12 @@ class KtorExternalRouteRequestMatcherTest {
             "/ext/rest-hls/hls.m3u8",
             "/ext/captions/list",
             "/ext/coverArt.view",
-        ).forEach { path -> assertTrue(path, matcher.matches(request(path))) }
+        ).forEach { path -> assertTrue(path, KtorExternalRoutePolicy.matches(path)) }
     }
 
     @Test
     fun leavesUnmappedExternalPathsForCorsFallback() {
-        listOf("/ext/hls/test", "/ext/captions/test", "/ext/unknown").forEach { path ->
-            assertFalse(path, matcher.matches(request(path)))
-        }
-    }
-
-    private fun request(path: String): MockHttpServletRequest = MockHttpServletRequest().apply {
-        requestURI = path
-        servletPath = path
+        listOf("/ext/hls/test", "/ext/captions/test", "/ext/unknown")
+            .forEach { path -> assertFalse(path, KtorExternalRoutePolicy.matches(path)) }
     }
 }

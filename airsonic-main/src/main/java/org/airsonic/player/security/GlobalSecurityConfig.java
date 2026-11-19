@@ -29,7 +29,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.password.Pbkdf2PasswordEncoder;
 import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -205,12 +204,11 @@ public class GlobalSecurityConfig {
     @Bean
     @org.springframework.core.annotation.Order(1)
     public SecurityFilterChain unmappedExternalCorsFallback(HttpSecurity http) throws Exception {
-        RequestMatcher ktorExternalRoutes = new org.airsonic.player.spring.KtorExternalRouteRequestMatcher();
         http
                 .securityMatcher(request -> {
                     String path = request.getServletPath() + (request.getPathInfo() == null ? "" : request.getPathInfo());
                     return SecurityRoutePolicy.matchesPathPattern("/ext/**", path)
-                            && !ktorExternalRoutes.matches(request);
+                            && !KtorExternalRoutePolicy.matches(path);
                 })
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
@@ -227,7 +225,8 @@ public class GlobalSecurityConfig {
         http
                 // Registered external URLs are secured at the Ktor servlet boundary.
                 .securityMatcher(request -> {
-                    return !new org.airsonic.player.spring.KtorExternalRouteRequestMatcher().matches(request);
+                    String path = request.getServletPath() + (request.getPathInfo() == null ? "" : request.getPathInfo());
+                    return !KtorExternalRoutePolicy.matches(path);
                 })
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .httpBasic(Customizer.withDefaults())
