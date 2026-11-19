@@ -96,6 +96,7 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.search.SearchController subsonicSearchController;
     private org.airsonic.player.controller.rest.artists.ArtistsController subsonicArtistsController;
     private org.airsonic.player.controller.rest.albums.AlbumsController subsonicAlbumsController;
+    private org.airsonic.player.controller.rest.server.ServerInfoController serverInfoController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -245,6 +246,17 @@ public final class RuntimeCompositionRoot {
                     ratingService, searchService, responseMapper, createSubsonicJaxbWriter());
         }
         return subsonicAlbumsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.server.ServerInfoController createServerInfoController(
+            org.airsonic.player.service.ServerInfoService serverInfoService,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            org.airsonic.player.service.SettingsService settingsService) {
+        if (serverInfoController == null) {
+            serverInfoController = new org.airsonic.player.controller.rest.server.ServerInfoController(
+                    serverInfoService, objectMapper, settingsService);
+        }
+        return serverInfoController;
     }
 
     public synchronized DataSource createDataSource() {

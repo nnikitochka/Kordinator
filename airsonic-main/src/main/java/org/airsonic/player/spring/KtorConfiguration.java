@@ -801,7 +801,8 @@ public class KtorConfiguration {
                                 new CoverArtRestController(coverArtImageService), new AvatarRestController(settingsService), new AvatarUploadController(settingsService, jaxbWriter),
                                 new HlsRestController(hlsPlaylistService), new HlsSegmentRestController(hlsSegmentService), new StreamRestController(mediaStreamService),
                                 new PublicShareController(shareService, mediaFileService, mediaFolderService, jwtSecurityService, metadataParsers, objectMapper), new CaptionsRestController(captionService, mediaFolderService, objectMapper),
-                                new PasswordRecoveryController(passwordRecoveryService, objectMapper), new ServerInfoController(serverInfoService, objectMapper, settingsService), jaxbWriter,
+                                new PasswordRecoveryController(passwordRecoveryService, objectMapper),
+                                runtime.createServerInfoController(serverInfoService, objectMapper, settingsService), jaxbWriter,
                                 () -> InfrastructureErrorSettings.from(runtime.getConfiguration()),
                                 objectMapper, metricsManager, lifecycleRegistry, settingsService),
                         "/internal/ktor/*");
