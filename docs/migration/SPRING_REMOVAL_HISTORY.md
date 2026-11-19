@@ -362,6 +362,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Следующий срез 19 ноября 2026:** удалён `spring-boot-starter-actuator`; прямой `micrometer-core` и обычный `SimpleMeterRegistry` в Spring adapter сохраняют зависимость cache-statistics route только от Micrometer, без Boot Actuator. Production compile и dependency tree прошли; в tree остался `micrometer-core`, но нет Actuator starter. Проверка HTTP-ответа cache-statistics заблокирована тем же sandbox ограничением loopback TCP; следует выполнить в окружении с разрешённым локальным сервером.
 
+**Срез 19 ноября 2026:** `spring-boot-starter-validation` заменён прямой зависимостью `hibernate-validator`; проект использует Jakarta Bean Validation напрямую, а Spring MVC `LocalValidatorFactoryBean` уже удалён. `UtilTest` прошёл 12/12; dependency tree подтверждает Hibernate Validator без Boot validation starter.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
