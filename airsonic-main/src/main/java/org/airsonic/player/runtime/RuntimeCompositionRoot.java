@@ -100,6 +100,9 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.recovery.PasswordRecoveryController passwordRecoveryController;
     private org.airsonic.player.controller.rest.ping.PingController pingController;
     private org.airsonic.player.controller.rest.scan.ScanController scanController;
+    private org.airsonic.player.controller.rest.music.similar.SimilarSongsController similarSongsController;
+    private org.airsonic.player.controller.rest.info.artist.ArtistInfoController artistInfoController;
+    private org.airsonic.player.controller.rest.info.album.AlbumInfoController albumInfoController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -287,6 +290,53 @@ public final class RuntimeCompositionRoot {
                     mediaScannerService, createSubsonicJaxbWriter());
         }
         return scanController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.music.similar.SimilarSongsController
+            createSimilarSongsController(
+                    org.airsonic.player.service.MediaFileService mediaFileService,
+                    org.airsonic.player.service.LastFmService lastFmService,
+                    org.airsonic.player.service.MediaFolderService mediaFolderService,
+                    org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
+        if (similarSongsController == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before SimilarSongsController");
+            }
+            similarSongsController = new org.airsonic.player.controller.rest.music.similar.SimilarSongsController(
+                    mediaFileService, persistenceGraph.getDaos().getArtistDao(), lastFmService,
+                    mediaFolderService, responseMapper, createSubsonicJaxbWriter());
+        }
+        return similarSongsController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.info.artist.ArtistInfoController
+            createArtistInfoController(
+                    org.airsonic.player.service.MediaFileService mediaFileService,
+                    org.airsonic.player.service.LastFmService lastFmService,
+                    org.airsonic.player.service.MediaFolderService mediaFolderService,
+                    org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
+        if (artistInfoController == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before ArtistInfoController");
+            }
+            artistInfoController = new org.airsonic.player.controller.rest.info.artist.ArtistInfoController(
+                    mediaFileService, persistenceGraph.getDaos().getArtistDao(), lastFmService,
+                    mediaFolderService, responseMapper, createSubsonicJaxbWriter());
+        }
+        return artistInfoController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.info.album.AlbumInfoController createAlbumInfoController(
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.service.LastFmService lastFmService) {
+        if (albumInfoController == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before AlbumInfoController");
+            }
+            albumInfoController = new org.airsonic.player.controller.rest.info.album.AlbumInfoController(
+                    mediaFileService, persistenceGraph.getDaos().getAlbumDao(), lastFmService, createSubsonicJaxbWriter());
+        }
+        return albumInfoController;
     }
 
     public synchronized DataSource createDataSource() {

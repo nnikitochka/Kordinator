@@ -432,6 +432,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** `PingController` и `ScanController` создаются runtime root; servlet wiring передаёт root-owned экземпляры. Graph test проверяет singleton ownership обоих контроллеров.
 
+**Срез 19 ноября 2026:** `SimilarSongsController`, `ArtistInfoController` и `AlbumInfoController` теперь создаются через runtime root с DAO из root-owned persistence graph. Поведение маршрутов не менялось; graph test проверяет singleton identity всех трёх.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
