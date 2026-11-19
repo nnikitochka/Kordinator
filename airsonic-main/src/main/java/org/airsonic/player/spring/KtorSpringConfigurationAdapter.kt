@@ -159,47 +159,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         metaDataParserFactory, mediaFileService, securityService)
 
     @Bean
-    override fun albumUpnpProcessor(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        graph: org.airsonic.player.runtime.DaoGraph,
-    ): org.airsonic.player.service.upnp.AlbumUpnpProcessor = runtime.createAlbumUpnpProcessor(graph.albumDao)
-
-    @Bean
-    override fun recentAlbumUpnpProcessor(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        graph: org.airsonic.player.runtime.DaoGraph,
-    ): org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor = runtime.createRecentAlbumUpnpProcessor(graph.albumDao)
-
-    @Bean
-    override fun artistUpnpProcessor(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        graph: org.airsonic.player.runtime.DaoGraph,
-    ): org.airsonic.player.service.upnp.ArtistUpnpProcessor = runtime.createArtistUpnpProcessor(graph.artistDao)
-
-    @Bean
-    override fun genreUpnpProcessor(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.upnp.GenreUpnpProcessor = runtime.createGenreUpnpProcessor()
-
-    @Bean
-    override fun mediaFileUpnpProcessor(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        graph: org.airsonic.player.runtime.DaoGraph,
-    ): org.airsonic.player.service.upnp.MediaFileUpnpProcessor = runtime.createMediaFileUpnpProcessor(graph.mediaFileDao)
-
-    @Bean
-    override fun playlistUpnpProcessor(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        playlistService: org.airsonic.player.service.PlaylistService,
-    ): org.airsonic.player.service.upnp.PlaylistUpnpProcessor = runtime.createPlaylistUpnpProcessor(playlistService)
-
-    @Bean
-    override fun rootUpnpProcessor(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        indexManager: org.airsonic.player.service.search.IndexManager,
-    ): org.airsonic.player.service.upnp.RootUpnpProcessor = runtime.createRootUpnpProcessor(indexManager)
-
-    @Bean
     override fun dispatchingContentDirectory(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         mediaFileService: org.airsonic.player.service.MediaFileService,

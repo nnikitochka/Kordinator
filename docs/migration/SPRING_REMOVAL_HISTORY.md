@@ -480,6 +480,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 20 ноября 2026:** удалён Spring bean `LocaleResolver`. Он создаётся при сборке Ktor servlet, его единственного production consumer; `LocaleService` остаётся root-owned и используется сервисами и REST controller.
 
+**Срез 20 ноября 2026:** удалены семь Spring bean projections UPnP processors. `RuntimeCompositionRoot.createDispatchingContentDirectory` и до этого собирал и связывал их сам; в production-коде отдельные processor beans не потреблялись.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
