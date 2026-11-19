@@ -8,8 +8,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -59,7 +57,6 @@ public class BookmarkDaoTestCase extends DaoTestCaseBean2 {
     }
 
     @Test
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void testConcurrentCreateOrUpdateCreatesOnlyOneBookmark() throws Exception {
         int requestCount = 12;
         ExecutorService executor = Executors.newFixedThreadPool(requestCount);
