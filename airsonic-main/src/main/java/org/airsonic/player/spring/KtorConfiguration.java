@@ -27,7 +27,6 @@ import org.airsonic.player.controller.rest.shares.PublicShareController;
 import org.airsonic.player.controller.captions.CaptionsRestController;
 import org.airsonic.player.controller.rest.recovery.PasswordRecoveryController;
 import org.airsonic.player.service.PasswordRecoveryService;
-import org.airsonic.player.service.ServerInfoService;
 import org.airsonic.player.controller.rest.server.ServerInfoController;
 import org.airsonic.player.service.VideoPlaybackService;
 import org.airsonic.player.service.CaptionService;
@@ -94,7 +93,6 @@ import org.airsonic.player.service.MusicFolderAdministrationService;
 import org.airsonic.player.controller.rest.users.PasswordController;
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.runtime.RuntimeCompositionRoot;
-import org.airsonic.player.service.VersionService;
 import org.airsonic.player.controller.rest.RestPlayerResolver;
 import org.airsonic.player.controller.rest.jukebox.JukeboxController;
 import org.airsonic.player.controller.rest.starred.StarredController;
@@ -270,15 +268,6 @@ public class KtorConfiguration {
 
     public PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory(RuntimeCompositionRoot runtime) {
         return runtime.createPlayerDaoPlayQueueFactory();
-    }
-
-    public VersionService versionService(RuntimeCompositionRoot runtime) throws java.io.IOException {
-        return runtime.createVersionService();
-    }
-
-    public ServerInfoService serverInfoService(RuntimeCompositionRoot runtime, VersionService versionService,
-            SettingsService settingsService) {
-        return runtime.createServerInfoService(versionService, settingsService);
     }
 
     public LocaleService localeService(RuntimeCompositionRoot runtime, SettingsService settingsService) {
@@ -635,7 +624,6 @@ public class KtorConfiguration {
             JWTSecurityService jwtSecurityService,
             CaptionService captionService,
             PasswordRecoveryService passwordRecoveryService,
-            ServerInfoService serverInfoService,
             org.airsonic.player.service.metadata.MetaDataParserFactory metadataParsers,
             MediaScannerService mediaScannerService,
             MediaFileService mediaFileService,
@@ -657,7 +645,6 @@ public class KtorConfiguration {
             SecurityService securityService,
             CredentialEncoderRegistry credentialEncoderRegistry,
             SettingsService settingsService,
-            VersionService versionService,
             MusicIndexService musicIndexService,
             AudioScrobblerService audioScrobblerService,
             UPnPService upnpService,
@@ -679,7 +666,7 @@ public class KtorConfiguration {
             HlsSegmentService hlsSegmentService,
             MediaStreamService mediaStreamService,
             UploadFileService uploadFileService
-    ) {
+    ) throws java.io.IOException {
         ArtistDao artistDao = graph.getArtistDao();
         AlbumDao albumDao = graph.getAlbumDao();
         MediaFileDao mediaFileDao = graph.getMediaFileDao();
@@ -771,7 +758,9 @@ public class KtorConfiguration {
                                         jwtSecurityService, metadataParsers, objectMapper),
                                 runtime.createCaptionsRestController(captionService, mediaFolderService, objectMapper),
                                 runtime.createPasswordRecoveryController(passwordRecoveryService, objectMapper),
-                                runtime.createServerInfoController(serverInfoService, objectMapper, settingsService), jaxbWriter,
+                                runtime.createServerInfoController(
+                                        runtime.createServerInfoService(runtime.createVersionService(), settingsService),
+                                        objectMapper, settingsService), jaxbWriter,
                                 () -> InfrastructureErrorSettings.from(runtime.getConfiguration()),
                                 objectMapper, runtime.createMetricsManager(), runtime.getLifecycleRegistry(), settingsService),
                         "/internal/ktor/*");

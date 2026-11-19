@@ -444,18 +444,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime.createUserAdministrationService(securityService, settingsService)
 
     @Bean
-    override fun versionService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.VersionService = runtime.createVersionService()
-
-    @Bean
-    override fun serverInfoService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        versionService: org.airsonic.player.service.VersionService,
-        settingsService: org.airsonic.player.service.SettingsService,
-    ): org.airsonic.player.service.ServerInfoService = runtime.createServerInfoService(versionService, settingsService)
-
-    @Bean
     override fun localeService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         settingsService: org.airsonic.player.service.SettingsService,
