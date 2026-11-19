@@ -454,6 +454,14 @@ class AirsonicKtorServlet(
         lifecycleRegistry.start()
     }
 
+    override fun destroy() {
+        try {
+            super.destroy()
+        } finally {
+            lifecycleRegistry.shutdown()
+        }
+    }
+
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
         externalSecurityPipeline.service(request, response, FilterChain { securedRequest, securedResponse ->
             requestFilterPipeline.service(securedRequest as HttpServletRequest, securedResponse as HttpServletResponse, FilterChain { filteredRequest, filteredResponse ->

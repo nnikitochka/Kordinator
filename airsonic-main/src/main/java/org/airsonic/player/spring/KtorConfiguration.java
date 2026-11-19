@@ -249,11 +249,9 @@ public class KtorConfiguration {
         return new RuntimeCompositionRoot(configuration);
     }
 
-    @Bean
+    @Bean(destroyMethod = "shutdown")
     public org.airsonic.player.runtime.LifecycleRegistry lifecycleRegistry(RuntimeCompositionRoot runtime) {
-        org.airsonic.player.runtime.LifecycleRegistry registry = runtime.getLifecycleRegistry();
-        Runtime.getRuntime().addShutdownHook(new Thread(registry::shutdown, "airsonic-lifecycle-shutdown"));
-        return registry;
+        return runtime.getLifecycleRegistry();
     }
 
     @Bean
