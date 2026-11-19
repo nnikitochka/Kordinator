@@ -65,4 +65,75 @@
             </column>
         </createTable>
     </changeSet>
+    <changeSet id="standalone-scan-and-track-tables-1" author="airsonic">
+        <createTable tableName="library_scan_job">
+            <column name="id" type="VARCHAR(36)">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_library_scan_job"/>
+            </column>
+            <column name="library_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="state" type="VARCHAR(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tracks_scanned" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="error_count" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="started_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="finished_at" type="TIMESTAMP"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="library_scan_job" baseColumnNames="library_id"
+                                 constraintName="fk_library_scan_job_library" referencedTableName="music_library"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="library_scan_job" indexName="ix_library_scan_job_library">
+            <column name="library_id"/>
+            <column name="started_at"/>
+        </createIndex>
+
+        <createTable tableName="media_track">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_media_track"/>
+            </column>
+            <column name="library_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="relative_path" type="VARCHAR(4096)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(512)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="artist" type="VARCHAR(512)"/>
+            <column name="album" type="VARCHAR(512)"/>
+            <column name="album_artist" type="VARCHAR(512)"/>
+            <column name="duration_seconds" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="size_bytes" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_at" type="TIMESTAMP"/>
+            <column name="scan_id" type="VARCHAR(36)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="scanned_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="media_track" baseColumnNames="library_id"
+                                 constraintName="fk_media_track_library" referencedTableName="music_library"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="media_track" indexName="ix_media_track_library">
+            <column name="library_id"/>
+        </createIndex>
+        <createIndex tableName="media_track" indexName="ix_media_track_artist_album">
+            <column name="artist"/>
+            <column name="album"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.ktor.http.ContentType
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
+import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.authenticate
@@ -23,6 +24,10 @@ import io.ktor.server.routing.route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.security.LocalUserPrincipal
@@ -31,9 +36,11 @@ import org.airsonic.player.runtime.LifecycleRegistry
 import org.airsonic.player.runtime.RuntimeConfigurationLoader
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.service.StandaloneLibraryService
+import org.airsonic.player.service.StandaloneLibraryScanService
 import java.nio.file.Path
 
 private val authDispatcher = Dispatchers.IO.limitedParallelism(4)
+private val scanDispatcher = Dispatchers.IO.limitedParallelism(2)
 
 fun Application.module() {
     routing {
@@ -47,8 +54,11 @@ fun Application.module() {
 fun Application.standaloneModule(
     authService: LocalAuthService? = null,
     libraryService: StandaloneLibraryService? = null,
+    libraryScanService: StandaloneLibraryScanService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
+    val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
+    if (scanScope != null) monitor.subscribe(ApplicationStopped) { scanScope.cancel() }
     install(Authentication) {
         bearer("server-session") {
             authenticate { credentials ->
@@ -62,6 +72,31 @@ fun Application.standaloneModule(
         }
         if (authService != null) {
             route("/api/v1") {
+                get("/tracks") {
+                    if (libraryScanService == null) {
+                        call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
+                        return@get
+                    }
+                    val requestedLibraryId = call.request.queryParameters["libraryId"]
+                    val libraryId = requestedLibraryId?.toLongOrNull()
+                    if (requestedLibraryId != null && libraryId == null) {
+                        call.respondJson(ApiError("invalid_request", "libraryId must be a number"), HttpStatusCode.BadRequest)
+                        return@get
+                    }
+                    val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 50
+                    val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                    val query = call.request.queryParameters["q"]
+                    val (requestedTracks, total) = withContext(scanDispatcher) {
+                        libraryScanService.tracks(libraryId, query, limit, offset) to libraryScanService.countTracks(libraryId, query)
+                    }
+                    val tracks = requestedTracks.map {
+                        TrackResponse(
+                            it.id, it.libraryId, it.relativePath, it.title, it.artist, it.album, it.albumArtist,
+                            it.durationSeconds, it.sizeBytes, it.modifiedAt?.toString(),
+                        )
+                    }
+                    call.respondJson(TrackPage(tracks, tracks.size, total, limit.coerceIn(1, 200), offset.coerceAtLeast(0)))
+                }
                 post("/auth/login") {
                     val request = try {
                         jsonMapper.readValue(call.receiveText(), LoginRequest::class.java)
@@ -225,6 +260,51 @@ fun Application.standaloneModule(
                             }
                         }
                     }
+                    post("/admin/libraries/{id}/scan") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@post
+                        }
+                        if (libraryScanService == null || scanScope == null) {
+                            call.respondJson(ApiError("unavailable", "Library scanning is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@post
+                        }
+                        val libraryId = call.parameters["id"]?.toLongOrNull()
+                        if (libraryId == null) {
+                            call.respondJson(ApiError("invalid_request", "Library ID must be a number"), HttpStatusCode.BadRequest)
+                            return@post
+                        }
+                        val scan = try {
+                            withContext(scanDispatcher) { libraryScanService.enqueue(libraryId) }
+                        } catch (failure: IllegalArgumentException) {
+                            val status = if (failure.message?.contains("does not exist") == true) {
+                                HttpStatusCode.NotFound
+                            } else {
+                                HttpStatusCode.Conflict
+                            }
+                            call.respondJson(ApiError("scan_unavailable", failure.message ?: "Unable to start scan"), status)
+                            return@post
+                        }
+                        scanScope.launch { withContext(scanDispatcher) { libraryScanService.run(scan.id) } }
+                        call.respondJson(scan.toResponse(), HttpStatusCode.Accepted)
+                    }
+                    get("/admin/libraries/{id}/scan") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val libraryId = call.parameters["id"]?.toLongOrNull()
+                        if (libraryId == null) {
+                            call.respondJson(ApiError("invalid_request", "Library ID must be a number"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val scan = libraryScanService?.let { withContext(scanDispatcher) { it.latestScan(libraryId) } }
+                        if (scan == null) call.respond(HttpStatusCode.NotFound) else call.respondJson(scan.toResponse())
+                    }
                 }
             }
         }
@@ -241,6 +321,28 @@ data class CreateUserRequest(val username: String, val password: String, val rol
 data class SetUserEnabledRequest(val enabled: Boolean)
 data class CreateLibraryRequest(val name: String, val path: String)
 data class LibraryResponse(val id: Long, val name: String, val path: String, val createdAt: String)
+data class TrackResponse(
+    val id: Long,
+    val libraryId: Long,
+    val relativePath: String,
+    val title: String,
+    val artist: String?,
+    val album: String?,
+    val albumArtist: String?,
+    val durationSeconds: Int,
+    val sizeBytes: Long,
+    val modifiedAt: String?,
+)
+data class TrackPage(val items: List<TrackResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
+data class ScanResponse(
+    val id: String,
+    val libraryId: Long,
+    val state: String,
+    val tracksScanned: Long,
+    val errorCount: Long,
+    val startedAt: String,
+    val finishedAt: String?,
+)
 
 private const val MAX_PASSWORD_LENGTH = 1_024
 
@@ -249,6 +351,10 @@ private val jsonMapper = jacksonObjectMapper()
 private suspend fun ApplicationCall.respondJson(value: Any, status: HttpStatusCode = HttpStatusCode.OK) {
     respondText(jsonMapper.writeValueAsString(value), ContentType.Application.Json, status)
 }
+
+private fun org.airsonic.player.service.LibraryScan.toResponse() = ScanResponse(
+    id, libraryId, state, tracksScanned, errorCount, startedAt.toString(), finishedAt?.toString(),
+)
 
 fun main(args: Array<String>) {
     val configuration = RuntimeConfigurationLoader().load(args, System.getProperties(), System.getenv(), null, emptyMap())
@@ -266,6 +372,7 @@ fun main(args: Array<String>) {
     }
     val authService = LocalAuthService(database.dataSource)
     val libraryService = StandaloneLibraryService(database.dataSource)
+    val libraryScanService = StandaloneLibraryScanService(database.dataSource)
     if (configuration.getBooleanProperty("airsonic.create-admin", false)) {
         try {
             val console = System.console()
@@ -287,7 +394,7 @@ fun main(args: Array<String>) {
         return
     }
     val server = embeddedServer(Netty, host = host, port = port) {
-        standaloneModule(authService, libraryService)
+        standaloneModule(authService, libraryService, libraryScanService)
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })
     server.start(wait = true)
