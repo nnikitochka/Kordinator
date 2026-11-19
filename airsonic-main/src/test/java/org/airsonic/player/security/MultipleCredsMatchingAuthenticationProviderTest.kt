@@ -25,7 +25,7 @@ class MultipleCredsMatchingAuthenticationProviderTest {
             ),
         )
 
-        val result = MultipleCredsMatchingAuthenticationProvider(security)
+        val result = MultipleCredsMatchingAuthenticationProvider(security, SpringCredentialEncoderRegistry())
             .authenticate(UsernamePasswordAuthenticationToken("alice", "secret"))!!
 
         assertTrue(result.isAuthenticated)
@@ -44,7 +44,7 @@ class MultipleCredsMatchingAuthenticationProviderTest {
                 emptySet(),
             ),
         )
-        val provider = MultipleCredsMatchingAuthenticationProvider(security)
+        val provider = MultipleCredsMatchingAuthenticationProvider(security, SpringCredentialEncoderRegistry())
 
         assertThrows(BadCredentialsException::class.java) {
             provider.authenticate(UsernamePasswordAuthenticationToken("alice", "wrong"))

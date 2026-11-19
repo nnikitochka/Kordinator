@@ -325,8 +325,8 @@ public class KtorConfiguration {
 
     @Bean
     public MultipleCredsMatchingAuthenticationProvider multipleCredsMatchingAuthenticationProvider(
-            SecurityService securityService) {
-        return new MultipleCredsMatchingAuthenticationProvider(securityService);
+            SecurityService securityService, CredentialEncoderRegistry credentialEncoders) {
+        return new MultipleCredsMatchingAuthenticationProvider(securityService, credentialEncoders);
     }
 
     @Bean

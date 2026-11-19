@@ -1,7 +1,6 @@
 package org.airsonic.player.security;
 
 import org.airsonic.player.domain.UserCredential;
-import org.airsonic.player.security.crypto.PasswordEncoder;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -51,19 +50,19 @@ public final class SubsonicAuthenticator {
     }
 
     /**
-     * The supplied registry is keyed by stored encoder name, without Spring's
-     * {id} wrapper. Each matcher must implement that encoder's legacy semantics.
+     * Encoder operations are supplied by an application-owned registry keyed by
+     * the stored encoder name, without Spring's {id} wrapper.
      */
     public Result authenticate(List<UserCredential> credentials, CharSequence presented,
-            Mode mode, java.util.Map<String, PasswordEncoder> encoders) {
+            Mode mode, CredentialEncoderRegistry encoders) {
         Objects.requireNonNull(credentials, "credentials");
         Objects.requireNonNull(presented, "presented");
         Objects.requireNonNull(mode, "mode");
         Objects.requireNonNull(encoders, "encoders");
 
         for (UserCredential credential : credentials) {
-            PasswordEncoder encoder = encoders.get(credential.getEncoder() + mode.specialization);
-            if (encoder == null || !encoder.matches(presented, credential.getCredential())) {
+            String encoderName = credential.getEncoder() + mode.specialization;
+            if (!encoders.matches(encoderName, presented, credential.getCredential())) {
                 continue;
             }
             Instant expiration = credential.getExpiration();
@@ -71,7 +70,7 @@ public final class SubsonicAuthenticator {
                 return new Result(null, false, Failure.CREDENTIALS_EXPIRED);
             }
             boolean upgrade = mode == Mode.PASSWORD
-                    && encoder.upgradeEncoding(credential.getCredential());
+                    && encoders.upgradeEncoding(encoderName, credential.getCredential());
             return new Result(credential, upgrade, null);
         }
         return new Result(null, false, Failure.NO_MATCH);

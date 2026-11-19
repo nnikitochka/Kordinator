@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -22,7 +23,7 @@ class SubsonicAuthenticatorTest {
         UserCredential credential = credential("noop", "stored", null);
 
         SubsonicAuthenticator.Result result = authenticator.authenticate(List.of(credential), "password",
-                SubsonicAuthenticator.Mode.PASSWORD, Map.of("noop", encoder));
+                SubsonicAuthenticator.Mode.PASSWORD, registry(Map.of("noop", encoder)));
 
         assertThat(result.isAuthenticated()).isTrue();
         assertThat(result.getCredential()).containsSame(credential);
@@ -33,7 +34,7 @@ class SubsonicAuthenticatorTest {
     void wrongPasswordReturnsNoMatch() {
         SubsonicAuthenticator.Result result = authenticator.authenticate(
                 List.of(credential("noop", "stored", null)), "wrong", SubsonicAuthenticator.Mode.PASSWORD,
-                Map.of("noop", encoder("password", false)));
+                registry(Map.of("noop", encoder("password", false))));
 
         assertThat(result.isAuthenticated()).isFalse();
         assertThat(result.getFailure()).contains(SubsonicAuthenticator.Failure.NO_MATCH);
@@ -45,7 +46,8 @@ class SubsonicAuthenticatorTest {
         UserCredential credential = credential("noop", "stored", null);
 
         SubsonicAuthenticator.Result result = authenticator.authenticate(List.of(credential), "salted-token",
-                SubsonicAuthenticator.Mode.SALTED_TOKEN, Map.of("noop", encoder("wrong", false), "noopsalttoken", tokenEncoder));
+                SubsonicAuthenticator.Mode.SALTED_TOKEN,
+                registry(Map.of("noop", encoder("wrong", false), "noopsalttoken", tokenEncoder)));
 
         assertThat(result.isAuthenticated()).isTrue();
         assertThat(result.isUpgradeRequired()).isFalse();
@@ -56,7 +58,7 @@ class SubsonicAuthenticatorTest {
         UserCredential credential = credential("noop", "stored", NOW.minusSeconds(1));
 
         SubsonicAuthenticator.Result result = authenticator.authenticate(List.of(credential), "password",
-                SubsonicAuthenticator.Mode.PASSWORD, Map.of("noop", encoder("password", false)));
+                SubsonicAuthenticator.Mode.PASSWORD, registry(Map.of("noop", encoder("password", false))));
 
         assertThat(result.getFailure()).contains(SubsonicAuthenticator.Failure.CREDENTIALS_EXPIRED);
     }
@@ -66,7 +68,7 @@ class SubsonicAuthenticatorTest {
         PasswordEncoder malformedTokenEncoder = new SaltedTokenPasswordEncoder(value -> value);
         SubsonicAuthenticator.Result result = authenticator.authenticate(
                 List.of(credential("noop", "stored", null)), "malformed", SubsonicAuthenticator.Mode.SALTED_TOKEN,
-                Map.of("noopsalttoken", malformedTokenEncoder));
+                registry(Map.of("noopsalttoken", malformedTokenEncoder)));
 
         assertThat(result.getFailure()).contains(SubsonicAuthenticator.Failure.NO_MATCH);
     }
@@ -82,6 +84,25 @@ class SubsonicAuthenticatorTest {
                 return expected.contentEquals(rawPassword);
             }
             @Override public boolean upgradeEncoding(String encodedPassword) { return upgrade; }
+        };
+    }
+
+    private static CredentialEncoderRegistry registry(Map<String, PasswordEncoder> encoders) {
+        return new CredentialEncoderRegistry() {
+            @Override public String encode(String name, CharSequence credential) { return encoders.get(name).encode(credential); }
+            @Override public boolean matches(String name, CharSequence credential, String encoded) {
+                PasswordEncoder encoder = encoders.get(name);
+                return encoder != null && encoder.matches(credential, encoded);
+            }
+            @Override public boolean upgradeEncoding(String name, String encoded) {
+                PasswordEncoder encoder = encoders.get(name);
+                return encoder != null && encoder.upgradeEncoding(encoded);
+            }
+            @Override public String decode(String name, String encoded) { throw new UnsupportedOperationException(); }
+            @Override public boolean isDecodable(String name) { return false; }
+            @Override public boolean isOpenText(String name) { return false; }
+            @Override public Set<String> decodableEncoderNames() { return Set.of(); }
+            @Override public Set<String> openTextEncoderNames() { return Set.of(); }
         };
     }
 }

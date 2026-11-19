@@ -3,7 +3,6 @@ package org.airsonic.player.security;
 import org.airsonic.player.controller.rest.error.APIException;
 import org.airsonic.player.controller.rest.error.ErrorCode;
 import org.airsonic.player.domain.UserCredential;
-import org.airsonic.player.security.crypto.PasswordEncoder;
 import org.airsonic.player.service.SecurityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +15,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /** Spring boundary for the framework-neutral Subsonic credential verifier. */
 public class MultipleCredsMatchingAuthenticationProvider implements AuthenticationProvider {
@@ -27,10 +24,13 @@ public class MultipleCredsMatchingAuthenticationProvider implements Authenticati
     private static final Logger LOG = LoggerFactory.getLogger(MultipleCredsMatchingAuthenticationProvider.class);
 
     private final SecurityService securityService;
+    private final CredentialEncoderRegistry credentialEncoders;
     private final SubsonicAuthenticator authenticator = new SubsonicAuthenticator();
 
-    public MultipleCredsMatchingAuthenticationProvider(SecurityService securityService) {
+    public MultipleCredsMatchingAuthenticationProvider(
+            SecurityService securityService, CredentialEncoderRegistry credentialEncoders) {
         this.securityService = securityService;
+        this.credentialEncoders = credentialEncoders;
     }
 
     @Override
@@ -52,7 +52,7 @@ public class MultipleCredsMatchingAuthenticationProvider implements Authenticati
                 ? SubsonicAuthenticator.Mode.SALTED_TOKEN : SubsonicAuthenticator.Mode.PASSWORD;
         String presentedPassword = authentication.getCredentials().toString();
         SubsonicAuthenticator.Result result = authenticator.authenticate(
-                identity.getCredentials(), presentedPassword, mode, encoders());
+                identity.getCredentials(), presentedPassword, mode, credentialEncoders);
 
         if (!result.isAuthenticated()
                 && result.getFailure().orElse(null) != SubsonicAuthenticator.Failure.CREDENTIALS_EXPIRED) {
@@ -90,32 +90,4 @@ public class MultipleCredsMatchingAuthenticationProvider implements Authenticati
         return UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication);
     }
 
-    private static Map<String, PasswordEncoder> encoders() {
-        Map<String, PasswordEncoder> result = new HashMap<>();
-        GlobalSecurityConfig.ENCODERS.forEach((name, encoder) -> result.put(name, asAirsonicEncoder(encoder)));
-        return result;
-    }
-
-    private static PasswordEncoder asAirsonicEncoder(
-            org.springframework.security.crypto.password.PasswordEncoder encoder) {
-        if (encoder instanceof SpringPasswordEncoderAdapter) {
-            return ((SpringPasswordEncoderAdapter) encoder).getDelegate();
-        }
-        return new PasswordEncoder() {
-            @Override
-            public String encode(CharSequence rawPassword) {
-                return encoder.encode(rawPassword);
-            }
-
-            @Override
-            public boolean matches(CharSequence rawPassword, String encodedPassword) {
-                return encoder.matches(rawPassword, encodedPassword);
-            }
-
-            @Override
-            public boolean upgradeEncoding(String encodedPassword) {
-                return encoder.upgradeEncoding(encodedPassword);
-            }
-        };
-    }
 }

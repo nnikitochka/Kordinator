@@ -14,6 +14,10 @@ class SpringCredentialEncoderRegistry : CredentialEncoderRegistry {
         ENCODERS[encoderName]?.matches(credential, encodedCredential)
             ?: throw IllegalArgumentException("Unknown credential encoder: $encoderName")
 
+    override fun upgradeEncoding(encoderName: String, encodedCredential: String): Boolean =
+        ENCODERS[encoderName]?.upgradeEncoding(encodedCredential)
+            ?: throw IllegalArgumentException("Unknown credential encoder: $encoderName")
+
     override fun decode(encoderName: String, encodedCredential: String): String {
         val decoder = ENCODERS[encoderName] as? PasswordDecoder
             ?: throw IllegalArgumentException("Credential encoder is not reversible: $encoderName")
