@@ -25,10 +25,10 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.CancellationException
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.springframework.boot.autoconfigure.web.ErrorProperties
+import java.util.function.Supplier
 
 /** Servlet-backed static files and the shared error endpoint used during the servlet migration. */
-internal fun Route.infrastructureRoutes(errorProperties: ErrorProperties, objectMapper: ObjectMapper) {
+internal fun Route.infrastructureRoutes(errorProperties: Supplier<InfrastructureErrorSettings>, objectMapper: ObjectMapper) {
     for (prefix in listOf("script", "style", "icons")) {
         route("/$prefix/{asset...}") {
             get { serveStatic(call, "/$prefix/") }
@@ -48,8 +48,18 @@ internal fun Route.infrastructureRoutes(errorProperties: ErrorProperties, object
             handle { call.response.headers.append(HttpHeaders.Allow, "GET, HEAD"); call.respond(HttpStatusCode.MethodNotAllowed) }
         }
     }
-    route(errorProperties.path) { handle { serveError(call, errorProperties, objectMapper) } }
+    route(errorProperties.get().path) { handle { serveError(call, errorProperties.get(), objectMapper) } }
 }
+
+enum class ErrorAttributeMode { ALWAYS, ON_PARAM, NEVER }
+
+data class InfrastructureErrorSettings(
+    val path: String,
+    val includeException: Boolean,
+    val includeMessage: ErrorAttributeMode,
+    val includeStacktrace: ErrorAttributeMode,
+    val includePath: ErrorAttributeMode,
+)
 
 internal val INFRASTRUCTURE_REQUEST = AttributeKey<InfrastructureRequestSnapshot>("airsonic.infrastructure.request")
 
@@ -207,7 +217,7 @@ private suspend fun serveStatic(call: ApplicationCall, root: String, resourceOve
     }
 }
 
-private suspend fun serveError(call: ApplicationCall, errorProperties: ErrorProperties, objectMapper: ObjectMapper) {
+private suspend fun serveError(call: ApplicationCall, errorProperties: InfrastructureErrorSettings, objectMapper: ObjectMapper) {
     val request = call.attributes[INFRASTRUCTURE_REQUEST]
     val status = request.errorStatus ?: 500
     val safeStatus = status.takeIf { it in 400..599 } ?: 500
@@ -224,7 +234,7 @@ private suspend fun serveError(call: ApplicationCall, errorProperties: ErrorProp
         val details = if (includeMessage && message.isNotEmpty()) "<p>Message: ${escapeHtml(message)}</p>" else ""
         val trace = if (includeTrace && exception != null) "<pre>${escapeHtml(exception.stackTraceToString())}</pre>" else ""
         val errorPath = if (includePath) "<p>Path: ${escapeHtml(path)}</p>" else ""
-        val exceptionName = if (errorProperties.isIncludeException() && exception != null) "<p>Exception: ${escapeHtml(exception.javaClass.name)}</p>" else ""
+        val exceptionName = if (errorProperties.includeException && exception != null) "<p>Exception: ${escapeHtml(exception.javaClass.name)}</p>" else ""
         val body = """<!doctype html><html><head><meta charset="utf-8"><title>Error $safeStatus</title></head><body><h1>Error $safeStatus</h1><p>${escapeHtml(HttpStatusCode.fromValue(safeStatus).description)}</p>$errorPath$exceptionName$details$trace</body></html>"""
         if (request.method == "HEAD") {
             call.respond(object : OutgoingContent.NoContent() {
@@ -238,7 +248,7 @@ private suspend fun serveError(call: ApplicationCall, errorProperties: ErrorProp
         val payload = linkedMapOf<String, Any>("timestamp" to Instant.now().toString(), "status" to safeStatus,
             "error" to HttpStatusCode.fromValue(safeStatus).description)
         if (includePath) payload["path"] = path
-        if (errorProperties.isIncludeException() && exception != null) payload["exception"] = exception.javaClass.name
+        if (errorProperties.includeException && exception != null) payload["exception"] = exception.javaClass.name
         if (includeMessage && message.isNotEmpty()) payload["message"] = message
         if (includeTrace && exception != null) payload["trace"] = exception.stackTraceToString()
         if (request.method == "HEAD") {
@@ -292,10 +302,10 @@ private fun parseSingleRange(spec: String, length: Long): ByteRange? {
     return ByteRange(start, end)
 }
 
-private fun includeErrorAttribute(policy: ErrorProperties.IncludeAttribute, parameter: String?): Boolean = when (policy) {
-    ErrorProperties.IncludeAttribute.ALWAYS -> true
-    ErrorProperties.IncludeAttribute.ON_PARAM -> parameter != null && !parameter.equals("false", ignoreCase = true)
-    ErrorProperties.IncludeAttribute.NEVER -> false
+private fun includeErrorAttribute(policy: ErrorAttributeMode, parameter: String?): Boolean = when (policy) {
+    ErrorAttributeMode.ALWAYS -> true
+    ErrorAttributeMode.ON_PARAM -> parameter != null && !parameter.equals("false", ignoreCase = true)
+    ErrorAttributeMode.NEVER -> false
 }
 
 private fun escapeHtml(value: String) = value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;")

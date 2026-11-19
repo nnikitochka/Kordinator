@@ -250,7 +250,7 @@ class AirsonicKtorServlet(
     private val loginPageController: LoginPageController,
     private val accessDeniedPageController: AccessDeniedPageController,
     private val jaxbWriter: JAXBWriter,
-    private val errorProperties: org.springframework.boot.autoconfigure.web.ErrorProperties,
+    private val errorProperties: java.util.function.Supplier<InfrastructureErrorSettings>,
     private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
     metricsManager: MetricsManager,
     settingsService: org.airsonic.player.service.SettingsService,
@@ -275,7 +275,8 @@ class AirsonicKtorServlet(
             val servletPath = request.servletPath
             val isStaticRequest = listOf("/script", "/style", "/icons").any { servletPath == it || servletPath.startsWith("$it/") } ||
                 requestPath in setOf("/", "/favicon.ico", "/browserconfig.xml", "/index.html")
-            val isErrorRequest = requestPath == errorProperties.path || servletPath == errorProperties.path ||
+            val errorPath = errorProperties.get().path
+            val isErrorRequest = requestPath == errorPath || servletPath == errorPath ||
                 request.getAttribute(jakarta.servlet.RequestDispatcher.ERROR_STATUS_CODE) != null
             if (isStaticRequest || isErrorRequest) {
                 call.attributes.put(INFRASTRUCTURE_REQUEST, infrastructureRequestSnapshot(request))
@@ -561,7 +562,7 @@ class AirsonicKtorServlet(
 
     private fun serviceRequest(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
-        val errorDispatch = path == errorProperties.path &&
+        val errorDispatch = path == errorProperties.get().path &&
             (request.dispatcherType == jakarta.servlet.DispatcherType.ERROR ||
                 request.getAttribute(jakarta.servlet.RequestDispatcher.ERROR_STATUS_CODE) != null)
         if (errorDispatch && request.isAsyncSupported) {
