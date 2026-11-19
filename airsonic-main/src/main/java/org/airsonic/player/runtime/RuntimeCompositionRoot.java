@@ -131,6 +131,10 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.admin.TranscodingSettingsController transcodingSettingsController;
     private org.airsonic.player.controller.rest.admin.DatabaseSettingsController databaseSettingsController;
     private org.airsonic.player.controller.rest.settings.CredentialsManagementController credentialsManagementController;
+    private org.airsonic.player.controller.rest.bookmarks.BookmarksController bookmarksController;
+    private org.airsonic.player.controller.rest.starred.StarredController starredController;
+    private org.airsonic.player.controller.rest.jukebox.JukeboxController jukeboxController;
+    private org.airsonic.player.controller.rest.users.UsersController usersController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -689,6 +693,56 @@ public final class RuntimeCompositionRoot {
                     persistenceGraph.getTransactionManager());
         }
         return credentialsManagementController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.bookmarks.BookmarksController createBookmarksController(
+            org.airsonic.player.service.BookmarkService bookmarkService,
+            org.airsonic.player.service.MediaFileService mediaFileService,
+            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
+        if (bookmarksController == null) {
+            bookmarksController = new org.airsonic.player.controller.rest.bookmarks.BookmarksController(
+                    bookmarkService, mediaFileService, responseMapper, createSubsonicJaxbWriter());
+        }
+        return bookmarksController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.starred.StarredController createStarredController(
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
+        if (starredController == null) {
+            if (persistenceGraph == null) {
+                throw new IllegalStateException("Persistence graph must be created before StarredController");
+            }
+            DaoGraph daos = persistenceGraph.getDaos();
+            starredController = new org.airsonic.player.controller.rest.starred.StarredController(
+                    daos.getMediaFileDao(), daos.getAlbumDao(), daos.getArtistDao(),
+                    mediaFolderService, responseMapper, createSubsonicJaxbWriter());
+        }
+        return starredController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.jukebox.JukeboxController createJukeboxController(
+            org.airsonic.player.service.PlayQueueService playQueueService,
+            org.airsonic.player.service.JukeboxService jukeboxService,
+            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
+        if (jukeboxController == null) {
+            jukeboxController = new org.airsonic.player.controller.rest.jukebox.JukeboxController(
+                    playQueueService, jukeboxService, responseMapper, createSubsonicJaxbWriter());
+        }
+        return jukeboxController;
+    }
+
+    public synchronized org.airsonic.player.controller.rest.users.UsersController createUsersController(
+            org.airsonic.player.service.SecurityService securityService,
+            org.airsonic.player.service.SettingsService settingsService,
+            org.airsonic.player.service.MediaFolderService mediaFolderService,
+            org.airsonic.player.service.UserAdministrationService userAdministrationService) {
+        if (usersController == null) {
+            usersController = new org.airsonic.player.controller.rest.users.UsersController(
+                    securityService, settingsService, mediaFolderService,
+                    userAdministrationService, createSubsonicJaxbWriter());
+        }
+        return usersController;
     }
 
     public synchronized DataSource createDataSource() {

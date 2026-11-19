@@ -411,6 +411,16 @@ class RuntimeCompositionRootGraphTest {
                         statusService, securityService, properties));
         assertSame(runtimeRoot.createCredentialsManagementController(securityService, settingsService),
                 runtimeRoot.createCredentialsManagementController(securityService, settingsService));
+        assertSame(runtimeRoot.createBookmarksController(bookmarkService, mediaFileService, responseMapper),
+                runtimeRoot.createBookmarksController(bookmarkService, mediaFileService, responseMapper));
+        assertSame(runtimeRoot.createStarredController(mediaFolderService, responseMapper),
+                runtimeRoot.createStarredController(mediaFolderService, responseMapper));
+        assertSame(runtimeRoot.createJukeboxController(playQueueService, jukeboxService, responseMapper),
+                runtimeRoot.createJukeboxController(playQueueService, jukeboxService, responseMapper));
+        assertSame(runtimeRoot.createUsersController(securityService, settingsService, mediaFolderService,
+                        userAdministrationService),
+                runtimeRoot.createUsersController(securityService, settingsService, mediaFolderService,
+                        userAdministrationService));
         assertSame(runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService),
                 runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService));
         assertSame(runtimeRoot.createMusicFolderSettingsController(musicFolderAdministrationService),

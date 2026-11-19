@@ -446,6 +446,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** `DatabaseSettingsController` и `CredentialsManagementController` также создаются runtime root. Транзакционный manager credentials берётся из root-owned `PersistenceGraph`, поэтому servlet registration больше не принимает отдельный Spring-инжектированный DAO-layer manager. Graph test проверяет singleton identity.
 
+**Срез 19 ноября 2026:** runtime root теперь также создаёт `Bookmarks`, `Starred`, `Jukebox` и `Users` controllers; Starred использует DAO из root-owned graph. Их singleton identity проверяется в graph test.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
