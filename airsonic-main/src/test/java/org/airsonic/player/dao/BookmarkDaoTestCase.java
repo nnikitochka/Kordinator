@@ -3,6 +3,7 @@ package org.airsonic.player.dao;
 import org.airsonic.player.domain.Bookmark;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
+import org.airsonic.player.runtime.DaoGraph;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,7 +29,7 @@ public class BookmarkDaoTestCase extends DaoTestCaseBean2 {
     private static final String USERNAME = "admin";
 
     @Autowired
-    BookmarkDao bookmarkDao;
+    DaoGraph daoGraph;
 
     @Autowired
     MediaFileDao mediaFileDao;
@@ -76,7 +77,7 @@ public class BookmarkDaoTestCase extends DaoTestCaseBean2 {
                     .mapToObj(position -> executor.submit(() -> {
                         ready.countDown();
                         start.await();
-                        bookmarkDao.createOrUpdateBookmark(bookmark(position));
+                        daoGraph.getBookmarkDao().createOrUpdateBookmark(bookmark(position));
                         return null;
                     }))
                     .toList();
@@ -90,7 +91,7 @@ public class BookmarkDaoTestCase extends DaoTestCaseBean2 {
             executor.shutdownNow();
         }
 
-        assertThat(bookmarkDao.getBookmarks(USERNAME))
+        assertThat(daoGraph.getBookmarkDao().getBookmarks(USERNAME))
                 .hasSize(1)
                 .allSatisfy(bookmark -> assertThat(bookmark.getMediaFileId()).isEqualTo(mediaFileId));
     }
