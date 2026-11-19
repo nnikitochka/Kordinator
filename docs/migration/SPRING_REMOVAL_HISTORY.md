@@ -458,6 +458,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** root теперь собирает Kordinator library, album, artist, search, playlist, favorite routes и legacy `PlaylistsController`. DAO внедряются из root-owned `PersistenceGraph`, без прямых `new` в Spring servlet factory; graph test проверяет singleton identity.
 
+**Срез 19 ноября 2026:** `AirsonicKtorServlet` больше не использует Spring `ContentDisposition`. Новый framework-neutral RFC 6266 builder сохраняет UTF-8 filename и безопасный ASCII fallback; unit tests проверяют пробелы, Unicode, кавычки, обратный слеш и управляющие символы. `ContentDispositionHeaderTest` прошёл 3/3. Условные HTTP-заголовки всё ещё используют `ServletWebRequest` и остаются отдельной задачей.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

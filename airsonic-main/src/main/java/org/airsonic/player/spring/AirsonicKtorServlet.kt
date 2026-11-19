@@ -111,10 +111,9 @@ import org.airsonic.player.controller.rest.download.DownloadRestController
 import org.airsonic.player.controller.rest.download.DownloadRequest
 import org.airsonic.player.controller.rest.error.ErrorCode
 import org.airsonic.player.service.DownloadService
-import org.springframework.http.ContentDisposition
+import org.airsonic.player.util.ContentDispositionHeader
 import org.springframework.web.context.request.ServletWebRequest
 import org.apache.commons.io.FilenameUtils
-import java.nio.charset.StandardCharsets
 import java.util.Optional
 import org.airsonic.player.i18n.LocaleResolver
 import org.airsonic.player.service.MediaFileService
@@ -752,7 +751,7 @@ class AirsonicKtorServlet(
                     val download = downloads.prepare(user, callerContext, player, Optional.ofNullable(id), playlist,
                         playerId, indices?.filterNotNull(), null)
                     if (download != null && ServletWebRequest(wrapped, response).checkNotModified(download.size.toString(), download.changed)) return
-                    val disposition = download?.let { ContentDisposition.builder("attachment").filename(it.filename, StandardCharsets.UTF_8).build().toString() }
+                    val disposition = download?.let { ContentDispositionHeader.attachment(it.filename) }
                     val type = download?.let { StringUtil.getMimeType(FilenameUtils.getExtension(it.filename)) }
                     request.setAttribute(DOWNLOAD_REQUEST, DownloadRequest(params, download, contentDisposition = disposition, contentType = type))
                 } catch (e: AuthorizationDeniedException) {
