@@ -374,6 +374,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** `spring-boot-starter-tomcat` заменён прямыми Tomcat Embed Core/EL/WebSocket зависимостями с тем же профилем scope; Servlet API и контейнер сохранены. В явные production dependencies добавлены `spring-boot`, `spring-boot-autoconfigure` и Logback, ранее неявно приходившие через Boot starters. `mvn ... clean package -DskipTests` прошёл с чистой компиляцией и пересборкой WAR; dependency tree показывает только прямые Tomcat Embed artifacts, без Tomcat Boot starter. Тесты этого среза не запускались.
 
+**Срез 19 ноября 2026:** удалены неиспользуемый `SpringUserDetailsServiceAdapter` и его bean: `GlobalSecurityConfig` не обращался к `UserDetailsService`, потому что аутентификацией управляет собственный `AuthenticationManager` с явно добавленными providers. Выдача LDAP authorities теперь выполняется непосредственно Spring LDAP boundary provider-ом. `UserDaoTestCase` и `SpringLdapAuthenticationProviderTest` прошли 15/15; в старте тестового контекста исчезло прежнее предупреждение о неиспользуемом `UserDetailsService`.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

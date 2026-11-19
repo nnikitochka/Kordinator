@@ -10,7 +10,12 @@ import org.springframework.security.authentication.InternalAuthenticationService
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /** Spring Security boundary for the framework-neutral LDAP authentication policy. */
 public final class SpringLdapAuthenticationProvider implements AuthenticationProvider {
@@ -53,7 +58,15 @@ public final class SpringLdapAuthenticationProvider implements AuthenticationPro
             throw new UsernameNotFoundException("LDAP authentication did not resolve a local user");
         }
         return UsernamePasswordAuthenticationToken.authenticated(user.getUsername(), credentials,
-                SpringUserDetailsServiceAdapter.authorities(user));
+                authorities(user));
+    }
+
+    private static List<GrantedAuthority> authorities(User user) {
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("IS_AUTHENTICATED_ANONYMOUSLY"));
+        authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+        user.getRoles().forEach(role -> authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name())));
+        return authorities;
     }
 
     private static boolean hasNamingAuthenticationCause(Throwable throwable) {

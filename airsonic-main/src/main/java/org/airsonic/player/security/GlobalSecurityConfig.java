@@ -114,17 +114,13 @@ public class GlobalSecurityConfig {
 
     private final SecurityService securityService;
 
-    private final SpringUserDetailsServiceAdapter userDetailsService;
-
     final SettingsService settingsService;
 
     final MultipleCredsMatchingAuthenticationProvider multipleCredsProvider;
 
     public GlobalSecurityConfig(SecurityService securityService,
-            SpringUserDetailsServiceAdapter userDetailsService, SettingsService settingsService,
-            MultipleCredsMatchingAuthenticationProvider multipleCredsProvider) {
+            SettingsService settingsService, MultipleCredsMatchingAuthenticationProvider multipleCredsProvider) {
         this.securityService = securityService;
-        this.userDetailsService = userDetailsService;
         this.settingsService = settingsService;
         this.multipleCredsProvider = multipleCredsProvider;
     }

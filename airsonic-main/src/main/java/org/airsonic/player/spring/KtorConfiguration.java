@@ -15,7 +15,6 @@ import org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor;
 import org.airsonic.player.service.upnp.RootUpnpProcessor;
 import org.airsonic.player.security.GlobalSecurityConfig;
 import org.airsonic.player.security.MultipleCredsMatchingAuthenticationProvider;
-import org.airsonic.player.security.SpringUserDetailsServiceAdapter;
 import org.airsonic.player.security.CredentialEncoderRegistry;
 import org.airsonic.player.security.SpringCredentialEncoderRegistry;
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController;
@@ -271,11 +270,6 @@ public class KtorConfiguration {
     public MultipleCredsMatchingAuthenticationProvider multipleCredsMatchingAuthenticationProvider(
             org.airsonic.player.security.SubsonicCredentialAuthenticationService authenticationService) {
         return new MultipleCredsMatchingAuthenticationProvider(authenticationService);
-    }
-
-    @Bean
-    public SpringUserDetailsServiceAdapter springUserDetailsServiceAdapter(SecurityService securityService) {
-        return new SpringUserDetailsServiceAdapter(securityService);
     }
 
     public org.airsonic.player.runtime.PersistenceGraph persistenceGraph(RuntimeCompositionRoot runtime,
