@@ -282,7 +282,9 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `a78cfb3` переносит media folder/file, media scanner, music index state, transcoding, player, task scheduler и path watcher registrations. Сохранены ленивый `ObjectProvider<PlayerService>` для transcoding cycle и `@DependsOn("liquibase")` перед созданием `PlayerService`. Runtime graph, scanner unit/service, music index state, transcoding integration, player settings, play queue и path watcher integration tests прошли 12/12. После него оставалось 42 `@Bean` регистрации.
 
-Срез `2af9b5a` переносит play queue, jukebox legacy/service, captions, video playback и media stream factories в Kotlin adapter. `RuntimeCompositionRootGraphTest`, play queue broadcast/integration, jukebox unit/REST, stream/caption URL и HLS playlist/playback/integration tests прошли 31/31. В базовом `KtorConfiguration` осталось 36 `@Bean` регистраций; следующие сервисы — share/download/upload/user administration и framework bootstrap.
+Срез `2af9b5a` переносит play queue, jukebox legacy/service, captions, video playback и media stream factories в Kotlin adapter. `RuntimeCompositionRootGraphTest`, play queue broadcast/integration, jukebox unit/REST, stream/caption URL и HLS playlist/playback/integration tests прошли 31/31. После него оставалось 36 регистраций.
+
+Срез `d5d693c` переносит Last.fm, share, upload, download и user administration factories в Kotlin adapter. Runtime graph, cover-art search, share/public-share/web-share, website/Subsonic download, file/status upload и users REST tests прошли 13/13. В базовом `KtorConfiguration` осталось 31 `@Bean` регистрация; далее остаются статус/прочие service factories и Ktor servlet/bootstrap wiring.
 
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
