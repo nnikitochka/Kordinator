@@ -396,6 +396,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** удалена неиспользуемая test-зависимость `spring-security-test`: исходники и тесты не используют её API. `spring-test` пока остаётся для `MockHttpServletRequest` и других Spring test fixtures.
 
+**Срез 19 ноября 2026:** удалён последний прямой DAO Spring alias `ArtistDao`. `MusicFolderSettingsIntegrationTest` теперь проверяет реальное удаление устаревшей записи артиста через `DaoGraph` вместо Mockito spy на DAO bean; это сохраняет проверку эффекта вызова expunge, убирая отдельный bean alias. Полная компиляция test source прошла; HTTP integration test не смог загрузить контекст, поскольку sandbox запрещает открытие локального Tomcat socket (`Operation not permitted`).
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

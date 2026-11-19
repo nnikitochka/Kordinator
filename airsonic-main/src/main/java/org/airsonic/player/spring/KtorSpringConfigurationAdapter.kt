@@ -60,9 +60,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     override fun daoGraph(persistenceGraph: org.airsonic.player.runtime.PersistenceGraph): org.airsonic.player.runtime.DaoGraph =
         persistenceGraph.daos
 
-    // Kept only for MusicFolderSettingsIntegrationTest's Mockito spy fixture.
-    @Bean fun artistDao(graph: org.airsonic.player.runtime.DaoGraph): org.airsonic.player.dao.ArtistDao = graph.artistDao
-
     @Bean
     override fun analyzerFactory(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,

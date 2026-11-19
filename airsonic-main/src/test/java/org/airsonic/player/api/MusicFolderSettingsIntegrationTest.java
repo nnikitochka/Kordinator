@@ -3,8 +3,10 @@ package org.airsonic.player.api;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.airsonic.player.TestCaseUtils;
+import org.airsonic.player.domain.Artist;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.User;
+import org.airsonic.player.runtime.DaoGraph;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.MediaScannerService;
 import org.airsonic.player.service.SettingsService;
@@ -49,15 +51,17 @@ public class MusicFolderSettingsIntegrationTest {
     @Autowired private MediaFolderService folders;
     @Autowired private ApplicationContext context;
     @Autowired private org.airsonic.player.service.search.IndexManager indexManager;
+    @Autowired private DaoGraph daoGraph;
     @MockitoSpyBean private MediaScannerService scanner;
-    @MockitoSpyBean private org.airsonic.player.dao.ArtistDao artists;
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient client = HttpClient.newHttpClient();
 
     @Test public void administerLibraryViaKtor() throws Exception {
         doNothing().when(scanner).scanLibrary();
         doNothing().when(scanner).schedule();
-        clearInvocations(scanner, artists);
+        clearInvocations(scanner);
+        String staleArtistName = "expunge-test-" + java.util.UUID.randomUUID();
+        daoGraph.getArtistDao().createOrUpdateArtist(new Artist(0, staleArtistName, 0, null, false, 0));
         User member = new User("folders-member", null);
         member.setRoles(Set.of(User.Role.SETTINGS, User.Role.STREAM));
         security.createUser(member, "secret", "test");
@@ -69,7 +73,7 @@ public class MusicFolderSettingsIntegrationTest {
                 + "&clearFullScanSettingAfterScan=true&uploadsFolder=uploads&excludePatternString=";
         error(api("getMusicFolderSettings", "folders-member", "secret", null), 50);
         verify(scanner, never()).scanLibrary();
-        verify(artists, never()).expunge();
+        assertNotNull(daoGraph.getArtistDao().getArtist(staleArtistName));
         assertEquals(405, raw("saveMusicFolderSettings", null).statusCode());
         assertEquals(405, raw("expungeMusicFolders", null).statusCode());
         HttpClient browser = login("admin", "admin");
@@ -80,7 +84,7 @@ public class MusicFolderSettingsIntegrationTest {
             assertFalse(response.body().contains("${_csrf.token}"));
         }
         verify(scanner, never()).scanLibrary();
-        verify(artists, never()).expunge();
+        assertNotNull(daoGraph.getArtistDao().getArtist(staleArtistName));
         String top = get(browser, "/top.view").body();
         Matcher token = Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(top);
         assertTrue(token.find());
@@ -149,7 +153,7 @@ public class MusicFolderSettingsIntegrationTest {
         assertNotNull(indexManager.getStatistics());
         ok(website(browser, "expungeMusicFolders", csrf));
         assertNotNull(indexManager.getStatistics());
-        verify(artists, times(1)).expunge();
+        assertNull(daoGraph.getArtistDao().getArtist(staleArtistName));
         verify(scanner, times(1)).scanLibrary();
     }
 
