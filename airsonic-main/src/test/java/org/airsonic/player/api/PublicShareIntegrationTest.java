@@ -31,7 +31,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 import static org.junit.Assert.*;
 
@@ -67,18 +66,7 @@ public class PublicShareIntegrationTest {
             MediaFile album = files.getMediaFile("Artist/Album", folder.getId());
             MediaFile song = files.getMediaFile("Artist/Album/One.mp3", folder.getId());
             Share share = create("PublicTest", List.of(album), "<script>alert('x')</script> Кириллица");
-            String pageUrl = signed("ext/share/" + share.getName(), Instant.now().plusSeconds(600));
-            var page = get(pageUrl);
-            assertEquals(page.body(), 200, page.statusCode());
-            assertTrue(page.body(), page.body().contains("/airsonic/script/public-share.js?v=1"));
-            assertFalse(page.body(), page.body().contains(share.getDescription()));
-            assertTrue(page.body(), page.body().contains("property=\"og:image\" content=\"http://localhost:"));
-            assertTrue(page.body(), page.body().contains("property=\"og:title\""));
-            assertEquals(0, shares.getShareById(share.getId()).getVisitCount());
-            var match = Pattern.compile("id=\"publicShareData\" data-url=\"([^\"]+)\"").matcher(page.body());
-            assertTrue(page.body(), match.find());
-            String dataUrl = match.group(1).replace("&amp;", "&");
-            assertTrue(dataUrl, dataUrl.contains("/airsonic/ext/rest/share/PublicTest?jwt="));
+            String dataUrl = signed("ext/rest/share/" + share.getName(), Instant.now().plusSeconds(600));
             var head = client.send(HttpRequest.newBuilder(URI.create(dataUrl)).method("HEAD", HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
             assertEquals(200, head.statusCode()); assertEquals("", head.body());
             assertEquals(0, shares.getShareById(share.getId()).getVisitCount());
@@ -113,7 +101,7 @@ public class PublicShareIntegrationTest {
             assertTrue(get(dataUrl.replace("PublicTest", "OtherShare")).statusCode() >= 300);
             assertTrue(get(signed("ext/rest/share/PublicTest", Instant.now().minusSeconds(60))).statusCode() >= 300);
             assertTrue(get(dataUrl.substring(0, dataUrl.indexOf("jwt=")) + "jwt=bad").statusCode() >= 300);
-            assertTrue(get(dataUrl.replace("/ext/rest/share/", "/ext/share/")).statusCode() >= 300);
+            assertEquals(404, get(dataUrl.replace("/ext/rest/share/", "/ext/share/")).statusCode());
             assertFalse(json.readTree(get(signed("ext/rest/share/Missing", Instant.now().plusSeconds(60))).body()).path("available").asBoolean());
             share = shares.getShareById(share.getId());
             share.setExpires(Instant.now().minusSeconds(1)); shares.updateShare(share);

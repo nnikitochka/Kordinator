@@ -79,43 +79,6 @@ public class NowPlayingIntegrationTest {
                 assertTrue(send(suffix, "f=xml", false).body().contains("<nowPlaying"));
                 assertTrue(send(suffix, "f=jsonp&callback=client.test", false).body().startsWith("client.test("));
             }
-            JsonNode detailed = body(send("", "f=json&includeWebsiteDetails=true", false)).path("nowPlaying").path("entry");
-            assertEquals(2, detailed.size());
-            for (JsonNode entry : detailed) {
-                assertTrue(entry.has("active"));
-                assertTrue(entry.hasNonNull("transferId"));
-                assertTrue(entry.hasNonNull("streamUrl"));
-                assertTrue(entry.hasNonNull("albumUrl"));
-                assertTrue(entry.hasNonNull("coverArtUrl"));
-                assertTrue(entry.path("displayUsername").asText().contains("admin@"));
-                assertEquals(entry.path("playerId").asInt() == active.getId(), entry.path("active").asBoolean());
-            }
-            HttpClient browser = HttpClient.newBuilder()
-                    .cookieHandler(new java.net.CookieManager(null, java.net.CookiePolicy.ACCEPT_ALL))
-                    .followRedirects(HttpClient.Redirect.NEVER).build();
-            HttpResponse<String> login = browser(browser, "/login", null, null);
-            java.util.regex.Matcher token = java.util.regex.Pattern.compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"").matcher(login.body());
-            assertTrue(token.find());
-            String encoded = java.net.URLEncoder.encode(token.group(1), java.nio.charset.StandardCharsets.UTF_8);
-            assertEquals(302, browser(browser, "/login", "j_username=admin&j_password=admin&_csrf=" + encoded, null).statusCode());
-            for (String path : List.of("/nowPlaying", "/nowPlaying.view")) {
-                HttpResponse<String> navigation = browser(browser, path, null, null);
-                assertEquals(navigation.body(), 302, navigation.statusCode());
-                assertEquals("home.view", navigation.headers().firstValue("location").orElse(null));
-            }
-            HttpResponse<String> page = browser(browser, "/right.view", null, null);
-            assertEquals(page.body(), 200, page.statusCode());
-            assertTrue(page.body().contains("/airsonic/script/subsonic-now-playing.js"));
-            assertFalse(page.body().contains("/app/nowPlaying/"));
-            token = java.util.regex.Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
-            assertTrue(page.body(), token.find());
-            String form = "f=json&c=airsonic-web&includeWebsiteDetails=true";
-            assertEquals(403, browser(browser, "/rest/getNowPlaying", form, null).statusCode());
-            assertEquals(2, body(browser(browser, "/rest/getNowPlaying", form, token.group(1))).path("nowPlaying").path("entry").size());
-            HttpResponse<String> queuePage = browser(browser, "/playQueue.view", null, null);
-            assertEquals(queuePage.body(), 200, queuePage.statusCode());
-            assertTrue(queuePage.body().contains("/airsonic/script/subsonic-now-playing.js"));
-            assertFalse(queuePage.body().contains("/app/nowPlaying/"));
             assertFalse(players.getPlayersForUserAndClientId("admin", "now-playing-test").isEmpty());
             assertEquals("ok", body(send(".view", "f=json", true)).path("status").asText());
             assertEquals(403, send("", "f=json", true).statusCode());
@@ -123,12 +86,6 @@ public class NowPlayingIntegrationTest {
             ScanningTestUtils.after(cleanup, folders);
             folders.expunge();
         }
-    }
-    private HttpResponse<String> browser(HttpClient browser, String path, String form, String csrf) throws Exception {
-        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic" + path));
-        if (csrf != null) request.header("X-CSRF-TOKEN", csrf);
-        if (form != null) request.header("Content-Type", "application/x-www-form-urlencoded").POST(HttpRequest.BodyPublishers.ofString(form));
-        return browser.send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
     private Player player(String username, String name) {
         Player p = new Player();

@@ -73,7 +73,7 @@ public class SharesIntegrationTest {
             int id = created.path("id").asInt();
             assertEquals("admin", created.path("username").asText());
             assertEquals("Original", created.path("description").asText());
-            assertTrue(created.path("url").asText().contains("/airsonic/ext/share/"));
+            assertTrue(created.path("url").asText().contains("/airsonic/ext/rest/share/"));
             assertEquals(2, created.path("entry").size());
             assertEquals(String.valueOf(song), created.path("entry").get(0).path("id").asText());
             assertEquals(1, body(call("getShares", "", null)).path("shares").path("share").size());

@@ -13,7 +13,6 @@ class KtorExternalRouteRequestMatcherTest {
         listOf(
             "/ext/stream",
             "/ext/stream/song.mp3",
-            "/ext/share/PublicName",
             "/ext/rest/share/PublicName",
             "/ext/hls/hls.m3u8",
             "/ext/hls/segment/segment.ts",

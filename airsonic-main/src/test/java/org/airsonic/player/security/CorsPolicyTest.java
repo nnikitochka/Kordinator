@@ -17,12 +17,11 @@ public class CorsPolicyTest {
 
     @Test
     public void matchesExistingFamiliesAndTheirBoundaries() {
-        for (String path : java.util.List.of("/rest", "/rest/ping", "/stream", "/stream/song",
-                "/hls", "/hls2/segment", "/captionsx", "/ext/stream", "/ext/stream/song",
+        for (String path : java.util.List.of("/rest", "/rest/ping", "/captionsx", "/ext/stream", "/ext/stream/song",
                 "/ext/hls2/segment", "/ext/captionsx")) {
             assertTrue(path, policy.appliesTo(path));
         }
-        for (String path : java.util.List.of("/restful", "/streaming", "/ext/streaming",
+        for (String path : java.util.List.of("/restful", "/stream", "/stream/song", "/hls", "/hls2/segment", "/ext/streaming",
                 "/api/rest/ping", "/", "/extension/hls")) {
             assertFalse(path, policy.appliesTo(path));
         }

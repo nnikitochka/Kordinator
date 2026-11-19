@@ -79,64 +79,7 @@ public class StaticAndErrorIntegrationTest {
             .build();
 
     @Test
-    public void staticRoutesAreRegisteredDirectlyOnKtorAndBootErrorControllerIsAbsent() {
-        jakarta.servlet.ServletRegistration registration = servletContext.getServletRegistration("ktor");
-        assertNotNull("Ktor servlet registration", registration);
-        for (String mapping : new String[]{"/script/*", "/style/*", "/icons/*", "/favicon.ico",
-                "/browserconfig.xml", "/index.html", "/error"}) {
-            assertTrue("Ktor mapping " + mapping, registration.getMappings().contains(mapping));
-        }
-        assertTrue("Boot BasicErrorController must not compete with Ktor /error",
-                applicationContext.getBeansOfType(BasicErrorController.class).isEmpty());
-    }
-
-    @Test
-    public void staticResourcesPreserveBytesMimeAndConditionalRangeSemantics() throws Exception {
-        assertStaticResource("/script/utils.js", "javascript");
-        assertStaticResource("/style/sonic_blue.css", "text/css");
-        assertStaticResource("/icons/default_light/error.svg", "image/svg+xml");
-        assertStaticResource("/index.html", "text/html");
-
-        HttpResponse<byte[]> root = bytes("/", "GET", null, null, null, true);
-        assertEquals(200, root.statusCode());
-        assertTrue(new String(root.body(), StandardCharsets.UTF_8),
-                new String(root.body(), StandardCharsets.UTF_8).contains("index.view"));
-    }
-
-    @Test
-    public void staticPrefixResourcesRemainAvailableAnonymously() throws Exception {
-        for (String path : new String[]{"/script/utils.js", "/style/sonic_blue.css", "/icons/default_light/error.svg"}) {
-            HttpResponse<byte[]> response = bytes(path, "GET", null, null, null, false);
-            assertEquals(path, 200, response.statusCode());
-            assertTrue(path + " content type: " + response.headers().firstValue("content-type").orElse(""),
-                    response.headers().firstValue("content-type").orElse("").contains("/"));
-            assertTrue(path, response.body().length > 0);
-        }
-    }
-
-    @Test
-    public void staticMissesAndUnsafePathsNeverRedirectOrExposeWebInf() throws Exception {
-        for (String path : new String[]{"/script/does-not-exist.js", "/script/", "/script/DataTables/"}) {
-            HttpResponse<byte[]> response = bytes(path, "GET", null, null, null, true);
-            assertEquals(path, 404, response.statusCode());
-            assertFalse(path, response.headers().firstValue("location").isPresent());
-        }
-        for (String path : new String[]{
-                "/script", "/style", "/icons",
-                "/script/%2e%2e/WEB-INF/web.xml", "/script/%2E%2E%2fWEB-INF/web.xml",
-                "/script/%2f%2e%2e%2fWEB-INF/web.xml", "/script/%5c..%5cWEB-INF%5cweb.xml",
-                "/script/../WEB-INF/web.xml", "/script/%C3%28.js"}) {
-            HttpResponse<byte[]> response = bytes(path, "GET", null, null, null, true);
-            assertTrue(path + " returned " + response.statusCode(),
-                    response.statusCode() == 400 || response.statusCode() == 404);
-            assertFalse("unsafe path redirected: " + path, response.headers().firstValue("location").isPresent());
-            assertFalse("unsafe resource contents leaked for " + path,
-                    new String(response.body(), StandardCharsets.UTF_8).contains("<web-app"));
-        }
-    }
-
-    @Test
-    public void errorDispatchPreservesStatusAndReturnsNegotiatedEscapedRepresentations() throws Exception {
+    public void errorDispatchPreservesStatusAndReturnsJsonErrors() throws Exception {
         for (int status : new int[]{403, 404, 405}) {
             HttpResponse<String> jsonResponse = request("/test-error/" + status + "?secret=query-token",
                     "GET", "application/json", null, null, true);
@@ -150,14 +93,13 @@ public class StaticAndErrorIntegrationTest {
                     .toLowerCase(Locale.ROOT).startsWith("application/json"));
         }
 
-        HttpResponse<String> html = request("/test-error/throw?secret=query-token",
+        HttpResponse<String> htmlAccept = request("/test-error/throw?secret=query-token",
                 "GET", "text/html", null, null, true);
-        assertEquals(500, html.statusCode());
-        assertTrue(html.body(), html.body().contains("Error 500"));
-        assertTrue(html.body(), html.body().contains("&lt;controlled &amp; safe&gt;"));
-        assertFalse(html.body(), html.body().contains("<controlled & safe>"));
-        assertTrue(html.body(), html.body().contains("/test-error/throw"));
-        assertFalse(html.body(), html.body().contains("query-token"));
+        assertEquals(500, htmlAccept.statusCode());
+        assertTrue(htmlAccept.headers().firstValue("content-type").orElse("").startsWith("application/json"));
+        JsonNode htmlAcceptJson = new ObjectMapper().readTree(htmlAccept.body());
+        assertEquals(500, htmlAcceptJson.path("status").asInt());
+        assertFalse(htmlAccept.body(), htmlAccept.body().contains("query-token"));
 
         HttpResponse<String> exceptionJson = request("/test-error/throw?secret=query-token",
                 "GET", "application/json", null, null, true);
@@ -188,20 +130,15 @@ public class StaticAndErrorIntegrationTest {
     }
 
     @Test
-    public void errorAcceptQualityChoosesTheBestSupportedRepresentation() throws Exception {
-        HttpResponse<String> json = request("/test-error/404", "GET", "text/html;q=0, application/json",
+    public void errorResponsesStayJsonForBrowserAcceptHeaders() throws Exception {
+        HttpResponse<String> json = request("/test-error/404", "GET", "text/html, application/json;q=0.5",
                 null, null, true);
         assertEquals(404, json.statusCode());
         assertTrue(json.headers().firstValue("content-type").orElse(""),
                 json.headers().firstValue("content-type").orElse("").startsWith("application/json"));
         assertEquals(404, new ObjectMapper().readTree(json.body()).path("status").asInt());
 
-        HttpResponse<String> html = request("/test-error/404", "GET", "text/html, application/json;q=0.5",
-                null, null, true);
-        assertEquals(404, html.statusCode());
-        assertTrue(html.headers().firstValue("content-type").orElse(""),
-                html.headers().firstValue("content-type").orElse("").startsWith("text/html"));
-        assertTrue(html.body(), html.body().contains("<html>"));
+        assertFalse(json.body(), json.body().contains("<html>"));
     }
 
     @Test
@@ -249,123 +186,6 @@ public class StaticAndErrorIntegrationTest {
             error.setIncludePath(originalPath);
             error.setIncludeException(originalException);
         }
-    }
-
-    @Test
-    public void errorDispatchAfterPostRetainsTheOriginalMethodAndExceptionContext() throws Exception {
-        HttpClient browser = HttpClient.newBuilder()
-                .cookieHandler(new java.net.CookieManager(null, java.net.CookiePolicy.ACCEPT_ALL))
-                .followRedirects(HttpClient.Redirect.NEVER).build();
-        HttpResponse<String> loginPage = send(browser, "/login", "GET", null, null, null);
-        Matcher tokenMatcher = Pattern.compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"")
-                .matcher(loginPage.body());
-        assertTrue(loginPage.body(), tokenMatcher.find());
-        String loginToken = tokenMatcher.group(1);
-        HttpResponse<String> login = send(browser, "/login", "POST", "application/x-www-form-urlencoded",
-                "j_username=admin&j_password=admin&_csrf=" + URLEncoder.encode(loginToken, StandardCharsets.UTF_8), null);
-        assertTrue("login result " + login.statusCode(), login.statusCode() == 302 || login.statusCode() == 303);
-
-        HttpResponse<String> main = send(browser, "/top.view", "GET", null, null, null);
-        Matcher pageToken = Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(main.body());
-        assertTrue(main.body(), pageToken.find());
-        HttpResponse<String> post = send(browser, "/test-error/throw", "POST", null, "", pageToken.group(1));
-        assertEquals(500, post.statusCode());
-        JsonNode json = new ObjectMapper().readTree(post.body());
-        assertEquals(500, json.path("status").asInt());
-        assertTrue(json.path("path").asText(), json.path("path").asText().contains("/test-error/throw"));
-    }
-
-    private void assertStaticResource(String resourcePath, String expectedMime) throws Exception {
-        byte[] expected;
-        try (InputStream stream = servletContext.getResourceAsStream(resourcePath)) {
-            assertNotNull("ServletContext resource " + resourcePath, stream);
-            expected = stream.readAllBytes();
-        }
-        HttpResponse<byte[]> get = bytes(resourcePath, "GET", null, null, null, true);
-        assertEquals(resourcePath, 200, get.statusCode());
-        assertArrayEquals(resourcePath, expected, get.body());
-        String mime = get.headers().firstValue("content-type").orElse("").toLowerCase(Locale.ROOT);
-        if ("javascript".equals(expectedMime)) {
-            assertTrue(resourcePath + " mime=" + mime,
-                    mime.startsWith("application/javascript") || mime.startsWith("text/javascript"));
-        } else {
-            assertTrue(resourcePath + " mime=" + mime, mime.startsWith(expectedMime));
-        }
-
-        HttpResponse<byte[]> head = bytes(resourcePath, "HEAD", null, null, null, true);
-        assertEquals(200, head.statusCode());
-        assertTrue("HEAD body for " + resourcePath, head.body().length == 0);
-        assertEquals("HEAD Content-Length for " + resourcePath,
-                get.headers().firstValue("content-length").orElseThrow(),
-                head.headers().firstValue("content-length").orElseThrow());
-        assertEquals("HEAD Content-Type for " + resourcePath,
-                get.headers().firstValue("content-type").orElseThrow(),
-                head.headers().firstValue("content-type").orElseThrow());
-        assertEquals(Integer.toString(expected.length), get.headers().firstValue("content-length").orElseThrow());
-
-        HttpResponse<byte[]> rangedHead = bytes(resourcePath, "HEAD", "bytes=0-3", null, null, true);
-        assertEquals(200, rangedHead.statusCode());
-        assertTrue("HEAD with Range body for " + resourcePath, rangedHead.body().length == 0);
-        assertEquals("HEAD must ignore Range for " + resourcePath,
-                get.headers().firstValue("content-length").orElseThrow(),
-                rangedHead.headers().firstValue("content-length").orElseThrow());
-
-        String lastModified = get.headers().firstValue("last-modified").orElseThrow();
-        HttpResponse<byte[]> notModified = bytes(resourcePath, "GET", null, null, lastModified, true);
-        assertEquals(304, notModified.statusCode());
-        assertEquals(0, notModified.body().length);
-        if (resourcePath.startsWith("/script/") || resourcePath.startsWith("/style/")
-                || resourcePath.startsWith("/icons/")) {
-            assertTrue("static cache header: " + get.headers().firstValue("cache-control").orElse(""),
-                    get.headers().firstValue("cache-control").orElse("").contains("max-age=36000"));
-            assertTrue("304 static cache header: " + notModified.headers().firstValue("cache-control").orElse(""),
-                    notModified.headers().firstValue("cache-control").orElse("").contains("max-age=36000"));
-        }
-
-        int end = Math.min(expected.length - 1, 16);
-        HttpResponse<byte[]> range = bytes(resourcePath, "GET", "bytes=2-" + end, null, null, true);
-        assertEquals(206, range.statusCode());
-        assertArrayEquals(Arrays.copyOfRange(expected, 2, end + 1), range.body());
-        assertEquals("bytes 2-" + end + "/" + expected.length,
-                range.headers().firstValue("content-range").orElseThrow());
-
-        HttpResponse<byte[]> unsatisfiable = bytes(resourcePath, "GET", "bytes=" + expected.length + "-", null, null, true);
-        assertEquals(416, unsatisfiable.statusCode());
-        assertEquals("bytes */" + expected.length,
-                unsatisfiable.headers().firstValue("content-range").orElseThrow());
-
-        HttpResponse<byte[]> oldIfRange = bytes(resourcePath, "GET", "bytes=0-3", "Thu, 01 Jan 1970 00:00:00 GMT", null, true);
-        assertEquals(200, oldIfRange.statusCode());
-        assertArrayEquals(expected, oldIfRange.body());
-
-        HttpResponse<byte[]> suffix = bytes(resourcePath, "GET", "bytes=-4", null, null, true);
-        assertEquals(206, suffix.statusCode());
-        assertArrayEquals(Arrays.copyOfRange(expected, expected.length - 4, expected.length), suffix.body());
-        assertEquals("bytes " + (expected.length - 4) + "-" + (expected.length - 1) + "/" + expected.length,
-                suffix.headers().firstValue("content-range").orElseThrow());
-
-        HttpResponse<byte[]> openEnded = bytes(resourcePath, "GET", "bytes=4-", null, null, true);
-        assertEquals(206, openEnded.statusCode());
-        assertArrayEquals(Arrays.copyOfRange(expected, 4, expected.length), openEnded.body());
-
-        for (String invalidRange : new String[]{"abc-5", "-", "invalidend"}) {
-            HttpResponse<byte[]> invalid = bytes(resourcePath, "GET", "bytes=" + invalidRange, null, null, true);
-            assertEquals(invalidRange, 416, invalid.statusCode());
-            assertEquals("bytes */" + expected.length, invalid.headers().firstValue("content-range").orElseThrow());
-        }
-
-        HttpResponse<byte[]> multiRange = bytes(resourcePath, "GET", "bytes=0-1,4-5", null, null, true);
-        assertEquals(200, multiRange.statusCode());
-        assertArrayEquals(expected, multiRange.body());
-    }
-
-    private HttpResponse<byte[]> bytes(String path, String method, String range, String ifRange,
-                                      String ifModifiedSince, boolean authenticated) throws Exception {
-        HttpRequest.Builder builder = requestBuilder(path, method, null, authenticated);
-        if (range != null) builder.header("Range", range);
-        if (ifRange != null) builder.header("If-Range", ifRange);
-        if (ifModifiedSince != null) builder.header("If-Modified-Since", ifModifiedSince);
-        return client.send(builder.method(method, HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofByteArray());
     }
 
     private HttpResponse<String> request(String path, String method, String accept, String contentType,

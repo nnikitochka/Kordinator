@@ -470,10 +470,6 @@ class AirsonicKtorServlet(
 
     private fun serviceRequest(request: HttpServletRequest, response: HttpServletResponse) {
         val path = request.servletPath
-        if (isRemovedWebsitePage(path)) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND)
-            return
-        }
         val errorDispatch = path == errorProperties.get().path &&
             (request.dispatcherType == jakarta.servlet.DispatcherType.ERROR ||
                 request.getAttribute(jakarta.servlet.RequestDispatcher.ERROR_STATUS_CODE) != null)
@@ -591,7 +587,7 @@ class AirsonicKtorServlet(
                 jwt?.expiresAt,
                 request.getParameter("captionId"), request.getParameter("format")))
         }
-        if (path == PublicShareController.PAGE_PATH || path == PublicShareController.DATA_PATH) {
+        if (path == PublicShareController.DATA_PATH) {
             response.setHeader("Cache-Control", "no-store")
             if (request.method !in setOf("GET", "HEAD")) {
                 response.setHeader("Allow", "GET, HEAD")
@@ -1264,11 +1260,6 @@ class AirsonicKtorServlet(
         super.service(request, response)
     }
 
-    private fun isRemovedWebsitePage(path: String): Boolean {
-        val pagePath = path.removeSuffix(".view").ifEmpty { "/" }
-        return pagePath in REMOVED_WEBSITE_PAGES
-    }
-
     private fun parameters(request: HttpServletRequest): Parameters = Parameters.build {
         // Security filters may already have consumed a POST body. Use the servlet's parsed parameters.
         request.parameterNames.asSequence().distinct().forEach { name ->
@@ -1303,16 +1294,6 @@ class AirsonicKtorServlet(
     }
 
     private companion object {
-        val REMOVED_WEBSITE_PAGES = setOf(
-            "/", "/index", "/login", "/logout", "/recover", "/accessDenied", "/notFound",
-            "/home", "/main", "/left", "/right", "/more", "/search", "/starred",
-            "/bookmarks", "/playlist", "/playlists", "/playQueue", "/nowPlaying",
-            "/editTags", "/changeCoverArt", "/lyrics", "/createShare", "/importPlaylist",
-            "/videoPlayer", "/help", "/gettingStarted", "/userSettings", "/musicFolderSettings",
-            "/generalSettings", "/transcodingSettings", "/advancedSettings", "/playerSettings",
-            "/personalSettings", "/shareSettings", "/credentialsSettings", "/databaseSettings",
-            "/dlnaSettings", "/settings", "/top", "/status", "/ext/share",
-        )
         const val STREAM_REQUEST = "org.airsonic.player.streamRequest"
         val STREAM_REQUEST_KEY = AttributeKey<StreamRestController.Request>(STREAM_REQUEST)
         const val HLS_SEGMENT_REQUEST = "org.airsonic.player.hlsSegmentRequest"

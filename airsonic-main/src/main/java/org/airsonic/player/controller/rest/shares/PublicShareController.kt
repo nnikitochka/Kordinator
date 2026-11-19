@@ -25,7 +25,7 @@ import org.airsonic.player.util.StringUtil
 import java.nio.file.Files
 import java.time.Instant
 
-/** Public website data; authentication is scoped to this share's signed URL. */
+/** Signed public share data; access is scoped to the caller's signed URL. */
 class PublicShareController(
     private val shares: ShareService,
     private val mediaFiles: MediaFileService,
@@ -35,10 +35,6 @@ class PublicShareController(
     private val json: ObjectMapper,
 ) {
     data class Request(val name: String, val player: Player, val baseUrl: String, val expiration: Instant?)
-
-    fun dataUrl(name: String, baseUrl: String, expiration: Instant?): String = baseUrl + jwt.addJWTToken(
-        User.USERNAME_ANONYMOUS, "ext/rest/share/$name", expiration
-    )
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
         with(root) {
@@ -67,17 +63,6 @@ class PublicShareController(
         }
         return mapOf("available" to media.isNotEmpty(), "description" to share.description,
             "username" to share.username, "videoPresent" to media.any { it["video"] == true }, "media" to media)
-    }
-
-    // Social preview crawlers do not execute the script that loads the player data.
-    fun preview(request: Request): Map<String, String>? {
-        val share = shares.getShareByName(request.name) ?: return null
-        if (share.expires?.isBefore(Instant.now()) == true) return null
-        val file = selectedFiles(share, request.player).firstOrNull() ?: return null
-        val expiration = listOfNotNull(request.expiration, share.expires).minOrNull()
-        val imagePath = "ext/coverArt.view?id=${file.id}&size=500"
-        val image = request.baseUrl + jwt.addJWTToken(User.USERNAME_GUEST, imagePath, expiration)
-        return mapOf("title" to "${file.artist.orEmpty()} — ${file.albumName.orEmpty()}", "image" to image)
     }
 
     private fun selectedFiles(share: Share, player: Player): List<MediaFile> {
@@ -126,7 +111,6 @@ class PublicShareController(
     }
 
     companion object {
-        const val PAGE_PATH = "/ext/share"
         const val DATA_PATH = "/ext/rest/share"
     }
 }

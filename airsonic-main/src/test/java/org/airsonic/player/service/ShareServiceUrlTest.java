@@ -33,11 +33,11 @@ public class ShareServiceUrlTest {
 
         String shareUrl = service.getShareUrl(request, share);
 
-        assertTrue(shareUrl.startsWith("https://media.example.test:8443/airsonic/ext/share/ShareName1?jwt="));
+        assertTrue(shareUrl.startsWith("https://media.example.test:8443/airsonic/ext/rest/share/ShareName1?jwt="));
         String token = shareUrl.substring(shareUrl.indexOf("?jwt=") + "?jwt=".length());
         DecodedJWT decoded = JWTSecurityService.decode(token);
         assertEquals(User.USERNAME_ANONYMOUS, decoded.getSubject());
-        assertEquals("ext/share/ShareName1", decoded.getClaim(JWTSecurityService.CLAIM_PATH).asString());
+        assertEquals("ext/rest/share/ShareName1", decoded.getClaim(JWTSecurityService.CLAIM_PATH).asString());
         assertEquals(expires, decoded.getExpiresAt().toInstant());
     }
 }

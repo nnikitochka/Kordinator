@@ -26,15 +26,7 @@ internal class KtorServletFilterPipeline(metricsManager: MetricsManager) {
         Registration(RESTFilter()) { it == "/rest" || it.startsWith("/rest/") },
         Registration(RequestEncodingFilter(RequestEncodingPolicy.DEFAULT_ENCODING)) { true },
         Registration(ResponseHeaderFilter(mapOf("Cache-Control" to "max-age=36000"))) {
-            pathMatches(it, "/icons") || pathMatches(it, "/style") || pathMatches(it, "/script") ||
-                it == "/coverArt.view" || it == "/avatar.view"
-        },
-        Registration(ResponseHeaderFilter(mapOf(
-            "Cache-Control" to "no-cache, post-check=0, pre-check=0",
-            "Pragma" to "no-cache",
-            "Expires" to "Thu, 01 Dec 1994 16:00:00 GMT",
-        ))) {
-            it in setOf("/statusChart.view", "/userChart.view", "/playQueue.view", "/help.view", "/top.view", "/home.view")
+            it == "/coverArt.view" || it == "/avatar.view"
         },
         Registration(MetricsFilter(metricsManager)) { true },
     )
@@ -65,7 +57,4 @@ internal class KtorServletFilterPipeline(metricsManager: MetricsManager) {
         })
     }
 
-    private companion object {
-        fun pathMatches(path: String, prefix: String): Boolean = path == prefix || path.startsWith("$prefix/")
-    }
 }

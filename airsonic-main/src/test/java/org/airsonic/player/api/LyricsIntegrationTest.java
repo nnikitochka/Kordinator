@@ -36,7 +36,6 @@ public class LyricsIntegrationTest {
     @ClassRule public static final HomeRule home = new HomeRule();
     @LocalServerPort private int port;
     @Autowired private PlayerService players;
-    @Autowired private ApplicationContext context;
     @MockitoBean private LyricsService lyricsService;
 
     @Before public void stubProvider() {
@@ -89,54 +88,6 @@ public class LyricsIntegrationTest {
             String retryXml = send(suffix, "f=xml&includeLookupStatus=true" + unavailable, false).body();
             assertTrue(retryXml, retryXml.contains("tryLater=\"true\""));
         }
-    }
-
-    @Test public void websiteUsesSessionRestAndEscapesInitialSearchValues() throws Exception {
-        assertFalse(context.containsBean("lyricsController"));
-        HttpClient browser = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
-                .followRedirects(HttpClient.Redirect.NEVER).build();
-        HttpResponse<String> loginPage = browser(browser, "/login", null, null);
-        java.util.regex.Matcher token = java.util.regex.Pattern
-                .compile("name=\"_csrf\"[^>]*value=\"([^\"]+)\"").matcher(loginPage.body());
-        assertTrue(token.find());
-        assertEquals(302, browser(browser, "/login", "j_username=admin&j_password=admin&_csrf="
-                + URLEncoder.encode(token.group(1), StandardCharsets.UTF_8), null).statusCode());
-        HttpResponse<String> page = browser(browser, "/lyrics.view?artist=%22%3E%3Cscript%3E&song=Title", null, null);
-        assertEquals(page.body(), 200, page.statusCode());
-        assertTrue(page.body(), page.body().contains("/airsonic/rest/getLyrics"));
-        assertTrue(page.body(), page.body().contains("/airsonic/script/subsonic-lyrics.js"));
-        assertFalse(page.body().contains("StompClient"));
-        assertFalse(page.body().contains("value=\"\"><script>"));
-        HttpResponse<String> plainPath = browser(browser, "/lyrics?artistUtf8Hex=417274697374&songUtf8Hex=5469746c65", null, null);
-        assertEquals(plainPath.body(), 200, plainPath.statusCode());
-        assertTrue(plainPath.body().contains("value=\"Artist\""));
-        assertTrue(plainPath.body().contains("value=\"Title\""));
-        token = java.util.regex.Pattern.compile("csrfToken: \"([^\"]+)\"").matcher(page.body());
-        assertTrue(token.find());
-        String csrf = token.group(1);
-        String form = "f=json&c=airsonic-web&includeLookupStatus=true&artist=Artist+%26+Co&title="
-                + URLEncoder.encode("Песня ?", StandardCharsets.UTF_8);
-        JsonNode found = body(browser(browser, "/rest/getLyrics", form, csrf));
-        assertEquals("ok", found.path("status").asText());
-        assertEquals("Line one\n<script>literal</script>", found.path("lyrics").path("value").asText());
-        assertTrue(found.path("lyrics").has("tryLater"));
-        assertFalse(found.path("lyrics").path("tryLater").asBoolean());
-        assertEquals(403, browser(browser, "/rest/getLyrics", form, null).statusCode());
-        JsonNode retry = body(browser(browser, "/rest/getLyrics",
-                "f=json&includeLookupStatus=true&artist=Unavailable&title=Title", csrf));
-        assertTrue(retry.path("lyrics").path("tryLater").asBoolean());
-        assertEquals(10, body(client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port
-                + "/airsonic/rest/getLyrics?f=json")).build(), HttpResponse.BodyHandlers.ofString()))
-                .path("error").path("code").asInt());
-    }
-
-    private HttpResponse<String> browser(HttpClient browser, String path, String form, String csrf) throws Exception {
-        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/airsonic" + path))
-                .timeout(Duration.ofSeconds(10));
-        if (csrf != null) request.header("X-CSRF-TOKEN", csrf);
-        if (form != null) request.header("Content-Type", "application/x-www-form-urlencoded")
-                .POST(HttpRequest.BodyPublishers.ofString(form));
-        return browser.send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
 
     private HttpResponse<String> send(String suffix, String query, boolean post) throws Exception {

@@ -1,7 +1,6 @@
 package org.airsonic.player;
 
 import org.apache.catalina.webresources.StandardRoot;
-import org.apache.tomcat.util.scan.StandardJarScanFilter;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 
 public class TomcatApplication {
@@ -9,10 +8,6 @@ public class TomcatApplication {
     public static void configure(TomcatServletWebServerFactory tomcatFactory) {
 
         tomcatFactory.addContextCustomizers(context -> {
-
-            StandardJarScanFilter standardJarScanFilter = new StandardJarScanFilter();
-            standardJarScanFilter.setTldSkip("*");
-            context.getJarScanner().setJarScanFilter(standardJarScanFilter);
 
             boolean development = (System.getProperty("airsonic.development") != null);
 

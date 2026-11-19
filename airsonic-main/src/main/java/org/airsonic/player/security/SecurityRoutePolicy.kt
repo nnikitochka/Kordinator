@@ -28,7 +28,7 @@ object SecurityRoutePolicy {
 
     @JvmField
     val EXT_ROLE_PATHS = listOf(
-        "/ext/stream/**", "/ext/coverArt*", "/ext/share/**", "/ext/hls/**", "/ext/captions**",
+        "/ext/stream/**", "/ext/coverArt*", "/ext/hls/**", "/ext/captions**",
     )
 
     @JvmField

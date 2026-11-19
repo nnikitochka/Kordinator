@@ -947,18 +947,18 @@ public class KtorConfiguration {
         registration.addUrlMappings(AvatarUploadController.PATH);
         registration.addUrlMappings(UploadController.PATH);
         registration.addUrlMappings(PlaylistExportController.PATH);
-        registration.addUrlMappings(PlaylistImportController.PATH, "/importPlaylist", "/importPlaylist.view");
-        registration.addUrlMappings("/ext/share/*", "/ext/rest/share/*");
+        registration.addUrlMappings(PlaylistImportController.PATH);
+        registration.addUrlMappings("/ext/rest/share/*");
         registration.addUrlMappings(CaptionsRestController.PATHS);
         registration.addUrlMappings(ServerInfoController.PATHS);
         registration.addUrlMappings(PasswordRecoveryController.PATH);
-        registration.addUrlMappings(VideoPlayerRestController.PATH, "/videoPlayer", "/videoPlayer.view");
+        registration.addUrlMappings(VideoPlayerRestController.PATH);
         registration.addUrlMappings(HlsRestController.PATHS);
         registration.addUrlMappings(HlsRestController.WEBSITE_PATHS);
-        registration.addUrlMappings("/hls/segment/*", "/ext/hls/segment/*");
+        registration.addUrlMappings("/ext/hls/segment/*");
         registration.addUrlMappings(HlsSegmentRestController.PATHS);
         registration.addUrlMappings(StreamRestController.PATHS);
-        registration.addUrlMappings("/stream", "/stream/*", "/ext/stream", "/ext/stream/*");
+        registration.addUrlMappings("/ext/stream", "/ext/stream/*");
         // Keep container error dispatch in Ktor.
         registration.addUrlMappings(serverProperties.getError().getPath(), "");
         registration.setName("ktor");

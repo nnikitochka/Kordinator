@@ -102,12 +102,8 @@ public class VideoPlayerIntegrationTest {
             var head = client.send(auth(HttpRequest.newBuilder(URI.create(base() + "/rest/videoPlayer?id=" + id)), "admin:admin")
                     .method("HEAD", HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
             assertEquals(200, head.statusCode()); assertEquals("", head.body());
-            for (String page : List.of("/videoPlayer", "/videoPlayer.view")) {
-                var shell = get(page + "?id=" + id, "admin:admin"); assertEquals(shell.body(), 200, shell.statusCode());
-                assertTrue(shell.body(), shell.body().contains("/airsonic/script/video-player.js?v=1"));
-                assertTrue(shell.body(), shell.body().contains("data-url=\"/airsonic/rest/videoPlayer\""));
-                assertFalse(shell.body().contains(data.path("videoTitle").asText()));
-            }
+            assertEquals(404, get("/videoPlayer?id=" + id, "admin:admin").statusCode());
+            assertEquals(404, get("/videoPlayer.view?id=" + id, "admin:admin").statusCode());
             var fallback = json.readTree(get("/rest/videoPlayer?id=" + mkv.getId(), "admin:admin").body());
             assertFalse(fallback.path("streamable").asBoolean()); assertTrue(fallback.path("castable").asBoolean());
             assertEquals("1500 Kbps", fallback.path("defaultBitRate").asText()); assertEquals(11, fallback.path("streamUrls").size());
@@ -126,7 +122,7 @@ public class VideoPlayerIntegrationTest {
             var readerData = json.readTree(get("/rest/videoPlayer?id=" + id, "video-reader:secret").body());
             assertEquals(0, readerData.path("position").asLong()); assertFalse(readerData.path("starred").asBoolean());
             assertFalse(readerData.path("canShare").asBoolean()); assertFalse(readerData.path("canDownload").asBoolean());
-            assertEquals(200, get("/videoPlayer.view?id=" + id, "video-reader:secret").statusCode());
+            assertEquals(404, get("/videoPlayer.view?id=" + id, "video-reader:secret").statusCode());
             assertEquals(403, get("/rest/videoPlayer?id=" + id + "&player=" + player.getId(), "video-reader:secret").statusCode());
             folders.setMusicFoldersForUser(reader.getUsername(), Set.of());
             assertEquals(403, get("/rest/videoPlayer?id=" + id, "video-reader:secret").statusCode());

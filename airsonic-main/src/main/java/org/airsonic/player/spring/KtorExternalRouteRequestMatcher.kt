@@ -27,7 +27,6 @@ class KtorExternalRouteRequestMatcher : RequestMatcher {
         }
 
         val wildcardPaths = listOf(
-            "/ext/share/**",
             "/ext/rest/share/**",
             "/ext/stream/**",
             "/ext/hls/segment/**",

@@ -83,7 +83,7 @@ public class WebShareIntegrationTest {
             assertFalse(context.containsBean("shareManagementController"));
             var created = share(send(browser, path, "f=json&c=airsonic-web&id=" + album.getId(), csrf));
             assertEquals("web-sharer", created.path("username").asText());
-            assertTrue(created.path("url").asText().contains("/airsonic/ext/share/"));
+            assertTrue(created.path("url").asText().contains("/airsonic/ext/rest/share/"));
             assertEquals(1, created.path("entry").size());
             assertEquals(album.getId().intValue(), created.path("entry").get(0).path("id").asInt());
             var selected = share(send(browser, path, "f=json&id=" + album.getId() + "&i=1", csrf));

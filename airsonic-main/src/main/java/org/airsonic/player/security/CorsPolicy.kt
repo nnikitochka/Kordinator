@@ -15,8 +15,6 @@ class CorsPolicy private constructor(
 
     fun appliesTo(applicationPath: String): Boolean =
         applicationPath == "/rest" || applicationPath.startsWith("/rest/") ||
-            applicationPath == "/stream" || applicationPath.startsWith("/stream/") ||
-            applicationPath.startsWith("/hls") ||
             applicationPath.startsWith("/captions") ||
             applicationPath == "/ext/stream" || applicationPath.startsWith("/ext/stream/") ||
             applicationPath.startsWith("/ext/hls") ||
