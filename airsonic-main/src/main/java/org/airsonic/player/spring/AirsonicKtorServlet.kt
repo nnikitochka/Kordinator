@@ -21,7 +21,6 @@ import jakarta.servlet.http.HttpServletRequestWrapper
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.servlet.FilterChain
 import org.airsonic.player.monitor.MetricsManager
-import org.springframework.security.web.util.matcher.RequestMatcher
 import org.airsonic.player.controller.rest.stream.StreamRestController
 import org.airsonic.player.controller.JAXBWriter
 import org.airsonic.player.controller.rest.server.ServerInfoController
@@ -251,7 +250,6 @@ class AirsonicKtorServlet(
     private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
     metricsManager: MetricsManager,
     settingsService: org.airsonic.player.service.SettingsService,
-    csrfRequestMatcher: RequestMatcher,
     private val themeResolver: org.springframework.web.servlet.ThemeResolver,
     private val themeSource: org.springframework.ui.context.ThemeSource,
 ) : ServletApplicationEngine() {
@@ -260,7 +258,6 @@ class AirsonicKtorServlet(
     private val requestFilterPipeline = KtorServletFilterPipeline(metricsManager)
     private val externalSecurityPipeline = KtorExternalSecurityPipeline(
         settingsService,
-        csrfRequestMatcher,
     )
 
     @OptIn(InternalAPI::class)

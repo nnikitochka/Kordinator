@@ -116,7 +116,7 @@ public class GlobalSecurityConfig {
     public static final Set<String> NONLEGACY_DECODABLE_ENCODERS = Sets.intersection(DECODABLE_ENCODERS, NONLEGACY_ENCODERS);
     public static final Set<String> NONLEGACY_NONDECODABLE_ENCODERS = Sets.difference(NONLEGACY_ENCODERS, DECODABLE_ENCODERS);
 
-    private final CsrfSecurityRequestMatcher csrfSecurityRequestMatcher;
+    private final CsrfPolicy csrfPolicy = new CsrfPolicy();
 
     private final SecurityService securityService;
 
@@ -126,10 +126,9 @@ public class GlobalSecurityConfig {
 
     final MultipleCredsMatchingAuthenticationProvider multipleCredsProvider;
 
-    public GlobalSecurityConfig(CsrfSecurityRequestMatcher csrfSecurityRequestMatcher, SecurityService securityService,
+    public GlobalSecurityConfig(SecurityService securityService,
             SpringUserDetailsServiceAdapter userDetailsService, SettingsService settingsService,
             MultipleCredsMatchingAuthenticationProvider multipleCredsProvider) {
-        this.csrfSecurityRequestMatcher = csrfSecurityRequestMatcher;
         this.securityService = securityService;
         this.userDetailsService = userDetailsService;
         this.settingsService = settingsService;
@@ -229,7 +228,8 @@ public class GlobalSecurityConfig {
                             && !ktorExternalRoutes.matches(request);
                 })
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.requireCsrfProtectionMatcher(csrfSecurityRequestMatcher))
+                .csrf(csrf -> csrf.requireCsrfProtectionMatcher(request -> csrfPolicy.requiresProtection(
+                        request.getMethod(), request.getServletPath(), request.getPathInfo(), request.getQueryString())))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(SecurityRoutePolicy.EXT_ROLE_PATHS.toArray(String[]::new))
@@ -274,7 +274,8 @@ public class GlobalSecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .httpBasic(Customizer.withDefaults())
                 .addFilterAfter(restAuthenticationFilter, BasicAuthenticationFilter.class)
-                .csrf(csrf -> csrf.requireCsrfProtectionMatcher(csrfSecurityRequestMatcher))
+                .csrf(csrf -> csrf.requireCsrfProtectionMatcher(request -> csrfPolicy.requiresProtection(
+                        request.getMethod(), request.getServletPath(), request.getPathInfo(), request.getQueryString())))
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
                 .authorizeHttpRequests(authorize -> {
                     // Views are forwarded internally to /WEB-INF/jsp/*.jsp after the

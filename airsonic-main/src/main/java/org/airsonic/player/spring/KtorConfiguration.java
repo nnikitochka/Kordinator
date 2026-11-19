@@ -13,7 +13,6 @@ import org.airsonic.player.service.upnp.MediaFileUpnpProcessor;
 import org.airsonic.player.service.upnp.PlaylistUpnpProcessor;
 import org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor;
 import org.airsonic.player.service.upnp.RootUpnpProcessor;
-import org.airsonic.player.security.CsrfSecurityRequestMatcher;
 import org.airsonic.player.security.GlobalSecurityConfig;
 import org.airsonic.player.security.MultipleCredsMatchingAuthenticationProvider;
 import org.airsonic.player.security.SpringUserDetailsServiceAdapter;
@@ -316,11 +315,6 @@ public class KtorConfiguration {
     public org.springframework.context.ApplicationListener<org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent>
             authenticationFailureListener(GlobalSecurityConfig securityConfig) {
         return securityConfig::loginFailureListener;
-    }
-
-    @Bean
-    public CsrfSecurityRequestMatcher csrfSecurityRequestMatcher() {
-        return new CsrfSecurityRequestMatcher();
     }
 
     @Bean
@@ -853,7 +847,6 @@ public class KtorConfiguration {
             UploadFileService uploadFileService,
             org.springframework.boot.autoconfigure.web.ServerProperties serverProperties,
             org.airsonic.player.monitor.MetricsManager metricsManager,
-            org.springframework.security.web.util.matcher.RequestMatcher csrfRequestMatcher,
             org.airsonic.player.theme.CustomThemeResolver themeResolver,
             org.airsonic.player.theme.CustomThemeSource themeSource,
             org.airsonic.player.dao.TransactionManager transactionManager
@@ -946,7 +939,7 @@ public class KtorConfiguration {
                                         ErrorAttributeMode.valueOf(serverProperties.getError().getIncludeMessage().name()),
                                         ErrorAttributeMode.valueOf(serverProperties.getError().getIncludeStacktrace().name()),
                                         ErrorAttributeMode.valueOf(serverProperties.getError().getIncludePath().name())),
-                                objectMapper, metricsManager, settingsService, csrfRequestMatcher, themeResolver, themeSource),
+                                objectMapper, metricsManager, settingsService, themeResolver, themeSource),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(SearchPageController.DATA_PATH);

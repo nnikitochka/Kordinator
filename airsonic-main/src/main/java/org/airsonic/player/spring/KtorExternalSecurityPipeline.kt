@@ -14,10 +14,9 @@ import java.security.Principal
 /** Temporary servlet boundary adapter for the stateless external player routes. */
 internal class KtorExternalSecurityPipeline(
     private val settingsService: SettingsService,
-    csrfRequestMatcher: org.springframework.security.web.util.matcher.RequestMatcher,
 ) {
     private val corsAdapter = KtorCorsAdapter()
-    private val csrfAdapter = KtorCsrfAdapter(csrfRequestMatcher)
+    private val csrfAdapter = KtorCsrfAdapter()
     private val jwtTokenVerifier = JwtTokenVerifier()
 
     fun service(request: HttpServletRequest, response: HttpServletResponse, terminal: FilterChain) {
