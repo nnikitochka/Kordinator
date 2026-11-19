@@ -34,7 +34,6 @@ import org.airsonic.player.controller.rest.hls.HlsRestController;
 import org.airsonic.player.controller.rest.hls.HlsSegmentRestController;
 import org.airsonic.player.service.hls.HlsSegmentService;
 import org.airsonic.player.controller.rest.stream.StreamRestController;
-import org.airsonic.player.service.MediaStreamService;
 import org.airsonic.player.service.TranscodingService;
 import org.airsonic.player.dao.PlayerDaoPlayQueueFactory;
 import org.airsonic.player.dao.AvatarDao;
@@ -449,13 +448,6 @@ public class KtorConfiguration {
         return runtime.createMusicIndexStateService(scanner, settings);
     }
 
-    public MediaStreamService mediaStreamService(RuntimeCompositionRoot runtime, StatusService statusService, SecurityService securityService,
-            SettingsService settingsService, TranscodingService transcodingService, AudioScrobblerService audioScrobblerService,
-            MediaFileService mediaFileService, SearchService searchService) {
-        return runtime.createMediaStreamService(statusService, securityService, settingsService, transcodingService,
-                audioScrobblerService, mediaFileService, searchService);
-    }
-
     @Bean
     public ServletRegistrationBean<ServletApplicationEngine> ktorServletRegistration(
             RuntimeCompositionRoot runtime,
@@ -498,7 +490,6 @@ public class KtorConfiguration {
             CoverArtImageService coverArtImageService,
             HlsPlaylistService hlsPlaylistService,
             HlsSegmentService hlsSegmentService,
-            MediaStreamService mediaStreamService,
             UploadFileService uploadFileService
     ) throws java.io.IOException {
         runtime.createCoverArtAccentColorBackfill(coverArtService);
@@ -601,7 +592,9 @@ public class KtorConfiguration {
                                 runtime.createAvatarUploadController(settingsService),
                                 runtime.createHlsRestController(hlsPlaylistService),
                                 runtime.createHlsSegmentRestController(hlsSegmentService),
-                                runtime.createStreamRestController(mediaStreamService),
+                                runtime.createStreamRestController(runtime.createMediaStreamService(
+                                        statusService, securityService, settingsService, transcodingService,
+                                        audioScrobblerService, mediaFileService, albumSearchService)),
                                 runtime.createPublicShareController(shareService, mediaFileService, mediaFolderService,
                                         jwtSecurityService, runtime.createMetaDataParserFactory(), objectMapper),
                                 runtime.createCaptionsRestController(captionService, mediaFolderService, objectMapper),
