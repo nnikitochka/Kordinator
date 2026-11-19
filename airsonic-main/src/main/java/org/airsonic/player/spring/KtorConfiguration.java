@@ -799,7 +799,7 @@ public class KtorConfiguration {
                                 new AlbumInfoController(mediaFileService, albumDao, lastFmService, jaxbWriter),
                                 new PlaylistsController(playlistService, mediaFileService, securityService, responseMapper, jaxbWriter,
                                         mediaFileDao, mediaFolderService, playerService, localeService),
-                                new org.airsonic.player.ktor.KordinatorPlaylistRoutes(playlistService, securityService),
+                                new org.airsonic.player.ktor.KordinatorPlaylistRoutes(playlistService, securityService, mediaFileService),
                                 new UploadController(uploadFileService, statusService, securityService, settingsService, jaxbWriter),
                                 new PlaylistExportController(playlistService, jaxbWriter),
                                 new PlaylistImportController(playlistService, jaxbWriter),

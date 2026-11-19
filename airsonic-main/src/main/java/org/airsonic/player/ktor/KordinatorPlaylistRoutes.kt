@@ -15,6 +15,7 @@ import io.ktor.server.routing.put
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.service.PlaylistService
 import org.airsonic.player.service.SecurityService
+import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.domain.Playlist
 import java.time.Instant
 
@@ -30,6 +31,7 @@ data class KordinatorPlaylistSummary(
 class KordinatorPlaylistRoutes(
     private val playlists: PlaylistService,
     private val securityService: SecurityService,
+    private val mediaFileService: MediaFileService,
 ) {
     fun routes(
         root: Route,
@@ -148,6 +150,61 @@ class KordinatorPlaylistRoutes(
             call.respondText(objectMapper.writeValueAsString(updated.toSummary()), ContentType.Application.Json)
         }
 
+        root.put("/api/v1/playlists/{id}/tracks") {
+            val username = currentUsername(call)
+            if (username.isNullOrBlank()) {
+                call.respond(HttpStatusCode.Unauthorized)
+                return@put
+            }
+
+            val id = call.parameters["id"]?.toIntOrNull()
+            if (id == null || id <= 0) {
+                call.respondText(
+                    objectMapper.writeValueAsString(ApiError("invalid_request", "Playlist ID must be a positive number")),
+                    ContentType.Application.Json,
+                    HttpStatusCode.BadRequest,
+                )
+                return@put
+            }
+
+            val playlist = playlists.getPlaylist(id)
+            if (playlist == null || !playlists.isWriteAllowed(playlist, username)) {
+                call.respond(HttpStatusCode.NotFound)
+                return@put
+            }
+
+            val request = try {
+                objectMapper.readValue(call.receiveText(), ReplaceKordinatorPlaylistTracksRequest::class.java)
+            } catch (_: Exception) {
+                call.respondText(
+                    objectMapper.writeValueAsString(ApiError("invalid_request", "Request body must be valid JSON")),
+                    ContentType.Application.Json,
+                    HttpStatusCode.BadRequest,
+                )
+                return@put
+            }
+            val trackIds = request.trackIds
+            if (trackIds == null || trackIds.any { it <= 0 }) {
+                call.respondText(
+                    objectMapper.writeValueAsString(ApiError("invalid_request", "Track IDs must be positive numbers")),
+                    ContentType.Application.Json,
+                    HttpStatusCode.BadRequest,
+                )
+                return@put
+            }
+
+            val tracks = trackIds.map { trackId ->
+                val track = mediaFileService.getMediaFile(trackId)
+                if (track == null || !track.isAudio || !securityService.isFolderAccessAllowed(track, username)) {
+                    call.respond(HttpStatusCode.NotFound)
+                    return@put
+                }
+                track
+            }
+            playlists.setFilesInPlaylist(id, tracks)
+            call.respond(HttpStatusCode.NoContent)
+        }
+
         root.delete("/api/v1/playlists/{id}") {
             val username = currentUsername(call)
             if (username.isNullOrBlank()) {
@@ -223,6 +280,8 @@ class KordinatorPlaylistRoutes(
 data class CreateKordinatorPlaylistRequest(val name: String?)
 
 data class UpdateKordinatorPlaylistRequest(val name: String?, val comment: String?)
+
+data class ReplaceKordinatorPlaylistTracksRequest(val trackIds: List<Int>?)
 
 data class KordinatorPlaylistDetails(
     val id: Int,

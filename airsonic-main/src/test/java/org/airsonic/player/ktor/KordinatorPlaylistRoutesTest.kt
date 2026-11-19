@@ -16,6 +16,7 @@ import org.airsonic.player.domain.Playlist
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.service.PlaylistService
 import org.airsonic.player.service.SecurityService
+import org.airsonic.player.service.MediaFileService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
@@ -26,6 +27,7 @@ class KordinatorPlaylistRoutesTest {
     fun listsOnlyPlaylistsVisibleThroughTheExistingPlaylistService() = testApplication {
         val playlistService = Mockito.mock(PlaylistService::class.java)
         val securityService = Mockito.mock(SecurityService::class.java)
+        val mediaFileService = Mockito.mock(MediaFileService::class.java)
         val playlist = Playlist().apply {
             id = 7
             name = "Road trip"
@@ -39,7 +41,7 @@ class KordinatorPlaylistRoutesTest {
         val mapper = jacksonObjectMapper()
         application {
             routing {
-                KordinatorPlaylistRoutes(playlistService, securityService).routes(
+                KordinatorPlaylistRoutes(playlistService, securityService, mediaFileService).routes(
                     this,
                     currentUsername = { call -> call.request.headers["X-Test-User"] },
                     objectMapper = mapper,
@@ -64,6 +66,7 @@ class KordinatorPlaylistRoutesTest {
     fun returnsReadablePlaylistAndOnlyTracksAccessibleToTheUser() = testApplication {
         val playlistService = Mockito.mock(PlaylistService::class.java)
         val securityService = Mockito.mock(SecurityService::class.java)
+        val mediaFileService = Mockito.mock(MediaFileService::class.java)
         val playlist = Playlist().apply {
             id = 7
             username = "alice"
@@ -95,7 +98,7 @@ class KordinatorPlaylistRoutesTest {
         val mapper = jacksonObjectMapper()
         application {
             routing {
-                KordinatorPlaylistRoutes(playlistService, securityService).routes(
+                KordinatorPlaylistRoutes(playlistService, securityService, mediaFileService).routes(
                     this,
                     currentUsername = { call -> call.request.headers["X-Test-User"] },
                     objectMapper = mapper,
@@ -118,6 +121,7 @@ class KordinatorPlaylistRoutesTest {
     fun hidesPlaylistsThatTheUserCannotRead() = testApplication {
         val playlistService = Mockito.mock(PlaylistService::class.java)
         val securityService = Mockito.mock(SecurityService::class.java)
+        val mediaFileService = Mockito.mock(MediaFileService::class.java)
         val playlist = Playlist().apply {
             id = 7
             username = "bob"
@@ -127,7 +131,7 @@ class KordinatorPlaylistRoutesTest {
         Mockito.`when`(playlistService.isReadAllowed(playlist, "alice")).thenReturn(false)
         application {
             routing {
-                KordinatorPlaylistRoutes(playlistService, securityService).routes(
+                KordinatorPlaylistRoutes(playlistService, securityService, mediaFileService).routes(
                     this,
                     currentUsername = { call -> call.request.headers["X-Test-User"] },
                     objectMapper = jacksonObjectMapper(),
@@ -145,6 +149,7 @@ class KordinatorPlaylistRoutesTest {
     fun updatesPlaylistMetadataOnlyForItsOwner() = testApplication {
         val playlistService = Mockito.mock(PlaylistService::class.java)
         val securityService = Mockito.mock(SecurityService::class.java)
+        val mediaFileService = Mockito.mock(MediaFileService::class.java)
         val playlist = Playlist().apply {
             id = 7
             username = "alice"
@@ -155,7 +160,7 @@ class KordinatorPlaylistRoutesTest {
         val mapper = jacksonObjectMapper()
         application {
             routing {
-                KordinatorPlaylistRoutes(playlistService, securityService).routes(
+                KordinatorPlaylistRoutes(playlistService, securityService, mediaFileService).routes(
                     this,
                     currentUsername = { call -> call.request.headers["X-Test-User"] },
                     objectMapper = mapper,
@@ -184,6 +189,7 @@ class KordinatorPlaylistRoutesTest {
     fun rejectsPlaylistUpdateFromNonOwner() = testApplication {
         val playlistService = Mockito.mock(PlaylistService::class.java)
         val securityService = Mockito.mock(SecurityService::class.java)
+        val mediaFileService = Mockito.mock(MediaFileService::class.java)
         val playlist = Playlist().apply {
             id = 7
             username = "bob"
@@ -193,7 +199,7 @@ class KordinatorPlaylistRoutesTest {
         Mockito.`when`(playlistService.isWriteAllowed(playlist, "alice")).thenReturn(false)
         application {
             routing {
-                KordinatorPlaylistRoutes(playlistService, securityService).routes(
+                KordinatorPlaylistRoutes(playlistService, securityService, mediaFileService).routes(
                     this,
                     currentUsername = { call -> call.request.headers["X-Test-User"] },
                     objectMapper = jacksonObjectMapper(),
@@ -215,6 +221,7 @@ class KordinatorPlaylistRoutesTest {
     fun deletesPlaylistOnlyForItsOwner() = testApplication {
         val playlistService = Mockito.mock(PlaylistService::class.java)
         val securityService = Mockito.mock(SecurityService::class.java)
+        val mediaFileService = Mockito.mock(MediaFileService::class.java)
         val playlist = Playlist().apply {
             id = 7
             username = "alice"
@@ -224,7 +231,7 @@ class KordinatorPlaylistRoutesTest {
         Mockito.`when`(playlistService.isWriteAllowed(playlist, "alice")).thenReturn(true)
         application {
             routing {
-                KordinatorPlaylistRoutes(playlistService, securityService).routes(
+                KordinatorPlaylistRoutes(playlistService, securityService, mediaFileService).routes(
                     this,
                     currentUsername = { call -> call.request.headers["X-Test-User"] },
                     objectMapper = jacksonObjectMapper(),
@@ -242,6 +249,7 @@ class KordinatorPlaylistRoutesTest {
     fun rejectsPlaylistDeletionFromNonOwner() = testApplication {
         val playlistService = Mockito.mock(PlaylistService::class.java)
         val securityService = Mockito.mock(SecurityService::class.java)
+        val mediaFileService = Mockito.mock(MediaFileService::class.java)
         val playlist = Playlist().apply {
             id = 7
             username = "bob"
@@ -251,7 +259,7 @@ class KordinatorPlaylistRoutesTest {
         Mockito.`when`(playlistService.isWriteAllowed(playlist, "alice")).thenReturn(false)
         application {
             routing {
-                KordinatorPlaylistRoutes(playlistService, securityService).routes(
+                KordinatorPlaylistRoutes(playlistService, securityService, mediaFileService).routes(
                     this,
                     currentUsername = { call -> call.request.headers["X-Test-User"] },
                     objectMapper = jacksonObjectMapper(),
@@ -266,9 +274,91 @@ class KordinatorPlaylistRoutesTest {
     }
 
     @Test
+    fun replacesPlaylistTracksInRequestedOrderAfterCheckingAccess() = testApplication {
+        val playlistService = Mockito.mock(PlaylistService::class.java)
+        val securityService = Mockito.mock(SecurityService::class.java)
+        val mediaFileService = Mockito.mock(MediaFileService::class.java)
+        val playlist = Playlist().apply {
+            id = 7
+            username = "alice"
+            name = "Road trip"
+        }
+        val firstTrack = MediaFile().apply { id = 11; mediaType = MediaFile.MediaType.MUSIC }
+        val secondTrack = MediaFile().apply { id = 12; mediaType = MediaFile.MediaType.AUDIOBOOK }
+        Mockito.`when`(playlistService.getPlaylist(7)).thenReturn(playlist)
+        Mockito.`when`(playlistService.isWriteAllowed(playlist, "alice")).thenReturn(true)
+        Mockito.`when`(mediaFileService.getMediaFile(11)).thenReturn(firstTrack)
+        Mockito.`when`(mediaFileService.getMediaFile(12)).thenReturn(secondTrack)
+        Mockito.`when`(
+            securityService.isFolderAccessAllowed(Mockito.any(MediaFile::class.java), Mockito.eq("alice")),
+        ).thenReturn(true)
+        application {
+            routing {
+                KordinatorPlaylistRoutes(playlistService, securityService, mediaFileService).routes(
+                    this,
+                    currentUsername = { call -> call.request.headers["X-Test-User"] },
+                    objectMapper = jacksonObjectMapper(),
+                )
+            }
+        }
+
+        val response = client.put("/api/v1/playlists/7/tracks") {
+            headers.append("X-Test-User", "alice")
+            contentType(ContentType.Application.Json)
+            setBody("""{"trackIds":[12,11,12]}""")
+        }
+
+        assertEquals(HttpStatusCode.NoContent, response.status)
+        val savedTracks = Mockito.mockingDetails(playlistService).invocations
+            .single { it.method.name == "setFilesInPlaylist" }
+            .arguments[1] as List<MediaFile>
+        assertEquals(listOf(12, 11, 12), savedTracks.map { it.id })
+    }
+
+    @Test
+    fun doesNotReplacePlaylistTracksWhenAnyTrackIsInaccessible() = testApplication {
+        val playlistService = Mockito.mock(PlaylistService::class.java)
+        val securityService = Mockito.mock(SecurityService::class.java)
+        val mediaFileService = Mockito.mock(MediaFileService::class.java)
+        val playlist = Playlist().apply {
+            id = 7
+            username = "alice"
+            name = "Road trip"
+        }
+        val accessibleTrack = MediaFile().apply { id = 11; mediaType = MediaFile.MediaType.MUSIC }
+        val hiddenTrack = MediaFile().apply { id = 12; mediaType = MediaFile.MediaType.MUSIC }
+        Mockito.`when`(playlistService.getPlaylist(7)).thenReturn(playlist)
+        Mockito.`when`(playlistService.isWriteAllowed(playlist, "alice")).thenReturn(true)
+        Mockito.`when`(mediaFileService.getMediaFile(11)).thenReturn(accessibleTrack)
+        Mockito.`when`(mediaFileService.getMediaFile(12)).thenReturn(hiddenTrack)
+        Mockito.`when`(
+            securityService.isFolderAccessAllowed(Mockito.any(MediaFile::class.java), Mockito.eq("alice")),
+        ).thenAnswer { invocation -> (invocation.arguments[0] as MediaFile).id == 11 }
+        application {
+            routing {
+                KordinatorPlaylistRoutes(playlistService, securityService, mediaFileService).routes(
+                    this,
+                    currentUsername = { call -> call.request.headers["X-Test-User"] },
+                    objectMapper = jacksonObjectMapper(),
+                )
+            }
+        }
+
+        val response = client.put("/api/v1/playlists/7/tracks") {
+            headers.append("X-Test-User", "alice")
+            contentType(ContentType.Application.Json)
+            setBody("""{"trackIds":[11,12]}""")
+        }
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        Mockito.verify(playlistService, Mockito.never()).setFilesInPlaylist(Mockito.anyInt(), Mockito.anyList())
+    }
+
+    @Test
     fun createsAnOwnedPrivatePlaylistForTheAuthenticatedUser() = testApplication {
         val playlistService = Mockito.mock(PlaylistService::class.java)
         val securityService = Mockito.mock(SecurityService::class.java)
+        val mediaFileService = Mockito.mock(MediaFileService::class.java)
         val mapper = jacksonObjectMapper()
         Mockito.doAnswer { invocation ->
             (invocation.arguments[0] as Playlist).id = 41
@@ -276,7 +366,7 @@ class KordinatorPlaylistRoutesTest {
         }.`when`(playlistService).createPlaylist(Mockito.any(Playlist::class.java))
         application {
             routing {
-                KordinatorPlaylistRoutes(playlistService, securityService).routes(
+                KordinatorPlaylistRoutes(playlistService, securityService, mediaFileService).routes(
                     this,
                     currentUsername = { call -> call.request.headers["X-Test-User"] },
                     objectMapper = mapper,
@@ -308,9 +398,10 @@ class KordinatorPlaylistRoutesTest {
     fun rejectsUnauthenticatedAndInvalidCreateRequests() = testApplication {
         val playlistService = Mockito.mock(PlaylistService::class.java)
         val securityService = Mockito.mock(SecurityService::class.java)
+        val mediaFileService = Mockito.mock(MediaFileService::class.java)
         application {
             routing {
-                KordinatorPlaylistRoutes(playlistService, securityService).routes(
+                KordinatorPlaylistRoutes(playlistService, securityService, mediaFileService).routes(
                     this,
                     currentUsername = { call -> call.request.headers["X-Test-User"] },
                     objectMapper = jacksonObjectMapper(),
