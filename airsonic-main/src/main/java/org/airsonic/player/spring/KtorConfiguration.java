@@ -1,7 +1,6 @@
 package org.airsonic.player.spring;
 
 import io.ktor.server.servlet.jakarta.ServletApplicationEngine;
-import org.airsonic.player.service.LyricsService;
 import org.airsonic.player.service.TagEditService;
 import org.airsonic.player.service.UPnPService;
 import org.airsonic.player.service.upnp.AlbumUpnpProcessor;
@@ -304,10 +303,6 @@ public class KtorConfiguration {
         return runtime.createBookmarkService(graph.getBookmarkDao(), mediaFileService);
     }
 
-    public LyricsService lyricsService(RuntimeCompositionRoot runtime) {
-        return runtime.createLyricsService();
-    }
-
     public RatingService ratingService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph, SecurityService securityService,
             MediaFileService mediaFileService) {
         return runtime.createRatingService(graph.getRatingDao(), securityService, mediaFileService);
@@ -443,7 +438,6 @@ public class KtorConfiguration {
             PlayerService playerService,
             PlaylistService playlistService,
             ShareService shareService,
-            LyricsService lyricsService,
             TagEditService tagEditService,
             BookmarkService bookmarkService,
             JukeboxService jukeboxService,
@@ -558,7 +552,7 @@ public class KtorConfiguration {
                                 runtime.createCacheStatisticsController(runtime.createCacheManager()),
                                 runtime.createSongController(securityService, responseMapper),
                                 runtime.createVideosController(mediaFolderService, responseMapper),
-                                runtime.createLyricsController(lyricsService),
+                                runtime.createLyricsController(runtime.createLyricsService()),
                                 runtime.createMediaFileCommentController(mediaFileService, securityService),
                                 runtime.createTagEditController(tagEditService),
                                 runtime.createRatingController(mediaFileService, ratingService),

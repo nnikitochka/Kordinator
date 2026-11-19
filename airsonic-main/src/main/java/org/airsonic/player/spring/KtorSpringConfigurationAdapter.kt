@@ -300,11 +300,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     ): org.airsonic.player.service.BookmarkService = runtime.createBookmarkService(graph.bookmarkDao, mediaFileService)
 
     @Bean
-    override fun lyricsService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.LyricsService = runtime.createLyricsService()
-
-    @Bean
     override fun ratingService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         graph: org.airsonic.player.runtime.DaoGraph,
