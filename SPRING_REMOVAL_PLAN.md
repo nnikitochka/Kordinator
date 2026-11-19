@@ -304,6 +304,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `42f73a1` удаляет неиспользовавшиеся в production `PipeStreams.DelayedResource` и `MonitoredResource`, которые реализовывали Spring `Resource`. Тест мониторинга теперь открывает обычный `Files.newInputStream` и напрямую оборачивает его в framework-neutral `MonitoredInputStream`. `PipeStreamsTest`, `MediaStreamServiceTestCase` и runtime composition graph прошли 6/6.
 
+Срез `021a506` убирает `Environment` и `EmbeddedDatabaseConnection` Spring Boot из `LegacyHsqlMigrationUtil`: утилита принимает `Function<String, String>` для настроек, а HSQLDB driver загружается по своему штатному классу до старта DataSource. Spring event listener остаётся только bootstrap adapter. Runtime configuration, composition graph, database status и database settings regressions прошли 20/20.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
