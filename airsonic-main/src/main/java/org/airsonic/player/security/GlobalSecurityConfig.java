@@ -31,12 +31,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.password.Pbkdf2PasswordEncoder;
 import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.security.web.util.matcher.AndRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
-import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -232,10 +230,13 @@ public class GlobalSecurityConfig {
                 new JWTRequestParameterProcessingFilter(authenticationManager, FAILURE_URL),
                 UsernamePasswordAuthenticationFilter.class);
 
+        RequestMatcher ktorExternalRoutes = new org.airsonic.player.spring.KtorExternalRouteRequestMatcher();
         http
-                .securityMatcher(new AndRequestMatcher(
-                        AntPathRequestMatcher.antMatcher("/ext/**"),
-                        new NegatedRequestMatcher(new org.airsonic.player.spring.KtorExternalRouteRequestMatcher())))
+                .securityMatcher(request -> {
+                    String path = request.getServletPath() + (request.getPathInfo() == null ? "" : request.getPathInfo());
+                    return SecurityRoutePolicy.matchesPathPattern("/ext/**", path)
+                            && !ktorExternalRoutes.matches(request);
+                })
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.requireCsrfProtectionMatcher(csrfSecurityRequestMatcher))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
@@ -275,9 +276,10 @@ public class GlobalSecurityConfig {
             LOG.info("Using a fixed 'remember me' key from properties, this is insecure.");
         }
 
+        RequestMatcher ktorExternalRoutes = new org.airsonic.player.spring.KtorExternalRouteRequestMatcher();
         http
                 // Explicit Ktor external routes are secured at the Ktor servlet boundary.
-                .securityMatcher(new NegatedRequestMatcher(new org.airsonic.player.spring.KtorExternalRouteRequestMatcher()))
+                .securityMatcher(request -> !ktorExternalRoutes.matches(request))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .httpBasic(Customizer.withDefaults())
                 .addFilterAfter(restAuthenticationFilter, BasicAuthenticationFilter.class)
