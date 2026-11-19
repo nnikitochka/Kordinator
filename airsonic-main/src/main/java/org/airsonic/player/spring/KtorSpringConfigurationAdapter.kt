@@ -260,15 +260,9 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime.createSecurityService(graph.userDao, settingsService, mediaFolderService, credentialEncoders)
 
     @Bean
-    override fun configurationPropertiesService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.ConfigurationPropertiesService = runtime.createConfigurationPropertiesService()
-
-    @Bean
     override fun settingsService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         graph: org.airsonic.player.runtime.DaoGraph,
-        properties: org.airsonic.player.service.ConfigurationPropertiesService,
     ): org.airsonic.player.service.SettingsService = runtime.createSettingsService()
 
     @Bean

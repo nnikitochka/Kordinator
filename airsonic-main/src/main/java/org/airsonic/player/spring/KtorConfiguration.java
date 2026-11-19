@@ -500,13 +500,7 @@ public class KtorConfiguration {
         return new SpringCredentialEncoderRegistry();
     }
 
-    public org.airsonic.player.service.ConfigurationPropertiesService configurationPropertiesService(
-            RuntimeCompositionRoot runtime) {
-        return runtime.createConfigurationPropertiesService();
-    }
-
-    public SettingsService settingsService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph,
-            org.airsonic.player.service.ConfigurationPropertiesService properties) {
+    public SettingsService settingsService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph) {
         // The graph argument preserves startup ordering while DAOs remain owned by RuntimeCompositionRoot.
         return runtime.createSettingsService();
     }
@@ -663,7 +657,6 @@ public class KtorConfiguration {
             SecurityService securityService,
             CredentialEncoderRegistry credentialEncoderRegistry,
             SettingsService settingsService,
-            org.airsonic.player.service.ConfigurationPropertiesService properties,
             VersionService versionService,
             MusicIndexService musicIndexService,
             AudioScrobblerService audioScrobblerService,
@@ -730,7 +723,7 @@ public class KtorConfiguration {
                                         userAdministrationService),
                                 runtime.createDLNASettingsController(settingsService, upnpService),
                                 runtime.createDatabaseSettingsController(settingsService, databaseService,
-                                        statusService, securityService, properties),
+                                        statusService, securityService, runtime.createConfigurationPropertiesService()),
                                 runtime.createCredentialsManagementController(securityService, settingsService),
                                 runtime.createPersonalSettingsController(settingsService, securityService),
                                 runtime.createPlayerSettingsController(playerService, transcodingService, playQueueService),
