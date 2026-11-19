@@ -364,6 +364,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** `spring-boot-starter-validation` заменён прямой зависимостью `hibernate-validator`; проект использует Jakarta Bean Validation напрямую, а Spring MVC `LocalValidatorFactoryBean` уже удалён. `UtilTest` прошёл 12/12; dependency tree подтверждает Hibernate Validator без Boot validation starter.
 
+**Срез 19 ноября 2026:** `spring-boot-starter-web` заменён прямым `spring-web`; servlet Tomcat и Jackson остаются отдельными зависимостями, `spring-webmvc` уже исключён. `UserDaoTestCase` прошёл 8/8, а dependency tree показывает только `spring-web` среди выбранных web artifacts. Boot JDBC starter пока сохранён, потому что его удаление до замены Liquibase auto-configuration снимает database initializer и `liquibase` bean, от которого зависит startup ordering.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
