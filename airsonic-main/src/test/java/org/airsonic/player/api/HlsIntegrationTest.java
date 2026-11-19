@@ -25,8 +25,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
-import java.util.Base64;
-import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.UUID;
 
@@ -93,15 +91,6 @@ public class HlsIntegrationTest {
             }
             assertEquals(200, send(".view", "id=" + song.getId(), "admin", "admin", true).statusCode());
             assertEquals(403, send("", "id=" + song.getId(), "admin", "admin", true).statusCode());
-            String basic = Base64.getEncoder().encodeToString("admin:admin".getBytes(StandardCharsets.UTF_8));
-            HttpRequest website = HttpRequest.newBuilder(URI.create("http://localhost:" + port
-                    + "/airsonic/hls/hls.m3u8?id=" + song.getId() + "&maxBitRate=500&size=321x241"))
-                    .header("Authorization", "Basic " + basic).GET().build();
-            HttpResponse<String> websiteResponse = client.send(website, HttpResponse.BodyHandlers.ofString());
-            assertEquals(websiteResponse.body(), 200, websiteResponse.statusCode());
-            assertTrue(websiteResponse.body(), websiteResponse.body().startsWith("#EXTM3U"));
-            assertTrue(websiteResponse.body(), websiteResponse.body().contains("maxBitRate=500&size=320x240"));
-            assertTrue(websiteResponse.body(), websiteResponse.body().contains("/airsonic/hls/segment/segment.ts"));
         } finally {
             ScanningTestUtils.after(cleanup, folders);
             folders.expunge();

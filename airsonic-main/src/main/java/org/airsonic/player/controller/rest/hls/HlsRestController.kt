@@ -19,7 +19,7 @@ class HlsRestController(private val playlists: HlsPlaylistService) {
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
         with(root) {
-            WEBSITE_PATHS.forEach { path ->
+            EXTERNAL_PATHS.forEach { path ->
                 get(path) { respond(call, request(call)) }
                 head(path) { respond(call, request(call)) }
             }
@@ -39,7 +39,7 @@ class HlsRestController(private val playlists: HlsPlaylistService) {
     }
 
     companion object {
-        @JvmField val WEBSITE_PATHS = arrayOf("/hls/hls.m3u8", "/ext/hls/hls.m3u8")
+        @JvmField val EXTERNAL_PATHS = arrayOf("/ext/hls/hls.m3u8")
         @JvmField val PATHS = arrayOf("/rest/hls", "/rest/hls.view", "/rest/hls/hls.m3u8", "/rest/hls.view/hls.m3u8", "/ext/rest-hls/hls.m3u8")
     }
 }

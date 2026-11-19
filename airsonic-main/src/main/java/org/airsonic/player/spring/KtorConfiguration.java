@@ -938,7 +938,7 @@ public class KtorConfiguration {
         registration.addUrlMappings(ServerInfoController.PATHS);
         registration.addUrlMappings(PasswordRecoveryController.PATH);
         registration.addUrlMappings(HlsRestController.PATHS);
-        registration.addUrlMappings(HlsRestController.WEBSITE_PATHS);
+        registration.addUrlMappings(HlsRestController.EXTERNAL_PATHS);
         registration.addUrlMappings("/ext/hls/segment/*");
         registration.addUrlMappings(HlsSegmentRestController.PATHS);
         registration.addUrlMappings(StreamRestController.PATHS);

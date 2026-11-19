@@ -26,7 +26,7 @@ class HlsSegmentRestController(private val segments: HlsSegmentService) {
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
         with(root) {
-            (PATHS + WEBSITE_PATHS).forEach { path ->
+            (PATHS + EXTERNAL_PATHS).forEach { path ->
                 get(path) { respond(call, request(call), false) }
                 head(path) { respond(call, request(call), true) }
             }
@@ -67,7 +67,7 @@ class HlsSegmentRestController(private val segments: HlsSegmentService) {
     }
 
     companion object {
-        @JvmField val WEBSITE_PATHS = arrayOf("/hls/segment/{tail...}", "/ext/hls/segment/{tail...}")
+        @JvmField val EXTERNAL_PATHS = arrayOf("/ext/hls/segment/{tail...}")
         @JvmField val PATHS = arrayOf("/ext/rest-hls/segment/segment.ts", "/rest/hls/segment/segment.ts", "/rest/hls.view/segment/segment.ts")
     }
 }

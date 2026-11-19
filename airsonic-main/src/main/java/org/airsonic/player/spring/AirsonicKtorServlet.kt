@@ -909,7 +909,7 @@ class AirsonicKtorServlet(
                 return
             }
             request.setAttribute(PLAYLISTS_REQUEST, PlaylistsRequest(username, callerContextAdapter.fromRequest(request), admin, parameters(request), id, player))
-        } else if ((path in StreamRestController.PATHS || path in StreamRestController.WEBSITE_PATHS)
+        } else if ((path in StreamRestController.PATHS || path in StreamRestController.EXTERNAL_PATHS)
             && (request.method in setOf("GET", "HEAD") || (path in StreamRestController.PATHS && request.method == "POST"))) {
             val restStream = path in StreamRestController.PATHS
             val rawPlayer = if (restStream) null else request.getParameter("player")?.trim()?.takeIf { it.isNotEmpty() }
@@ -968,7 +968,7 @@ class AirsonicKtorServlet(
                     request.getParameter("duration"), request.getParameter("size")), request.getHeader("icy-metadata"),
                 java.util.function.BiPredicate { tag, modified -> webRequest.checkNotModified(tag, modified) },
                 { response.status }))
-        } else if ((path in HlsRestController.WEBSITE_PATHS || path == "/hls/segment" || path == "/ext/hls/segment")
+        } else if ((path in HlsRestController.EXTERNAL_PATHS || path == "/ext/hls/segment")
             && request.method in setOf("GET", "HEAD")) {
             val auth = request.userPrincipal as Principal
             val rawPlayer = request.getParameter("player")
@@ -991,7 +991,7 @@ class AirsonicKtorServlet(
                 response.sendError(HttpServletResponse.SC_FORBIDDEN)
                 return
             }
-            if (path in HlsRestController.WEBSITE_PATHS) {
+            if (path in HlsRestController.EXTERNAL_PATHS) {
                 val duration = media.duration
                 if (duration == null || duration < 0.0001) {
                     response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR)

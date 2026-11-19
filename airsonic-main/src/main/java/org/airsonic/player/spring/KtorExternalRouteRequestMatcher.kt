@@ -21,9 +21,9 @@ class KtorExternalRouteRequestMatcher : RequestMatcher {
             addAll(CaptionsRestController.PATHS.filter { it.startsWith("/ext/") })
             addAll(CoverArtRestController.LEGACY_PATHS.filter { it.startsWith("/ext/") })
             addAll(HlsRestController.PATHS.filter { it.startsWith("/ext/") })
-            addAll(HlsRestController.WEBSITE_PATHS.filter { it.startsWith("/ext/") })
+            addAll(HlsRestController.EXTERNAL_PATHS)
             addAll(HlsSegmentRestController.PATHS.filter { it.startsWith("/ext/") })
-            addAll(StreamRestController.WEBSITE_PATHS.filter { it.startsWith("/ext/") })
+            addAll(StreamRestController.EXTERNAL_PATHS)
         }
 
         val wildcardPaths = listOf(
