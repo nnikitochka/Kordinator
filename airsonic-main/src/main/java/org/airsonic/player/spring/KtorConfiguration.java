@@ -698,19 +698,16 @@ public class KtorConfiguration {
         return runtime.createJukeboxService(legacyJukebox);
     }
 
-    @Bean
     public LastFmService lastFmService(RuntimeCompositionRoot runtime, MediaFileDao mediaFileDao, MediaFileService mediaFileService,
             ArtistDao artistDao) {
         return runtime.createLastFmService(mediaFileDao, mediaFileService, artistDao);
     }
 
-    @Bean
     public ShareService shareService(RuntimeCompositionRoot runtime, ShareDao shareDao, MediaFileService mediaFileService,
             JWTSecurityService jwtSecurityService) {
         return runtime.createShareService(shareDao, mediaFileService, jwtSecurityService);
     }
 
-    @Bean
     public UploadFileService uploadFileService(RuntimeCompositionRoot runtime, SecurityService securityService) {
         return runtime.createUploadFileService(securityService);
     }
@@ -768,7 +765,6 @@ public class KtorConfiguration {
     }
 
 
-    @Bean
     public DownloadService downloadService(RuntimeCompositionRoot runtime, StatusService statusService, SecurityService securityService,
             PlaylistService playlistService, SettingsService settingsService, MediaFileService mediaFileService,
             CoverArtService coverArtService) {
@@ -776,7 +772,6 @@ public class KtorConfiguration {
                 mediaFileService, coverArtService);
     }
 
-    @Bean
     public UserAdministrationService userAdministrationService(RuntimeCompositionRoot runtime,
             SecurityService securityService, SettingsService settingsService) {
         return runtime.createUserAdministrationService(securityService, settingsService);

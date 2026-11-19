@@ -475,6 +475,48 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         statusService, securityService, settingsService, transcodingService, audioScrobblerService, mediaFileService, searchService)
 
     @Bean
+    override fun lastFmService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        mediaFileDao: org.airsonic.player.dao.MediaFileDao,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        artistDao: org.airsonic.player.dao.ArtistDao,
+    ): org.airsonic.player.service.LastFmService = runtime.createLastFmService(mediaFileDao, mediaFileService, artistDao)
+
+    @Bean
+    override fun shareService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        shareDao: org.airsonic.player.dao.ShareDao,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
+    ): org.airsonic.player.service.ShareService = runtime.createShareService(shareDao, mediaFileService, jwtSecurityService)
+
+    @Bean
+    override fun uploadFileService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        securityService: org.airsonic.player.service.SecurityService,
+    ): org.airsonic.player.service.UploadFileService = runtime.createUploadFileService(securityService)
+
+    @Bean
+    override fun downloadService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        statusService: org.airsonic.player.service.StatusService,
+        securityService: org.airsonic.player.service.SecurityService,
+        playlistService: org.airsonic.player.service.PlaylistService,
+        settingsService: org.airsonic.player.service.SettingsService,
+        mediaFileService: org.airsonic.player.service.MediaFileService,
+        coverArtService: org.airsonic.player.service.CoverArtService,
+    ): org.airsonic.player.service.DownloadService = runtime.createDownloadService(
+        statusService, securityService, playlistService, settingsService, mediaFileService, coverArtService)
+
+    @Bean
+    override fun userAdministrationService(
+        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
+        securityService: org.airsonic.player.service.SecurityService,
+        settingsService: org.airsonic.player.service.SettingsService,
+    ): org.airsonic.player.service.UserAdministrationService =
+        runtime.createUserAdministrationService(securityService, settingsService)
+
+    @Bean
     override fun audioScrobblerService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         settingsService: org.airsonic.player.service.SettingsService,
