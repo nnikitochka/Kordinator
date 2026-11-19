@@ -2,6 +2,7 @@ package org.airsonic.player.service.metadata;
 
 import org.airsonic.player.service.SettingsService;
 import org.airsonic.player.util.HomeRule;
+import org.airsonic.player.runtime.RuntimeCompositionRoot;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
@@ -39,22 +40,20 @@ public class MetaDataFactoryTestCase {
     }
 
     @Autowired
-    MetaDataParserFactory metaDataParserFactory;
+    RuntimeCompositionRoot runtime;
 
     @Autowired
     SettingsService settingsService;
 
-    @Autowired
-    List<MetaDataParser> parsers;
-
     @Test
     public void testorder() {
-        assertParserOrder(metaDataParserFactory);
+        assertParserOrder(runtime.createMetaDataParserFactory());
     }
 
     @Test
     public void testOrderWhenConstructedWithReversedParsers() {
-        List<MetaDataParser> reversed = parsers.stream()
+        List<MetaDataParser> reversed = List.of(
+                runtime.createDefaultMetaDataParser(), runtime.createFFmpegParser(), runtime.createJaudiotaggerParser()).stream()
                 .sorted(Comparator.comparingInt(MetaDataParser::getOrder).reversed())
                 .toList();
         assertParserOrder(new MetaDataParserFactory(reversed));

@@ -131,11 +131,6 @@ import org.airsonic.player.service.playlist.DefaultPlaylistExportHandler;
 import org.airsonic.player.service.playlist.DefaultPlaylistImportHandler;
 import org.airsonic.player.service.playlist.XspfPlaylistExportHandler;
 import org.airsonic.player.service.playlist.XspfPlaylistImportHandler;
-import org.airsonic.player.service.metadata.DefaultMetaDataParser;
-import org.airsonic.player.service.metadata.FFmpegParser;
-import org.airsonic.player.service.metadata.JaudiotaggerParser;
-import org.airsonic.player.service.metadata.MetaDataParser;
-import org.airsonic.player.service.metadata.MetaDataParserFactory;
 import org.airsonic.player.i18n.LocaleResolver;
 import org.airsonic.player.i18n.LocaleService;
 import org.airsonic.player.service.LastFmService;
@@ -339,22 +334,6 @@ public class KtorConfiguration {
         return runtime.createPlaylistService(securityService, settingsService, exportHandlers, importHandlers);
     }
 
-    public DefaultMetaDataParser defaultMetaDataParser(RuntimeCompositionRoot runtime) {
-        return runtime.createDefaultMetaDataParser();
-    }
-
-    public FFmpegParser ffmpegParser(RuntimeCompositionRoot runtime) {
-        return runtime.createFFmpegParser();
-    }
-
-    public JaudiotaggerParser jaudiotaggerParser(RuntimeCompositionRoot runtime) {
-        return runtime.createJaudiotaggerParser();
-    }
-
-    public MetaDataParserFactory metaDataParserFactory(RuntimeCompositionRoot runtime) {
-        return runtime.createMetaDataParserFactory();
-    }
-
     public HlsPlaylistService hlsPlaylistService(RuntimeCompositionRoot runtime, JWTSecurityService jwtSecurityService) {
         return runtime.createHlsPlaylistService(jwtSecurityService);
     }
@@ -382,10 +361,9 @@ public class KtorConfiguration {
         return runtime.createCoverArtAccentColorBackfill(coverArtService);
     }
 
-    public TagEditService tagEditService(RuntimeCompositionRoot runtime, MetaDataParserFactory metaDataParserFactory,
-            MediaFileService mediaFileService,
+    public TagEditService tagEditService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService,
             SecurityService securityService) {
-        return runtime.createTagEditService(metaDataParserFactory, mediaFileService, securityService);
+        return runtime.createTagEditService(runtime.createMetaDataParserFactory(), mediaFileService, securityService);
     }
 
     public AlbumUpnpProcessor albumUpnpProcessor(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph) {
@@ -528,10 +506,10 @@ public class KtorConfiguration {
     }
 
     public CaptionService captionService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService, MediaFolderService mediaFolderService,
-            SettingsService settingsService, MetaDataParserFactory metaDataParserFactory,
+            SettingsService settingsService,
             JWTSecurityService jwtSecurityService) {
         return runtime.createCaptionService(mediaFileService, mediaFolderService, settingsService,
-                metaDataParserFactory, jwtSecurityService);
+                runtime.createMetaDataParserFactory(), jwtSecurityService);
     }
 
     public VideoPlaybackService videoPlaybackService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService, CaptionService captionService,
@@ -545,11 +523,10 @@ public class KtorConfiguration {
     }
 
     public MediaFileService mediaFileService(RuntimeCompositionRoot runtime, SecurityService securityService, SettingsService settingsService,
-            org.airsonic.player.runtime.DaoGraph graph,
-            JaudiotaggerParser parser, MetaDataParserFactory metaDataParserFactory, CoverArtService coverArtService,
+            org.airsonic.player.runtime.DaoGraph graph, CoverArtService coverArtService,
             LocaleService localeService) {
         return runtime.createMediaFileService(securityService, settingsService, graph.getMediaFileDao(), graph.getAlbumDao(),
-                parser, metaDataParserFactory, coverArtService, localeService);
+                runtime.createJaudiotaggerParser(), runtime.createMetaDataParserFactory(), coverArtService, localeService);
     }
 
     public TranscodingService transcodingService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph,
@@ -612,7 +589,6 @@ public class KtorConfiguration {
             JWTSecurityService jwtSecurityService,
             CaptionService captionService,
             PasswordRecoveryService passwordRecoveryService,
-            org.airsonic.player.service.metadata.MetaDataParserFactory metadataParsers,
             MediaScannerService mediaScannerService,
             MediaFileService mediaFileService,
             org.airsonic.player.runtime.DaoGraph graph,
@@ -743,7 +719,7 @@ public class KtorConfiguration {
                                 runtime.createHlsSegmentRestController(hlsSegmentService),
                                 runtime.createStreamRestController(mediaStreamService),
                                 runtime.createPublicShareController(shareService, mediaFileService, mediaFolderService,
-                                        jwtSecurityService, metadataParsers, objectMapper),
+                                        jwtSecurityService, runtime.createMetaDataParserFactory(), objectMapper),
                                 runtime.createCaptionsRestController(captionService, mediaFolderService, objectMapper),
                                 runtime.createPasswordRecoveryController(passwordRecoveryService, objectMapper),
                                 runtime.createServerInfoController(

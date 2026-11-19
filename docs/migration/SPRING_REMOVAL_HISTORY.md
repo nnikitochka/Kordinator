@@ -484,6 +484,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 20 ноября 2026:** удалены Spring bean projections `DispatchingContentDirectory` и `FolderBasedContentDirectory`. UPnP bootstrap теперь просит runtime root собрать dispatching directory непосредственно при создании `UPnPService`; folder-based directory не имел production consumers.
 
+**Срез 20 ноября 2026:** удалены Spring bean projections четырёх metadata parser components. Media, caption/tag edit services и public share controller теперь запрашивают их singleton factory/parser у runtime root при сборке.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

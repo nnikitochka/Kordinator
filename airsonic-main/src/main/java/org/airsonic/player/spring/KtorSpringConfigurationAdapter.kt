@@ -47,26 +47,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     ): org.airsonic.player.service.search.SearchServiceImpl = runtime.createSearchService(mediaFileService)
 
     @Bean
-    override fun defaultMetaDataParser(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.metadata.DefaultMetaDataParser = runtime.createDefaultMetaDataParser()
-
-    @Bean
-    override fun ffmpegParser(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.metadata.FFmpegParser = runtime.createFFmpegParser()
-
-    @Bean
-    override fun jaudiotaggerParser(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.metadata.JaudiotaggerParser = runtime.createJaudiotaggerParser()
-
-    @Bean
-    override fun metaDataParserFactory(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.metadata.MetaDataParserFactory = runtime.createMetaDataParserFactory()
-
-    @Bean
     override fun defaultPlaylistExportHandler(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         graph: org.airsonic.player.runtime.DaoGraph,
@@ -152,11 +132,10 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     override fun tagEditService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        metaDataParserFactory: org.airsonic.player.service.metadata.MetaDataParserFactory,
         mediaFileService: org.airsonic.player.service.MediaFileService,
         securityService: org.airsonic.player.service.SecurityService,
     ): org.airsonic.player.service.TagEditService = runtime.createTagEditService(
-        metaDataParserFactory, mediaFileService, securityService)
+        runtime.createMetaDataParserFactory(), mediaFileService, securityService)
 
     @Bean
     fun upnpService(
@@ -214,12 +193,11 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         securityService: org.airsonic.player.service.SecurityService,
         settingsService: org.airsonic.player.service.SettingsService,
         graph: org.airsonic.player.runtime.DaoGraph,
-        parser: org.airsonic.player.service.metadata.JaudiotaggerParser,
-        metaDataParserFactory: org.airsonic.player.service.metadata.MetaDataParserFactory,
         coverArtService: org.airsonic.player.service.CoverArtService,
         localeService: org.airsonic.player.i18n.LocaleService,
     ): org.airsonic.player.service.MediaFileService = runtime.createMediaFileService(
-        securityService, settingsService, graph.mediaFileDao, graph.albumDao, parser, metaDataParserFactory, coverArtService, localeService)
+        securityService, settingsService, graph.mediaFileDao, graph.albumDao, runtime.createJaudiotaggerParser(),
+        runtime.createMetaDataParserFactory(), coverArtService, localeService)
 
     @Bean
     override fun mediaScannerService(
@@ -309,10 +287,9 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         mediaFileService: org.airsonic.player.service.MediaFileService,
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
         settingsService: org.airsonic.player.service.SettingsService,
-        metaDataParserFactory: org.airsonic.player.service.metadata.MetaDataParserFactory,
         jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
     ): org.airsonic.player.service.CaptionService = runtime.createCaptionService(
-        mediaFileService, mediaFolderService, settingsService, metaDataParserFactory, jwtSecurityService)
+        mediaFileService, mediaFolderService, settingsService, runtime.createMetaDataParserFactory(), jwtSecurityService)
 
     @Bean
     override fun videoPlaybackService(
