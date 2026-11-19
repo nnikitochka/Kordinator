@@ -23,6 +23,7 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.MediaDirectoryService mediaDirectoryService;
     private org.airsonic.player.service.MusicIndexService musicIndexService;
     private org.airsonic.player.service.SecurityService securityService;
+    private org.airsonic.player.security.SubsonicCredentialAuthenticationService subsonicCredentialAuthenticationService;
     private org.airsonic.player.service.JWTSecurityService jwtSecurityService;
     private org.airsonic.player.service.DatabaseService databaseService;
     private org.airsonic.player.service.JukeboxLegacySubsonicService jukeboxLegacySubsonicService;
@@ -810,6 +811,17 @@ public final class RuntimeCompositionRoot {
                     userDao, settingsService, mediaFolderService, createCacheManager(), credentialEncoders);
         }
         return securityService;
+    }
+
+    public synchronized org.airsonic.player.security.SubsonicCredentialAuthenticationService
+            createSubsonicCredentialAuthenticationService(
+                    org.airsonic.player.service.SecurityService securityService,
+                    org.airsonic.player.security.CredentialEncoderRegistry credentialEncoders) {
+        if (subsonicCredentialAuthenticationService == null) {
+            subsonicCredentialAuthenticationService = new org.airsonic.player.security.SubsonicCredentialAuthenticationService(
+                    securityService, credentialEncoders);
+        }
+        return subsonicCredentialAuthenticationService;
     }
 
     public synchronized org.airsonic.player.service.JWTSecurityService createJwtSecurityService(

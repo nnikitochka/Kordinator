@@ -138,6 +138,10 @@ class RuntimeCompositionRootGraphTest {
         assertSame(securityService, runtimeRoot.createSecurityService(userDao, settingsService, mediaFolderService,
                 credentialEncoders));
         assertNotNull(securityService);
+        org.airsonic.player.security.SubsonicCredentialAuthenticationService credentialAuthenticationService =
+                runtimeRoot.createSubsonicCredentialAuthenticationService(securityService, credentialEncoders);
+        assertSame(credentialAuthenticationService,
+                runtimeRoot.createSubsonicCredentialAuthenticationService(securityService, credentialEncoders));
         org.airsonic.player.i18n.LocaleService localeService = runtimeRoot.createLocaleService(settingsService);
         assertSame(localeService, runtimeRoot.createLocaleService(settingsService));
         assertNotNull(runtimeRoot.createDefaultMetaDataParser());

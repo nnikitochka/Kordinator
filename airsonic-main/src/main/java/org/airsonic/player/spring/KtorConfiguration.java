@@ -324,9 +324,15 @@ public class KtorConfiguration {
     }
 
     @Bean
+    public org.airsonic.player.security.SubsonicCredentialAuthenticationService subsonicCredentialAuthenticationService(
+            RuntimeCompositionRoot runtime, SecurityService securityService, CredentialEncoderRegistry credentialEncoders) {
+        return runtime.createSubsonicCredentialAuthenticationService(securityService, credentialEncoders);
+    }
+
+    @Bean
     public MultipleCredsMatchingAuthenticationProvider multipleCredsMatchingAuthenticationProvider(
-            SecurityService securityService, CredentialEncoderRegistry credentialEncoders) {
-        return new MultipleCredsMatchingAuthenticationProvider(securityService, credentialEncoders);
+            org.airsonic.player.security.SubsonicCredentialAuthenticationService authenticationService) {
+        return new MultipleCredsMatchingAuthenticationProvider(authenticationService);
     }
 
     @Bean

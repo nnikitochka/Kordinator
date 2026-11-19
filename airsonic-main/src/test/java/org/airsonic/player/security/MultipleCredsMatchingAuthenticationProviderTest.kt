@@ -25,7 +25,7 @@ class MultipleCredsMatchingAuthenticationProviderTest {
             ),
         )
 
-        val result = MultipleCredsMatchingAuthenticationProvider(security, SpringCredentialEncoderRegistry())
+        val result = provider(security)
             .authenticate(UsernamePasswordAuthenticationToken("alice", "secret"))!!
 
         assertTrue(result.isAuthenticated)
@@ -44,7 +44,7 @@ class MultipleCredsMatchingAuthenticationProviderTest {
                 emptySet(),
             ),
         )
-        val provider = MultipleCredsMatchingAuthenticationProvider(security, SpringCredentialEncoderRegistry())
+        val provider = provider(security)
 
         assertThrows(BadCredentialsException::class.java) {
             provider.authenticate(UsernamePasswordAuthenticationToken("alice", "wrong"))
@@ -54,4 +54,8 @@ class MultipleCredsMatchingAuthenticationProviderTest {
     }
 
     private fun mockSecurity(): SecurityService = Mockito.mock(SecurityService::class.java)
+
+    private fun provider(security: SecurityService) = MultipleCredsMatchingAuthenticationProvider(
+        SubsonicCredentialAuthenticationService(security, SpringCredentialEncoderRegistry()),
+    )
 }

@@ -62,15 +62,27 @@ public final class SubsonicAuthenticator {
 
         for (UserCredential credential : credentials) {
             String encoderName = credential.getEncoder() + mode.specialization;
-            if (!encoders.matches(encoderName, presented, credential.getCredential())) {
+            boolean matched;
+            try {
+                matched = encoders.matches(encoderName, presented, credential.getCredential());
+            } catch (IllegalArgumentException unsupportedEncoder) {
+                matched = false;
+            }
+            if (!matched) {
                 continue;
             }
             Instant expiration = credential.getExpiration();
             if (expiration != null && expiration.isBefore(clock.instant())) {
                 return new Result(null, false, Failure.CREDENTIALS_EXPIRED);
             }
-            boolean upgrade = mode == Mode.PASSWORD
-                    && encoders.upgradeEncoding(encoderName, credential.getCredential());
+            boolean upgrade = false;
+            if (mode == Mode.PASSWORD) {
+                try {
+                    upgrade = encoders.upgradeEncoding(encoderName, credential.getCredential());
+                } catch (IllegalArgumentException unsupportedEncoder) {
+                    upgrade = false;
+                }
+            }
             return new Result(credential, upgrade, null);
         }
         return new Result(null, false, Failure.NO_MATCH);
