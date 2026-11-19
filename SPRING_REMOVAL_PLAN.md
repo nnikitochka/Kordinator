@@ -288,6 +288,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `06459f7` переносит `StatusService`, `LocaleService`, `VersionService`, `ServerInfoService` и `PasswordRecoveryService` registrations в Kotlin adapter. Runtime graph, version/server info/status/password recovery service tests и server info/health/recovery/login integration прошли 25/25. В базовом `KtorConfiguration` осталось 26 `@Bean` registrations; далее остаются controller factories, servlet registration и Spring HTTP/security configuration beans.
 
+Срез `647e7f9` удаляет reflective Spring lookup (`Class.forName` для `TransactionSynchronizationManager`/`DataSourceUtils`) из framework-neutral `TransactionManager`. Внешнее участие в транзакциях теперь задаётся через `ExternalTransactionConnectionContext`: standalone root берёт no-op context, Spring servlet adapter явно передаёт Spring implementation при создании persistence graph. Добавлен тест общей connection и commit boundary для внешней Spring-транзакции; DAO regression, credentials, playlist import, JDBC и root graph suites прошли 38/38. Это первый срез после паузы, который удаляет framework lookup из runtime, а не только переносит место регистрации; дальнейший приоритет — убрать Spring `@Transactional`/AspectJ из DAO и остальные реальные framework consumers.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
