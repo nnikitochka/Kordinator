@@ -1,16 +1,17 @@
 package org.airsonic.player.service;
 
-import org.airsonic.player.dao.CoverArtDao;
 import org.airsonic.player.domain.CoverArt;
 import org.airsonic.player.domain.CoverArt.EntityType;
+import org.airsonic.player.runtime.DaoGraph;
 import org.airsonic.player.util.HomeRule;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -23,7 +24,6 @@ import static org.junit.Assert.assertTrue;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Transactional
 public class CoverArtServiceAccentColorTest {
 
     @ClassRule
@@ -35,7 +35,17 @@ public class CoverArtServiceAccentColorTest {
     private CoverArtService coverArtService;
 
     @Autowired
-    private CoverArtDao coverArtDao;
+    private DaoGraph daoGraph;
+
+    @Before
+    public void cleanCoverArt() {
+        daoGraph.getCoverArtDao().delete(EntityType.MEDIA_FILE, ENTITY_ID);
+    }
+
+    @After
+    public void removeCoverArt() {
+        daoGraph.getCoverArtDao().delete(EntityType.MEDIA_FILE, ENTITY_ID);
+    }
 
     private static String coverPath() throws Exception {
         return java.nio.file.Paths.get(CoverArtServiceAccentColorTest.class.getResource(
@@ -54,7 +64,7 @@ public class CoverArtServiceAccentColorTest {
 
         // Color is readable back from the service and the database.
         assertEquals("#A58866", coverArtService.getAccentColor(EntityType.MEDIA_FILE, ENTITY_ID));
-        CoverArt stored = coverArtDao.get(EntityType.MEDIA_FILE, ENTITY_ID);
+        CoverArt stored = daoGraph.getCoverArtDao().get(EntityType.MEDIA_FILE, ENTITY_ID);
         assertNotNull(stored);
         assertEquals("#A58866", stored.getAccentColor());
     }
@@ -80,15 +90,15 @@ public class CoverArtServiceAccentColorTest {
         // Simulate a cover art row persisted before the accent color feature existed:
         // insert directly through the DAO, bypassing the service-level computation.
         CoverArt art = new CoverArt(ENTITY_ID, EntityType.MEDIA_FILE, coverPath, null, false);
-        coverArtDao.upsert(art);
-        CoverArt stored = coverArtDao.get(EntityType.MEDIA_FILE, ENTITY_ID);
+        daoGraph.getCoverArtDao().upsert(art);
+        CoverArt stored = daoGraph.getCoverArtDao().get(EntityType.MEDIA_FILE, ENTITY_ID);
         assertNotNull(stored);
         assertNull("pre-existing row must have no accent color", stored.getAccentColor());
 
         int updated = coverArtService.backfillAccentColors();
         assertTrue("backfill should update the seeded row", updated >= 1);
         assertEquals("#A58866", coverArtService.getAccentColor(EntityType.MEDIA_FILE, ENTITY_ID));
-        stored = coverArtDao.get(EntityType.MEDIA_FILE, ENTITY_ID);
+        stored = daoGraph.getCoverArtDao().get(EntityType.MEDIA_FILE, ENTITY_ID);
         assertNotNull(stored);
         assertEquals("#A58866", stored.getAccentColor());
     }

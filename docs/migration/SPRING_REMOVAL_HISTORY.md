@@ -384,6 +384,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 19 ноября 2026:** `BookmarkDaoTestCase` переведён на `DaoGraph`, удалён отдельный Spring alias `BookmarkDao`; тест DAO и composition-root graph прошли 3/3.
 
+**Срез 19 ноября 2026:** `CoverArtServiceAccentColorTest` теперь получает DAO через `DaoGraph` и очищает созданную строку в `@Before`/`@After` вместо Spring test `@Transactional`. Удалён Spring alias `CoverArtDao`; тесты backfill/accent color и composition-root graph прошли 5/5.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
