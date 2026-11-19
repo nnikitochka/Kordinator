@@ -8,9 +8,6 @@ import org.airsonic.player.domain.RandomSearchCriteria;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -104,8 +101,8 @@ public class MediaFileDao extends AbstractDao {
                 "and present and folder_id in (:folders)", rowMapper, args);
     }
 
-    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void createOrUpdateMediaFile(MediaFile file, Consumer<MediaFile> preInsertionCallback) {
+        inTransaction(TransactionManager.ISOLATION_READ_COMMITTED, status -> {
         LOG.trace("Creating/Updating new media file at {} in folder id {}", file.getPath(), file.getFolderId());
         String sql;
         if (file.getId() != null) {
@@ -223,6 +220,8 @@ public class MediaFileDao extends AbstractDao {
             Integer id = queryForInt("select id from media_file where path=? and folder_id=?", null, file.getPath(), file.getFolderId());
             file.setId(id);
         }
+        return null;
+        });
     }
 
     public MediaFile getMusicFileInfo(String path) {
