@@ -334,6 +334,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 Срез `e506bb3` удаляет `JWTAuthenticationProvider` из Spring `ProviderManager`: servlet JWT filter теперь вызывает framework-neutral `JwtTokenVerifier` напрямую и только отображает его результат в Spring Security principal на servlet boundary. Генерация и сохранение JWT key привязаны к созданию external filter, а не к созданию authentication manager. URI/JWT verifier, song, login и HLS tests прошли 18/18.
 
+Срез `009fe95` переводит `SubsonicAuthenticator` с `Map` Spring password encoders на `CredentialEncoderRegistry`, добавляя в нейтральный контракт операцию проверки необходимости password upgrade. `MultipleCredsMatchingAuthenticationProvider` больше не читает `GlobalSecurityConfig.ENCODERS` и не адаптирует Spring encoder-ы в core-проверке; Spring registry остаётся единственным compatibility adapter. Authentication/encoder compatibility, login и credentials management tests прошли 14/14.
+
 | 12. Spring-free servlet/Tomcat bootstrap, сохранённый JSP | Не начат | — | Не запускались | Реальный Tomcat deploy должен быть отдельным evidence. |
 | 13. Build/tests cleanup, M1 | Не начат | — | Не запускались | Проверить все Maven modules, tools и packaging. |
 | 14. Standalone Ktor, M2 | Не начат | — | Не запускались | По умолчанию требуется JSP/UI replacement либо отказ от JSP. |
