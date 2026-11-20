@@ -15,11 +15,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime.createPersistenceGraph().daos
 
     @Bean
-    override fun indexManager(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.search.IndexManager = runtime.createIndexManager()
-
-    @Bean
     override fun searchServiceImpl(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         mediaFileService: org.airsonic.player.service.MediaFileService,
@@ -87,7 +82,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
         playlistService: org.airsonic.player.service.PlaylistService,
         searchService: org.airsonic.player.service.SearchService,
-        indexManager: org.airsonic.player.service.search.IndexManager,
         statusService: org.airsonic.player.service.StatusService,
         securityService: org.airsonic.player.service.SecurityService,
         transcodingService: org.airsonic.player.service.TranscodingService,
@@ -96,7 +90,7 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         settingsService,
         runtime.createDispatchingContentDirectory(
             mediaFileService, mediaFolderService, playlistService, searchService,
-            runtime.createMusicIndexService(settingsService, mediaFileService), indexManager,
+            runtime.createMusicIndexService(settingsService, mediaFileService), runtime.createIndexManager(),
             settingsService, runtime.createPlayerService(runtime.createPlayerDao(), statusService, securityService,
                 transcodingService), transcodingService, jwtSecurityService))
 

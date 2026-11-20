@@ -189,10 +189,6 @@ public class KtorConfiguration {
         return runtime.createStatusService(mediaFileService, mediaFolderService, settingsService, taskSchedulingService);
     }
 
-    public IndexManager indexManager(RuntimeCompositionRoot runtime) {
-        return runtime.createIndexManager();
-    }
-
     public SearchServiceImpl searchServiceImpl(RuntimeCompositionRoot runtime, MediaFileService mediaFileService) {
         return runtime.createSearchService(mediaFileService);
     }
@@ -341,7 +337,6 @@ public class KtorConfiguration {
             TaskSchedulingService taskSchedulingService,
             DownloadService downloadService,
             CoverArtService coverArtService,
-            IndexManager indexManager,
             TranscodingService transcodingService,
             CoverArtImageService coverArtImageService,
             HlsPlaylistService hlsPlaylistService,
@@ -349,6 +344,7 @@ public class KtorConfiguration {
     ) throws Exception {
         runtime.createCoverArtAccentColorBackfill(coverArtService);
         LocaleService localeService = runtime.createLocaleService(settingsService);
+        IndexManager indexManager = runtime.createIndexManager();
         AudioScrobblerService audioScrobblerService = runtime.createAudioScrobblerService(settingsService, securityService);
         org.airsonic.player.service.MediaScannerService mediaScannerService = runtime.createMediaScannerService(
                 playlistService, settingsService, indexManager, mediaFileService, mediaFolderService, coverArtService);
