@@ -1,12 +1,9 @@
 package org.airsonic.player.filter;
 
 import org.airsonic.player.controller.rest.error.ErrorCode;
-import org.apache.catalina.connector.ClientAbortException;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class RestErrorPolicyTest {
     private final RestErrorPolicy policy = new RestErrorPolicy();
@@ -27,12 +24,6 @@ public class RestErrorPolicyTest {
 
         RestErrorPolicy.Decision withoutMessage = policy.classify(new IllegalStateException());
         assertEquals("IllegalStateException", withoutMessage.message());
-    }
-
-    @Test
-    public void suppressesClientAbortErrorResponses() {
-        assertTrue(policy.classify(new ClientAbortException("client disconnected")).clientAbort());
-        assertFalse(policy.classify(new IllegalStateException("server error")).clientAbort());
     }
 
     private static final class ServletRequestBindingException extends RuntimeException {

@@ -2,7 +2,6 @@ package org.airsonic.player.filter;
 
 import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.controller.rest.error.ErrorCode;
-import org.airsonic.player.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,20 +34,12 @@ public class RESTFilter implements Filter {
 
         RestErrorPolicy.Decision decision = errorPolicy.classify(err);
 
-        // This happens often and outside of the control of the server, so
-        // we catch Tomcat/Jetty "connection aborted by client" exceptions
-        // and display a short error message.
-        if (decision.clientAbort()) {
-            LOG.info("{}: Client unexpectedly closed connection while loading {} ({})", request.getRemoteAddr(),
-                    Util.getAnonymizedURLForRequest(request), err.getMessage());
-        } else {
-            LOG.warn("Error in REST API", err);
+        LOG.warn("Error in REST API", err);
 
-            try {
-                jaxbWriter.writeErrorResponse(request, response, decision.errorCode(), decision.message());
-            } catch (Exception e) {
-                LOG.error("Failed to write error response.", e);
-            }
+        try {
+            jaxbWriter.writeErrorResponse(request, response, decision.errorCode(), decision.message());
+        } catch (Exception e) {
+            LOG.error("Failed to write error response.", e);
         }
 
     }

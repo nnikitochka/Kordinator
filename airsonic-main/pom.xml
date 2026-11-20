@@ -13,7 +13,6 @@
 
     <properties>
         <chameleon.version>2.0.0-RELEASE</chameleon.version>
-        <tomcat.server.scope>provided</tomcat.server.scope>
         <!-- For fixing import/export due to https://github.com/liquibase/liquibase/issues/1598 -->
         <liquibase.version>4.33.0</liquibase.version>
     </properties>
@@ -482,34 +481,6 @@
             <artifactId>logback-classic</artifactId>
         </dependency>
 
-        <!-- Embedded Tomcat remains the servlet container; remove only Boot's starter wrapper. -->
-        <dependency>
-            <groupId>org.apache.tomcat.embed</groupId>
-            <artifactId>tomcat-embed-core</artifactId>
-            <scope>${tomcat.server.scope}</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.tomcat</groupId>
-                    <artifactId>tomcat-annotations-api</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.tomcat.embed</groupId>
-            <artifactId>tomcat-embed-el</artifactId>
-            <scope>${tomcat.server.scope}</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.tomcat.embed</groupId>
-            <artifactId>tomcat-embed-websocket</artifactId>
-            <scope>${tomcat.server.scope}</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.tomcat</groupId>
-                    <artifactId>tomcat-annotations-api</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -741,18 +712,4 @@
             </plugin>
         </plugins>
     </reporting>
-    <profiles>
-        <profile>
-            <id>tomcat-embed</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-        </profile>
-        <profile>
-            <id>ide-tomcat-embed</id>
-            <properties>
-                <tomcat.server.scope>compile</tomcat.server.scope>
-            </properties>
-        </profile>
-    </profiles>
 </project>
