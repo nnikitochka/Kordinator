@@ -155,23 +155,13 @@ class StandaloneLibraryScanService(
         }
     }
 
-    fun streamFile(trackId: Long): StandaloneTrackFile? {
-        val trackLocation = dataSource.connection.use { connection ->
-            connection.prepareStatement(
-                "SELECT library_id, relative_path FROM media_track WHERE id = ?",
-            ).use { statement ->
-                statement.setLong(1, trackId)
-                statement.executeQuery().use { rows ->
-                    if (rows.next()) rows.getLong(1) to rows.getString(2) else null
-                }
-            }
-        } ?: return null
-
+    fun streamFile(libraryId: Long, relativePath: String): StandaloneTrackFile? {
         return try {
-            val folderId = trackLocation.first.toInt()
+            if (libraryId !in 0..Int.MAX_VALUE.toLong()) return null
+            val folderId = libraryId.toInt()
             val musicFolder = mediaFolderService.getMusicFolderById(folderId, true, true) ?: return null
             val root = musicFolder.path.toRealPath()
-            val candidate = root.resolve(trackLocation.second).normalize()
+            val candidate = root.resolve(relativePath).normalize()
             if (!candidate.startsWith(root) || Files.isSymbolicLink(candidate)) return null
             val file = candidate.toRealPath()
             if (!file.startsWith(root) || !Files.isRegularFile(file)) return null
@@ -183,8 +173,8 @@ class StandaloneLibraryScanService(
         }
     }
 
-    fun artwork(trackId: Long): StandaloneArtwork? {
-        val track = streamFile(trackId) ?: return null
+    fun artwork(libraryId: Long, relativePath: String): StandaloneArtwork? {
+        val track = streamFile(libraryId, relativePath) ?: return null
         val directory = track.path.parent
         for (candidateName in COVER_FILE_NAMES) {
             val candidate = directory.resolve(candidateName)
@@ -201,7 +191,7 @@ class StandaloneLibraryScanService(
             val contentType = imageContentType(bytes) ?: return null
             StandaloneArtwork(bytes, contentType)
         } catch (failure: Exception) {
-            LOG.debug("Could not read embedded cover art for track {}", trackId, failure)
+            LOG.debug("Could not read embedded cover art for {}", relativePath, failure)
             null
         }
     }

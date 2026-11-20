@@ -242,7 +242,9 @@ fun Application.standaloneModule(
                             track.modifiedAt?.toString()))
                     }
                     get("/tracks/{id}/stream") {
-                    if (libraryScanService == null) {
+                    val scanService = libraryScanService
+                    val catalogService = mediaCatalogService
+                    if (scanService == null || catalogService == null) {
                         call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
                         return@get
                     }
@@ -251,7 +253,14 @@ fun Application.standaloneModule(
                         call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
                         return@get
                     }
-                    val track = withContext(scanDispatcher) { libraryScanService.streamFile(trackId) }
+                    val catalogTrack = withContext(scanDispatcher) { catalogService.track(trackId) }
+                    if (catalogTrack == null) {
+                        call.respond(HttpStatusCode.NotFound)
+                        return@get
+                    }
+                    val track = withContext(scanDispatcher) {
+                        scanService.streamFile(catalogTrack.libraryId, catalogTrack.relativePath)
+                    }
                     if (track == null) {
                         call.respond(HttpStatusCode.NotFound)
                         return@get
@@ -288,7 +297,9 @@ fun Application.standaloneModule(
                     }
                 }
                     get("/tracks/{id}/artwork") {
-                    if (libraryScanService == null) {
+                    val scanService = libraryScanService
+                    val catalogService = mediaCatalogService
+                    if (scanService == null || catalogService == null) {
                         call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
                         return@get
                     }
@@ -297,7 +308,14 @@ fun Application.standaloneModule(
                         call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
                         return@get
                     }
-                    val artwork = withContext(scanDispatcher) { libraryScanService.artwork(trackId) }
+                    val catalogTrack = withContext(scanDispatcher) { catalogService.track(trackId) }
+                    if (catalogTrack == null) {
+                        call.respond(HttpStatusCode.NotFound)
+                        return@get
+                    }
+                    val artwork = withContext(scanDispatcher) {
+                        scanService.artwork(catalogTrack.libraryId, catalogTrack.relativePath)
+                    }
                     if (artwork == null) {
                         call.respond(HttpStatusCode.NotFound)
                         return@get
