@@ -320,10 +320,6 @@ public class KtorConfiguration {
         return runtime.createTaskSchedulingService();
     }
 
-    public org.airsonic.player.service.PathWatcherService pathWatcherService(RuntimeCompositionRoot runtime) throws Exception {
-        return runtime.createPathWatcherService();
-    }
-
     public DownloadService downloadService(RuntimeCompositionRoot runtime, StatusService statusService, SecurityService securityService,
             PlaylistService playlistService, SettingsService settingsService, MediaFileService mediaFileService,
             CoverArtService coverArtService) {
@@ -349,7 +345,6 @@ public class KtorConfiguration {
             StatusService statusService,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             TaskSchedulingService taskSchedulingService,
-            org.airsonic.player.service.PathWatcherService pathWatcherService,
             DownloadService downloadService,
             CoverArtService coverArtService,
             IndexManager indexManager,
@@ -357,7 +352,7 @@ public class KtorConfiguration {
             CoverArtImageService coverArtImageService,
             HlsPlaylistService hlsPlaylistService,
             HlsSegmentService hlsSegmentService
-    ) throws java.io.IOException {
+    ) throws Exception {
         runtime.createCoverArtAccentColorBackfill(coverArtService);
         LocaleService localeService = runtime.createLocaleService(settingsService);
         AudioScrobblerService audioScrobblerService = runtime.createAudioScrobblerService(settingsService, securityService);
@@ -463,7 +458,7 @@ public class KtorConfiguration {
                                 runtime.createUploadStatusController(statusService, databaseService),
                                 runtime.createStatisticsController(statusService, securityService),
                                 runtime.createScheduledTasksController(taskSchedulingService),
-                                runtime.createPathWatchersController(pathWatcherService),
+                                runtime.createPathWatchersController(runtime.createPathWatcherService()),
                                 runtime.createServerHealthController(
                                         runtime.createHealthContributorRegistry(runtime.createDataSource()), objectMapper),
                                 runtime.createCacheStatisticsController(runtime.createCacheManager()),

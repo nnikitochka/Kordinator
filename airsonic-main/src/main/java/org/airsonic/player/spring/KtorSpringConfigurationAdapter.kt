@@ -164,11 +164,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     ): org.airsonic.player.service.TaskSchedulingService = runtime.createTaskSchedulingService()
 
     @Bean
-    override fun pathWatcherService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.PathWatcherService = runtime.createPathWatcherService()
-
-    @Bean
     override fun downloadService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         statusService: org.airsonic.player.service.StatusService,
