@@ -520,6 +520,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 20 ноября 2026:** удалены Kotlin `spring` compiler plugin и `kotlin-maven-allopen`, а также явная дублирующая test dependency `spring-test` (она транзитивно остаётся через `spring-boot-starter-test`). Ktor regression набор прошёл 45/45. Starter пока оставлен: 66 legacy integration test классов используют Spring Boot test context и обращаются к прежним `/rest` endpoints, поэтому простое удаление зависимости сломало бы компиляцию. Их нужно либо переносить на standalone Ktor API, либо удалить после проверки, что они покрывают только отказавшийся legacy-контракт.
 
+**Срез 20 ноября 2026:** поскольку все 66 `api/*` integration suites и `StaticAndErrorIntegrationTest` проверяли только Spring-servlet/Subsonic `/rest` поведение, удалённое из продукта, эти неисполняемые тесты удалены. Общий `ScanningTestUtils` сохранён для сервисных тестов. `spring-boot-starter-test` заменён явным JUnit Jupiter; `logback.xml` больше не подключает Spring Boot logging defaults. Проверка test dependency tree не находит Spring Framework/Boot, а standalone Ktor regression набор прошёл 45/45.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
