@@ -329,11 +329,12 @@ public class KtorConfiguration {
             CredentialEncoderRegistry credentialEncoderRegistry,
             SettingsService settingsService,
             UPnPService upnpService,
-            StatusService statusService,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             TranscodingService transcodingService
     ) throws Exception {
         TaskSchedulingService taskSchedulingService = runtime.createTaskSchedulingService();
+        StatusService statusService = runtime.createStatusService(
+                mediaFileService, mediaFolderService, settingsService, taskSchedulingService);
         CoverArtService coverArtService = runtime.createCoverArtService(graph.getCoverArtDao());
         runtime.createCoverArtAccentColorBackfill(coverArtService);
         LocaleService localeService = runtime.createLocaleService(settingsService);

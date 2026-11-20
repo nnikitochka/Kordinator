@@ -21,7 +21,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         graph: org.airsonic.player.runtime.DaoGraph,
         mediaFileService: org.airsonic.player.service.MediaFileService,
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
-        statusService: org.airsonic.player.service.StatusService,
         securityService: org.airsonic.player.service.SecurityService,
         transcodingService: org.airsonic.player.service.TranscodingService,
         jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
@@ -33,8 +32,13 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
                 securityService, settingsService, mediaFileService, runtime.createCoverArtService(graph.coverArtDao)),
             runtime.createSearchService(mediaFileService),
             runtime.createMusicIndexService(settingsService, mediaFileService), runtime.createIndexManager(),
-            settingsService, runtime.createPlayerService(runtime.createPlayerDao(), statusService, securityService,
-                transcodingService), transcodingService, jwtSecurityService))
+            settingsService,
+            runtime.createPlayerService(
+                runtime.createPlayerDao(),
+                runtime.createStatusService(mediaFileService, mediaFolderService, settingsService,
+                    runtime.createTaskSchedulingService()),
+                securityService, transcodingService),
+            transcodingService, jwtSecurityService))
 
     @Bean
     override fun jwtSecurityService(
@@ -86,14 +90,5 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
     ): org.airsonic.player.service.TranscodingService = runtime.createTranscodingService(
         graph.transcodingDao, settingsService, mediaFolderService)
-
-    @Bean
-    fun statusService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-        mediaFolderService: org.airsonic.player.service.MediaFolderService,
-        settingsService: org.airsonic.player.service.SettingsService,
-    ): org.airsonic.player.service.StatusService = runtime.createStatusService(
-        mediaFileService, mediaFolderService, settingsService, runtime.createTaskSchedulingService())
 
 }
