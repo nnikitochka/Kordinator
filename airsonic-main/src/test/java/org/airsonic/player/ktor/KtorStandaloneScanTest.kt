@@ -183,6 +183,18 @@ class KtorStandaloneScanTest {
                     bearerAuth(listenerToken)
                 }
                 assertEquals(HttpStatusCode.NotFound, deniedLibrary.status)
+                val revokeLibrary = client.put("/api/v1/admin/users/$listenerId/libraries") {
+                    bearerAuth(token)
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"libraryIds":[]}""")
+                }
+                assertEquals(HttpStatusCode.NoContent, revokeLibrary.status)
+                assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/tracks/$coreTrackId") {
+                    bearerAuth(listenerToken)
+                }.status)
+                assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/tracks/$coreTrackId/stream") {
+                    bearerAuth(listenerToken)
+                }.status)
 
                 val catalog = client.get("/api/v1/tracks?libraryId=${library.id}&q=first&limit=10&offset=0") {
                     bearerAuth(token)
