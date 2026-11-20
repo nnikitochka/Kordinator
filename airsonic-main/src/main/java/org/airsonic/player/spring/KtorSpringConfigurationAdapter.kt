@@ -50,14 +50,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         graph.artistDao, graph.albumDao)
 
     @Bean
-    override fun tagEditService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-        securityService: org.airsonic.player.service.SecurityService,
-    ): org.airsonic.player.service.TagEditService = runtime.createTagEditService(
-        runtime.createMetaDataParserFactory(), mediaFileService, securityService)
-
-    @Bean
     fun upnpService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         settingsService: org.airsonic.player.service.SettingsService,

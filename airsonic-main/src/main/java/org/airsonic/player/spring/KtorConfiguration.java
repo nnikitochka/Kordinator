@@ -327,7 +327,6 @@ public class KtorConfiguration {
             SearchService albumSearchService,
             MediaFolderService mediaFolderService,
             PlaylistService playlistService,
-            TagEditService tagEditService,
             SecurityService securityService,
             CredentialEncoderRegistry credentialEncoderRegistry,
             SettingsService settingsService,
@@ -346,6 +345,8 @@ public class KtorConfiguration {
         HlsPlaylistService hlsPlaylistService = runtime.createHlsPlaylistService(jwtSecurityService);
         HlsSegmentService hlsSegmentService = runtime.createHlsSegmentService(
                 mediaFileService, securityService, statusService, settingsService, transcodingService);
+        TagEditService tagEditService = runtime.createTagEditService(
+                runtime.createMetaDataParserFactory(), mediaFileService, securityService);
         AudioScrobblerService audioScrobblerService = runtime.createAudioScrobblerService(settingsService, securityService);
         org.airsonic.player.service.MediaScannerService mediaScannerService = runtime.createMediaScannerService(
                 playlistService, settingsService, indexManager, mediaFileService, mediaFolderService, coverArtService);
