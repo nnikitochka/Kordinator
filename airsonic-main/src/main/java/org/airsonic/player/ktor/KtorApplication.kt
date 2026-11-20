@@ -45,6 +45,7 @@ import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandaloneAlbum
 import org.airsonic.player.service.StandaloneArtist
 import org.airsonic.player.service.StandaloneTrack
+import org.airsonic.player.service.StandaloneFavoriteService
 import java.nio.file.Path
 import java.nio.channels.FileChannel
 import java.nio.ByteBuffer
@@ -68,6 +69,7 @@ fun Application.standaloneModule(
     libraryService: StandaloneLibraryService? = null,
     libraryScanService: StandaloneLibraryScanService? = null,
     playlistService: StandalonePlaylistService? = null,
+    favoriteService: StandaloneFavoriteService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -324,6 +326,31 @@ fun Application.standaloneModule(
                     }
                 }
                 authenticate("server-session") {
+                    get("/favorites/tracks") {
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val service = favoriteService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Favorite storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val limitValue = call.request.queryParameters["limit"]
+                        val offsetValue = call.request.queryParameters["offset"]
+                        val limit = limitValue?.toIntOrNull() ?: if (limitValue == null) 50 else null
+                        val offset = offsetValue?.toIntOrNull() ?: if (offsetValue == null) 0 else null
+                        if (limit == null || limit !in 1..100 || offset == null || offset < 0) {
+                            call.respondJson(ApiError("invalid_request", "Limit must be between 1 and 100 and offset non-negative"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val tracks = withContext(scanDispatcher) { service.list(user.id, limit, offset) }
+                        call.respondJson(FavoriteTrackPage(tracks.map { it.toResponse() }, tracks.size, service.count(user.id), limit, offset))
+                    }
+                    put("/tracks/{id}/favorite") {
+                        setFavorite(call, favoriteService, true)
+                    }
+                    delete("/tracks/{id}/favorite") {
+                        setFavorite(call, favoriteService, false)
+                    }
                     get("/playlists") {
                         val user = call.principal<LocalUserPrincipal>()
                             ?: return@get call.respond(HttpStatusCode.Unauthorized)
@@ -642,6 +669,7 @@ data class ArtistSummaryResponse(
 data class ArtistDetailsResponse(val id: String, val name: String, val tracks: List<TrackResponse>)
 data class AlbumPage(val items: List<AlbumSummaryResponse>, val count: Int, val limit: Int, val offset: Int)
 data class ArtistPage(val items: List<ArtistSummaryResponse>, val count: Int, val limit: Int, val offset: Int)
+data class FavoriteTrackPage(val items: List<TrackResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
 data class ScanResponse(
     val id: String,
     val libraryId: Long,
@@ -678,6 +706,22 @@ private fun String.decodeCatalogId(): Pair<Long, String>? {
     } catch (_: IllegalArgumentException) {
         null
     }
+}
+
+private suspend fun setFavorite(call: ApplicationCall, service: StandaloneFavoriteService?, favorite: Boolean) {
+    val user = call.principal<LocalUserPrincipal>()
+        ?: return call.respond(HttpStatusCode.Unauthorized)
+    if (service == null) {
+        call.respondJson(ApiError("unavailable", "Favorite storage is not configured"), HttpStatusCode.ServiceUnavailable)
+        return
+    }
+    val trackId = call.parameters["id"]?.toLongOrNull()
+    if (trackId == null || trackId < 0) {
+        call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
+        return
+    }
+    val updated = withContext(scanDispatcher) { service.set(user.id, trackId, favorite) }
+    if (updated) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
 }
 data class SavePlaylistRequest(val name: String, val trackIds: List<Long> = emptyList())
 data class PlaylistSummaryResponse(val id: Long, val name: String, val createdAt: String, val updatedAt: String, val trackCount: Int)
@@ -758,6 +802,7 @@ fun main(args: Array<String>) {
     val libraryService = StandaloneLibraryService(database.dataSource)
     val libraryScanService = StandaloneLibraryScanService(database.dataSource)
     val playlistService = StandalonePlaylistService(database.dataSource)
+    val favoriteService = StandaloneFavoriteService(database.dataSource)
     if (configuration.getBooleanProperty("airsonic.create-admin", false)) {
         try {
             val console = System.console()
@@ -779,7 +824,7 @@ fun main(args: Array<String>) {
         return
     }
     val server = embeddedServer(Netty, host = host, port = port) {
-        standaloneModule(authService, libraryService, libraryScanService, playlistService)
+        standaloneModule(authService, libraryService, libraryScanService, playlistService, favoriteService)
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })
     server.start(wait = true)

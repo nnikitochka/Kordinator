@@ -6,6 +6,8 @@ import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
+import io.ktor.client.request.delete
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsText
 import io.ktor.server.testing.testApplication
@@ -14,6 +16,7 @@ import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandaloneLibraryService
+import org.airsonic.player.service.StandaloneFavoriteService
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
@@ -52,10 +55,11 @@ class KtorStandaloneScanTest {
             val libraryService = StandaloneLibraryService(dataSource)
             val library = libraryService.create("Music", musicRoot)
             val scanService = StandaloneLibraryScanService(dataSource)
+            val favoriteService = StandaloneFavoriteService(dataSource)
             val mapper = jacksonObjectMapper()
 
             testApplication {
-                application { standaloneModule(auth, libraryService, scanService) }
+                application { standaloneModule(auth, libraryService, scanService, favoriteService = favoriteService) }
 
                 val started = client.post("/api/v1/admin/libraries/${library.id}/scan") { bearerAuth(token) }
                 assertEquals(202, started.status.value)
@@ -145,6 +149,16 @@ class KtorStandaloneScanTest {
                 val trackDetails = client.get("/api/v1/tracks/$trackId") { bearerAuth(token) }
                 assertEquals(200, trackDetails.status.value)
                 assertEquals(trackId, mapper.readTree(trackDetails.bodyAsText()).get("id").asLong())
+                assertEquals(204, client.put("/api/v1/tracks/$trackId/favorite") { bearerAuth(token) }.status.value)
+                assertEquals(204, client.put("/api/v1/tracks/$trackId/favorite") { bearerAuth(token) }.status.value)
+                val favorites = client.get("/api/v1/favorites/tracks?limit=10") { bearerAuth(token) }
+                assertEquals(200, favorites.status.value)
+                assertEquals(1, mapper.readTree(favorites.bodyAsText()).get("total").asInt())
+                assertEquals(trackId, mapper.readTree(favorites.bodyAsText()).get("items")[0].get("id").asLong())
+                assertEquals(401, client.get("/api/v1/favorites/tracks").status.value)
+                assertEquals(400, client.get("/api/v1/favorites/tracks?limit=0") { bearerAuth(token) }.status.value)
+                assertEquals(204, client.delete("/api/v1/tracks/$trackId/favorite") { bearerAuth(token) }.status.value)
+                assertEquals(0, mapper.readTree(client.get("/api/v1/favorites/tracks") { bearerAuth(token) }.bodyAsText()).get("total").asInt())
                 assertEquals(401, client.get("/api/v1/tracks/$trackId").status.value)
                 assertEquals(404, client.get("/api/v1/tracks/999999") { bearerAuth(token) }.status.value)
                 assertEquals(400, client.get("/api/v1/tracks/-1") { bearerAuth(token) }.status.value)

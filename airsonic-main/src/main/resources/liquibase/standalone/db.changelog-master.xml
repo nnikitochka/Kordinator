@@ -191,4 +191,27 @@
             <column name="genre" type="VARCHAR(512)"/>
         </addColumn>
     </changeSet>
+    <changeSet id="standalone-favorites-1" author="kordinator">
+        <createTable tableName="favorite_track">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_track"/>
+            </column>
+            <column name="track_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_track"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="favorite_track" baseColumnNames="user_id"
+                                 constraintName="fk_favorite_track_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <addForeignKeyConstraint baseTableName="favorite_track" baseColumnNames="track_id"
+                                 constraintName="fk_favorite_track_track" referencedTableName="media_track"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="favorite_track" indexName="ix_favorite_track_user_created">
+            <column name="user_id"/>
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>
