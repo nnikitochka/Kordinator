@@ -27,10 +27,21 @@ object LegacyPasswordEncoders {
     val CODECS: MutableMap<String, PasswordEncoder> = create().toMutableMap()
 
     @JvmField
-    val OPEN_TEXT_ENCODERS: Set<String> = setOf("noop", "hex", "legacynoop", "legacyhex")
+    val OPENTEXT_ENCODERS: Set<String> = setOf("noop", "hex", "legacynoop", "legacyhex")
 
     @JvmField
-    val DECODABLE_ENCODERS: Set<String> = OPEN_TEXT_ENCODERS + "encrypted-AES-GCM"
+    val DECODABLE_ENCODERS: Set<String> = OPENTEXT_ENCODERS + "encrypted-AES-GCM"
+
+    @JvmField
+    val NONLEGACY_ENCODERS: Set<String> = CODECS.keys.filterNot {
+        it.contains("legacy") || it.contains("salttoken")
+    }.toSet()
+
+    @JvmField
+    val NONLEGACY_DECODABLE_ENCODERS: Set<String> = DECODABLE_ENCODERS intersect NONLEGACY_ENCODERS
+
+    @JvmField
+    val NONLEGACY_NONDECODABLE_ENCODERS: Set<String> = NONLEGACY_ENCODERS - DECODABLE_ENCODERS
 
     @JvmStatic
     fun create(): Map<String, PasswordEncoder> = linkedMapOf(

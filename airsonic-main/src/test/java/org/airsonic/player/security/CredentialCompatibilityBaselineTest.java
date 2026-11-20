@@ -1,13 +1,12 @@
 package org.airsonic.player.security;
 
 import org.junit.Test;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Fixed compatibility fixtures for credential formats in LegacyCredentialEncoders.
+ * Fixed compatibility fixtures for credential formats in LegacyPasswordEncoders.
  * The values were generated once with the current encoders; keep them independent of encode().
  * TODO: reuse the neutral codec contract when Spring Security is removed.
  */
@@ -39,12 +38,12 @@ public class CredentialCompatibilityBaselineTest {
         for (String[] fixture : REGISTRY_FIXTURES) {
             String name = fixture[0];
             String encoded = fixture[1];
-            PasswordEncoder encoder = LegacyCredentialEncoders.ENCODERS.get(name);
+            org.airsonic.player.security.crypto.PasswordEncoder encoder = LegacyPasswordEncoders.CODECS.get(name);
 
             assertThat(encoder).as("encoder %s exists", name).isNotNull();
             assertThat(encoder.matches(PASSWORD, encoded)).as("%s accepts its stored value", name).isTrue();
             assertThat(encoder.matches(WRONG_PASSWORD, encoded)).as("%s rejects a wrong password", name).isFalse();
-            if (LegacyCredentialEncoders.DECODABLE_ENCODERS.contains(name)) {
+            if (LegacyPasswordEncoders.DECODABLE_ENCODERS.contains(name)) {
                 assertThat(((PasswordDecoder) encoder).decode(encoded))
                         .as("%s decodes its stored value", name).isEqualTo(PASSWORD);
             }

@@ -15,7 +15,6 @@ import org.airsonic.player.service.upnp.RootUpnpProcessor;
 import org.airsonic.player.security.GlobalSecurityConfig;
 import org.airsonic.player.security.MultipleCredsMatchingAuthenticationProvider;
 import org.airsonic.player.security.CredentialEncoderRegistry;
-import org.airsonic.player.security.SpringCredentialEncoderRegistry;
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController;
 import org.airsonic.player.controller.rest.tags.TagEditController;
 import org.airsonic.player.controller.rest.livequeue.LiveQueueExportController;
@@ -282,8 +281,8 @@ public class KtorConfiguration {
         return runtime.createSecurityService(graph.getUserDao(), settingsService, mediaFolderService, credentialEncoders);
     }
 
-    public CredentialEncoderRegistry credentialEncoderRegistry() {
-        return new SpringCredentialEncoderRegistry();
+    public CredentialEncoderRegistry credentialEncoderRegistry(SettingsService settingsService) {
+        return new org.airsonic.player.security.LegacyCredentialEncoderRegistry(settingsService);
     }
 
     public SettingsService settingsService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph) {

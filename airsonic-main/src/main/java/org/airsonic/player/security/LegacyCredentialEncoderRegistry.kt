@@ -29,7 +29,7 @@ class LegacyCredentialEncoderRegistry(settingsService: SettingsService) : Creden
     }
 
     override fun isDecodable(encoderName: String): Boolean = encoderName in LegacyPasswordEncoders.DECODABLE_ENCODERS
-    override fun isOpenText(encoderName: String): Boolean = encoderName in LegacyPasswordEncoders.OPEN_TEXT_ENCODERS
+    override fun isOpenText(encoderName: String): Boolean = encoderName in LegacyPasswordEncoders.OPENTEXT_ENCODERS
     override fun decodableEncoderNames(): Set<String> = LegacyPasswordEncoders.DECODABLE_ENCODERS
-    override fun openTextEncoderNames(): Set<String> = LegacyPasswordEncoders.OPEN_TEXT_ENCODERS
+    override fun openTextEncoderNames(): Set<String> = LegacyPasswordEncoders.OPENTEXT_ENCODERS
 }

@@ -11,7 +11,7 @@ import org.airsonic.player.controller.rest.users.UsersRequest
 import org.airsonic.player.domain.User
 import org.airsonic.player.domain.UserCredential
 import org.airsonic.player.domain.UserCredential.App
-import org.airsonic.player.security.GlobalSecurityConfig as Encoders
+import org.airsonic.player.security.LegacyPasswordEncoders as Encoders
 import org.airsonic.player.dao.TransactionManager
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.SettingsService

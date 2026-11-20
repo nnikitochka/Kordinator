@@ -43,8 +43,10 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     }
 
     @Bean
-    override fun credentialEncoderRegistry(): org.airsonic.player.security.CredentialEncoderRegistry =
-        org.airsonic.player.security.SpringCredentialEncoderRegistry()
+    override fun credentialEncoderRegistry(
+        settingsService: org.airsonic.player.service.SettingsService,
+    ): org.airsonic.player.security.CredentialEncoderRegistry =
+        org.airsonic.player.security.LegacyCredentialEncoderRegistry(settingsService)
 
     @Bean
     fun securityService(

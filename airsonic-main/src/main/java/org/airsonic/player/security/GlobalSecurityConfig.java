@@ -16,8 +16,6 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
-import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
@@ -28,20 +26,12 @@ import jakarta.servlet.DispatcherType;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
 public class GlobalSecurityConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(GlobalSecurityConfig.class);
-
-    public static final Map<String, PasswordEncoder> ENCODERS = LegacyCredentialEncoders.ENCODERS;
-    public static final java.util.Set<String> OPENTEXT_ENCODERS = LegacyCredentialEncoders.OPENTEXT_ENCODERS;
-    public static final java.util.Set<String> DECODABLE_ENCODERS = LegacyCredentialEncoders.DECODABLE_ENCODERS;
-    public static final java.util.Set<String> NONLEGACY_ENCODERS = LegacyCredentialEncoders.NONLEGACY_ENCODERS;
-    public static final java.util.Set<String> NONLEGACY_DECODABLE_ENCODERS = LegacyCredentialEncoders.NONLEGACY_DECODABLE_ENCODERS;
-    public static final java.util.Set<String> NONLEGACY_NONDECODABLE_ENCODERS = LegacyCredentialEncoders.NONLEGACY_NONDECODABLE_ENCODERS;
 
     private final CsrfPolicy csrfPolicy = new CsrfPolicy();
 
@@ -56,12 +46,6 @@ public class GlobalSecurityConfig {
         this.securityService = securityService;
         this.settingsService = settingsService;
         this.multipleCredsProvider = multipleCredsProvider;
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        LegacyCredentialEncoders.configureEncryption(settingsService);
-        return LegacyCredentialEncoders.delegatingEncoder(settingsService);
     }
 
     public void loginFailureListener(AbstractAuthenticationFailureEvent event) {
