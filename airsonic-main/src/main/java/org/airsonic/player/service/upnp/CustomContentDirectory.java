@@ -37,7 +37,7 @@ public abstract class CustomContentDirectory extends AbstractContentDirectorySer
     }
 
     protected Res createResourceForSong(MediaFile song) {
-        Player player = playerService.getGuestPlayer(null);
+        Player player = playerService.getGuestPlayer();
 
         StringBuilder path = new StringBuilder("ext/stream?id=")
                 .append(song.getId())

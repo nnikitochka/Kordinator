@@ -16,14 +16,11 @@ import org.subsonic.restapi.ObjectFactory;
 import org.subsonic.restapi.Response;
 import org.subsonic.restapi.ResponseStatus;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.time.Instant;
@@ -95,26 +92,6 @@ public class JAXBWriter {
         return response;
     }
 
-    public void writeResponse(HttpServletRequest request, HttpServletResponse httpResponse, Response jaxbResponse) {
-        Entry<String, String> serializedResp = serializeForType(request, jaxbResponse);
-
-        httpResponse.setCharacterEncoding(StringUtil.ENCODING_UTF8);
-        httpResponse.setContentType(serializedResp.getKey());
-
-        try {
-            httpResponse.getWriter().append(serializedResp.getValue());
-        } catch (IOException x) {
-            LOG.error("Failed to marshal JAXB", x);
-            throw new RuntimeException(x);
-        }
-    }
-
-    public void writeErrorResponse(HttpServletRequest request, HttpServletResponse response,
-                                   ErrorCode code, String message) {
-        Response res = createErrorResponse(code, message);
-        writeResponse(request, response, res);
-    }
-
     public Response createErrorResponse(APIException e) {
         return createErrorResponse(e.getError(), e.getMessage());
     }
@@ -126,15 +103,6 @@ public class JAXBWriter {
         error.setCode(code.getCode());
         error.setMessage(message);
         return res;
-    }
-
-    public Entry<String, String> serializeForType(HttpServletRequest request, Response resp) {
-        String format = request.getParameter("f");
-        if (format == null) {
-            format = "xml";
-        }
-        String jsonpCallback = request.getParameter("callback");
-        return serializeForType(format, jsonpCallback, resp);
     }
 
     public Entry<String, String> serializeForType(String format, String jsonpCallback, Response resp) {

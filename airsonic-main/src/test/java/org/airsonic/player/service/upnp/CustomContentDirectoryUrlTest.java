@@ -65,7 +65,7 @@ public class CustomContentDirectoryUrlTest {
         Player player = mock(Player.class);
         when(player.getId()).thenReturn(9);
         PlayerService playerService = mock(PlayerService.class);
-        when(playerService.getGuestPlayer(null)).thenReturn(player);
+        when(playerService.getGuestPlayer()).thenReturn(player);
         TranscodingService transcodingService = mock(TranscodingService.class);
         when(transcodingService.getSuffix(eq(player), any(MediaFile.class), isNull())).thenReturn("mp3");
         SettingsService settings = mock(SettingsService.class);

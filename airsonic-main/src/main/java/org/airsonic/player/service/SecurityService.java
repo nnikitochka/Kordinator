@@ -16,7 +16,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.servlet.http.HttpServletRequest;
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 
@@ -182,30 +181,6 @@ public class SecurityService {
             LOG.warn("Could not decode credentials for user {}, app {}", reversibleCred.getUsername(), reversibleCred.getApp(), e);
             return null;
         }
-    }
-
-    /**
-     * Returns the currently logged-in user for the given HTTP request.
-     *
-     * @param request The HTTP request.
-     * @return The logged-in user, or <code>null</code>.
-     */
-    public User getCurrentUser(HttpServletRequest request) {
-        String username = getCurrentUsername(request);
-        return username == null ? null : getUserByName(username);
-    }
-
-    /**
-     * Returns the name of the currently logged-in user.
-     *
-     * @param request The HTTP request.
-     * @return The name of the logged-in user, or <code>null</code>.
-     */
-    public String getCurrentUsername(HttpServletRequest request) {
-        if (request.getUserPrincipal() != null && request.getUserPrincipal().getName() != null) {
-            return request.getUserPrincipal().getName();
-        }
-        return request.getRemoteUser();
     }
 
     /**

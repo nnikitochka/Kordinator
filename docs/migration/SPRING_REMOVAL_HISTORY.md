@@ -530,6 +530,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 20 ноября 2026:** удалена servlet/JWT-генерация устаревших `/ext/rest/share/...` ссылок из `ShareService`, а старый `NetworkService` и тест Subsonic share URL удалены как больше неиспользуемые. CRUD-сервис Share остаётся. Runtime graph и `UtilTest` прошли 15/15. Из production-кода прямые servlet imports остались в `PlayerService`, `SecurityService` и `JAXBWriter`.
 
+**Срез 20 ноября 2026:** удалена оставшаяся request/session/cookie player resolution логика, не имевшая production callers; UPnP запрашивает guest player без HTTP request. `SecurityService` и `JAXBWriter` освобождены от servlet request/response API, удалён мёртвый servlet conditional request test. После этого в исходниках и Maven dependencies больше нет Servlet API; удалены `jakarta.servlet-api` и shade exclusion. Runtime graph, UPnP, stream и transcoding тесты прошли 8/8.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
