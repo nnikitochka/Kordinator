@@ -19,25 +19,32 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         settingsService: org.airsonic.player.service.SettingsService,
         graph: org.airsonic.player.runtime.DaoGraph,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-        mediaFolderService: org.airsonic.player.service.MediaFolderService,
         securityService: org.airsonic.player.service.SecurityService,
         jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
-    ): org.airsonic.player.service.UPnPService = runtime.createUpnpService(
-        settingsService,
-        runtime.createDispatchingContentDirectory(
-            mediaFileService, mediaFolderService,
-            runtime.createPlaylistService(
-                securityService, settingsService, mediaFileService, runtime.createCoverArtService(graph.coverArtDao)),
-            runtime.createSearchService(mediaFileService),
-            runtime.createMusicIndexService(settingsService, mediaFileService), runtime.createIndexManager(),
+    ): org.airsonic.player.service.UPnPService {
+        val mediaFolderService = runtime.createMediaFolderService()
+        val mediaFileService = runtime.createMediaFileService(
+            securityService, settingsService, graph.mediaFileDao, graph.albumDao, runtime.createJaudiotaggerParser(),
+            runtime.createMetaDataParserFactory(), runtime.createCoverArtService(graph.coverArtDao),
+            runtime.createLocaleService(settingsService))
+        val transcodingService = runtime.createTranscodingService(graph.transcodingDao, settingsService, mediaFolderService)
+        val statusService = runtime.createStatusService(
+            mediaFileService, mediaFolderService, settingsService, runtime.createTaskSchedulingService())
+        return runtime.createUpnpService(
             settingsService,
-            runtime.createPlayerService(
-                runtime.createPlayerDao(),
-                runtime.createStatusService(mediaFileService, mediaFolderService, settingsService,
-                    runtime.createTaskSchedulingService()),
-                securityService, runtime.createTranscodingService(graph.transcodingDao, settingsService, mediaFolderService)),
-            runtime.createTranscodingService(graph.transcodingDao, settingsService, mediaFolderService), jwtSecurityService))
+            runtime.createDispatchingContentDirectory(
+                mediaFileService, mediaFolderService,
+                runtime.createPlaylistService(
+                    securityService, settingsService, mediaFileService,
+                    runtime.createCoverArtService(graph.coverArtDao)),
+                runtime.createSearchService(mediaFileService),
+                runtime.createMusicIndexService(settingsService, mediaFileService), runtime.createIndexManager(),
+                settingsService,
+                runtime.createPlayerService(
+                    runtime.createPlayerDao(),
+                    statusService, securityService, transcodingService),
+                transcodingService, jwtSecurityService))
+    }
 
     @Bean
     override fun jwtSecurityService(
@@ -50,35 +57,18 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         org.airsonic.player.security.SpringCredentialEncoderRegistry()
 
     @Bean
-    override fun securityService(
+    fun securityService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         graph: org.airsonic.player.runtime.DaoGraph,
         settingsService: org.airsonic.player.service.SettingsService,
-        mediaFolderService: org.airsonic.player.service.MediaFolderService,
         credentialEncoders: org.airsonic.player.security.CredentialEncoderRegistry,
     ): org.airsonic.player.service.SecurityService =
-        runtime.createSecurityService(graph.userDao, settingsService, mediaFolderService, credentialEncoders)
+        runtime.createSecurityService(graph.userDao, settingsService, runtime.createMediaFolderService(), credentialEncoders)
 
     @Bean
     override fun settingsService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         graph: org.airsonic.player.runtime.DaoGraph,
     ): org.airsonic.player.service.SettingsService = runtime.createSettingsService()
-
-    @Bean
-    override fun mediaFolderService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.MediaFolderService = runtime.createMediaFolderService()
-
-    @Bean
-    fun mediaFileService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        securityService: org.airsonic.player.service.SecurityService,
-        settingsService: org.airsonic.player.service.SettingsService,
-        graph: org.airsonic.player.runtime.DaoGraph,
-    ): org.airsonic.player.service.MediaFileService = runtime.createMediaFileService(
-        securityService, settingsService, graph.mediaFileDao, graph.albumDao, runtime.createJaudiotaggerParser(),
-        runtime.createMetaDataParserFactory(), runtime.createCoverArtService(graph.coverArtDao),
-        runtime.createLocaleService(settingsService))
 
 }

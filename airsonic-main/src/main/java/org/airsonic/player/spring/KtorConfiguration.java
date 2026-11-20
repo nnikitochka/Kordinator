@@ -322,15 +322,18 @@ public class KtorConfiguration {
     public ServletRegistrationBean<ServletApplicationEngine> ktorServletRegistration(
             RuntimeCompositionRoot runtime,
             JWTSecurityService jwtSecurityService,
-            MediaFileService mediaFileService,
             org.airsonic.player.runtime.DaoGraph graph,
-            MediaFolderService mediaFolderService,
             SecurityService securityService,
             CredentialEncoderRegistry credentialEncoderRegistry,
             SettingsService settingsService,
             UPnPService upnpService,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper
     ) throws Exception {
+        MediaFolderService mediaFolderService = runtime.createMediaFolderService();
+        MediaFileService mediaFileService = runtime.createMediaFileService(
+                securityService, settingsService, graph.getMediaFileDao(), graph.getAlbumDao(),
+                runtime.createJaudiotaggerParser(), runtime.createMetaDataParserFactory(),
+                runtime.createCoverArtService(graph.getCoverArtDao()), runtime.createLocaleService(settingsService));
         TaskSchedulingService taskSchedulingService = runtime.createTaskSchedulingService();
         StatusService statusService = runtime.createStatusService(
                 mediaFileService, mediaFolderService, settingsService, taskSchedulingService);
