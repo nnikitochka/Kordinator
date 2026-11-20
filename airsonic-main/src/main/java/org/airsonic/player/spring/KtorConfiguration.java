@@ -332,9 +332,9 @@ public class KtorConfiguration {
             StatusService statusService,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             TaskSchedulingService taskSchedulingService,
-            CoverArtService coverArtService,
             TranscodingService transcodingService
     ) throws Exception {
+        CoverArtService coverArtService = runtime.createCoverArtService(graph.getCoverArtDao());
         runtime.createCoverArtAccentColorBackfill(coverArtService);
         LocaleService localeService = runtime.createLocaleService(settingsService);
         IndexManager indexManager = runtime.createIndexManager();

@@ -15,18 +15,12 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime.createPersistenceGraph().daos
 
     @Bean
-    override fun coverArtService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        graph: org.airsonic.player.runtime.DaoGraph,
-    ): org.airsonic.player.service.CoverArtService = runtime.createCoverArtService(graph.coverArtDao)
-
-    @Bean
     fun upnpService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         settingsService: org.airsonic.player.service.SettingsService,
+        graph: org.airsonic.player.runtime.DaoGraph,
         mediaFileService: org.airsonic.player.service.MediaFileService,
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
-        coverArtService: org.airsonic.player.service.CoverArtService,
         statusService: org.airsonic.player.service.StatusService,
         securityService: org.airsonic.player.service.SecurityService,
         transcodingService: org.airsonic.player.service.TranscodingService,
@@ -35,7 +29,8 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         settingsService,
         runtime.createDispatchingContentDirectory(
             mediaFileService, mediaFolderService,
-            runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService),
+            runtime.createPlaylistService(
+                securityService, settingsService, mediaFileService, runtime.createCoverArtService(graph.coverArtDao)),
             runtime.createSearchService(mediaFileService),
             runtime.createMusicIndexService(settingsService, mediaFileService), runtime.createIndexManager(),
             settingsService, runtime.createPlayerService(runtime.createPlayerDao(), statusService, securityService,
@@ -73,15 +68,15 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     ): org.airsonic.player.service.MediaFolderService = runtime.createMediaFolderService()
 
     @Bean
-    override fun mediaFileService(
+    fun mediaFileService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         securityService: org.airsonic.player.service.SecurityService,
         settingsService: org.airsonic.player.service.SettingsService,
         graph: org.airsonic.player.runtime.DaoGraph,
-        coverArtService: org.airsonic.player.service.CoverArtService,
     ): org.airsonic.player.service.MediaFileService = runtime.createMediaFileService(
         securityService, settingsService, graph.mediaFileDao, graph.albumDao, runtime.createJaudiotaggerParser(),
-        runtime.createMetaDataParserFactory(), coverArtService, runtime.createLocaleService(settingsService))
+        runtime.createMetaDataParserFactory(), runtime.createCoverArtService(graph.coverArtDao),
+        runtime.createLocaleService(settingsService))
 
     @Bean
     override fun transcodingService(
