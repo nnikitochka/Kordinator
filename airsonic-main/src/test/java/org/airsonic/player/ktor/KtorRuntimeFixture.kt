@@ -28,9 +28,11 @@ internal class KtorRuntimeFixture(home: Path, defaultMusicFolder: Path, database
     )
 
     val mediaFolderService: MediaFolderService
+    val coreDataSource: javax.sql.DataSource
 
     init {
         runtime.createPersistenceGraph()
+        coreDataSource = runtime.createDataSource()
         mediaFolderService = runtime.createMediaFolderService()
     }
 
@@ -44,7 +46,13 @@ internal data class CoreCatalogFixture(
     val mediaScannerService: MediaScannerService,
 )
 
-internal fun mockCoreCatalog(folder: MusicFolder, relativePath: String, title: String, sizeBytes: Long): CoreCatalogFixture {
+internal fun mockCoreCatalog(
+    runtime: KtorRuntimeFixture,
+    folder: MusicFolder,
+    relativePath: String,
+    title: String,
+    sizeBytes: Long,
+): CoreCatalogFixture {
     val folderId = requireNotNull(folder.id)
     val scanner = Mockito.mock(MediaScannerService::class.java)
     val mediaFiles = Mockito.mock(MediaFileService::class.java)
@@ -64,6 +72,23 @@ internal fun mockCoreCatalog(folder: MusicFolder, relativePath: String, title: S
         changed = Instant.now()
         setPresent(true)
     }
+    val now = Instant.now()
+    val persistedFile = MediaFile().apply {
+        path = relativePath
+        this.folderId = folderId
+        mediaType = MediaFile.MediaType.MUSIC
+        format = relativePath.substringAfterLast('.', "")
+        this.title = title
+        parentPath = ""
+        fileSize = sizeBytes
+        duration = 0.0
+        created = now
+        changed = now
+        lastScanned = now
+        childrenLastUpdated = now
+        setPresent(true)
+    }
+    runtime.runtime.createPersistenceGraph().daos.mediaFileDao.createOrUpdateMediaFile(persistedFile) { }
     Mockito.`when`(mediaFiles.getMediaFile(Paths.get(""), folder, true)).thenReturn(root)
     Mockito.`when`(mediaFiles.getChildrenOf(root, true, true, true, true)).thenReturn(listOf(audio))
     return CoreCatalogFixture(mediaFiles, scanner)

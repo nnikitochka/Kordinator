@@ -55,6 +55,7 @@ class KtorStandaloneScanTest {
                 val token = auth.login("admin", "a strong password for tests")!!.token
                 val library = runtime.mediaFolderService.getAllMusicFolders(true, true).single()
                 val coreCatalog = mockCoreCatalog(
+                    runtime,
                     library,
                     "01 - First Track.mp3",
                     "01 - First Track",
@@ -67,10 +68,19 @@ class KtorStandaloneScanTest {
                     coreCatalog.mediaScannerService,
                 )
                 val favoriteService = StandaloneFavoriteService(dataSource)
+                val mediaCatalogService = org.airsonic.player.service.KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
                 val mapper = jacksonObjectMapper()
 
                 testApplication {
-                    application { standaloneModule(authService = auth, libraryScanService = scanService, favoriteService = favoriteService, mediaFolderService = runtime.mediaFolderService) }
+                    application {
+                        standaloneModule(
+                            authService = auth,
+                            libraryScanService = scanService,
+                            favoriteService = favoriteService,
+                            mediaFolderService = runtime.mediaFolderService,
+                            mediaCatalogService = mediaCatalogService,
+                        )
+                    }
 
                 val started = client.post("/api/v1/admin/libraries/${library.id}/scan") { bearerAuth(token) }
                 assertEquals(202, started.status.value)
@@ -98,19 +108,20 @@ class KtorStandaloneScanTest {
                 assertEquals("01 - First Track", items[0].get("title").asText())
                 assertTrue(items[0].get("relativePath").asText().endsWith("01 - First Track.mp3"))
 
-                dataSource.connection.use { connection ->
+                runtime.coreDataSource.connection.use { connection ->
                     connection.prepareStatement(
-                        "UPDATE media_track SET artist = ?, album_artist = ?, album = ?, duration_seconds = ?, disc_number = ?, track_number = ?, year = ?, genre = ? WHERE id = ?",
+                        "UPDATE media_file SET artist = ?, album_artist = ?, album = ?, duration = ?, disc_number = ?, track_number = ?, year = ?, genre = ? WHERE path = ? AND folder_id = ?",
                     ).use { statement ->
                         statement.setString(1, "Test Artist")
                         statement.setString(2, "Test Artist")
                         statement.setString(3, "Test Album")
-                        statement.setInt(4, 213)
+                        statement.setDouble(4, 213.0)
                         statement.setInt(5, 2)
                         statement.setInt(6, 7)
                         statement.setInt(7, 1997)
                         statement.setString(8, "Test Genre")
-                        statement.setLong(9, items[0].get("id").asLong())
+                        statement.setString(9, "01 - First Track.mp3")
+                        statement.setInt(10, library.id)
                         assertEquals(1, statement.executeUpdate())
                     }
                 }
@@ -205,6 +216,13 @@ class KtorStandaloneScanTest {
                 assertEquals(404, missingStream.status.value)
 
                 Files.delete(musicRoot.resolve("01 - First Track.mp3"))
+                runtime.coreDataSource.connection.use { connection ->
+                    connection.prepareStatement("UPDATE media_file SET present = false WHERE path = ? AND folder_id = ?").use { statement ->
+                        statement.setString(1, "01 - First Track.mp3")
+                        statement.setInt(2, library.id)
+                        assertEquals(1, statement.executeUpdate())
+                    }
+                }
                 val rescan = client.post("/api/v1/admin/libraries/${library.id}/scan") { bearerAuth(token) }
                 assertEquals(202, rescan.status.value)
                 for (attempt in 0 until 100) {

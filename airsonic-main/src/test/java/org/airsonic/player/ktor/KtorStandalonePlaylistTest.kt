@@ -48,6 +48,7 @@ class KtorStandalonePlaylistTest {
                 val otherToken = auth.login("other", "another strong password")!!.token
                 val library = runtime.mediaFolderService.getAllMusicFolders(true, true).single()
                 val coreCatalog = mockCoreCatalog(
+                    runtime,
                     library,
                     "track.mp3",
                     "track",
@@ -59,6 +60,7 @@ class KtorStandalonePlaylistTest {
                     coreCatalog.mediaFileService,
                     coreCatalog.mediaScannerService,
                 )
+                val mediaCatalogService = org.airsonic.player.service.KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
                 val scan = scans.enqueue(library.id.toLong())
                 scans.run(scan.id)
                 val playlists = StandalonePlaylistService(dataSource)
@@ -71,6 +73,7 @@ class KtorStandalonePlaylistTest {
                             libraryScanService = scans,
                             playlistService = playlists,
                             mediaFolderService = runtime.mediaFolderService,
+                            mediaCatalogService = mediaCatalogService,
                         )
                     }
 

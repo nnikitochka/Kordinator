@@ -48,6 +48,7 @@ import org.airsonic.player.service.StandaloneArtist
 import org.airsonic.player.service.StandaloneTrack
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.domain.MusicFolder
 import java.nio.file.Path
 import java.nio.file.Files
@@ -74,6 +75,7 @@ fun Application.standaloneModule(
     playlistService: StandalonePlaylistService? = null,
     favoriteService: StandaloneFavoriteService? = null,
     mediaFolderService: MediaFolderService? = null,
+    mediaCatalogService: KtorCoreMediaCatalogService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -93,7 +95,7 @@ fun Application.standaloneModule(
             route("/api/v1") {
                 authenticate("server-session") {
                     get("/search") {
-                        if (libraryScanService == null) {
+                        if (mediaCatalogService == null) {
                             call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
                             return@get
                         }
@@ -107,7 +109,7 @@ fun Application.standaloneModule(
                             return@get
                         }
                         val (matches, total) = withContext(scanDispatcher) {
-                            libraryScanService.tracks(null, query, limit, offset) to libraryScanService.countTracks(null, query)
+                            mediaCatalogService.tracks(null, query, limit, offset) to mediaCatalogService.countTracks(null, query)
                         }
                         call.respondJson(StandaloneSearchResponse(query, offset, total, matches.map {
                             TrackResponse(it.id, it.libraryId, it.relativePath, it.title, it.artist, it.album,
@@ -115,7 +117,7 @@ fun Application.standaloneModule(
                         }))
                     }
                     get("/albums") {
-                        if (libraryScanService == null) {
+                        if (mediaCatalogService == null) {
                             call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
                             return@get
                         }
@@ -125,13 +127,13 @@ fun Application.standaloneModule(
                         val offsetValue = call.request.queryParameters["offset"]
                         val limit = limitValue?.toIntOrNull() ?: if (limitValue == null) 50 else null
                         val offset = offsetValue?.toIntOrNull() ?: if (offsetValue == null) 0 else null
-                        if ((requestedLibraryId != null && (libraryId == null || libraryId < 0)) ||
+                        if ((requestedLibraryId != null && (libraryId == null || libraryId !in 0..Int.MAX_VALUE.toLong())) ||
                             limit == null || limit !in 1..100 || offset == null || offset < 0
                         ) {
-                            call.respondJson(ApiError("invalid_request", "libraryId must be non-negative, limit between 1 and 100, and offset non-negative"), HttpStatusCode.BadRequest)
+                            call.respondJson(ApiError("invalid_request", "libraryId must be between 0 and ${Int.MAX_VALUE}, limit between 1 and 100, and offset non-negative"), HttpStatusCode.BadRequest)
                             return@get
                         }
-                        val albums = withContext(scanDispatcher) { libraryScanService.albums(libraryId, limit, offset) }
+                        val albums = withContext(scanDispatcher) { mediaCatalogService.albums(libraryId, limit, offset) }
                         call.respondJson(AlbumPage(albums.map { it.toResponse() }, albums.size, limit, offset))
                     }
                     get("/albums/{id}") {
@@ -140,7 +142,7 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("invalid_request", "Album ID is invalid"), HttpStatusCode.BadRequest)
                             return@get
                         }
-                        val service = libraryScanService
+                        val service = mediaCatalogService
                         if (service == null) {
                             call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
                             return@get
@@ -156,7 +158,7 @@ fun Application.standaloneModule(
                         ))
                     }
                     get("/artists") {
-                        if (libraryScanService == null) {
+                        if (mediaCatalogService == null) {
                             call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
                             return@get
                         }
@@ -166,13 +168,13 @@ fun Application.standaloneModule(
                         val offsetValue = call.request.queryParameters["offset"]
                         val limit = limitValue?.toIntOrNull() ?: if (limitValue == null) 50 else null
                         val offset = offsetValue?.toIntOrNull() ?: if (offsetValue == null) 0 else null
-                        if ((requestedLibraryId != null && (libraryId == null || libraryId < 0)) ||
+                        if ((requestedLibraryId != null && (libraryId == null || libraryId !in 0..Int.MAX_VALUE.toLong())) ||
                             limit == null || limit !in 1..100 || offset == null || offset < 0
                         ) {
-                            call.respondJson(ApiError("invalid_request", "libraryId must be non-negative, limit between 1 and 100, and offset non-negative"), HttpStatusCode.BadRequest)
+                            call.respondJson(ApiError("invalid_request", "libraryId must be between 0 and ${Int.MAX_VALUE}, limit between 1 and 100, and offset non-negative"), HttpStatusCode.BadRequest)
                             return@get
                         }
-                        val artists = withContext(scanDispatcher) { libraryScanService.artists(libraryId, limit, offset) }
+                        val artists = withContext(scanDispatcher) { mediaCatalogService.artists(libraryId, limit, offset) }
                         call.respondJson(ArtistPage(artists.map { it.toResponse() }, artists.size, limit, offset))
                     }
                     get("/artists/{id}") {
@@ -181,7 +183,7 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("invalid_request", "Artist ID is invalid"), HttpStatusCode.BadRequest)
                             return@get
                         }
-                        val service = libraryScanService
+                        val service = mediaCatalogService
                         if (service == null) {
                             call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
                             return@get
@@ -196,21 +198,21 @@ fun Application.standaloneModule(
                         ))
                     }
                     get("/tracks") {
-                    if (libraryScanService == null) {
+                    if (mediaCatalogService == null) {
                         call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
                         return@get
                     }
                     val requestedLibraryId = call.request.queryParameters["libraryId"]
                     val libraryId = requestedLibraryId?.toLongOrNull()
-                    if (requestedLibraryId != null && libraryId == null) {
-                        call.respondJson(ApiError("invalid_request", "libraryId must be a number"), HttpStatusCode.BadRequest)
+                    if (requestedLibraryId != null && (libraryId == null || libraryId !in 0..Int.MAX_VALUE.toLong())) {
+                        call.respondJson(ApiError("invalid_request", "libraryId must be between 0 and ${Int.MAX_VALUE}"), HttpStatusCode.BadRequest)
                         return@get
                     }
                     val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 50
                     val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
                     val query = call.request.queryParameters["q"]
                     val (requestedTracks, total) = withContext(scanDispatcher) {
-                        libraryScanService.tracks(libraryId, query, limit, offset) to libraryScanService.countTracks(libraryId, query)
+                        mediaCatalogService.tracks(libraryId, query, limit, offset) to mediaCatalogService.countTracks(libraryId, query)
                     }
                     val tracks = requestedTracks.map {
                         TrackResponse(
@@ -221,7 +223,7 @@ fun Application.standaloneModule(
                     call.respondJson(TrackPage(tracks, tracks.size, total, limit.coerceIn(1, 200), offset.coerceAtLeast(0)))
                 }
                     get("/tracks/{id}") {
-                        if (libraryScanService == null) {
+                        if (mediaCatalogService == null) {
                             call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
                             return@get
                         }
@@ -230,7 +232,7 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
                             return@get
                         }
-                        val track = withContext(scanDispatcher) { libraryScanService.track(trackId) }
+                        val track = withContext(scanDispatcher) { mediaCatalogService.track(trackId) }
                         if (track == null) {
                             call.respond(HttpStatusCode.NotFound)
                             return@get
@@ -859,6 +861,7 @@ fun main(args: Array<String>) {
     val legacyGraph = runtime.createPersistenceGraph(runtime.createDataSource()).daos
     val settingsService = runtime.createSettingsService()
     val mediaFolderService = runtime.createMediaFolderService()
+    val mediaCatalogService = KtorCoreMediaCatalogService(runtime.createDataSource(), standaloneDatabase.dataSource)
     val securityService = runtime.createSecurityService(
         legacyGraph.userDao,
         settingsService,
@@ -899,6 +902,7 @@ fun main(args: Array<String>) {
             playlistService,
             favoriteService,
             mediaFolderService,
+            mediaCatalogService,
         )
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })
