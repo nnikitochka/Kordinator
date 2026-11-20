@@ -1,7 +1,6 @@
 package org.airsonic.player.runtime;
 
 import org.junit.jupiter.api.Test;
-import org.airsonic.player.spring.KtorConfiguration;
 import org.airsonic.player.health.SimpleStatusAggregator;
 import org.airsonic.player.health.Status;
 

@@ -516,6 +516,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 20 ноября 2026:** исправлен дефолтный HSQLDB URL в standalone runtime: добавлены настройки `sql.enforce_size=false` и сопутствующие опции, которые требуются исторической Liquibase schema. До этого Netty JAR падал на чистом home при создании таблицы с неограниченным `VARCHAR`; с исправлением миграция проходит до bind Netty. `RuntimeConfigurationLoaderTest` прошёл 17/17, а standalone Ktor API набор — 45/45. End-to-end HTTP bind в текущем sandbox ограничен запретом на создание сокета.
 
+**Срез 20 ноября 2026:** основной запуск больше не опирается на Spring Boot servlet initializer и Spring-backed Ktor bridge. Удалены `AirsonicKtorServlet`, servlet filter pipeline, Spring configuration adapters, Spring property-source bootstrap и `spring.factories`; из production dependencies удалены `spring-boot`, `spring-boot-autoconfigure` и `spring-web`. Проверки исходников не находят Spring imports в `airsonic-main/src/main`, а standalone Ktor regression набор после удаления прошёл 45/45. Servlet API ещё используется старым кодом и остаётся отдельной следующей задачей; Spring test dependencies пока нужны прежним тестам.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
