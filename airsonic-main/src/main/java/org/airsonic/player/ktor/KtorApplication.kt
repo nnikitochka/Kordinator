@@ -836,8 +836,6 @@ fun main(args: Array<String>) {
     }
     val authService = LocalAuthService(standaloneDatabase.dataSource)
     val libraryScanService: StandaloneLibraryScanService
-    val playlistService = StandalonePlaylistService(standaloneDatabase.dataSource)
-    val favoriteService = StandaloneFavoriteService(standaloneDatabase.dataSource)
     if (configuration.getBooleanProperty("airsonic.create-admin", false)) {
         try {
             val console = System.console()
@@ -862,6 +860,8 @@ fun main(args: Array<String>) {
     val settingsService = runtime.createSettingsService()
     val mediaFolderService = runtime.createMediaFolderService()
     val mediaCatalogService = KtorCoreMediaCatalogService(runtime.createDataSource(), standaloneDatabase.dataSource)
+    val playlistService = StandalonePlaylistService(standaloneDatabase.dataSource, mediaCatalogService)
+    val favoriteService = StandaloneFavoriteService(standaloneDatabase.dataSource, mediaCatalogService)
     val securityService = runtime.createSecurityService(
         legacyGraph.userDao,
         settingsService,

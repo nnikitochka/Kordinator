@@ -63,7 +63,7 @@ class KtorStandalonePlaylistTest {
                 val mediaCatalogService = org.airsonic.player.service.KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
                 val scan = scans.enqueue(library.id.toLong())
                 scans.run(scan.id)
-                val playlists = StandalonePlaylistService(dataSource)
+                val playlists = StandalonePlaylistService(dataSource, mediaCatalogService)
                 val mapper = jacksonObjectMapper()
 
                 testApplication {
@@ -90,6 +90,23 @@ class KtorStandalonePlaylistTest {
                 val playlistId = createdBody.get("id").asLong()
                 assertEquals("Road Trip", createdBody.get("name").asText())
                 assertEquals(listOf(trackId, trackId), createdBody.get("trackIds").map { it.asLong() })
+                val coreTrackId = runtime.coreDataSource.connection.use { connection ->
+                    connection.prepareStatement("SELECT id FROM media_file WHERE path = ? AND folder_id = ?").use { statement ->
+                        statement.setString(1, "track.mp3")
+                        statement.setInt(2, library.id)
+                        statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
+                    }
+                }
+                dataSource.connection.use { connection ->
+                    connection.prepareStatement(
+                        "SELECT track_id FROM user_playlist_track WHERE playlist_id = ? ORDER BY position",
+                    ).use { statement ->
+                        statement.setLong(1, playlistId)
+                        statement.executeQuery().use { rows ->
+                            assertEquals(listOf(coreTrackId, coreTrackId), buildList { while (rows.next()) add(rows.getLong(1)) })
+                        }
+                    }
+                }
 
                 val list = client.get("/api/v1/playlists") { bearerAuth(ownerToken) }
                 assertEquals(1, mapper.readTree(list.bodyAsText()).size())

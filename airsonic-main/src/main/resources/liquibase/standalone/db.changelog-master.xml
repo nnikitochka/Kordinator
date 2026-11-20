@@ -219,4 +219,16 @@
         <dropForeignKeyConstraint baseTableName="media_track" constraintName="fk_media_track_library"/>
         <dropTable tableName="music_library"/>
     </changeSet>
+    <changeSet id="standalone-core-track-references-1" author="kordinator">
+        <dropForeignKeyConstraint baseTableName="user_playlist_track" constraintName="fk_user_playlist_track_track"/>
+        <dropForeignKeyConstraint baseTableName="favorite_track" constraintName="fk_favorite_track_track"/>
+        <createTable tableName="standalone_data_migration">
+            <column name="migration_id" type="VARCHAR(128)">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_standalone_data_migration"/>
+            </column>
+            <column name="completed_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
 </databaseChangeLog>

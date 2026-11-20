@@ -24,6 +24,7 @@ data class StandalonePlaylistSummary(
 /** Stores private, ordered playlists for the standalone API. */
 class StandalonePlaylistService(
     private val dataSource: DataSource,
+    private val mediaCatalog: KtorCoreMediaCatalogService,
 ) {
     fun list(ownerId: Long): List<StandalonePlaylistSummary> = dataSource.connection.use { connection ->
         connection.prepareStatement(
@@ -63,38 +64,21 @@ class StandalonePlaylistService(
             }
         } ?: return null
 
-        val tracks = connection.prepareStatement(
-            "SELECT m.id, m.library_id, m.relative_path, m.title, m.artist, m.album, m.album_artist, " +
-                "m.disc_number, m.track_number, m.year, m.genre, " +
-                "m.duration_seconds, m.size_bytes, m.modified_at FROM user_playlist_track p " +
-                "JOIN media_track m ON m.id = p.track_id WHERE p.playlist_id = ? ORDER BY p.position",
+        val coreTrackIds = connection.prepareStatement(
+            "SELECT track_id FROM user_playlist_track WHERE playlist_id = ? ORDER BY position",
         ).use { statement ->
             statement.setLong(1, playlistId)
-            statement.executeQuery().use { rows ->
-                buildList {
-                    while (rows.next()) {
-                        add(
-                            StandaloneTrack(
-                                rows.getLong("id"), rows.getLong("library_id"), rows.getString("relative_path"),
-                                rows.getString("title"), rows.getString("artist"), rows.getString("album"),
-                                rows.getString("album_artist"), rows.getObject("disc_number")?.let { rows.getInt("disc_number") },
-                                rows.getObject("track_number")?.let { rows.getInt("track_number") },
-                                rows.getObject("year")?.let { rows.getInt("year") }, rows.getString("genre"),
-                                rows.getInt("duration_seconds"), rows.getLong("size_bytes"),
-                                rows.getTimestamp("modified_at")?.toInstant(),
-                            ),
-                        )
-                    }
-                }
-            }
+            statement.executeQuery().use { rows -> buildList { while (rows.next()) add(rows.getLong(1)) } }
         }
+        val tracks = mediaCatalog.tracksByCoreIds(coreTrackIds)
         return StandalonePlaylist(playlistId, header.first, header.second, header.third, tracks)
     }
 
     fun create(ownerId: Long, name: String, trackIds: List<Long>): StandalonePlaylist {
         val normalizedName = validate(name, trackIds)
+        val coreTrackIds = resolveCoreTrackIds(trackIds)
         return transaction { connection ->
-            requireTracksExist(connection, trackIds)
+            requireTracksExist(coreTrackIds)
             val now = Instant.now()
             val playlistId = connection.prepareStatement(
                 "INSERT INTO user_playlist (owner_id, name, created_at, updated_at) VALUES (?, ?, ?, ?)",
@@ -110,13 +94,14 @@ class StandalonePlaylistService(
                     keys.getLong(1)
                 }
             }
-            replaceTracks(connection, playlistId, trackIds)
+            replaceTracks(connection, playlistId, coreTrackIds)
             get(connection, ownerId, playlistId) ?: error("Created playlist is not visible to its owner")
         }
     }
 
     fun update(ownerId: Long, playlistId: Long, name: String, trackIds: List<Long>): StandalonePlaylist? {
         val normalizedName = validate(name, trackIds)
+        val coreTrackIds = resolveCoreTrackIds(trackIds)
         return transaction { connection ->
             val exists = connection.prepareStatement("SELECT 1 FROM user_playlist WHERE id = ? AND owner_id = ?").use { statement ->
                 statement.setLong(1, playlistId)
@@ -124,7 +109,7 @@ class StandalonePlaylistService(
                 statement.executeQuery().use { it.next() }
             }
             if (!exists) return@transaction null
-            requireTracksExist(connection, trackIds)
+            requireTracksExist(coreTrackIds)
             connection.prepareStatement("UPDATE user_playlist SET name = ?, updated_at = ? WHERE id = ? AND owner_id = ?").use { statement ->
                 statement.setString(1, normalizedName)
                 statement.setTimestamp(2, Timestamp.from(Instant.now()))
@@ -132,7 +117,7 @@ class StandalonePlaylistService(
                 statement.setLong(4, ownerId)
                 check(statement.executeUpdate() == 1)
             }
-            replaceTracks(connection, playlistId, trackIds)
+            replaceTracks(connection, playlistId, coreTrackIds)
             get(connection, ownerId, playlistId)
         }
     }
@@ -153,13 +138,11 @@ class StandalonePlaylistService(
         return normalized
     }
 
-    private fun requireTracksExist(connection: Connection, trackIds: List<Long>) {
-        trackIds.forEach { trackId ->
-            connection.prepareStatement("SELECT 1 FROM media_track WHERE id = ?").use { statement ->
-                statement.setLong(1, trackId)
-                statement.executeQuery().use { require(it.next()) { "Track does not exist" } }
-            }
-        }
+    private fun resolveCoreTrackIds(trackIds: List<Long>): List<Long> =
+        mediaCatalog.coreTrackIdsForKtorTrackIds(trackIds).map { it ?: throw IllegalArgumentException("Track does not exist") }
+
+    private fun requireTracksExist(coreTrackIds: List<Long>) {
+        require(mediaCatalog.tracksByCoreIds(coreTrackIds).size == coreTrackIds.size) { "Track does not exist" }
     }
 
     private fun replaceTracks(connection: Connection, playlistId: Long, trackIds: List<Long>) {

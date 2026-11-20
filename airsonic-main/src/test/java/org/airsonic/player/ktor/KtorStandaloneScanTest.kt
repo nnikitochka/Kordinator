@@ -67,8 +67,26 @@ class KtorStandaloneScanTest {
                     coreCatalog.mediaFileService,
                     coreCatalog.mediaScannerService,
                 )
-                val favoriteService = StandaloneFavoriteService(dataSource)
+                val initialScan = scanService.enqueue(library.id.toLong())
+                scanService.run(initialScan.id)
+                val legacyTrackId = dataSource.connection.use { connection ->
+                    connection.prepareStatement("SELECT id FROM media_track WHERE library_id = ? AND relative_path = ?").use { statement ->
+                        statement.setLong(1, library.id.toLong())
+                        statement.setString(2, "01 - First Track.mp3")
+                        statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
+                    }
+                }
+                dataSource.connection.use { connection ->
+                    connection.prepareStatement(
+                        "INSERT INTO favorite_track (user_id, track_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
+                    ).use { statement ->
+                        statement.setLong(1, auth.authenticate(token)!!.id)
+                        statement.setLong(2, legacyTrackId)
+                        assertEquals(1, statement.executeUpdate())
+                    }
+                }
                 val mediaCatalogService = org.airsonic.player.service.KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
+                val favoriteService = StandaloneFavoriteService(dataSource, mediaCatalogService)
                 val mapper = jacksonObjectMapper()
 
                 testApplication {
@@ -84,7 +102,7 @@ class KtorStandaloneScanTest {
 
                 val started = client.post("/api/v1/admin/libraries/${library.id}/scan") { bearerAuth(token) }
                 assertEquals(202, started.status.value)
-                org.mockito.Mockito.verify(coreCatalog.mediaScannerService).scanLibrary()
+                org.mockito.Mockito.verify(coreCatalog.mediaScannerService, org.mockito.Mockito.times(2)).scanLibrary()
                 val scanId = mapper.readTree(started.bodyAsText()).get("id").asText()
 
                 var state = "QUEUED"
@@ -178,6 +196,19 @@ class KtorStandaloneScanTest {
                 assertEquals(200, favorites.status.value)
                 assertEquals(1, mapper.readTree(favorites.bodyAsText()).get("total").asInt())
                 assertEquals(trackId, mapper.readTree(favorites.bodyAsText()).get("items")[0].get("id").asLong())
+                val coreTrackId = runtime.coreDataSource.connection.use { connection ->
+                    connection.prepareStatement("SELECT id FROM media_file WHERE path = ? AND folder_id = ?").use { statement ->
+                        statement.setString(1, "01 - First Track.mp3")
+                        statement.setInt(2, library.id)
+                        statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
+                    }
+                }
+                dataSource.connection.use { connection ->
+                    connection.prepareStatement("SELECT track_id FROM favorite_track WHERE user_id = ?").use { statement ->
+                        statement.setLong(1, auth.authenticate(token)!!.id)
+                        statement.executeQuery().use { rows -> rows.next(); assertEquals(coreTrackId, rows.getLong(1)) }
+                    }
+                }
                 assertEquals(401, client.get("/api/v1/favorites/tracks").status.value)
                 assertEquals(400, client.get("/api/v1/favorites/tracks?limit=0") { bearerAuth(token) }.status.value)
                 assertEquals(204, client.delete("/api/v1/tracks/$trackId/favorite") { bearerAuth(token) }.status.value)

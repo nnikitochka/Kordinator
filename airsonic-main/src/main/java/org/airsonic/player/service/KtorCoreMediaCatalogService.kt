@@ -7,6 +7,10 @@ class KtorCoreMediaCatalogService(
     private val coreDataSource: DataSource,
     private val ktorDataSource: DataSource,
 ) {
+    init {
+        migrateStoredTrackReferences()
+    }
+
     fun tracks(libraryId: Long?, query: String?, limit: Int, offset: Int): List<StandaloneTrack> {
         val safeLimit = limit.coerceIn(1, 200)
         val safeOffset = offset.coerceAtLeast(0)
@@ -62,6 +66,149 @@ class KtorCoreMediaCatalogService(
             }
         } ?: return null
         return coreTrack.toStandalone(ktorTrackId)
+    }
+
+    fun coreTrackIdForKtorTrackId(ktorTrackId: Long): Long? {
+        return coreTrackIdsForKtorTrackIds(listOf(ktorTrackId)).singleOrNull()
+    }
+
+    fun coreTrackIdsForKtorTrackIds(ktorTrackIds: List<Long>): List<Long?> {
+        if (ktorTrackIds.isEmpty()) return emptyList()
+        val identities = ktorTrackIds.distinct().chunked(500).flatMap { ids ->
+            val placeholders = ids.joinToString(",") { "?" }
+            ktorDataSource.connection.use { connection ->
+                connection.prepareStatement("SELECT id, library_id, relative_path FROM media_track WHERE id IN ($placeholders)").use { statement ->
+                    ids.forEachIndexed { index, id -> statement.setLong(index + 1, id) }
+                    statement.executeQuery().use { rows ->
+                        buildList { while (rows.next()) add(rows.getLong(1) to (rows.getInt(2) to rows.getString(3))) }
+                    }
+                }
+            }
+        }.toMap()
+        val coreIds = identities.values.distinct().groupBy { it.first }.flatMap { (libraryId, libraryIdentities) ->
+            libraryIdentities.map { it.second }.distinct().chunked(500).flatMap { paths ->
+                val placeholders = paths.joinToString(",") { "?" }
+                coreDataSource.connection.use { connection ->
+                    connection.prepareStatement(
+                        "SELECT id, path FROM media_file WHERE present AND folder_id = ? AND path IN ($placeholders)",
+                    ).use { statement ->
+                        statement.setInt(1, libraryId)
+                        paths.forEachIndexed { index, path -> statement.setString(index + 2, path) }
+                        statement.executeQuery().use { rows ->
+                            buildList { while (rows.next()) add((libraryId to rows.getString(2)) to rows.getLong(1)) }
+                        }
+                    }
+                }
+            }
+        }.toMap()
+        return ktorTrackIds.map { ktorId -> identities[ktorId]?.let(coreIds::get) }
+    }
+
+    fun tracksByCoreIds(coreTrackIds: List<Long>): List<StandaloneTrack> {
+        if (coreTrackIds.isEmpty()) return emptyList()
+        val coreTracks = coreTrackIds.distinct().chunked(500).flatMap { ids ->
+            val placeholders = ids.joinToString(",") { "?" }
+            coreDataSource.connection.use { connection ->
+                connection.prepareStatement("SELECT $TRACK_COLUMNS FROM media_file WHERE present AND id IN ($placeholders)").use { statement ->
+                    ids.forEachIndexed { index, id -> statement.setLong(index + 1, id) }
+                    statement.executeQuery().use { rows -> buildList { while (rows.next()) add(rows.toCoreTrack()) } }
+                }
+            }
+        }.associateBy { it.coreId }
+        val mappedTracks = attachKtorIds(coreTracks.values.toList()).associateBy { it.libraryId to it.relativePath }
+        return coreTrackIds.mapNotNull { id ->
+            coreTracks[id]?.let { track -> mappedTracks[track.libraryId.toLong() to track.relativePath] }
+        }
+    }
+
+    /** Convert persisted references created before the core catalog became authoritative. */
+    private fun migrateStoredTrackReferences() {
+        ktorDataSource.connection.use { connection ->
+            connection.autoCommit = false
+            try {
+                val migrated = connection.prepareStatement(
+                    "SELECT 1 FROM standalone_data_migration WHERE migration_id = ?",
+                ).use { statement ->
+                    statement.setString(1, TRACK_REFERENCE_MIGRATION)
+                    statement.executeQuery().use { it.next() }
+                }
+                if (migrated) {
+                    connection.commit()
+                    return
+                }
+
+                val identities = connection.prepareStatement("SELECT id, library_id, relative_path FROM media_track").use { statement ->
+                    statement.executeQuery().use { rows ->
+                        buildList { while (rows.next()) add(Triple(rows.getLong(1), rows.getInt(2), rows.getString(3))) }
+                    }
+                }
+                val currentCoreIds = coreDataSource.connection.use { coreConnection ->
+                    coreConnection.prepareStatement("SELECT id, folder_id, path FROM media_file WHERE present").use { statement ->
+                        statement.executeQuery().use { rows ->
+                            buildMap {
+                                while (rows.next()) put(rows.getInt(2) to rows.getString(3), rows.getLong(1))
+                            }
+                        }
+                    }
+                }
+                val coreIds = identities.mapNotNull { (legacyId, libraryId, path) ->
+                    currentCoreIds[libraryId to path]?.let { legacyId to it }
+                }.toMap()
+                migrateFavorites(connection, coreIds)
+                migratePlaylistTracks(connection, coreIds)
+                connection.prepareStatement("INSERT INTO standalone_data_migration (migration_id, completed_at) VALUES (?, CURRENT_TIMESTAMP)")
+                    .use { statement ->
+                        statement.setString(1, TRACK_REFERENCE_MIGRATION)
+                        statement.executeUpdate()
+                    }
+                connection.commit()
+            } catch (failure: Throwable) {
+                connection.rollback()
+                throw failure
+            }
+        }
+    }
+
+    private fun migrateFavorites(connection: java.sql.Connection, coreIds: Map<Long, Long>) {
+        val oldFavorites = connection.prepareStatement("SELECT user_id, track_id, created_at FROM favorite_track").use { statement ->
+            statement.executeQuery().use { rows ->
+                buildList { while (rows.next()) add(Triple(rows.getLong(1), rows.getLong(2), rows.getTimestamp(3))) }
+            }
+        }
+        val migrated = oldFavorites.mapNotNull { (userId, legacyId, createdAt) ->
+            coreIds[legacyId]?.let { Triple(userId, it, createdAt) }
+        }.distinctBy { it.first to it.second }
+        connection.prepareStatement("DELETE FROM favorite_track").use { it.executeUpdate() }
+        connection.prepareStatement("INSERT INTO favorite_track (user_id, track_id, created_at) VALUES (?, ?, ?)").use { statement ->
+            migrated.forEach { (userId, coreId, createdAt) ->
+                statement.setLong(1, userId)
+                statement.setLong(2, coreId)
+                statement.setTimestamp(3, createdAt)
+                statement.addBatch()
+            }
+            if (migrated.isNotEmpty()) statement.executeBatch()
+        }
+    }
+
+    private fun migratePlaylistTracks(connection: java.sql.Connection, coreIds: Map<Long, Long>) {
+        val oldTracks = connection.prepareStatement("SELECT playlist_id, position, track_id FROM user_playlist_track").use { statement ->
+            statement.executeQuery().use { rows ->
+                buildList { while (rows.next()) add(Triple(rows.getLong(1), rows.getInt(2), rows.getLong(3))) }
+            }
+        }
+        val migratedTracks = oldTracks.mapNotNull { (playlistId, position, legacyId) ->
+            coreIds[legacyId]?.let { Triple(playlistId, position, it) }
+        }
+        connection.prepareStatement("DELETE FROM user_playlist_track").use { it.executeUpdate() }
+        connection.prepareStatement("INSERT INTO user_playlist_track (playlist_id, position, track_id) VALUES (?, ?, ?)").use { statement ->
+            migratedTracks.forEach { (playlistId, position, coreId) ->
+                statement.setLong(1, playlistId)
+                statement.setInt(2, position)
+                statement.setLong(3, coreId)
+                statement.addBatch()
+            }
+            if (migratedTracks.isNotEmpty()) statement.executeBatch()
+        }
     }
 
     fun tracksForAlbum(libraryId: Long, album: String): List<StandaloneTrack> = tracksForCatalogEntry(
@@ -176,6 +323,7 @@ class KtorCoreMediaCatalogService(
     }
 
     private data class CoreTrack(
+        val coreId: Long,
         val libraryId: Int,
         val relativePath: String,
         val title: String,
@@ -197,7 +345,7 @@ class KtorCoreMediaCatalogService(
     }
 
     private fun java.sql.ResultSet.toCoreTrack() = CoreTrack(
-        getInt("folder_id"), getString("path"), getString("title") ?: getString("path").substringAfterLast('/'),
+        getLong("id"), getInt("folder_id"), getString("path"), getString("title") ?: getString("path").substringAfterLast('/'),
         getString("artist"), getString("album"), getString("album_artist"),
         getObject("disc_number")?.let { getInt("disc_number") }, getObject("track_number")?.let { getInt("track_number") },
         getObject("year")?.let { getInt("year") }, getString("genre"), getDouble("duration").toInt().coerceAtLeast(0),
@@ -210,6 +358,7 @@ class KtorCoreMediaCatalogService(
     }
 
     private companion object {
+        const val TRACK_REFERENCE_MIGRATION = "core-media-track-references-v1"
         const val TRACK_COLUMNS = "id, folder_id, path, title, artist, album, album_artist, disc_number, " +
             "track_number, year, genre, duration, file_size, changed"
     }
