@@ -47,6 +47,7 @@ import org.airsonic.player.service.StandaloneAlbum
 import org.airsonic.player.service.StandaloneArtist
 import org.airsonic.player.service.StandaloneTrack
 import org.airsonic.player.service.StandaloneFavoriteService
+import org.airsonic.player.service.MediaFolderService
 import java.nio.file.Path
 import java.nio.channels.FileChannel
 import java.nio.ByteBuffer
@@ -71,6 +72,7 @@ fun Application.standaloneModule(
     libraryScanService: StandaloneLibraryScanService? = null,
     playlistService: StandalonePlaylistService? = null,
     favoriteService: StandaloneFavoriteService? = null,
+    mediaFolderService: MediaFolderService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -89,6 +91,9 @@ fun Application.standaloneModule(
         if (authService != null) {
             route("/api/v1") {
                 authenticate("server-session") {
+                    if (mediaFolderService != null) {
+                        KordinatorMusicFolderAdminRoutes(mediaFolderService, jsonMapper).routes(this)
+                    }
                     get("/search") {
                         if (libraryScanService == null) {
                             call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -809,6 +814,7 @@ fun main(args: Array<String>) {
     val libraryScanService = StandaloneLibraryScanService(standaloneDatabase.dataSource)
     val playlistService = StandalonePlaylistService(standaloneDatabase.dataSource)
     val favoriteService = StandaloneFavoriteService(standaloneDatabase.dataSource)
+    val mediaFolderService = runtime.createMediaFolderService()
     if (configuration.getBooleanProperty("airsonic.create-admin", false)) {
         try {
             val console = System.console()
@@ -830,7 +836,7 @@ fun main(args: Array<String>) {
         return
     }
     val server = embeddedServer(Netty, host = host, port = port) {
-        standaloneModule(authService, libraryService, libraryScanService, playlistService, favoriteService)
+        standaloneModule(authService, libraryService, libraryScanService, playlistService, favoriteService, mediaFolderService)
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })
     server.start(wait = true)
