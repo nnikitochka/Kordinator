@@ -9,7 +9,6 @@ import com.google.common.primitives.Ints;
 import org.apache.commons.lang3.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -84,39 +83,24 @@ public final class Util {
     }
 
     /**
-     * Return a complete URL for the given HTTP request,
-     * including the query string.
+     * Return a URL with sensitive authentication parameters anonymized.
      *
-     * @param request An HTTP request instance
-     * @return The associated URL
-     */
-    public static String getURLForRequest(HttpServletRequest request) {
-        String url = request.getRequestURL().toString();
-        String queryString = request.getQueryString();
-        if (queryString != null && !queryString.isEmpty()) url += "?" + queryString;
-        return url;
-    }
-
-    /**
-     * Return an URL for the given HTTP request, with anonymized sensitive parameters.
-     *
-     * @param request An HTTP request instance
+     * @param url A complete URL, including an optional query string
      * @return The associated anonymized URL
      */
-    public static String getAnonymizedURLForRequest(HttpServletRequest request) {
-        String url = getURLForRequest(request);
+    public static String anonymizeUrl(String url) {
         int fragmentStart = url.indexOf('#');
         String fragment = fragmentStart < 0 ? "" : url.substring(fragmentStart);
         String urlWithoutFragment = fragmentStart < 0 ? url : url.substring(0, fragmentStart);
         int queryStart = urlWithoutFragment.indexOf('?');
         if (queryStart < 0) {
-            // Spring's lenient parser drops an incomplete IPv6 authority this way.
+            // Normalize an incomplete IPv6 authority to an empty address literal.
             if (urlWithoutFragment.matches("(?i)^https?://\\[[^]]*$")) return urlWithoutFragment.substring(0, urlWithoutFragment.indexOf('[')) + "[]" + fragment;
             return url;
         }
 
         String query = urlWithoutFragment.substring(queryStart + 1);
-        if (query.isEmpty()) return url;
+        if (query.isEmpty()) return urlWithoutFragment.substring(0, queryStart) + fragment;
         Map<String, List<String>> queryParameters = new LinkedHashMap<>();
         for (String parameter : query.split("&")) {
             if (parameter.isEmpty()) continue;
