@@ -506,6 +506,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 20 ноября 2026:** удалены Spring projections `ShareService`, `UserAdministrationService`, `LocaleService`, `PasswordRecoveryService` и `MusicIndexService`. Ktor controllers и UPnP assembly получают общие root-owned экземпляры напрямую; при удалении locale projection `MediaFileService` также переведён на root-owned `LocaleService`. Runtime graph/startup regression suite прошёл для каждого среза; recovery service suite прошёл 14/14.
 
+**Срез 20 ноября 2026:** удалены Spring projections `AudioScrobblerService`, `DatabaseService` и `LastFmService`; зависимые Ktor services/controllers получают shared экземпляры из runtime root. Отдельная projection `JukeboxLegacySubsonicService` объединена со сборкой `JukeboxService`. Последним удалён `RatingService` projection; Ktor REST и `PlayQueueService` создают его через root factory. Целевые runtime graph/startup тесты проходили после каждого среза (9/9); для DatabaseService дополнительно прошёл `DatabaseStatusTest` (10/10 совокупно), а recovery service test ранее — 14/14.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
