@@ -6,7 +6,6 @@ import org.airsonic.player.domain.PlayerTechnology;
 import org.airsonic.player.domain.TranscodeScheme;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 import java.util.List;
@@ -19,13 +18,13 @@ import static org.junit.Assert.*;
  *
  * @author Sindre Mehus
  */
-public class PlayerDaoTestCase extends DaoTestCaseBean2 {
+public class PlayerDaoTestCase extends DaoTestCase {
 
-    @Autowired
-    PlayerDao playerDao;
+    private PlayerDao playerDao;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
+        playerDao = database.getRuntime().createPlayerDao();
         getJdbcHelper().update("delete from player");
     }
 

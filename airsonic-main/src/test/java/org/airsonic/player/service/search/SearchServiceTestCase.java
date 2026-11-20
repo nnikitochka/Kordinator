@@ -15,12 +15,10 @@ import org.airsonic.player.domain.ParamSearchResult;
 import org.airsonic.player.domain.RandomSearchCriteria;
 import org.airsonic.player.domain.SearchCriteria;
 import org.airsonic.player.domain.SearchResult;
-import org.airsonic.player.service.SearchService;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.subsonic.restapi.ArtistID3;
 
 import java.util.Arrays;
@@ -31,13 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 public class SearchServiceTestCase extends AbstractAirsonicHomeTest {
 
-    @Autowired
-    private org.airsonic.player.runtime.DaoGraph daoGraph;
-
     private final MetricRegistry metrics = new MetricRegistry();
-
-    @Autowired
-    private SearchService searchService;
 
     private static UUID cleanupId = null;
 

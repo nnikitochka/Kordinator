@@ -12,20 +12,16 @@ import org.airsonic.player.domain.Artist;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.MusicFolder.Type;
-import org.airsonic.player.util.HomeRule;
+import org.airsonic.player.runtime.DaoGraph;
+import org.airsonic.player.runtime.MediaRuntimeFixture;
+import org.airsonic.player.runtime.RuntimeDatabaseRule;
 import org.airsonic.player.util.MusicFolderTestData;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,37 +37,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 /**
- * A unit test class to test the MediaScannerService.
- * <p>
- * This class uses the Spring application context configuration present in the
- * /org/airsonic/player/service/mediaScannerServiceTestCase/ directory.
- * <p>
- * The media library is found in the /MEDIAS directory.
- * It is composed of 2 musicFolders (Music and Music2) and several little weight audio files.
- * <p>
- * At runtime, the subsonic_home dir is set to target/test-classes/org/airsonic/player/service/mediaScannerServiceTestCase.
- * An empty database is created on the fly.
+ * Verifies media scanning against a migrated test database and the /MEDIAS fixtures.
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+
+
+
 public class MediaScannerServiceTestCase {
 
-    @Autowired
-    private org.airsonic.player.runtime.DaoGraph daoGraph;
+    private DaoGraph daoGraph;
 
-    @ClassRule
-    public static final HomeRule airsonicRule = new HomeRule();
+    @Rule
+    public final RuntimeDatabaseRule database = new RuntimeDatabaseRule();
 
     private final MetricRegistry metrics = new MetricRegistry();
 
-    @Autowired
     private MediaScannerService mediaScannerService;
 
-    @Autowired
     private MediaFileService mediaFileService;
 
-    @Autowired
     private MediaFolderService mediaFolderService;
 
     @Rule
@@ -81,6 +64,11 @@ public class MediaScannerServiceTestCase {
 
     @Before
     public void setup() {
+        MediaRuntimeFixture media = new MediaRuntimeFixture(database);
+        daoGraph = media.getDaos();
+        mediaScannerService = media.getScanner();
+        mediaFileService = media.getMediaFiles();
+        mediaFolderService = media.getMediaFolders();
         TestCaseUtils.waitForScanFinish(mediaScannerService);
     }
 

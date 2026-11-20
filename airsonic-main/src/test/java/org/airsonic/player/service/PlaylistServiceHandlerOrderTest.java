@@ -7,15 +7,12 @@ import org.airsonic.player.dao.PlaylistDao;
 import org.airsonic.player.domain.Playlist;
 import org.airsonic.player.service.playlist.DefaultPlaylistExportHandler;
 import org.airsonic.player.service.playlist.DefaultPlaylistImportHandler;
-import org.airsonic.player.service.playlist.PlaylistExportHandler;
-import org.airsonic.player.service.playlist.PlaylistImportHandler;
 import org.airsonic.player.service.playlist.XspfPlaylistExportHandler;
 import org.airsonic.player.service.playlist.XspfPlaylistImportHandler;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -42,30 +39,6 @@ public class PlaylistServiceHandlerOrderTest {
                 fixture.pathWatcherService);
 
         fixture.verifyHandlerSelection(service);
-    }
-
-    @Test
-    public void explicitCompositionPreservesSpecializedHandlerPriority() throws Exception {
-        Fixture fixture = new Fixture();
-        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
-            context.getBeanFactory().registerSingleton("mediaFileDao", fixture.mediaFileDao);
-            context.getBeanFactory().registerSingleton("playlistDao", fixture.playlistDao);
-            context.getBeanFactory().registerSingleton("securityService", fixture.securityService);
-            context.getBeanFactory().registerSingleton("settingsService", fixture.settingsService);
-            context.getBeanFactory().registerSingleton("pathWatcherService", fixture.pathWatcherService);
-            context.registerBean("defaultExport", DefaultPlaylistExportHandler.class, () -> fixture.defaultExport);
-            context.registerBean("xspfExport", XspfPlaylistExportHandler.class, () -> fixture.xspfExport);
-            context.registerBean("defaultImport", DefaultPlaylistImportHandler.class, () -> fixture.defaultImport);
-            context.registerBean("xspfImport", XspfPlaylistImportHandler.class, () -> fixture.xspfImport);
-            context.registerBean(PlaylistService.class, () -> new PlaylistService(
-                    fixture.mediaFileDao, fixture.playlistDao, fixture.securityService, fixture.settingsService,
-                    context.getBeanProvider(PlaylistExportHandler.class).orderedStream().toList(),
-                    context.getBeanProvider(PlaylistImportHandler.class).orderedStream().toList(),
-                    fixture.pathWatcherService, null));
-            context.refresh();
-
-            fixture.verifyHandlerSelection(context.getBean(PlaylistService.class));
-        }
     }
 
     private class Fixture {

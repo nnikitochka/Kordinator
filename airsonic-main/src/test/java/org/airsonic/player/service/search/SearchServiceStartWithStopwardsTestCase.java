@@ -5,13 +5,11 @@ import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.MusicFolder.Type;
 import org.airsonic.player.domain.SearchCriteria;
 import org.airsonic.player.domain.SearchResult;
-import org.airsonic.player.service.SearchService;
 import org.airsonic.player.util.MusicFolderTestData;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -29,9 +27,6 @@ import java.util.UUID;
 public class SearchServiceStartWithStopwardsTestCase extends AbstractAirsonicHomeTest {
 
     private List<MusicFolder> musicFolders;
-
-    @Autowired
-    private SearchService searchService;
 
     @Override
     public List<MusicFolder> getMusicFolders() {

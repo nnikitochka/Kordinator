@@ -3,11 +3,9 @@ package org.airsonic.player.dao;
 import org.airsonic.player.domain.Bookmark;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
-import org.airsonic.player.runtime.DaoGraph;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 import java.util.List;
@@ -22,12 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Unit test of {@link BookmarkDao}.
  */
-public class BookmarkDaoTestCase extends DaoTestCaseBean2 {
+public class BookmarkDaoTestCase extends DaoTestCase {
 
     private static final String USERNAME = "admin";
-
-    @Autowired
-    DaoGraph daoGraph;
 
     private int mediaFileId;
     private int musicFolderId;
@@ -39,13 +34,13 @@ public class BookmarkDaoTestCase extends DaoTestCaseBean2 {
         Instant now = Instant.now();
         MusicFolder folder = new MusicFolder(java.nio.file.Paths.get("/bookmark-test-" + UUID.randomUUID()), "Bookmark test",
                 MusicFolder.Type.MEDIA, true, now);
-        daoGraph.getMusicFolderDao().createMusicFolder(folder);
+        daos().getMusicFolderDao().createMusicFolder(folder);
         musicFolderId = folder.getId();
 
         MediaFile file = new MediaFile(null, "track-" + UUID.randomUUID(), folder.getId(), MediaFile.MediaType.MUSIC,
                 "mp3", "Bookmark test track", null, null, null, null, null, null, null, null,
                 false, 1.0, 0L, null, null, "", 0, null, null, now, now, now, now, true, 1, null, null);
-        daoGraph.getMediaFileDao().createOrUpdateMediaFile(file, ignored -> { });
+        daos().getMediaFileDao().createOrUpdateMediaFile(file, ignored -> { });
         mediaFileId = file.getId();
     }
 
@@ -68,7 +63,7 @@ public class BookmarkDaoTestCase extends DaoTestCaseBean2 {
                     .mapToObj(position -> executor.submit(() -> {
                         ready.countDown();
                         start.await();
-                        daoGraph.getBookmarkDao().createOrUpdateBookmark(bookmark(position));
+                        daos().getBookmarkDao().createOrUpdateBookmark(bookmark(position));
                         return null;
                     }))
                     .toList();
@@ -82,7 +77,7 @@ public class BookmarkDaoTestCase extends DaoTestCaseBean2 {
             executor.shutdownNow();
         }
 
-        assertThat(daoGraph.getBookmarkDao().getBookmarks(USERNAME))
+        assertThat(daos().getBookmarkDao().getBookmarks(USERNAME))
                 .hasSize(1)
                 .allSatisfy(bookmark -> assertThat(bookmark.getMediaFileId()).isEqualTo(mediaFileId));
     }

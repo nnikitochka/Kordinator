@@ -24,7 +24,7 @@ jobs:
       - name: Build and test Kordinator
         run: >-
           mvn -B -Dcheckstyle.skip=true -Dpmd.skip=true
-          -Dtest=KtorStandalone*Test,Kordinator*Test,RuntimeCompositionRoot*Test
+          '-Dtest=KtorStandalone*Test,Kordinator*Test,RuntimeCompositionRoot*Test,*DaoTestCase,JdbcHelperTest,CoverArtServiceAccentColorTest,LegacyDatabaseStartupTestCase,MediaScannerService*Test*,SettingsServiceTestCase,TranscodingServiceIntTest,MetaDataFactoryTestCase,*SearchService*TestCase,IndexManagerTestCase,QueryFactoryTestCase,ScheduledTaskSnapshotTest,PlaylistServiceHandlerOrderTest'
           -Dsurefire.failIfNoSpecifiedTests=false package
       - name: Start the packaged server
         run: |

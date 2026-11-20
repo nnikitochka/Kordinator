@@ -4,13 +4,11 @@ package org.airsonic.player.service.search;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.MusicFolder.Type;
-import org.airsonic.player.service.SearchService;
 import org.airsonic.player.util.MusicFolderTestData;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -32,9 +30,6 @@ import java.util.stream.Collectors;
 public class SearchServiceSpecialPathTestCase extends AbstractAirsonicHomeTest {
 
     private List<MusicFolder> musicFolders;
-
-    @Autowired
-    private SearchService searchService;
 
     @Override
     public List<MusicFolder> getMusicFolders() {

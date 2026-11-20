@@ -1,31 +1,26 @@
 package org.airsonic.player.service;
 
 import org.airsonic.player.domain.Transcoding;
-import org.airsonic.player.util.HomeRule;
+import org.airsonic.player.runtime.RuntimeDatabaseRule;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
-import org.springframework.test.context.junit4.SpringRunner;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
+
 public class TranscodingServiceIntTest {
 
-    @Autowired
-    private TranscodingService transcodingService;
-    @SpyBean
-    private PlayerService playerService;
-
     @ClassRule
-    public static final HomeRule classRule = new HomeRule(); // sets airsonic.home to a temporary dir
+    public static final RuntimeDatabaseRule database = new RuntimeDatabaseRule();
 
     @Test
     public void createTranscodingTest() {
+        var runtime = database.getRuntime();
+        var playerService = mock(PlayerService.class);
+        var transcodingService = runtime.createTranscodingService(
+                database.getPersistence().getDaos().getTranscodingDao(), runtime.createSettingsService(),
+                runtime.createMediaFolderService(), () -> playerService);
         // Given
         Transcoding transcoding = new Transcoding(null,
                 "test-transcoding",

@@ -3,15 +3,11 @@ package org.airsonic.player.service;
 import org.airsonic.player.domain.CoverArt;
 import org.airsonic.player.domain.CoverArt.EntityType;
 import org.airsonic.player.runtime.DaoGraph;
-import org.airsonic.player.util.HomeRule;
+import org.airsonic.player.runtime.RuntimeDatabaseRule;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -22,23 +18,21 @@ import static org.junit.Assert.assertTrue;
  * Verifies that the dominant (accent) color is extracted from a cover art
  * image at upsert time and persisted to the database.
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
 public class CoverArtServiceAccentColorTest {
 
     @ClassRule
-    public static final HomeRule airsonicRule = new HomeRule();
+    public static final RuntimeDatabaseRule database = new RuntimeDatabaseRule();
 
     private static final int ENTITY_ID = 987654;
 
-    @Autowired
     private CoverArtService coverArtService;
 
-    @Autowired
     private DaoGraph daoGraph;
 
     @Before
     public void cleanCoverArt() {
+        daoGraph = database.getPersistence().getDaos();
+        coverArtService = database.getRuntime().createCoverArtService(daoGraph.getCoverArtDao());
         daoGraph.getCoverArtDao().delete(EntityType.MEDIA_FILE, ENTITY_ID);
     }
 

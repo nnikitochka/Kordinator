@@ -1,35 +1,30 @@
 package org.airsonic.player.service.search;
 
 import org.airsonic.player.api.ScanningTestUtils;
-import org.airsonic.player.dao.MusicFolderDao;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.MediaScannerService;
-import org.airsonic.player.util.HomeRule;
+import org.airsonic.player.runtime.DaoGraph;
+import org.airsonic.player.runtime.MediaRuntimeFixture;
+import org.airsonic.player.runtime.RuntimeDatabaseRule;
+import org.airsonic.player.service.SearchService;
 import org.airsonic.player.util.MusicFolderTestData;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 /*
  * Abstract class for scanning MusicFolder.
  */
 public abstract class AbstractAirsonicHomeTest {
 
     @ClassRule
-    public static final HomeRule airsonicRule = new HomeRule();
+    public static final RuntimeDatabaseRule database = new RuntimeDatabaseRule();
 
     /*
      * Currently, Maven is executing test classes in series,
@@ -41,11 +36,22 @@ public abstract class AbstractAirsonicHomeTest {
     // Above.
     private static AtomicBoolean dataBaseReady = new AtomicBoolean();
 
-    @Autowired
     protected MediaScannerService mediaScannerService;
 
-    @Autowired
     protected MediaFolderService mediaFolderService;
+    protected DaoGraph daoGraph;
+    protected SearchService searchService;
+    protected IndexManager indexManager;
+
+    @Before
+    public void setUpMediaServices() {
+        MediaRuntimeFixture media = new MediaRuntimeFixture(database);
+        mediaScannerService = media.getScanner();
+        mediaFolderService = media.getMediaFolders();
+        daoGraph = media.getDaos();
+        searchService = media.getSearch();
+        indexManager = media.getIndex();
+    }
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();

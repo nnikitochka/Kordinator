@@ -3,19 +3,17 @@ package org.airsonic.player.service.search;
 import org.airsonic.player.dao.AlbumDao;
 import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.dao.MediaFileDao;
+import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.MusicFolder.Type;
 import org.airsonic.player.domain.SearchCriteria;
 import org.airsonic.player.domain.SearchResult;
-import org.airsonic.player.service.SearchService;
 import org.airsonic.player.util.MusicFolderTestData;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ResourceLoader;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -23,20 +21,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 public class IndexManagerTestCase extends AbstractAirsonicHomeTest {
 
-    @Autowired
-    private org.airsonic.player.runtime.DaoGraph daoGraph;
-
     private List<MusicFolder> musicFolders;
-
-    @Autowired
-    private SearchService searchService;
-
-    @Autowired
-    private IndexManager indexManager;
 
     @Override
     public List<MusicFolder> getMusicFolders() {
@@ -67,9 +57,6 @@ public class IndexManagerTestCase extends AbstractAirsonicHomeTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    @Autowired
-    ResourceLoader resourceLoader;
-
     @Test
     public void testExpunge() {
 
@@ -92,9 +79,8 @@ public class IndexManagerTestCase extends AbstractAirsonicHomeTest {
 
         // artist
         SearchResult result = searchService.search(criteria, musicFolders, IndexType.ARTIST);
-        assertEquals(2, result.getMediaFiles().size());
-        assertEquals("_DIR_ Ravel", result.getMediaFiles().get(0).getName());
-        assertEquals("_DIR_ Sixteen Horsepower", result.getMediaFiles().get(1).getName());
+        assertThat(result.getMediaFiles()).extracting(MediaFile::getName)
+                .containsExactlyInAnyOrder("_DIR_ Ravel", "_DIR_ Sixteen Horsepower");
 
         List<Integer> candidates = daoGraph.getMediaFileDao().getArtistExpungeCandidates();
         assertEquals(0, candidates.size());
@@ -106,9 +92,8 @@ public class IndexManagerTestCase extends AbstractAirsonicHomeTest {
 
         // album
         result = searchService.search(criteria, musicFolders, IndexType.ALBUM);
-        assertEquals(2, result.getMediaFiles().size());
-        assertEquals("_DIR_ Ravel - Complete Piano Works", result.getMediaFiles().get(0).getName());
-        assertEquals("_DIR_ Ravel - Chamber Music With Voice", result.getMediaFiles().get(1).getName());
+        assertThat(result.getMediaFiles()).extracting(MediaFile::getName)
+                .containsExactlyInAnyOrder("_DIR_ Ravel - Complete Piano Works", "_DIR_ Ravel - Chamber Music With Voice");
 
         candidates = daoGraph.getMediaFileDao().getAlbumExpungeCandidates();
         assertEquals(0, candidates.size());
@@ -120,9 +105,8 @@ public class IndexManagerTestCase extends AbstractAirsonicHomeTest {
 
         // song
         result = searchService.search(criteriaSong, musicFolders, IndexType.SONG);
-        assertEquals(2, result.getMediaFiles().size());
-        assertEquals("01 - Gaspard de la Nuit - i. Ondine", result.getMediaFiles().get(0).getName());
-        assertEquals("02 - Gaspard de la Nuit - ii. Le Gibet", result.getMediaFiles().get(1).getName());
+        assertThat(result.getMediaFiles()).extracting(MediaFile::getName)
+                .containsExactlyInAnyOrder("01 - Gaspard de la Nuit - i. Ondine", "02 - Gaspard de la Nuit - ii. Le Gibet");
 
         candidates = daoGraph.getMediaFileDao().getSongExpungeCandidates();
         assertEquals(0, candidates.size());

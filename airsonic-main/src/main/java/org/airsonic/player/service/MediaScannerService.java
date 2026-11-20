@@ -25,6 +25,8 @@ import java.util.concurrent.ForkJoinPool.ForkJoinWorkerThreadFactory;
 import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Provides services for scanning the music library.
@@ -182,9 +184,12 @@ public class MediaScannerService {
             mediaFileService.setMemoryCacheEnabled(false);
             indexManager.startIndexing();
 
+            List<MusicFolder> musicFolders = mediaFolderService.getAllMusicFolders();
+            Map<Integer, MusicFolder> foldersById = musicFolders.stream()
+                    .collect(Collectors.toMap(MusicFolder::getId, Function.identity()));
+
             // Recurse through all files on disk.
-            mediaFolderService.getAllMusicFolders()
-                .parallelStream()
+            musicFolders.parallelStream()
                     .forEach(musicFolder -> scanFile(mediaFileService.getMediaFile(Paths.get(""), musicFolder, false),
                             musicFolder, statistics, albumCount, artists, albums, albumsInDb, genres, encountered));
 
@@ -200,6 +205,7 @@ public class MediaScannerService {
                             .distinct()
                             .map(a -> CompletableFuture.supplyAsync(() -> {
                                 albumDao.createOrUpdateAlbum(a);
+                                indexManager.index(a);
                                 return a;
                             }, pool).thenAcceptAsync(coverArtService::persistIfNeeded))
                             .toArray(CompletableFuture[]::new))
@@ -214,6 +220,7 @@ public class MediaScannerService {
                     .allOf(artists.values().parallelStream()
                             .map(a -> CompletableFuture.supplyAsync(() -> {
                                 artistDao.createOrUpdateArtist(a);
+                                indexManager.index(a, foldersById.get(a.getFolderId()));
                                 return a;
                             }, pool).thenAcceptAsync(coverArtService::persistIfNeeded))
                             .toArray(CompletableFuture[]::new))
@@ -378,7 +385,6 @@ public class MediaScannerService {
         if (firstEncounter.get()) {
             album.setFolderId(musicFolder.getId());
             albumCount.computeIfAbsent(artist, k -> new AtomicInteger(0)).incrementAndGet();
-            indexManager.index(album);
         }
 
         // Update the file's album artist, if necessary.
@@ -430,7 +436,6 @@ public class MediaScannerService {
 
         if (firstEncounter.get()) {
             artist.setFolderId(musicFolder.getId());
-            indexManager.index(artist, musicFolder);
         }
     }
 

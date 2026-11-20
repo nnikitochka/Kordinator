@@ -8,10 +8,6 @@ import org.airsonic.player.domain.SearchCriteria;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.lucene.search.Query;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -27,12 +23,10 @@ import static org.junit.Assert.assertEquals;
  * and observing the impact of upgrading Lucene.
  */
 
-@RunWith(SpringRunner.class)
-@Import({ QueryFactory.class, AnalyzerFactory.class })
+
 public class QueryFactoryTestCase {
 
-    @Autowired
-    private QueryFactory queryFactory;
+    private final QueryFactory queryFactory = new QueryFactory(new AnalyzerFactory());
 
     private static final String QUERY_ENG_ONLY = "ABC DEF";
 
@@ -233,22 +227,22 @@ public class QueryFactoryTestCase {
     @Test
     public void testGetRandomAlbums() {
         Query query = queryFactory.getRandomAlbums(SINGLE_FOLDERS);
-        assertEquals(ToStringBuilder.reflectionToString(SINGLE_FOLDERS),
+        assertEquals(SINGLE_FOLDERS.toString(),
                 "(folder:" + PATH1 + ")", query.toString());
 
         query = queryFactory.getRandomAlbums(MULTI_FOLDERS);
-        assertEquals(ToStringBuilder.reflectionToString(MULTI_FOLDERS),
+        assertEquals(MULTI_FOLDERS.toString(),
                 "(folder:" + PATH1 + " folder:" + PATH2 + ")", query.toString());
     }
 
     @Test
     public void testGetRandomAlbumsId3() {
         Query query = queryFactory.getRandomAlbumsId3(SINGLE_FOLDERS);
-        assertEquals(ToStringBuilder.reflectionToString(SINGLE_FOLDERS),
+        assertEquals(SINGLE_FOLDERS.toString(),
                 "(folderId:" + FID1 + ")", query.toString());
 
         query = queryFactory.getRandomAlbumsId3(MULTI_FOLDERS);
-        assertEquals(ToStringBuilder.reflectionToString(MULTI_FOLDERS),
+        assertEquals(MULTI_FOLDERS.toString(),
                 "(folderId:" + FID1 + " folderId:"
                         + FID2 + ")",
                 query.toString());

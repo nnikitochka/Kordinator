@@ -1,22 +1,25 @@
 package org.airsonic.player.service;
 
-import org.airsonic.player.service.TaskSchedulingService.ScheduledTask;
 import org.junit.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ScheduledTaskSnapshotTest {
     @Test public void snapshotsPreserveScheduleEstimatesWithoutExecutingOrChangingTasks() throws Exception {
-        TaskSchedulingService service = new TaskSchedulingService();
+        Clock clock = mock(Clock.class);
+        Instant now = Instant.parse("2026-01-01T00:00:00Z");
+        when(clock.instant()).thenReturn(now);
+        TaskSchedulingService service = new TaskSchedulingService(clock);
         try {
             AtomicInteger executed = new AtomicInteger();
-            Instant future = Instant.now().plusSeconds(3600);
+            Instant future = now.plusSeconds(3600);
             Duration period = Duration.ofMinutes(1);
             service.scheduleOnce("once", executed::incrementAndGet, future, true);
             service.scheduleAtFixedRate("rate", executed::incrementAndGet, future, period, true);
@@ -25,7 +28,7 @@ public class ScheduledTaskSnapshotTest {
             assertEquals(4, service.getTaskInfos().size());
             for (String name : new String[]{"once", "rate", "delay"}) {
                 var run = info(service, name).runMetadata();
-                assertTrue(run.getFirstRun().isAfter(Instant.now()));
+                assertTrue(run.getFirstRun().isAfter(now));
                 assertNull(run.getLastRun());
                 assertEquals(run.getFirstRun(), run.getNextRun());
             }
@@ -33,20 +36,18 @@ public class ScheduledTaskSnapshotTest {
             assertEquals(TaskSchedulingService.RunMetadata.Type.FIXED_RATE, info(service, "rate").runMetadata().getType());
             assertEquals(TaskSchedulingService.RunMetadata.Type.FIXED_DELAY, info(service, "delay").runMetadata().getType());
             assertNull(info(service, "cron").runMetadata());
-            retime(service, "once", Instant.EPOCH);
+            when(clock.instant()).thenReturn(future.plusSeconds(1));
             var once = info(service, "once").runMetadata();
             assertEquals(once.getFirstRun(), once.getLastRun());
             assertNull(once.getNextRun());
-            retime(service, "rate", Instant.EPOCH);
             var rate = info(service, "rate").runMetadata();
             assertEquals(period, Duration.between(rate.getLastRun(), rate.getNextRun()));
-            assertFalse(rate.getLastRun().isAfter(Instant.now()));
-            retime(service, "delay", Instant.EPOCH);
+            assertEquals(future, rate.getLastRun());
+            when(clock.instant()).thenReturn(future.plus(period.multipliedBy(2)));
             var oldDelay = info(service, "delay").runMetadata();
             assertEquals(Instant.MIN, oldDelay.getLastRun());
             assertEquals(Instant.MIN, oldDelay.getNextRun());
-            long initialDelay = service.getScheduledTask("delay").getInitialDelay();
-            retime(service, "delay", Instant.now().minusMillis(initialDelay).minusSeconds(1));
+            when(clock.instant()).thenReturn(future.plusSeconds(1));
             var recentDelay = info(service, "delay").runMetadata();
             assertEquals(recentDelay.getFirstRun(), recentDelay.getLastRun());
             assertEquals(Instant.MIN, recentDelay.getNextRun());
@@ -61,11 +62,5 @@ public class ScheduledTaskSnapshotTest {
 
     private TaskSchedulingService.TaskInfo info(TaskSchedulingService service, String name) {
         return service.getTaskInfos().stream().filter(task -> task.name().equals(name)).findFirst().orElseThrow();
-    }
-
-    @SuppressWarnings("unchecked")
-    private void retime(TaskSchedulingService service, String name, Instant created) {
-        Map<ScheduledTask, Map<String, Object>> metadata = (Map<ScheduledTask, Map<String, Object>>) ReflectionTestUtils.getField(service, "taskMetadata");
-        metadata.put(service.getScheduledTask(name), Map.of("name", name, "created", created));
     }
 }

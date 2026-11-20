@@ -5,15 +5,9 @@ import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.dao.AvatarDao;
 import org.airsonic.player.dao.UserDao;
 import org.airsonic.player.util.HomeRule;
-import org.apache.commons.configuration2.spring.ConfigurationPropertySource;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.MapPropertySource;
-import org.springframework.core.env.StandardEnvironment;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -35,16 +29,13 @@ import static org.mockito.Mockito.mock;
  *
  * @author Sindre Mehus
  */
-@RunWith(SpringRunner.class)
+
 public class SettingsServiceTestCase {
 
     @ClassRule
     public static HomeRule home = new HomeRule();
 
     private SettingsService settingsService;
-
-    @Autowired
-    StandardEnvironment env;
 
     @Before
     public void setUp() throws IOException {
@@ -57,9 +48,12 @@ public class SettingsServiceTestCase {
     private SettingsService newSettingsService() {
         SettingsService settingsService = new SettingsService(mock(UserDao.class), mock(AvatarDao.class),
                 new org.airsonic.player.runtime.RuntimeConfiguration(Collections.emptyMap(),
-                        key -> env.getProperty(key), null), null, ConfigurationPropertiesService.getInstance());
-        env.getPropertySources().addFirst(new ConfigurationPropertySource("airsonic-pre-init-configs", ConfigurationPropertiesService.getInstance().getConfiguration()));
+                        this::configurationProperty, null), null, ConfigurationPropertiesService.getInstance());
         return settingsService;
+    }
+
+    private String configurationProperty(String name) {
+        return ConfigurationPropertiesService.getInstance().getConfiguration().getString(name);
     }
 
     @Test
@@ -157,9 +151,9 @@ public class SettingsServiceTestCase {
         keyMaps.put("bla2", "bla3");
         SettingsService.migratePropFileKeys(keyMaps, ConfigurationPropertiesService.getInstance());
 
-        assertNull(env.getProperty("bla"));
-        assertNull(env.getProperty("bla2"));
-        assertNull(env.getProperty("bla3"));
+        assertNull(configurationProperty("bla"));
+        assertNull(configurationProperty("bla2"));
+        assertNull(configurationProperty("bla3"));
     }
 
     @Test
@@ -172,9 +166,9 @@ public class SettingsServiceTestCase {
         keyMaps.put("bla3", null);
         SettingsService.migratePropFileKeys(keyMaps, ConfigurationPropertiesService.getInstance());
 
-        assertEquals("hello", env.getProperty("bla"));
-        assertEquals("hello", env.getProperty("bla2"));
-        assertEquals("hello", env.getProperty("bla3"));
+        assertEquals("hello", configurationProperty("bla"));
+        assertEquals("hello", configurationProperty("bla2"));
+        assertEquals("hello", configurationProperty("bla3"));
     }
 
     @Test
@@ -188,9 +182,9 @@ public class SettingsServiceTestCase {
         keyMaps.put("bla3", null);
         SettingsService.migratePropFileKeys(keyMaps, ConfigurationPropertiesService.getInstance());
 
-        assertNull(env.getProperty("bla"));
-        assertNull(env.getProperty("bla2"));
-        assertNull(env.getProperty("bla3"));
+        assertNull(configurationProperty("bla"));
+        assertNull(configurationProperty("bla2"));
+        assertNull(configurationProperty("bla3"));
     }
 
     @Test
@@ -206,11 +200,11 @@ public class SettingsServiceTestCase {
         keyMaps.put("bla4", "bla5");
         SettingsService.migratePropFileKeys(keyMaps, ConfigurationPropertiesService.getInstance());
 
-        assertEquals("hello", env.getProperty("bla"));
-        assertEquals("hello", env.getProperty("bla2"));
-        assertEquals("hello2", env.getProperty("bla3"));
-        assertEquals("hello2", env.getProperty("bla4"));
-        assertEquals("hello2", env.getProperty("bla5"));
+        assertEquals("hello", configurationProperty("bla"));
+        assertEquals("hello", configurationProperty("bla2"));
+        assertEquals("hello2", configurationProperty("bla3"));
+        assertEquals("hello2", configurationProperty("bla4"));
+        assertEquals("hello2", configurationProperty("bla5"));
     }
 
     @Test
@@ -225,11 +219,11 @@ public class SettingsServiceTestCase {
         keyMaps.put("bla4", "bla5");
         SettingsService.migratePropFileKeys(keyMaps, ConfigurationPropertiesService.getInstance());
 
-        assertEquals("hello", env.getProperty("bla"));
-        assertEquals("hello", env.getProperty("bla2"));
-        assertEquals("hello2", env.getProperty("bla3"));
-        assertEquals("hello2", env.getProperty("bla4"));
-        assertEquals("hello2", env.getProperty("bla5"));
+        assertEquals("hello", configurationProperty("bla"));
+        assertEquals("hello", configurationProperty("bla2"));
+        assertEquals("hello2", configurationProperty("bla3"));
+        assertEquals("hello2", configurationProperty("bla4"));
+        assertEquals("hello2", configurationProperty("bla5"));
     }
 
     @Test
@@ -245,11 +239,11 @@ public class SettingsServiceTestCase {
         keyMaps.put("bla4", "bla5");
         SettingsService.migratePropFileKeys(keyMaps, ConfigurationPropertiesService.getInstance());
 
-        assertNull(env.getProperty("bla"));
-        assertNull(env.getProperty("bla2"));
-        assertNull(env.getProperty("bla3"));
-        assertNull(env.getProperty("bla4"));
-        assertEquals("hello2", env.getProperty("bla5"));
+        assertNull(configurationProperty("bla"));
+        assertNull(configurationProperty("bla2"));
+        assertNull(configurationProperty("bla3"));
+        assertNull(configurationProperty("bla4"));
+        assertEquals("hello2", configurationProperty("bla5"));
     }
 
     @Test
@@ -258,7 +252,7 @@ public class SettingsServiceTestCase {
         keyMaps.put("bla", "bla2");
         keyMaps.put("bla2", "bla3");
         Map<String, Object> migrated = new LinkedHashMap<>();
-        migratePropertySourceKeys(keyMaps, new MapPropertySource("migrated-properties", Collections.emptyMap()), migrated);
+        migratePropertySourceKeys(keyMaps, Collections.emptyMap(), migrated);
 
         assertThat(migrated).isEmpty();
     }
@@ -273,9 +267,9 @@ public class SettingsServiceTestCase {
         Map<String, Object> migrated = new LinkedHashMap<>();
         // higher precedence starts earlier in the chain order
         migratePropertySourceKeys(keyMaps,
-                new MapPropertySource("migrated-properties", ImmutableMap.of("bla", "1")), migrated);
+                ImmutableMap.of("bla", "1"), migrated);
         migratePropertySourceKeys(keyMaps,
-                new MapPropertySource("migrated-properties", ImmutableMap.of("bla3", "3")), migrated);
+                ImmutableMap.of("bla3", "3"), migrated);
 
         assertThat(migrated).containsOnly(entry("bla2", "1"), entry("bla3", "1"), entry("bla4", "1"));
     }
@@ -290,9 +284,9 @@ public class SettingsServiceTestCase {
         Map<String, Object> migrated = new LinkedHashMap<>();
         // higher precedence starts later in the chain order
         migratePropertySourceKeys(keyMaps,
-                new MapPropertySource("migrated-properties", ImmutableMap.of("bla3", "1")), migrated);
+                ImmutableMap.of("bla3", "1"), migrated);
         migratePropertySourceKeys(keyMaps,
-                new MapPropertySource("migrated-properties", ImmutableMap.of("bla", "3")), migrated);
+                ImmutableMap.of("bla", "3"), migrated);
 
         assertThat(migrated).containsOnly(entry("bla2", "3"), entry("bla3", "3"), entry("bla4", "1"));
     }
@@ -307,15 +301,15 @@ public class SettingsServiceTestCase {
         Map<String, Object> migrated = new LinkedHashMap<>();
         // higher precedence starts later in the chain order
         migratePropertySourceKeys(keyMaps,
-                new MapPropertySource("migrated-properties", ImmutableMap.of("bla3", "1")), migrated);
+                ImmutableMap.of("bla3", "1"), migrated);
         migratePropertySourceKeys(keyMaps,
-                new MapPropertySource("migrated-properties", ImmutableMap.of("bla", "3")), migrated);
+                ImmutableMap.of("bla", "3"), migrated);
 
         assertThat(migrated).containsOnly(entry("bla2", "3"), entry("bla3", "3"));
     }
 
     private static void migratePropertySourceKeys(Map<String, String> keyMaps,
-            MapPropertySource source, Map<String, Object> migrated) {
-        SettingsService.migrateKeys(keyMaps, source::getProperty, source.getName(), migrated);
+            Map<String, ?> source, Map<String, Object> migrated) {
+        SettingsService.migrateKeys(keyMaps, source::get, "test properties", migrated);
     }
 }

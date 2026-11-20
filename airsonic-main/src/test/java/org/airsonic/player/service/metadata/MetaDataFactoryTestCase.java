@@ -1,14 +1,10 @@
 package org.airsonic.player.service.metadata;
 
 import org.airsonic.player.service.SettingsService;
-import org.airsonic.player.util.HomeRule;
+import org.airsonic.player.runtime.RuntimeDatabaseRule;
 import org.airsonic.player.runtime.RuntimeCompositionRoot;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -18,12 +14,11 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
+
 public class MetaDataFactoryTestCase {
 
     @ClassRule
-    public static final HomeRule airsonicRule = new HomeRule();
+    public static final RuntimeDatabaseRule database = new RuntimeDatabaseRule();
 
     @ClassRule
     public static TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -39,11 +34,15 @@ public class MetaDataFactoryTestCase {
         someJunk = temporaryFolder.newFile("some.junk").toPath();
     }
 
-    @Autowired
     RuntimeCompositionRoot runtime;
 
-    @Autowired
     SettingsService settingsService;
+
+    @Before
+    public void loadMediaServices() {
+        runtime = database.getRuntime();
+        settingsService = runtime.createSettingsService();
+    }
 
     @Test
     public void testorder() {
