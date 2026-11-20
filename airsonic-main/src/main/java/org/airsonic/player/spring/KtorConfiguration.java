@@ -305,15 +305,6 @@ public class KtorConfiguration {
                 mediaFolderService, coverArtService);
     }
 
-    public JukeboxService jukeboxService(RuntimeCompositionRoot runtime, TranscodingService transcodingService,
-            StatusService statusService, SettingsService settingsService, SecurityService securityService,
-            MediaFileService mediaFileService) {
-        JukeboxLegacySubsonicService legacyJukebox = runtime.createJukeboxLegacySubsonicService(
-                transcodingService, runtime.createAudioScrobblerService(settingsService, securityService),
-                statusService, settingsService, securityService, mediaFileService);
-        return runtime.createJukeboxService(legacyJukebox);
-    }
-
     public MediaFolderService mediaFolderService(RuntimeCompositionRoot runtime) {
         return runtime.createMediaFolderService();
     }
@@ -367,7 +358,6 @@ public class KtorConfiguration {
             PlayerService playerService,
             PlaylistService playlistService,
             TagEditService tagEditService,
-            JukeboxService jukeboxService,
             SecurityService securityService,
             CredentialEncoderRegistry credentialEncoderRegistry,
             SettingsService settingsService,
@@ -388,6 +378,10 @@ public class KtorConfiguration {
         runtime.createCoverArtAccentColorBackfill(coverArtService);
         LocaleService localeService = runtime.createLocaleService(settingsService);
         AudioScrobblerService audioScrobblerService = runtime.createAudioScrobblerService(settingsService, securityService);
+        JukeboxLegacySubsonicService legacyJukebox = runtime.createJukeboxLegacySubsonicService(
+                transcodingService, audioScrobblerService, statusService, settingsService, securityService,
+                mediaFileService);
+        JukeboxService jukeboxService = runtime.createJukeboxService(legacyJukebox);
         org.airsonic.player.service.DatabaseService databaseService = runtime.createDatabaseService(
                 settingsService, graph.getDatabaseDao(), taskSchedulingService);
         RatingService ratingService = runtime.createRatingService(
