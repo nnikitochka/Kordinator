@@ -40,6 +40,7 @@ import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.security.LoginRateLimiter
+import org.airsonic.player.security.SpringCredentialEncoderRegistry
 import org.airsonic.player.service.StandaloneLibraryService
 import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlaylistService
@@ -48,6 +49,7 @@ import org.airsonic.player.service.StandaloneArtist
 import org.airsonic.player.service.StandaloneTrack
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.MediaScannerService
 import java.nio.file.Path
 import java.nio.channels.FileChannel
 import java.nio.ByteBuffer
@@ -73,6 +75,7 @@ fun Application.standaloneModule(
     playlistService: StandalonePlaylistService? = null,
     favoriteService: StandaloneFavoriteService? = null,
     mediaFolderService: MediaFolderService? = null,
+    mediaScannerService: MediaScannerService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -92,7 +95,7 @@ fun Application.standaloneModule(
             route("/api/v1") {
                 authenticate("server-session") {
                     if (mediaFolderService != null) {
-                        KordinatorMusicFolderAdminRoutes(mediaFolderService, jsonMapper).routes(this)
+                        KordinatorMusicFolderAdminRoutes(mediaFolderService, mediaScannerService, jsonMapper).routes(this)
                     }
                     get("/search") {
                         if (libraryScanService == null) {
@@ -814,7 +817,6 @@ fun main(args: Array<String>) {
     val libraryScanService = StandaloneLibraryScanService(standaloneDatabase.dataSource)
     val playlistService = StandalonePlaylistService(standaloneDatabase.dataSource)
     val favoriteService = StandaloneFavoriteService(standaloneDatabase.dataSource)
-    val mediaFolderService = runtime.createMediaFolderService()
     if (configuration.getBooleanProperty("airsonic.create-admin", false)) {
         try {
             val console = System.console()
@@ -835,8 +837,46 @@ fun main(args: Array<String>) {
         }
         return
     }
+    val legacyGraph = runtime.createPersistenceGraph(runtime.createDataSource()).daos
+    val settingsService = runtime.createSettingsService()
+    val mediaFolderService = runtime.createMediaFolderService()
+    val securityService = runtime.createSecurityService(
+        legacyGraph.userDao,
+        settingsService,
+        mediaFolderService,
+        SpringCredentialEncoderRegistry(),
+    )
+    val coverArtService = runtime.createCoverArtService(legacyGraph.coverArtDao)
+    val mediaFileService = runtime.createMediaFileService(
+        securityService,
+        settingsService,
+        legacyGraph.mediaFileDao,
+        legacyGraph.albumDao,
+        runtime.createJaudiotaggerParser(),
+        runtime.createMetaDataParserFactory(),
+        coverArtService,
+        runtime.createLocaleService(settingsService),
+    )
+    val searchIndex = runtime.createIndexManager()
+    val corePlaylistService = runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService)
+    val mediaScannerService = runtime.createMediaScannerService(
+        corePlaylistService,
+        settingsService,
+        searchIndex,
+        mediaFileService,
+        mediaFolderService,
+        coverArtService,
+    )
     val server = embeddedServer(Netty, host = host, port = port) {
-        standaloneModule(authService, libraryService, libraryScanService, playlistService, favoriteService, mediaFolderService)
+        standaloneModule(
+            authService,
+            libraryService,
+            libraryScanService,
+            playlistService,
+            favoriteService,
+            mediaFolderService,
+            mediaScannerService,
+        )
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })
     server.start(wait = true)

@@ -15,10 +15,12 @@ import org.airsonic.player.runtime.RuntimeCompositionRoot
 import org.airsonic.player.runtime.RuntimeConfiguration
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
+import org.airsonic.player.service.MediaScannerService
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.mockito.Mockito
 import org.junit.jupiter.api.io.TempDir
 
 class KtorMusicFolderAdminRoutesTest {
@@ -61,9 +63,12 @@ class KtorMusicFolderAdminRoutesTest {
             auth.createUser("listener", "listener password for tests")
             val adminToken = auth.login("admin", "a strong password for tests")!!.token
             val listenerToken = auth.login("listener", "listener password for tests")!!.token
+            val scanner = Mockito.mock(MediaScannerService::class.java)
 
             testApplication {
-                application { standaloneModule(authService = auth, mediaFolderService = folders) }
+                application {
+                    standaloneModule(authService = auth, mediaFolderService = folders, mediaScannerService = scanner)
+                }
 
                 val initial = client.get("/api/v1/admin/music-folders") { bearerAuth(adminToken) }
                 assertEquals(HttpStatusCode.OK, initial.status)
@@ -84,6 +89,14 @@ class KtorMusicFolderAdminRoutesTest {
 
                 val denied = client.get("/api/v1/admin/music-folders") { bearerAuth(listenerToken) }
                 assertEquals(HttpStatusCode.Forbidden, denied.status)
+
+                val scanStarted = client.post("/api/v1/admin/music-scan") { bearerAuth(adminToken) }
+                assertEquals(HttpStatusCode.Accepted, scanStarted.status)
+                Mockito.verify(scanner).scanLibrary()
+
+                val scanStatus = client.get("/api/v1/admin/music-scan") { bearerAuth(adminToken) }
+                assertEquals(HttpStatusCode.OK, scanStatus.status)
+                assertTrue(scanStatus.bodyAsText().contains("\"scannedFiles\":0"))
 
                 val overlap = client.post("/api/v1/admin/music-folders") {
                     bearerAuth(adminToken)

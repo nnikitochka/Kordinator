@@ -15,6 +15,7 @@ import kotlinx.coroutines.withContext
 import org.airsonic.player.domain.MusicFolder
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.MediaScannerService
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -29,10 +30,12 @@ data class MusicFolderResponse(
     val enabled: Boolean,
     val changedAt: String?,
 )
+data class MusicScanStatusResponse(val scanning: Boolean, val scannedFiles: Int)
 
 /** Exposes existing music-folder records and overlap validation to the Ktor API. */
 class KordinatorMusicFolderAdminRoutes(
     private val mediaFolderService: MediaFolderService,
+    private val mediaScannerService: MediaScannerService?,
     private val objectMapper: ObjectMapper,
 ) {
     fun routes(root: Route) {
@@ -93,6 +96,44 @@ class KordinatorMusicFolderAdminRoutes(
             }
             val created = folder.toResponse()
             call.respondText(objectMapper.writeValueAsString(created), ContentType.Application.Json, HttpStatusCode.Created)
+        }
+
+        root.get("/admin/music-scan") {
+            if (!requireAdministrator(call.principal<LocalUserPrincipal>())) {
+                call.respondError("forbidden", "Administrator role required", HttpStatusCode.Forbidden)
+                return@get
+            }
+            val scanner = mediaScannerService
+            if (scanner == null) {
+                call.respondError("unavailable", "Media scanner is not configured", HttpStatusCode.ServiceUnavailable)
+                return@get
+            }
+            val status = withContext(Dispatchers.IO) {
+                MusicScanStatusResponse(scanner.isScanning, scanner.scanCount)
+            }
+            call.respondText(objectMapper.writeValueAsString(status), ContentType.Application.Json)
+        }
+
+        root.post("/admin/music-scan") {
+            if (!requireAdministrator(call.principal<LocalUserPrincipal>())) {
+                call.respondError("forbidden", "Administrator role required", HttpStatusCode.Forbidden)
+                return@post
+            }
+            val scanner = mediaScannerService
+            if (scanner == null) {
+                call.respondError("unavailable", "Media scanner is not configured", HttpStatusCode.ServiceUnavailable)
+                return@post
+            }
+            val scanning = withContext(Dispatchers.IO) { scanner.isScanning }
+            if (scanning) {
+                call.respondError("scan_in_progress", "A media scan is already running", HttpStatusCode.Conflict)
+                return@post
+            }
+            withContext(Dispatchers.IO) { scanner.scanLibrary() }
+            val status = withContext(Dispatchers.IO) {
+                MusicScanStatusResponse(scanner.isScanning, scanner.scanCount)
+            }
+            call.respondText(objectMapper.writeValueAsString(status), ContentType.Application.Json, HttpStatusCode.Accepted)
         }
     }
 
