@@ -20,8 +20,8 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         settingsService: org.airsonic.player.service.SettingsService,
         graph: org.airsonic.player.runtime.DaoGraph,
         securityService: org.airsonic.player.service.SecurityService,
-        jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
     ): org.airsonic.player.service.UPnPService {
+        val jwtSecurityService = runtime.createJwtSecurityService(settingsService)
         val mediaFolderService = runtime.createMediaFolderService()
         val mediaFileService = runtime.createMediaFileService(
             securityService, settingsService, graph.mediaFileDao, graph.albumDao, runtime.createJaudiotaggerParser(),
@@ -45,12 +45,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
                     statusService, securityService, transcodingService),
                 transcodingService, jwtSecurityService))
     }
-
-    @Bean
-    override fun jwtSecurityService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        settingsService: org.airsonic.player.service.SettingsService,
-    ): org.airsonic.player.service.JWTSecurityService = runtime.createJwtSecurityService(settingsService)
 
     @Bean
     override fun credentialEncoderRegistry(): org.airsonic.player.security.CredentialEncoderRegistry =
