@@ -126,7 +126,6 @@ public final class Util {
             queryParameters.computeIfAbsent(name, ignored -> new ArrayList<>()).add(value);
         }
 
-        // Subsonic REST API authentication (see RESTRequestParameterProcessingFilter).
         // replaceQueryParam removes all values and appends one replacement at the end.
         for (String sensitiveName : List.of("p", "t", "s", "u")) {
             if (queryParameters.containsKey(sensitiveName)) {

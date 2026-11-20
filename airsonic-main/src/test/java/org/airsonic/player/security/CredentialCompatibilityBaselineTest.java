@@ -8,7 +8,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * Fixed compatibility fixtures for credential formats in LegacyPasswordEncoders.
  * The values were generated once with the current encoders; keep them independent of encode().
- * TODO: reuse the neutral codec contract when Spring Security is removed.
+ * Keep these persisted-format fixtures independent of the removed Spring Security codecs.
  */
 public class CredentialCompatibilityBaselineTest {
 
@@ -63,30 +63,4 @@ public class CredentialCompatibilityBaselineTest {
         assertThatThrownBy(() -> encoder.decode(tampered)).isInstanceOf(Exception.class);
     }
 
-    @Test
-    @SuppressWarnings("deprecation")
-    public void independentCodecsInteroperateWithSpringSecurityFormats() {
-        org.springframework.security.crypto.password.PasswordEncoder[] previousEncoders = {
-                new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(),
-                new org.springframework.security.crypto.password.LdapShaPasswordEncoder(),
-                new org.springframework.security.crypto.password.Md4PasswordEncoder(),
-                new org.springframework.security.crypto.password.MessageDigestPasswordEncoder("MD5"),
-                new org.springframework.security.crypto.password.Pbkdf2PasswordEncoder("", 8, 185000, 256),
-                new org.springframework.security.crypto.scrypt.SCryptPasswordEncoder(16384, 8, 1, 32, 64),
-                new org.springframework.security.crypto.password.MessageDigestPasswordEncoder("SHA-1"),
-                new org.springframework.security.crypto.password.MessageDigestPasswordEncoder("SHA-256"),
-                new org.springframework.security.crypto.password.StandardPasswordEncoder(),
-                new org.springframework.security.crypto.argon2.Argon2PasswordEncoder(16, 32, 1, 4096, 1)
-        };
-        String[] names = {"bcrypt", "ldap", "MD4", "MD5", "pbkdf2", "scrypt", "SHA-1", "SHA-256", "sha256", "argon2"};
-
-        for (int i = 0; i < names.length; i++) {
-            org.airsonic.player.security.crypto.PasswordEncoder codec = LegacyPasswordEncoders.CODECS.get(names[i]);
-            String springEncoded = previousEncoders[i].encode(PASSWORD);
-            assertThat(codec.matches(PASSWORD, springEncoded)).as("new codec reads %s hashes", names[i]).isTrue();
-            String independentEncoded = codec.encode(PASSWORD);
-            assertThat(previousEncoders[i].matches(PASSWORD, independentEncoded))
-                    .as("Spring Security reads new %s hashes", names[i]).isTrue();
-        }
-    }
 }

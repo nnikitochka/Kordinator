@@ -12,8 +12,6 @@ import org.airsonic.player.service.upnp.MediaFileUpnpProcessor;
 import org.airsonic.player.service.upnp.PlaylistUpnpProcessor;
 import org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor;
 import org.airsonic.player.service.upnp.RootUpnpProcessor;
-import org.airsonic.player.security.GlobalSecurityConfig;
-import org.airsonic.player.security.MultipleCredsMatchingAuthenticationProvider;
 import org.airsonic.player.security.CredentialEncoderRegistry;
 import org.airsonic.player.controller.rest.tags.MediaFileCommentController;
 import org.airsonic.player.controller.rest.tags.TagEditController;
@@ -150,24 +148,6 @@ public class KtorConfiguration {
                 new org.airsonic.player.runtime.RuntimeConfigurationLoader().load(
                         arguments.getSourceArgs(), System.getProperties(), System.getenv(), null, properties.getConfiguration());
         return new RuntimeCompositionRoot(configuration);
-    }
-
-    @Bean
-    public org.springframework.context.ApplicationListener<org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent>
-            authenticationFailureListener(GlobalSecurityConfig securityConfig) {
-        return securityConfig::loginFailureListener;
-    }
-
-    @Bean
-    public org.airsonic.player.security.SubsonicCredentialAuthenticationService subsonicCredentialAuthenticationService(
-            RuntimeCompositionRoot runtime, SecurityService securityService, CredentialEncoderRegistry credentialEncoders) {
-        return runtime.createSubsonicCredentialAuthenticationService(securityService, credentialEncoders);
-    }
-
-    @Bean
-    public MultipleCredsMatchingAuthenticationProvider multipleCredsMatchingAuthenticationProvider(
-            org.airsonic.player.security.SubsonicCredentialAuthenticationService authenticationService) {
-        return new MultipleCredsMatchingAuthenticationProvider(authenticationService);
     }
 
     public org.airsonic.player.runtime.DaoGraph daoGraph(RuntimeCompositionRoot runtime) {
@@ -492,7 +472,7 @@ public class KtorConfiguration {
                                         runtime.createServerInfoService(runtime.createVersionService(), settingsService),
                                         objectMapper, settingsService), jaxbWriter,
                                 () -> InfrastructureErrorSettings.from(runtime.getConfiguration()),
-                                objectMapper, runtime.createMetricsManager(), runtime.getLifecycleRegistry(), settingsService),
+                                objectMapper, runtime.createMetricsManager(), runtime.getLifecycleRegistry()),
                         "/internal/ktor/*");
         registration.addUrlMappings(SearchController.PATHS);
         registration.addUrlMappings(MusicFoldersController.PATHS);

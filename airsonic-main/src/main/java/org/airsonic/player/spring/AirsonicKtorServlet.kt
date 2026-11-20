@@ -59,6 +59,7 @@ import org.airsonic.player.controller.rest.music.similar.SimilarSongsController
 import org.airsonic.player.controller.rest.music.similar.SimilarSongsRequest
 import org.airsonic.player.service.CoverArtImageService
 import org.airsonic.player.filter.RequestEncodingPolicy
+import org.airsonic.player.security.KordinatorApiRoutePolicy
 import org.airsonic.player.controller.rest.avatar.AvatarRestController
 import org.airsonic.player.controller.rest.avatar.AvatarUploadController
 import io.ktor.http.parseQueryString
@@ -222,13 +223,9 @@ class AirsonicKtorServlet(
     private val objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
     metricsManager: MetricsManager,
     private val lifecycleRegistry: org.airsonic.player.runtime.LifecycleRegistry,
-    settingsService: org.airsonic.player.service.SettingsService,
 ) : ServletApplicationEngine() {
     private val callerContextAdapter = ServletCallerContextAdapter(securityService)
     private val requestFilterPipeline = KtorServletFilterPipeline(metricsManager)
-    private val externalSecurityPipeline = KtorExternalSecurityPipeline(
-        settingsService,
-    )
 
     @OptIn(InternalAPI::class)
     override fun init() {
@@ -462,10 +459,14 @@ class AirsonicKtorServlet(
     }
 
     override fun service(request: HttpServletRequest, response: HttpServletResponse) {
-        externalSecurityPipeline.service(request, response, FilterChain { securedRequest, securedResponse ->
-            requestFilterPipeline.service(securedRequest as HttpServletRequest, securedResponse as HttpServletResponse, FilterChain { filteredRequest, filteredResponse ->
-                serviceRequest(filteredRequest as HttpServletRequest, filteredResponse as HttpServletResponse)
-            })
+        val path = request.servletPath + (request.pathInfo ?: "")
+        if (request.dispatcherType != jakarta.servlet.DispatcherType.ERROR &&
+            !KordinatorApiRoutePolicy.isSupported(path)) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND)
+            return
+        }
+        requestFilterPipeline.service(request, response, FilterChain { filteredRequest, filteredResponse ->
+            serviceRequest(filteredRequest as HttpServletRequest, filteredResponse as HttpServletResponse)
         })
     }
 
@@ -505,11 +506,8 @@ class AirsonicKtorServlet(
                 return
             }
             request.characterEncoding = RequestEncodingPolicy.DEFAULT_ENCODING
-            val csrf = request.getAttribute(org.springframework.security.web.csrf.CsrfToken::class.java.name)
-                as? org.springframework.security.web.csrf.CsrfToken
             request.setAttribute(RECOVERY_REQUEST, PasswordRecoveryController.Request(
-                request.getParameter("usernameOrEmail"), request.getParameter("g-recaptcha-response"),
-                csrf?.headerName, csrf?.token))
+                request.getParameter("usernameOrEmail"), request.getParameter("g-recaptcha-response")))
         }
         if (path in CaptionsRestController.PATHS) {
             if (request.method !in setOf("GET", "HEAD")) {

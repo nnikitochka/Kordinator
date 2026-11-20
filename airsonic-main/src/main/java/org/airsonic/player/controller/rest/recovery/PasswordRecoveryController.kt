@@ -14,7 +14,7 @@ import kotlinx.coroutines.withContext
 import org.airsonic.player.service.PasswordRecoveryService
 
 class PasswordRecoveryController(private val recovery: PasswordRecoveryService, private val json: ObjectMapper) {
-    data class Request(val usernameOrEmail: String?, val captcha: String?, val csrfHeader: String?, val csrfToken: String?)
+    data class Request(val usernameOrEmail: String?, val captcha: String?)
 
     fun routes(root: Route, request: (ApplicationCall) -> Request) {
         with(root) {
@@ -30,7 +30,7 @@ class PasswordRecoveryController(private val recovery: PasswordRecoveryService, 
 
     private suspend fun configuration(call: ApplicationCall, request: Request) {
         val config = withContext(Dispatchers.IO) { recovery.configuration() }
-        respond(call, config + mapOf("csrfHeader" to request.csrfHeader, "csrfToken" to request.csrfToken))
+        respond(call, config)
     }
 
     private suspend fun respond(call: ApplicationCall, data: Map<String, Any?>) {
