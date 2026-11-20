@@ -253,14 +253,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         mediaFileService, mediaFolderService, settingsService, taskSchedulingService)
 
     @Bean
-    override fun passwordRecoveryService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        settingsService: org.airsonic.player.service.SettingsService,
-        securityService: org.airsonic.player.service.SecurityService,
-    ): org.airsonic.player.service.PasswordRecoveryService =
-        runtime.createPasswordRecoveryService(settingsService, securityService)
-
-    @Bean
     override fun audioScrobblerService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         settingsService: org.airsonic.player.service.SettingsService,

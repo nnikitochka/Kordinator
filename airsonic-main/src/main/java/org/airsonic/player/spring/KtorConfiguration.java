@@ -25,7 +25,6 @@ import org.airsonic.player.service.hls.HlsPlaylistService;
 import org.airsonic.player.controller.rest.shares.PublicShareController;
 import org.airsonic.player.controller.captions.CaptionsRestController;
 import org.airsonic.player.controller.rest.recovery.PasswordRecoveryController;
-import org.airsonic.player.service.PasswordRecoveryService;
 import org.airsonic.player.controller.rest.server.ServerInfoController;
 import org.airsonic.player.controller.rest.hls.HlsRestController;
 import org.airsonic.player.controller.rest.hls.HlsSegmentRestController;
@@ -199,11 +198,6 @@ public class KtorConfiguration {
 
     public SearchServiceImpl searchServiceImpl(RuntimeCompositionRoot runtime, MediaFileService mediaFileService) {
         return runtime.createSearchService(mediaFileService);
-    }
-
-    public PasswordRecoveryService passwordRecoveryService(RuntimeCompositionRoot runtime, SettingsService settingsService,
-            SecurityService securityService) {
-        return runtime.createPasswordRecoveryService(settingsService, securityService);
     }
 
     public PlaylistService playlistService(RuntimeCompositionRoot runtime, SecurityService securityService,
@@ -405,7 +399,6 @@ public class KtorConfiguration {
     public ServletRegistrationBean<ServletApplicationEngine> ktorServletRegistration(
             RuntimeCompositionRoot runtime,
             JWTSecurityService jwtSecurityService,
-            PasswordRecoveryService passwordRecoveryService,
             MediaScannerService mediaScannerService,
             MediaFileService mediaFileService,
             org.airsonic.player.runtime.DaoGraph graph,
@@ -551,7 +544,8 @@ public class KtorConfiguration {
                                 runtime.createCaptionsRestController(runtime.createCaptionService(mediaFileService,
                                         mediaFolderService, settingsService, runtime.createMetaDataParserFactory(),
                                         jwtSecurityService), mediaFolderService, objectMapper),
-                                runtime.createPasswordRecoveryController(passwordRecoveryService, objectMapper),
+                                runtime.createPasswordRecoveryController(runtime.createPasswordRecoveryService(
+                                        settingsService, securityService), objectMapper),
                                 runtime.createServerInfoController(
                                         runtime.createServerInfoService(runtime.createVersionService(), settingsService),
                                         objectMapper, settingsService), jaxbWriter,
