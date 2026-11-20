@@ -321,16 +321,12 @@ public class KtorConfiguration {
                 jwtSecurityService);
     }
 
-    public JukeboxLegacySubsonicService jukeboxLegacySubsonicService(RuntimeCompositionRoot runtime,
-            TranscodingService transcodingService,
-            StatusService statusService,
-            SettingsService settingsService, SecurityService securityService, MediaFileService mediaFileService) {
-        return runtime.createJukeboxLegacySubsonicService(transcodingService,
-                runtime.createAudioScrobblerService(settingsService, securityService), statusService,
-                settingsService, securityService, mediaFileService);
-    }
-
-    public JukeboxService jukeboxService(RuntimeCompositionRoot runtime, JukeboxLegacySubsonicService legacyJukebox) {
+    public JukeboxService jukeboxService(RuntimeCompositionRoot runtime, TranscodingService transcodingService,
+            StatusService statusService, SettingsService settingsService, SecurityService securityService,
+            MediaFileService mediaFileService) {
+        JukeboxLegacySubsonicService legacyJukebox = runtime.createJukeboxLegacySubsonicService(
+                transcodingService, runtime.createAudioScrobblerService(settingsService, securityService),
+                statusService, settingsService, securityService, mediaFileService);
         return runtime.createJukeboxService(legacyJukebox);
     }
 

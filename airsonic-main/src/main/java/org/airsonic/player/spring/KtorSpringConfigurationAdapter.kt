@@ -188,22 +188,24 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     ): org.airsonic.player.service.PathWatcherService = runtime.createPathWatcherService()
 
     @Bean
-    override fun jukeboxLegacySubsonicService(
+    override fun jukeboxService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         transcodingService: org.airsonic.player.service.TranscodingService,
         statusService: org.airsonic.player.service.StatusService,
         settingsService: org.airsonic.player.service.SettingsService,
         securityService: org.airsonic.player.service.SecurityService,
         mediaFileService: org.airsonic.player.service.MediaFileService,
-    ): org.airsonic.player.service.JukeboxLegacySubsonicService = runtime.createJukeboxLegacySubsonicService(
-        transcodingService, runtime.createAudioScrobblerService(settingsService, securityService), statusService,
-        settingsService, securityService, mediaFileService)
-
-    @Bean
-    override fun jukeboxService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        legacyJukebox: org.airsonic.player.service.JukeboxLegacySubsonicService,
-    ): org.airsonic.player.service.JukeboxService = runtime.createJukeboxService(legacyJukebox)
+    ): org.airsonic.player.service.JukeboxService {
+        val legacyJukebox = runtime.createJukeboxLegacySubsonicService(
+            transcodingService,
+            runtime.createAudioScrobblerService(settingsService, securityService),
+            statusService,
+            settingsService,
+            securityService,
+            mediaFileService,
+        )
+        return runtime.createJukeboxService(legacyJukebox)
+    }
 
     @Bean
     override fun playQueueService(
