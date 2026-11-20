@@ -297,7 +297,7 @@
         <dependency>
             <groupId>org.fourthline.cling</groupId>
             <artifactId>cling-core</artifactId>
-            <!-- Cling removed the org.fourthline.cling.transport.impl.apache package in 2.1, which is needed to make Cling work with Tomcat. -->
+            <!-- UPnPService uses Cling's Apache HTTP transport implementation. -->
             <!-- Don't upgrade this unless you can test UPnP/DLNA support properly! -->
             <version>2.0.1</version>
         </dependency>
@@ -305,7 +305,7 @@
         <dependency>
             <groupId>org.fourthline.cling</groupId>
             <artifactId>cling-support</artifactId>
-            <!-- Cling removed the org.fourthline.cling.transport.impl.apache package in 2.1, which is needed to make Cling work with Tomcat. -->
+            <!-- UPnPService uses Cling's Apache HTTP transport implementation. -->
             <!-- Don't upgrade this unless you can test UPnP/DLNA support properly! -->
             <version>2.0.1</version>
         </dependency>
@@ -468,10 +468,6 @@
         <dependency>
             <groupId>jakarta.annotation</groupId>
             <artifactId>jakarta.annotation-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.xml.ws</groupId>
-            <artifactId>jakarta.xml.ws-api</artifactId>
         </dependency>
         <dependency>
             <groupId>jakarta.xml.bind</groupId>

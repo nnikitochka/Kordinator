@@ -532,6 +532,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 20 ноября 2026:** удалена оставшаяся request/session/cookie player resolution логика, не имевшая production callers; UPnP запрашивает guest player без HTTP request. `SecurityService` и `JAXBWriter` освобождены от servlet request/response API, удалён мёртвый servlet conditional request test. После этого в исходниках и Maven dependencies больше нет Servlet API; удалены `jakarta.servlet-api` и shade exclusion. Runtime graph, UPnP, stream и transcoding тесты прошли 8/8.
 
+**Срез 20 ноября 2026:** в текущем dependency tree уже не было Tomcat; после удаления servlet support его добавлять нечему. Удалены неиспользуемые `jakarta.xml.ws-api` и управляемая, но нигде не применявшаяся `jakarta.jws-api` (вместе с транзитивным SOAP API и устаревшим ignored-unused правилом). Оставшиеся Jakarta зависимости используются для JAXB-моделей/сериализации, Bean Validation, `@Nonnull` и почты; Maven dependency tree и `package -DskipTests` прошли.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

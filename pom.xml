@@ -123,11 +123,6 @@
                 <artifactId>stax-ex</artifactId>
                 <version>2.1.0</version>
             </dependency>
-            <dependency>
-                <groupId>jakarta.jws</groupId>
-                <artifactId>jakarta.jws-api</artifactId>
-                <version>1.1.1</version>
-            </dependency>
             <!-- JAXB runtime: moxy replaces the old javax-era 2.7.8 pin -->
             <dependency>
                 <groupId>org.eclipse.persistence</groupId>
@@ -587,7 +582,6 @@
                                 <ignoredUnusedDeclaredDependency>org.seamless:seamless-http*</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>org.seamless:seamless-http*</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>org.tukaani:xz:*</ignoredUnusedDeclaredDependency>
-                                <ignoredUnusedDeclaredDependency>jakarta.xml.ws:jakarta.xml.ws-api</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>org.liquibase:liquibase-core</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>jakarta.xml.bind:jakarta.xml.bind-api*</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>jakarta.annotation:jakarta.annotation-api</ignoredUnusedDeclaredDependency>
