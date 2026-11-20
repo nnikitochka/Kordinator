@@ -504,6 +504,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 20 ноября 2026:** удалена Spring projection `BookmarkService`; bookmarks REST controller запрашивает singleton через runtime root и root-owned DAO graph. `RuntimeCompositionRootTest`, `RuntimeCompositionRootGraphTest` и `LegacyDatabaseStartupTestCase` прошли 9/9. Отдельный старый `BookmarkDaoTestCase` всё ещё требует отсутствующий Spring `JdbcHelper` bean и не относится к этому runtime wiring срезу.
 
+**Срез 20 ноября 2026:** удалены Spring projections `ShareService`, `UserAdministrationService`, `LocaleService`, `PasswordRecoveryService` и `MusicIndexService`. Ktor controllers и UPnP assembly получают общие root-owned экземпляры напрямую; при удалении locale projection `MediaFileService` также переведён на root-owned `LocaleService`. Runtime graph/startup regression suite прошёл для каждого среза; recovery service suite прошёл 14/14.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
