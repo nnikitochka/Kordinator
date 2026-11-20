@@ -52,10 +52,10 @@ internal fun mockCoreCatalog(
     relativePath: String,
     title: String,
     sizeBytes: Long,
+    scanner: MediaScannerService = Mockito.mock(MediaScannerService::class.java),
+    mediaFiles: MediaFileService = Mockito.mock(MediaFileService::class.java),
 ): CoreCatalogFixture {
     val folderId = requireNotNull(folder.id)
-    val scanner = Mockito.mock(MediaScannerService::class.java)
-    val mediaFiles = Mockito.mock(MediaFileService::class.java)
     val root = MediaFile().apply {
         path = ""
         this.folderId = folderId
