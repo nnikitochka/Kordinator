@@ -11,16 +11,12 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime.createDataSource().also { runtime.migrateDatabase() }
 
     @Bean
-    override fun daoGraph(runtime: org.airsonic.player.runtime.RuntimeCompositionRoot): org.airsonic.player.runtime.DaoGraph =
-        runtime.createPersistenceGraph().daos
-
-    @Bean
     fun upnpService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         settingsService: org.airsonic.player.service.SettingsService,
-        graph: org.airsonic.player.runtime.DaoGraph,
         securityService: org.airsonic.player.service.SecurityService,
     ): org.airsonic.player.service.UPnPService {
+        val graph = runtime.createPersistenceGraph().daos
         val jwtSecurityService = runtime.createJwtSecurityService(settingsService)
         val mediaFolderService = runtime.createMediaFolderService()
         val mediaFileService = runtime.createMediaFileService(
@@ -53,16 +49,19 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     @Bean
     fun securityService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        graph: org.airsonic.player.runtime.DaoGraph,
         settingsService: org.airsonic.player.service.SettingsService,
         credentialEncoders: org.airsonic.player.security.CredentialEncoderRegistry,
     ): org.airsonic.player.service.SecurityService =
-        runtime.createSecurityService(graph.userDao, settingsService, runtime.createMediaFolderService(), credentialEncoders)
+        runtime.createSecurityService(
+            runtime.createPersistenceGraph().daos.userDao, settingsService,
+            runtime.createMediaFolderService(), credentialEncoders)
 
     @Bean
-    override fun settingsService(
+    fun settingsService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        graph: org.airsonic.player.runtime.DaoGraph,
-    ): org.airsonic.player.service.SettingsService = runtime.createSettingsService()
+    ): org.airsonic.player.service.SettingsService {
+        runtime.createPersistenceGraph()
+        return runtime.createSettingsService()
+    }
 
 }

@@ -321,13 +321,13 @@ public class KtorConfiguration {
     @Bean
     public ServletRegistrationBean<ServletApplicationEngine> ktorServletRegistration(
             RuntimeCompositionRoot runtime,
-            org.airsonic.player.runtime.DaoGraph graph,
             SecurityService securityService,
             CredentialEncoderRegistry credentialEncoderRegistry,
             SettingsService settingsService,
             UPnPService upnpService,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper
     ) throws Exception {
+        org.airsonic.player.runtime.DaoGraph graph = runtime.createPersistenceGraph().getDaos();
         JWTSecurityService jwtSecurityService = runtime.createJwtSecurityService(settingsService);
         MediaFolderService mediaFolderService = runtime.createMediaFolderService();
         MediaFileService mediaFileService = runtime.createMediaFileService(
