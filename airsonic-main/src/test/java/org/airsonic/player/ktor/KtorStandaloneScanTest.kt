@@ -91,6 +91,12 @@ class KtorStandaloneScanTest {
                 assertEquals(400, client.get("/api/v1/search?query=first&limit=0") { bearerAuth(token) }.status.value)
 
                 val trackId = items[0].get("id").asLong()
+                val trackDetails = client.get("/api/v1/tracks/$trackId") { bearerAuth(token) }
+                assertEquals(200, trackDetails.status.value)
+                assertEquals(trackId, mapper.readTree(trackDetails.bodyAsText()).get("id").asLong())
+                assertEquals(401, client.get("/api/v1/tracks/$trackId").status.value)
+                assertEquals(404, client.get("/api/v1/tracks/999999") { bearerAuth(token) }.status.value)
+                assertEquals(400, client.get("/api/v1/tracks/-1") { bearerAuth(token) }.status.value)
                 val fullStream = client.get("/api/v1/tracks/$trackId/stream") { bearerAuth(token) }
                 assertEquals(200, fullStream.status.value, fullStream.bodyAsText())
                 assertEquals(401, client.get("/api/v1/tracks/$trackId/stream").status.value)

@@ -129,6 +129,25 @@ fun Application.standaloneModule(
                     }
                     call.respondJson(TrackPage(tracks, tracks.size, total, limit.coerceIn(1, 200), offset.coerceAtLeast(0)))
                 }
+                    get("/tracks/{id}") {
+                        if (libraryScanService == null) {
+                            call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val trackId = call.parameters["id"]?.toLongOrNull()
+                        if (trackId == null || trackId < 0) {
+                            call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val track = withContext(scanDispatcher) { libraryScanService.track(trackId) }
+                        if (track == null) {
+                            call.respond(HttpStatusCode.NotFound)
+                            return@get
+                        }
+                        call.respondJson(TrackResponse(track.id, track.libraryId, track.relativePath, track.title,
+                            track.artist, track.album, track.albumArtist, track.durationSeconds, track.sizeBytes,
+                            track.modifiedAt?.toString()))
+                    }
                     get("/tracks/{id}/stream") {
                     if (libraryScanService == null) {
                         call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)

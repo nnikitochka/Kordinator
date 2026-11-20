@@ -144,6 +144,16 @@ class StandaloneLibraryScanService(
         }
     }
 
+    fun track(trackId: Long): StandaloneTrack? = dataSource.connection.use { connection ->
+        connection.prepareStatement(
+            "SELECT id, library_id, relative_path, title, artist, album, album_artist, duration_seconds, " +
+                "size_bytes, modified_at FROM media_track WHERE id = ?",
+        ).use { statement ->
+            statement.setLong(1, trackId)
+            statement.executeQuery().use { rows -> if (rows.next()) rows.toTrack() else null }
+        }
+    }
+
     fun countTracks(libraryId: Long?, query: String?): Long {
         val normalizedQuery = query?.trim()?.takeIf { it.isNotEmpty() }?.lowercase()?.let { "%$it%" }
         val sql = "SELECT COUNT(*) FROM media_track WHERE (? IS NULL OR library_id = ?) " +
