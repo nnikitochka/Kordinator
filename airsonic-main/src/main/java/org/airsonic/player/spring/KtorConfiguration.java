@@ -290,11 +290,6 @@ public class KtorConfiguration {
         return runtime.createRatingService(graph.getRatingDao(), securityService, mediaFileService);
     }
 
-    public MusicIndexService musicIndexService(RuntimeCompositionRoot runtime, SettingsService settingsService,
-            MediaFileService mediaFileService) {
-        return runtime.createMusicIndexService(settingsService, mediaFileService);
-    }
-
     public DatabaseService databaseService(RuntimeCompositionRoot runtime, SettingsService settingsService, org.airsonic.player.runtime.DaoGraph graph,
             TaskSchedulingService taskSchedulingService) {
         return runtime.createDatabaseService(settingsService, graph.getDatabaseDao(), taskSchedulingService);
@@ -414,7 +409,6 @@ public class KtorConfiguration {
             SecurityService securityService,
             CredentialEncoderRegistry credentialEncoderRegistry,
             SettingsService settingsService,
-            MusicIndexService musicIndexService,
             AudioScrobblerService audioScrobblerService,
             UPnPService upnpService,
             StatusService statusService,
@@ -442,6 +436,7 @@ public class KtorConfiguration {
         MusicFoldersController musicFoldersController = runtime.createSubsonicMusicFoldersController(
                 runtime.createSubsonicMusicFoldersService(mediaFolderService));
         GenresController genresController = runtime.createSubsonicGenresController();
+        MusicIndexService musicIndexService = runtime.createMusicIndexService(settingsService, mediaFileService);
         ArtistsController artistsController = runtime.createSubsonicArtistsController(
                 musicIndexService, settingsService, mediaFolderService, responseMapper);
         RestPlayerResolver playerResolver = runtime.createRestPlayerResolver(playerService);
@@ -505,7 +500,8 @@ public class KtorConfiguration {
                                         mediaFileDao, indexManager, playlistService, coverArtService)),
                                 runtime.createPasswordController(securityService),
                                 runtime.createPlayQueueController(mediaFileService, responseMapper),
-                                runtime.createIndexesController(settingsService, mediaFolderService, musicIndexService,
+                                runtime.createIndexesController(settingsService, mediaFolderService,
+                                        runtime.createMusicIndexService(settingsService, mediaFileService),
                                         musicIndexStateService, ratingService, responseMapper, playerService),
                                 runtime.createSongsByGenreController(mediaFolderService, responseMapper),
                                 runtime.createTopSongsController(lastFmService, mediaFolderService, responseMapper),

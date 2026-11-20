@@ -87,7 +87,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
         playlistService: org.airsonic.player.service.PlaylistService,
         searchService: org.airsonic.player.service.SearchService,
-        musicIndexService: org.airsonic.player.service.MusicIndexService,
         indexManager: org.airsonic.player.service.search.IndexManager,
         playerService: org.airsonic.player.service.PlayerService,
         transcodingService: org.airsonic.player.service.TranscodingService,
@@ -95,7 +94,8 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     ): org.airsonic.player.service.UPnPService = runtime.createUpnpService(
         settingsService,
         runtime.createDispatchingContentDirectory(
-            mediaFileService, mediaFolderService, playlistService, searchService, musicIndexService, indexManager,
+            mediaFileService, mediaFolderService, playlistService, searchService,
+            runtime.createMusicIndexService(settingsService, mediaFileService), indexManager,
             settingsService, playerService, transcodingService, jwtSecurityService))
 
     @Bean
@@ -267,13 +267,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         securityService: org.airsonic.player.service.SecurityService,
         mediaFileService: org.airsonic.player.service.MediaFileService,
     ): org.airsonic.player.service.RatingService = runtime.createRatingService(graph.ratingDao, securityService, mediaFileService)
-
-    @Bean
-    override fun musicIndexService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        settingsService: org.airsonic.player.service.SettingsService,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-    ): org.airsonic.player.service.MusicIndexService = runtime.createMusicIndexService(settingsService, mediaFileService)
 
     @Bean
     override fun databaseService(
