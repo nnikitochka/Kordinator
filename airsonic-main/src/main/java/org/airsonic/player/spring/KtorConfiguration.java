@@ -325,7 +325,6 @@ public class KtorConfiguration {
             MediaFileService mediaFileService,
             org.airsonic.player.runtime.DaoGraph graph,
             MediaFolderService mediaFolderService,
-            PlaylistService playlistService,
             SecurityService securityService,
             CredentialEncoderRegistry credentialEncoderRegistry,
             SettingsService settingsService,
@@ -333,15 +332,19 @@ public class KtorConfiguration {
             StatusService statusService,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             TaskSchedulingService taskSchedulingService,
-            DownloadService downloadService,
             CoverArtService coverArtService,
-            TranscodingService transcodingService,
-            CoverArtImageService coverArtImageService
+            TranscodingService transcodingService
     ) throws Exception {
         runtime.createCoverArtAccentColorBackfill(coverArtService);
         LocaleService localeService = runtime.createLocaleService(settingsService);
         IndexManager indexManager = runtime.createIndexManager();
         SearchService albumSearchService = runtime.createSearchService(mediaFileService);
+        PlaylistService playlistService = runtime.createPlaylistService(
+                securityService, settingsService, mediaFileService, coverArtService);
+        DownloadService downloadService = runtime.createDownloadService(
+                statusService, securityService, playlistService, settingsService, mediaFileService, coverArtService);
+        CoverArtImageService coverArtImageService = coverArtImageService(runtime, mediaFileService, coverArtService,
+                transcodingService, settingsService, playlistService, graph);
         HlsPlaylistService hlsPlaylistService = runtime.createHlsPlaylistService(jwtSecurityService);
         HlsSegmentService hlsSegmentService = runtime.createHlsSegmentService(
                 mediaFileService, securityService, statusService, settingsService, transcodingService);

@@ -15,33 +15,10 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime.createPersistenceGraph().daos
 
     @Bean
-    override fun playlistService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        securityService: org.airsonic.player.service.SecurityService,
-        settingsService: org.airsonic.player.service.SettingsService,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-        coverArtService: org.airsonic.player.service.CoverArtService,
-    ): org.airsonic.player.service.PlaylistService =
-        runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService)
-
-    @Bean
     override fun coverArtService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         graph: org.airsonic.player.runtime.DaoGraph,
     ): org.airsonic.player.service.CoverArtService = runtime.createCoverArtService(graph.coverArtDao)
-
-    @Bean
-    override fun coverArtImageService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-        coverArtService: org.airsonic.player.service.CoverArtService,
-        transcodingService: org.airsonic.player.service.TranscodingService,
-        settingsService: org.airsonic.player.service.SettingsService,
-        playlistService: org.airsonic.player.service.PlaylistService,
-        graph: org.airsonic.player.runtime.DaoGraph,
-    ): org.airsonic.player.service.CoverArtImageService = runtime.createCoverArtImageService(
-        mediaFileService, coverArtService, transcodingService, settingsService, playlistService,
-        graph.artistDao, graph.albumDao)
 
     @Bean
     fun upnpService(
@@ -49,7 +26,7 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         settingsService: org.airsonic.player.service.SettingsService,
         mediaFileService: org.airsonic.player.service.MediaFileService,
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
-        playlistService: org.airsonic.player.service.PlaylistService,
+        coverArtService: org.airsonic.player.service.CoverArtService,
         statusService: org.airsonic.player.service.StatusService,
         securityService: org.airsonic.player.service.SecurityService,
         transcodingService: org.airsonic.player.service.TranscodingService,
@@ -57,7 +34,9 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     ): org.airsonic.player.service.UPnPService = runtime.createUpnpService(
         settingsService,
         runtime.createDispatchingContentDirectory(
-            mediaFileService, mediaFolderService, playlistService, runtime.createSearchService(mediaFileService),
+            mediaFileService, mediaFolderService,
+            runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService),
+            runtime.createSearchService(mediaFileService),
             runtime.createMusicIndexService(settingsService, mediaFileService), runtime.createIndexManager(),
             settingsService, runtime.createPlayerService(runtime.createPlayerDao(), statusService, securityService,
                 transcodingService), transcodingService, jwtSecurityService))
@@ -117,18 +96,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     override fun taskSchedulingService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
     ): org.airsonic.player.service.TaskSchedulingService = runtime.createTaskSchedulingService()
-
-    @Bean
-    override fun downloadService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        statusService: org.airsonic.player.service.StatusService,
-        securityService: org.airsonic.player.service.SecurityService,
-        playlistService: org.airsonic.player.service.PlaylistService,
-        settingsService: org.airsonic.player.service.SettingsService,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-        coverArtService: org.airsonic.player.service.CoverArtService,
-    ): org.airsonic.player.service.DownloadService = runtime.createDownloadService(
-        statusService, securityService, playlistService, settingsService, mediaFileService, coverArtService)
 
     @Bean
     override fun statusService(
