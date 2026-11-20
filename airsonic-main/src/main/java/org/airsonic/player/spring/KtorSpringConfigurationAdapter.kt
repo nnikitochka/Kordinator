@@ -31,12 +31,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService)
 
     @Bean
-    override fun hlsPlaylistService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
-    ): org.airsonic.player.service.hls.HlsPlaylistService = runtime.createHlsPlaylistService(jwtSecurityService)
-
-    @Bean
     override fun hlsSegmentService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         mediaFileService: org.airsonic.player.service.MediaFileService,
