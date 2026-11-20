@@ -57,15 +57,13 @@ data class StandaloneArtist(val libraryId: Long, val name: String, val albumCoun
 /** Scans registered roots and serves indexed track metadata for the standalone API. */
 class StandaloneLibraryScanService(
     private val dataSource: DataSource,
+    private val mediaFolderService: MediaFolderService,
 ) {
     fun enqueue(libraryId: Long): LibraryScan {
-        val rootExists = dataSource.connection.use { connection ->
-            connection.prepareStatement("SELECT 1 FROM music_library WHERE id = ?").use { statement ->
-                statement.setLong(1, libraryId)
-                statement.executeQuery().use { it.next() }
-            }
+        val musicFolder = libraryId.takeIf { it in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong() }?.toInt()?.let {
+            mediaFolderService.getMusicFolderById(it, true, true)
         }
-        require(rootExists) { "Library does not exist" }
+        require(musicFolder != null && musicFolder.id?.toLong() == libraryId) { "Library does not exist" }
 
         val id = UUID.randomUUID().toString()
         val now = Instant.now()
@@ -100,7 +98,7 @@ class StandaloneLibraryScanService(
         var errors = 0L
 
         try {
-            val rootPath = Path.of(root).toRealPath()
+            val rootPath = root.toRealPath()
             Files.walk(rootPath).use { paths ->
                 paths.filter { path ->
                     path != rootPath && !Files.isSymbolicLink(path) && Files.isRegularFile(path) &&
@@ -273,21 +271,22 @@ class StandaloneLibraryScanService(
     }
 
     fun streamFile(trackId: Long): StandaloneTrackFile? {
-        val locations = dataSource.connection.use { connection ->
+        val trackLocation = dataSource.connection.use { connection ->
             connection.prepareStatement(
-                "SELECT l.root_path, t.relative_path FROM media_track t " +
-                    "JOIN music_library l ON l.id = t.library_id WHERE t.id = ?",
+                "SELECT library_id, relative_path FROM media_track WHERE id = ?",
             ).use { statement ->
                 statement.setLong(1, trackId)
                 statement.executeQuery().use { rows ->
-                    if (rows.next()) rows.getString(1) to rows.getString(2) else null
+                    if (rows.next()) rows.getLong(1) to rows.getString(2) else null
                 }
             }
         } ?: return null
 
         return try {
-            val root = Path.of(locations.first).toRealPath()
-            val candidate = root.resolve(locations.second).normalize()
+            val folderId = trackLocation.first.toInt()
+            val musicFolder = mediaFolderService.getMusicFolderById(folderId, true, true) ?: return null
+            val root = musicFolder.path.toRealPath()
+            val candidate = root.resolve(trackLocation.second).normalize()
             if (!candidate.startsWith(root) || Files.isSymbolicLink(candidate)) return null
             val file = candidate.toRealPath()
             if (!file.startsWith(root) || !Files.isRegularFile(file)) return null
@@ -347,12 +346,10 @@ class StandaloneLibraryScanService(
         }
     }
 
-    private fun findLibraryRoot(libraryId: Long): String? = dataSource.connection.use { connection ->
-        connection.prepareStatement("SELECT root_path FROM music_library WHERE id = ?").use { statement ->
-            statement.setLong(1, libraryId)
-            statement.executeQuery().use { rows -> if (rows.next()) rows.getString(1) else null }
-        }
-    }
+    private fun findLibraryRoot(libraryId: Long): Path? = libraryId
+        .takeIf { it in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong() }
+        ?.toInt()
+        ?.let { mediaFolderService.getMusicFolderById(it, true, true)?.path }
 
     private fun readMetadata(file: Path): ParsedMetadata = try {
         val audio = AudioFileIO.read(file.toFile())

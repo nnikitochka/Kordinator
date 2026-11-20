@@ -214,4 +214,9 @@
             <column name="created_at"/>
         </createIndex>
     </changeSet>
+    <changeSet id="standalone-library-catalog-decouple-1" author="kordinator">
+        <dropForeignKeyConstraint baseTableName="library_scan_job" constraintName="fk_library_scan_job_library"/>
+        <dropForeignKeyConstraint baseTableName="media_track" constraintName="fk_media_track_library"/>
+        <dropTable tableName="music_library"/>
+    </changeSet>
 </databaseChangeLog>

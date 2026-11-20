@@ -41,7 +41,6 @@ import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.security.LoginRateLimiter
 import org.airsonic.player.security.SpringCredentialEncoderRegistry
-import org.airsonic.player.service.StandaloneLibraryService
 import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandaloneAlbum
@@ -49,8 +48,9 @@ import org.airsonic.player.service.StandaloneArtist
 import org.airsonic.player.service.StandaloneTrack
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.MediaFolderService
-import org.airsonic.player.service.MediaScannerService
+import org.airsonic.player.domain.MusicFolder
 import java.nio.file.Path
+import java.nio.file.Files
 import java.nio.channels.FileChannel
 import java.nio.ByteBuffer
 import java.nio.file.StandardOpenOption
@@ -70,12 +70,10 @@ fun Application.module() {
 /** Minimal new API module used while the application is moving to a standalone Ktor process. */
 fun Application.standaloneModule(
     authService: LocalAuthService? = null,
-    libraryService: StandaloneLibraryService? = null,
     libraryScanService: StandaloneLibraryScanService? = null,
     playlistService: StandalonePlaylistService? = null,
     favoriteService: StandaloneFavoriteService? = null,
     mediaFolderService: MediaFolderService? = null,
-    mediaScannerService: MediaScannerService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -94,9 +92,6 @@ fun Application.standaloneModule(
         if (authService != null) {
             route("/api/v1") {
                 authenticate("server-session") {
-                    if (mediaFolderService != null) {
-                        KordinatorMusicFolderAdminRoutes(mediaFolderService, mediaScannerService, jsonMapper).routes(this)
-                    }
                     get("/search") {
                         if (libraryScanService == null) {
                             call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -546,11 +541,12 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
                             return@get
                         }
-                        val libraries = libraryService?.let { service ->
-                            withContext(authDispatcher) { service.list() }
-                                .map { LibraryResponse(it.id, it.name, it.rootPath, it.createdAt.toString()) }
+                        val folders = mediaFolderService?.let { service ->
+                            withContext(authDispatcher) { service.getAllMusicFolders(true, true) }
+                                .sortedWith(compareBy<MusicFolder> { it.name }.thenBy { it.id })
+                                .map { it.toLibraryResponse() }
                         }.orEmpty()
-                        call.respondJson(libraries)
+                        call.respondJson(folders)
                     }
                     post("/admin/libraries") {
                         val actor = call.principal<LocalUserPrincipal>()
@@ -559,8 +555,9 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
                             return@post
                         }
-                        if (libraryService == null) {
-                            call.respondJson(ApiError("unavailable", "Library storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val folderService = mediaFolderService
+                        if (folderService == null) {
+                            call.respondJson(ApiError("unavailable", "Music folder storage is not configured"), HttpStatusCode.ServiceUnavailable)
                             return@post
                         }
                         val request = try {
@@ -569,21 +566,38 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("invalid_request", "Expected name and path"), HttpStatusCode.BadRequest)
                             return@post
                         }
-                        try {
-                            val library = withContext(authDispatcher) {
-                                libraryService.create(request.name, Path.of(request.path))
-                            }
-                            call.respondJson(LibraryResponse(library.id, library.name, library.rootPath, library.createdAt.toString()), HttpStatusCode.Created)
-                        } catch (_: IllegalArgumentException) {
-                            call.respondJson(ApiError("invalid_library", "Library name or path is invalid"), HttpStatusCode.BadRequest)
-                        } catch (_: java.io.IOException) {
+                        val normalizedName = request.name.trim()
+                        if (normalizedName.isEmpty() || normalizedName.length > 120 || request.path.isBlank()) {
+                            call.respondJson(ApiError("invalid_library", "Library name and path are required"), HttpStatusCode.BadRequest)
+                            return@post
+                        }
+                        val path = try {
+                            Path.of(request.path).toRealPath()
+                        } catch (_: Exception) {
                             call.respondJson(ApiError("invalid_library", "Library path is not accessible"), HttpStatusCode.BadRequest)
-                        } catch (failure: java.sql.SQLException) {
-                            if (failure.sqlState?.startsWith("23") == true) {
-                                call.respondJson(ApiError("library_exists", "A library with that name already exists"), HttpStatusCode.Conflict)
-                            } else {
-                                throw failure
+                            return@post
+                        }
+                        if (!Files.isDirectory(path) || !Files.isReadable(path)) {
+                            call.respondJson(ApiError("invalid_library", "Library path must be a readable directory"), HttpStatusCode.BadRequest)
+                            return@post
+                        }
+                        val existingFolders = withContext(authDispatcher) { folderService.getAllMusicFolders(true, true, true) }
+                        if (existingFolders.any { it.name.equals(normalizedName, ignoreCase = true) }) {
+                            call.respondJson(ApiError("library_exists", "A library with that name already exists"), HttpStatusCode.Conflict)
+                            return@post
+                        }
+                        val folder = MusicFolder(null, path, normalizedName, MusicFolder.Type.MEDIA, true, java.time.Instant.now())
+                        try {
+                            withContext(authDispatcher) {
+                                folderService.createMusicFolder(folder)
                             }
+                            call.respondJson(folder.toLibraryResponse(), HttpStatusCode.Created)
+                        } catch (failure: IllegalArgumentException) {
+                            val overlap = failure.message?.contains("overlap", ignoreCase = true) == true
+                            call.respondJson(
+                                ApiError(if (overlap) "library_exists" else "invalid_library", if (overlap) "Library path overlaps an existing music folder" else "Library path is invalid"),
+                                if (overlap) HttpStatusCode.Conflict else HttpStatusCode.BadRequest,
+                            )
                         }
                     }
                     post("/admin/libraries/{id}/scan") {
@@ -647,6 +661,12 @@ data class CreateUserRequest(val username: String, val password: String, val rol
 data class SetUserEnabledRequest(val enabled: Boolean)
 data class CreateLibraryRequest(val name: String, val path: String)
 data class LibraryResponse(val id: Long, val name: String, val path: String, val createdAt: String)
+private fun MusicFolder.toLibraryResponse() = LibraryResponse(
+    id = requireNotNull(id) { "Music folder has not been persisted" }.toLong(),
+    name = name,
+    path = path.toString(),
+    createdAt = changed.toString(),
+)
 data class TrackResponse(
     val id: Long,
     val libraryId: Long,
@@ -813,8 +833,7 @@ fun main(args: Array<String>) {
         throw failure
     }
     val authService = LocalAuthService(standaloneDatabase.dataSource)
-    val libraryService = StandaloneLibraryService(standaloneDatabase.dataSource)
-    val libraryScanService = StandaloneLibraryScanService(standaloneDatabase.dataSource)
+    val libraryScanService: StandaloneLibraryScanService
     val playlistService = StandalonePlaylistService(standaloneDatabase.dataSource)
     val favoriteService = StandaloneFavoriteService(standaloneDatabase.dataSource)
     if (configuration.getBooleanProperty("airsonic.create-admin", false)) {
@@ -840,6 +859,7 @@ fun main(args: Array<String>) {
     val legacyGraph = runtime.createPersistenceGraph(runtime.createDataSource()).daos
     val settingsService = runtime.createSettingsService()
     val mediaFolderService = runtime.createMediaFolderService()
+    libraryScanService = StandaloneLibraryScanService(standaloneDatabase.dataSource, mediaFolderService)
     val securityService = runtime.createSecurityService(
         legacyGraph.userDao,
         settingsService,
@@ -870,12 +890,10 @@ fun main(args: Array<String>) {
     val server = embeddedServer(Netty, host = host, port = port) {
         standaloneModule(
             authService,
-            libraryService,
             libraryScanService,
             playlistService,
             favoriteService,
             mediaFolderService,
-            mediaScannerService,
         )
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })

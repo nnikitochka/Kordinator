@@ -15,7 +15,6 @@ import io.ktor.server.testing.testApplication
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.StandaloneLibraryScanService
-import org.airsonic.player.service.StandaloneLibraryService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
@@ -31,30 +30,38 @@ class KtorStandalonePlaylistTest {
     fun playlistsArePrivateOrderedAndUpdatedAtomically() {
         Files.writeString(musicRoot.resolve("track.mp3"), "stream bytes")
         val dataSource = HikariDataSource(HikariConfig().apply {
-            jdbcUrl = "jdbc:hsqldb:mem:standalone_playlist_api"
+            jdbcUrl = "jdbc:hsqldb:mem:standalone_playlist_api_${musicRoot.fileName}"
             driverClassName = "org.hsqldb.jdbc.JDBCDriver"
             username = "sa"
             password = ""
             maximumPoolSize = 4
         })
 
-        dataSource.use {
-            StandaloneDatabase.migrate(dataSource)
-            val auth = LocalAuthService(dataSource)
-            auth.createInitialAdmin("owner", "a strong password for tests")
-            auth.createUser("other", "another strong password")
-            val ownerToken = auth.login("owner", "a strong password for tests")!!.token
-            val otherToken = auth.login("other", "another strong password")!!.token
-            val libraries = StandaloneLibraryService(dataSource)
-            val library = libraries.create("Music", musicRoot)
-            val scans = StandaloneLibraryScanService(dataSource)
-            val scan = scans.enqueue(library.id)
-            scans.run(scan.id)
-            val playlists = StandalonePlaylistService(dataSource)
-            val mapper = jacksonObjectMapper()
+        val runtime = KtorRuntimeFixture(musicRoot.resolveSibling("runtime"), musicRoot, "standalone_playlist_core_${musicRoot.fileName}")
+        try {
+            dataSource.use {
+                StandaloneDatabase.migrate(dataSource)
+                val auth = LocalAuthService(dataSource)
+                auth.createInitialAdmin("owner", "a strong password for tests")
+                auth.createUser("other", "another strong password")
+                val ownerToken = auth.login("owner", "a strong password for tests")!!.token
+                val otherToken = auth.login("other", "another strong password")!!.token
+                val library = runtime.mediaFolderService.getAllMusicFolders(true, true).single()
+                val scans = StandaloneLibraryScanService(dataSource, runtime.mediaFolderService)
+                val scan = scans.enqueue(library.id.toLong())
+                scans.run(scan.id)
+                val playlists = StandalonePlaylistService(dataSource)
+                val mapper = jacksonObjectMapper()
 
-            testApplication {
-                application { standaloneModule(auth, libraries, scans, playlists) }
+                testApplication {
+                    application {
+                        standaloneModule(
+                            authService = auth,
+                            libraryScanService = scans,
+                            playlistService = playlists,
+                            mediaFolderService = runtime.mediaFolderService,
+                        )
+                    }
 
                 val tracksResponse = client.get("/api/v1/tracks") { bearerAuth(ownerToken) }
                 val trackId = mapper.readTree(tracksResponse.bodyAsText()).get("items")[0].get("id").asLong()
@@ -108,7 +115,10 @@ class KtorStandalonePlaylistTest {
 
                 assertEquals(204, client.delete("/api/v1/playlists/$playlistId") { bearerAuth(ownerToken) }.status.value)
                 assertEquals(404, client.get("/api/v1/playlists/$playlistId") { bearerAuth(ownerToken) }.status.value)
+                }
             }
+        } finally {
+            runtime.close()
         }
     }
 }

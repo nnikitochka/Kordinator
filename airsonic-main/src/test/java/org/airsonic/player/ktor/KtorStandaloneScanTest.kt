@@ -15,7 +15,6 @@ import kotlinx.coroutines.delay
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.StandaloneLibraryScanService
-import org.airsonic.player.service.StandaloneLibraryService
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
@@ -40,26 +39,27 @@ class KtorStandaloneScanTest {
         }
         Files.write(musicRoot.resolve("cover.png"), coverBytes)
         val dataSource = HikariDataSource(HikariConfig().apply {
-            jdbcUrl = "jdbc:hsqldb:mem:standalone_scan_api"
+            jdbcUrl = "jdbc:hsqldb:mem:standalone_scan_api_${musicRoot.fileName}"
             driverClassName = "org.hsqldb.jdbc.JDBCDriver"
             username = "sa"
             password = ""
             maximumPoolSize = 4
         })
 
-        dataSource.use {
-            StandaloneDatabase.migrate(dataSource)
-            val auth = LocalAuthService(dataSource)
-            auth.createInitialAdmin("admin", "a strong password for tests")
-            val token = auth.login("admin", "a strong password for tests")!!.token
-            val libraryService = StandaloneLibraryService(dataSource)
-            val library = libraryService.create("Music", musicRoot)
-            val scanService = StandaloneLibraryScanService(dataSource)
-            val favoriteService = StandaloneFavoriteService(dataSource)
-            val mapper = jacksonObjectMapper()
+        val runtime = KtorRuntimeFixture(musicRoot.resolveSibling("runtime"), musicRoot, "standalone_scan_core_${musicRoot.fileName}")
+        try {
+            dataSource.use {
+                StandaloneDatabase.migrate(dataSource)
+                val auth = LocalAuthService(dataSource)
+                auth.createInitialAdmin("admin", "a strong password for tests")
+                val token = auth.login("admin", "a strong password for tests")!!.token
+                val library = runtime.mediaFolderService.getAllMusicFolders(true, true).single()
+                val scanService = StandaloneLibraryScanService(dataSource, runtime.mediaFolderService)
+                val favoriteService = StandaloneFavoriteService(dataSource)
+                val mapper = jacksonObjectMapper()
 
-            testApplication {
-                application { standaloneModule(auth, libraryService, scanService, favoriteService = favoriteService) }
+                testApplication {
+                    application { standaloneModule(authService = auth, libraryScanService = scanService, favoriteService = favoriteService, mediaFolderService = runtime.mediaFolderService) }
 
                 val started = client.post("/api/v1/admin/libraries/${library.id}/scan") { bearerAuth(token) }
                 assertEquals(202, started.status.value)
@@ -205,7 +205,10 @@ class KtorStandaloneScanTest {
                 val emptyCatalog = client.get("/api/v1/tracks?libraryId=${library.id}") { bearerAuth(token) }
                 assertEquals(0, mapper.readTree(emptyCatalog.bodyAsText()).get("count").asInt())
                 assertEquals(0, mapper.readTree(emptyCatalog.bodyAsText()).get("total").asInt())
+                }
             }
+        } finally {
+            runtime.close()
         }
     }
 }
