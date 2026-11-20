@@ -107,7 +107,9 @@ public final class RuntimeConfigurationLoader {
         defaults.put("spring.datasource.driver-class-name", "org.hsqldb.jdbc.JDBCDriver");
         defaults.put("spring.datasource.url", "jdbc:hsqldb:file:"
                 + airsonicHome.resolve("db/airsonic").toString()
-                + ";hsqldb.default_table_type=cached;hsqldb.cache_rows=100000;hsqldb.cache_size=65536;hsqldb.applog=0");
+                + ";hsqldb.default_table_type=cached;hsqldb.cache_rows=100000;hsqldb.cache_size=65536;hsqldb.applog=0"
+                + ";hsqldb.tx=mvcc;sql.enforce_size=false;sql.char_literal=false;sql.nulls_first=false;sql.pad_space=false"
+                + ";hsqldb.defrag_limit=50;shutdown=true");
         defaults.put("logging.file.name", airsonicHome.resolve("airsonic.log").toString());
         defaults.put("spring.liquibase.rollback-file", airsonicHome.resolve("rollback.sql").toString());
         defaults.put("spring.liquibase.parameters.mysqlVarcharLimit", "255");

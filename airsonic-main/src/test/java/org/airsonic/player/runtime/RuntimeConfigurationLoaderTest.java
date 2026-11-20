@@ -69,6 +69,17 @@ class RuntimeConfigurationLoaderTest {
     }
 
     @Test
+    void defaultEmbeddedDatabaseUrlHasOptionsRequiredByTheLiquibaseSchema() {
+        RuntimeConfiguration config = loader.load(
+                new String[0], new Properties(), Collections.emptyMap(), new Properties(), Collections.emptyMap());
+
+        assertTrue(config.getDatabaseUrl().contains("sql.enforce_size=false"));
+        assertTrue(config.getDatabaseUrl().contains("sql.char_literal=false"));
+        assertTrue(config.getDatabaseUrl().contains("sql.nulls_first=false"));
+        assertTrue(config.getDatabaseUrl().contains("sql.pad_space=false"));
+    }
+
+    @Test
     void cliArgumentsParsingHandlesVariousFormats() {
         String[] args = new String[]{
                 "--server.port=8080",
