@@ -20,7 +20,6 @@ import org.airsonic.player.controller.rest.tags.MediaFileCommentController;
 import org.airsonic.player.controller.rest.tags.TagEditController;
 import org.airsonic.player.controller.rest.livequeue.LiveQueueExportController;
 import org.airsonic.player.controller.JAXBWriter;
-import org.airsonic.player.service.MusicIndexStateService;
 import org.airsonic.player.service.hls.HlsPlaylistService;
 import org.airsonic.player.controller.rest.shares.PublicShareController;
 import org.airsonic.player.controller.captions.CaptionsRestController;
@@ -341,11 +340,6 @@ public class KtorConfiguration {
                 mediaFileService, coverArtService);
     }
 
-    public MusicIndexStateService musicIndexStateService(RuntimeCompositionRoot runtime, MediaScannerService scanner,
-            SettingsService settings) {
-        return runtime.createMusicIndexStateService(scanner, settings);
-    }
-
     @Bean
     public ServletRegistrationBean<ServletApplicationEngine> ktorServletRegistration(
             RuntimeCompositionRoot runtime,
@@ -367,7 +361,6 @@ public class KtorConfiguration {
             TaskSchedulingService taskSchedulingService,
             org.airsonic.player.service.PathWatcherService pathWatcherService,
             DownloadService downloadService,
-            MusicIndexStateService musicIndexStateService,
             CoverArtService coverArtService,
             IndexManager indexManager,
             TranscodingService transcodingService,
@@ -466,7 +459,8 @@ public class KtorConfiguration {
                                 runtime.createPlayQueueController(mediaFileService, responseMapper),
                                 runtime.createIndexesController(settingsService, mediaFolderService,
                                         runtime.createMusicIndexService(settingsService, mediaFileService),
-                                        musicIndexStateService, ratingService, responseMapper, playerService),
+                                        runtime.createMusicIndexStateService(mediaScannerService, settingsService),
+                                        ratingService, responseMapper, playerService),
                                 runtime.createSongsByGenreController(mediaFolderService, responseMapper),
                                 runtime.createTopSongsController(lastFmService, mediaFolderService, responseMapper),
                                 runtime.createMusicDirectoryController(mediaFileService, securityService,

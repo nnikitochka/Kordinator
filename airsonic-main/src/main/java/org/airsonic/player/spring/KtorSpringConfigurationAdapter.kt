@@ -153,13 +153,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         playlistService, settingsService, indexManager, mediaFileService, mediaFolderService, coverArtService)
 
     @Bean
-    override fun musicIndexStateService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        scanner: org.airsonic.player.service.MediaScannerService,
-        settings: org.airsonic.player.service.SettingsService,
-    ): org.airsonic.player.service.MusicIndexStateService = runtime.createMusicIndexStateService(scanner, settings)
-
-    @Bean
     override fun transcodingService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         graph: org.airsonic.player.runtime.DaoGraph,
