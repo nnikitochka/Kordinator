@@ -124,7 +124,6 @@ import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.PlayerService;
 import org.airsonic.player.service.PlaylistService;
 import org.airsonic.player.service.PlayQueueService;
-import org.airsonic.player.service.MediaScannerService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.RatingService;
 import org.airsonic.player.service.SearchService;
@@ -296,14 +295,6 @@ public class KtorConfiguration {
         return runtime.createSettingsService();
     }
 
-    public MediaScannerService mediaScannerService(RuntimeCompositionRoot runtime,
-            PlaylistService playlistService, SettingsService settingsService,
-            IndexManager indexManager, MediaFileService mediaFileService, MediaFolderService mediaFolderService,
-            CoverArtService coverArtService) {
-        return runtime.createMediaScannerService(playlistService, settingsService, indexManager, mediaFileService,
-                mediaFolderService, coverArtService);
-    }
-
     public MediaFolderService mediaFolderService(RuntimeCompositionRoot runtime) {
         return runtime.createMediaFolderService();
     }
@@ -344,7 +335,6 @@ public class KtorConfiguration {
     public ServletRegistrationBean<ServletApplicationEngine> ktorServletRegistration(
             RuntimeCompositionRoot runtime,
             JWTSecurityService jwtSecurityService,
-            MediaScannerService mediaScannerService,
             MediaFileService mediaFileService,
             org.airsonic.player.runtime.DaoGraph graph,
             SearchService albumSearchService,
@@ -371,6 +361,8 @@ public class KtorConfiguration {
         runtime.createCoverArtAccentColorBackfill(coverArtService);
         LocaleService localeService = runtime.createLocaleService(settingsService);
         AudioScrobblerService audioScrobblerService = runtime.createAudioScrobblerService(settingsService, securityService);
+        org.airsonic.player.service.MediaScannerService mediaScannerService = runtime.createMediaScannerService(
+                playlistService, settingsService, indexManager, mediaFileService, mediaFolderService, coverArtService);
         JukeboxLegacySubsonicService legacyJukebox = runtime.createJukeboxLegacySubsonicService(
                 transcodingService, audioScrobblerService, statusService, settingsService, securityService,
                 mediaFileService);
