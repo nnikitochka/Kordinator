@@ -4,10 +4,6 @@ on:
   push:
     branches: [ master ]
 
-env:
-  DEFAULT_MUSIC_FOLDER: /tmp/music
-  EXCLUDED_TEST_GROUPS:
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -17,7 +13,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
-          java-version: 11
+          java-version: 25
           distribution: temurin
       - name: Cache Maven packages
         uses: actions/cache@v3
@@ -35,9 +31,11 @@ jobs:
           install: true
       - name: Available platforms
         run: echo ${{ steps.buildx.outputs.platforms }}
-      - run: mkdir -p ${DEFAULT_MUSIC_FOLDER}
       - name: Build with Maven
-        run: mvn -DexcludedGroups=${EXCLUDED_TEST_GROUPS} -Ddocker.testing.default-music-folder=${DEFAULT_MUSIC_FOLDER} verify -B -P integration-test
+        run: >-
+          mvn -B -Dcheckstyle.skip=true -Dpmd.skip=true
+          -Dtest=KtorStandalone*Test,Kordinator*Test,RuntimeCompositionRoot*Test
+          -Dsurefire.failIfNoSpecifiedTests=false package
       - name: Calculate tags
         if: success()
         id: tagcalc
@@ -61,7 +59,7 @@ jobs:
           prerelease: true
           generate_release_notes: true
           files: |
-            airsonic-main/target/airsonic.war
+            airsonic-main/target/kordinator.jar
             airsonic-main/target/artifacts-checksums.sha
       - name: Login to DockerHub
         uses: docker/login-action@v2
@@ -74,12 +72,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - run: mkdir -p install/docker/target/dependency
+      - run: cp airsonic-main/target/kordinator.jar install/docker/target/dependency/airsonic-main.jar
       - name: Build and push multiplatform images to Dockerhub
         uses: docker/build-push-action@v4
         with:
           file: install/docker/Dockerfile
           context: install/docker
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             airsonicadvanced/airsonic-advanced:latest

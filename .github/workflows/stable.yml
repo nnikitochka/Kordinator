@@ -13,7 +13,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
-          java-version: 11
+          java-version: 25
           distribution: temurin
       - name: Cache Maven packages
         uses: actions/cache@v3
@@ -34,7 +34,7 @@ jobs:
       - name: Remove snapshots
         run: mvn versions:set -DremoveSnapshot=true -DgenerateBackupPoms=false
       - name: Build with Maven
-        run: mvn -DskipTests -Dcheckstyle.skip=true package
+        run: mvn -B -DskipTests -Dcheckstyle.skip=true -Dpmd.skip=true package
       - name: Calculate tags
         if: success()
         id: tagcalc
@@ -52,7 +52,7 @@ jobs:
       - name: Sign artifacts
         run: |
           echo "${{ secrets.GPG_SIGNING_PASSPHRASE }}" | gpg --quiet --batch --yes --pinentry-mode loopback --clearsign --passphrase-fd 0 airsonic-main/target/artifacts-checksums.sha;
-          #echo "${{ secrets.GPG_SIGNING_PASSPHRASE }}" | gpg --quiet --batch --yes --pinentry-mode loopback --detach-sign --armor --passphrase-fd 0 airsonic-main/target/airsonic.war;
+          #echo "${{ secrets.GPG_SIGNING_PASSPHRASE }}" | gpg --quiet --batch --yes --pinentry-mode loopback --detach-sign --armor --passphrase-fd 0 airsonic-main/target/kordinator.jar;
       - name: Deploy to GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -67,7 +67,7 @@ jobs:
           body: |
             List of issues addressed: https://github.com/airsonic-advanced/airsonic-advanced/issues?q=milestone%3A${{ steps.tagcalc.outputs.tag }}
           files: |
-            airsonic-main/target/airsonic.war
+            airsonic-main/target/kordinator.jar
             airsonic-main/target/artifacts-checksums.sha.asc
       - name: Login to DockerHub
         uses: docker/login-action@v2
@@ -81,13 +81,13 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - run: mkdir -p install/docker/target/dependency
-      - run: cp airsonic-main/target/airsonic.war install/docker/target/dependency/airsonic-main.war
+      - run: cp airsonic-main/target/kordinator.jar install/docker/target/dependency/airsonic-main.jar
       - name: Build and push multiplatform images to Dockerhub
         uses: docker/build-push-action@v4
         with:
           file: install/docker/Dockerfile
           context: install/docker
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             airsonicadvanced/airsonic-advanced:stable

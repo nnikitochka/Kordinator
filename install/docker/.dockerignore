@@ -1,4 +1,7 @@
-.gitignore
-pom.xml
-target/
-!target/dependency/*
+*
+!Dockerfile
+!entry.sh
+!run.sh
+!target/
+!target/dependency/
+!target/dependency/airsonic-main.jar

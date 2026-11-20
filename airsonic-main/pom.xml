@@ -3,7 +3,6 @@
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>airsonic-main</artifactId>
-    <packaging>war</packaging>
     <name>Airsonic Main</name>
 
     <parent>
@@ -577,7 +576,7 @@
     </dependencies>
 
     <build>
-        <finalName>airsonic</finalName>
+        <finalName>kordinator</finalName>
         <plugins>
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
@@ -634,12 +633,49 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <mainClass>org.airsonic.player.ktor.KtorApplicationKt</mainClass>
-                    <layout>WAR</layout>
-                </configuration>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration combine.self="override">
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>org.springframework:*</exclude>
+                                    <exclude>org.springframework.boot:*</exclude>
+                                    <exclude>org.springframework.security:*</exclude>
+                                    <exclude>org.apache.tomcat.embed:*</exclude>
+                                    <exclude>jakarta.servlet:*</exclude>
+                                    <exclude>io.ktor:ktor-server-servlet*</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>org.airsonic.player.ktor.KtorApplicationKt</mainClass>
+                                    <manifestEntries>
+                                        <Multi-Release>true</Multi-Release>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -682,7 +718,7 @@
                 <timezone>UTC</timezone>
                 <timestampFormat>yyyyMMddHHmmss</timestampFormat>
                 <attach>true</attach>
-                <!--make it available for jar/war classpath resource -->
+                <!-- Make the build metadata available on the classpath. -->
                 <addOutputDirectoryToResources>true</addOutputDirectoryToResources>
               </configuration>
             </plugin>

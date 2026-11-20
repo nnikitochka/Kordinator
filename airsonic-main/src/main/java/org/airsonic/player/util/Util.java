@@ -200,16 +200,19 @@ public final class Util {
         return objectMapper.convertValue(data, clazz);
     }
 
-    private static final Validator validator;
-    static {
-        try (var factory = Validation.buildDefaultValidatorFactory()) {
-            validator = factory.getValidator();
+    private static final class BeanValidation {
+        private static final Validator VALIDATOR;
+
+        static {
+            try (var factory = Validation.buildDefaultValidatorFactory()) {
+                VALIDATOR = factory.getValidator();
+            }
         }
     }
 
     public static <T> T stringMapToValidObject(Class<T> clazz, Map<String, String> data) {
         T object = stringMapToObject(clazz, data);
-        Set<ConstraintViolation<T>> validate = validator.validate(object);
+        Set<ConstraintViolation<T>> validate = BeanValidation.VALIDATOR.validate(object);
         if (validate.isEmpty()) {
             return object;
         } else {

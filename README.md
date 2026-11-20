@@ -1,9 +1,27 @@
-<!--
-# README.md
-# airsonic-advanced/airsonic-advanced
--->
-Airsonic-Advanced
-=================
+# Kordinator
+
+Kordinator is a music server with a REST API at `/api/v1`. It runs as a
+standalone Ktor process on Java 25.
+
+```sh
+mvn -Dcheckstyle.skip=true -Dpmd.skip=true -DskipTests package
+java -Dairsonic.home=./data -jar airsonic-main/target/kordinator.jar --airsonic.create-admin=true
+java -Dairsonic.home=./data -jar airsonic-main/target/kordinator.jar
+```
+
+Open `http://localhost:8080/api/v1/health` to check that the server is ready.
+Set `--airsonic.http.port` and `--airsonic.http.host` to configure the listener.
+
+The Docker image uses the same JAR and defaults to port 4040. Mount data at
+`/var/airsonic` and music at `/var/music`. Run the container with
+`--airsonic.create-admin=true` and an interactive terminal once with the same
+data volume to create the first administrator.
+
+## Airsonic-Advanced project history
+
+The information below describes the upstream project that Kordinator was
+forked from.
+
 ![](https://github.com/airsonic-advanced/airsonic-advanced/workflows/Edge%20Deploy%20CI%20(Maven)/badge.svg)
 ![](https://github.com/airsonic-advanced/airsonic-advanced/workflows/Stable%20Deploy%20CI%20(Maven)/badge.svg)
 [![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/airsonic-advanced/airsonic-advanced.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/airsonic-advanced/airsonic-advanced/context:javascript)
