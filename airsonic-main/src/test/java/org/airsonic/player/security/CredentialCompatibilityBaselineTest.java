@@ -7,7 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Fixed compatibility fixtures for credential formats in GlobalSecurityConfig.ENCODERS.
+ * Fixed compatibility fixtures for credential formats in LegacyCredentialEncoders.
  * The values were generated once with the current encoders; keep them independent of encode().
  * TODO: reuse the neutral codec contract when Spring Security is removed.
  */
@@ -39,7 +39,7 @@ public class CredentialCompatibilityBaselineTest {
         for (String[] fixture : REGISTRY_FIXTURES) {
             String name = fixture[0];
             String encoded = fixture[1];
-            PasswordEncoder encoder = GlobalSecurityConfig.ENCODERS.get(name);
+            PasswordEncoder encoder = LegacyCredentialEncoders.ENCODERS.get(name);
 
             assertThat(encoder).as("encoder %s exists", name).isNotNull();
             assertThat(encoder.matches(PASSWORD, encoded)).as("%s accepts its stored value", name).isTrue();

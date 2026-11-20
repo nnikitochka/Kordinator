@@ -56,6 +56,9 @@ class MultipleCredsMatchingAuthenticationProviderTest {
     private fun mockSecurity(): SecurityService = Mockito.mock(SecurityService::class.java)
 
     private fun provider(security: SecurityService) = MultipleCredsMatchingAuthenticationProvider(
-        SubsonicCredentialAuthenticationService(security, SpringCredentialEncoderRegistry()),
+        SubsonicCredentialAuthenticationService(
+            security,
+            LegacyCredentialEncoderRegistry(Mockito.mock(org.airsonic.player.service.SettingsService::class.java)),
+        ),
     )
 }

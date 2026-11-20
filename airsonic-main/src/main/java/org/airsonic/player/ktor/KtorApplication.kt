@@ -40,7 +40,7 @@ import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.security.LoginRateLimiter
-import org.airsonic.player.security.SpringCredentialEncoderRegistry
+import org.airsonic.player.security.LegacyCredentialEncoderRegistry
 import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandaloneAlbum
@@ -884,7 +884,7 @@ fun main(args: Array<String>) {
         legacyGraph.userDao,
         settingsService,
         mediaFolderService,
-        SpringCredentialEncoderRegistry(),
+        LegacyCredentialEncoderRegistry(settingsService),
     )
     val coverArtService = runtime.createCoverArtService(legacyGraph.coverArtDao)
     val mediaFileService = runtime.createMediaFileService(
