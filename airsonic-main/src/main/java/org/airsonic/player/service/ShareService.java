@@ -10,8 +10,6 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.servlet.http.HttpServletRequest;
-
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -30,12 +28,9 @@ public class ShareService {
 
     private ShareDao shareDao;
     private MediaFileService mediaFileService;
-    private JWTSecurityService jwtSecurityService;
-
-    public ShareService(ShareDao shareDao, MediaFileService mediaFileService, JWTSecurityService jwtSecurityService) {
+    public ShareService(ShareDao shareDao, MediaFileService mediaFileService) {
         this.shareDao = shareDao;
         this.mediaFileService = mediaFileService;
-        this.jwtSecurityService = jwtSecurityService;
     }
 
     public List<Share> getAllShares() {
@@ -82,12 +77,6 @@ public class ShareService {
         shareDao.deleteShare(id);
     }
 
-    public String getShareUrl(HttpServletRequest request, Share share) {
-        String shareUrl = "ext/rest/share/" + share.getName();
-        return NetworkService.getBaseUrl(request) + jwtSecurityService
-                .addJWTToken(User.USERNAME_ANONYMOUS, shareUrl, share.getExpires());
-    }
-
     public void setShareDao(ShareDao shareDao) {
         this.shareDao = shareDao;
     }
@@ -96,7 +85,4 @@ public class ShareService {
         this.mediaFileService = mediaFileService;
     }
 
-    public void setJwtSecurityService(JWTSecurityService jwtSecurityService) {
-        this.jwtSecurityService = jwtSecurityService;
-    }
 }

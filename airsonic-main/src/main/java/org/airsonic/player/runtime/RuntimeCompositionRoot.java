@@ -1872,10 +1872,9 @@ public final class RuntimeCompositionRoot {
 
     public synchronized org.airsonic.player.service.ShareService createShareService(
             org.airsonic.player.dao.ShareDao shareDao,
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.JWTSecurityService jwtSecurityService) {
+            org.airsonic.player.service.MediaFileService mediaFileService) {
         if (shareService == null) {
-            shareService = new org.airsonic.player.service.ShareService(shareDao, mediaFileService, jwtSecurityService);
+            shareService = new org.airsonic.player.service.ShareService(shareDao, mediaFileService);
         }
         return shareService;
     }
