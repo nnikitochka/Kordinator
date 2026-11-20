@@ -399,14 +399,5 @@
                 <module>install/docker</module>
             </modules>
         </profile>
-        <profile>
-            <id>integration-test</id>
-            <modules>
-                <module>subsonic-rest-api</module>
-                <module>airsonic-main</module>
-                <module>install/docker</module>
-                <module>integration-test</module>
-            </modules>
-        </profile>
     </profiles>
 </project>
