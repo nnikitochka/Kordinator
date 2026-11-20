@@ -82,6 +82,28 @@ fun Application.standaloneModule(
         if (authService != null) {
             route("/api/v1") {
                 authenticate("server-session") {
+                    get("/search") {
+                        if (libraryScanService == null) {
+                            call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val query = call.request.queryParameters["query"]?.trim()
+                        val offsetValue = call.request.queryParameters["offset"]
+                        val limitValue = call.request.queryParameters["limit"]
+                        val offset = offsetValue?.toIntOrNull() ?: if (offsetValue == null) 0 else null
+                        val limit = limitValue?.toIntOrNull() ?: if (limitValue == null) 25 else null
+                        if (query.isNullOrEmpty() || offset == null || offset < 0 || limit == null || limit !in 1..100) {
+                            call.respondJson(ApiError("invalid_request", "Query is required, offset must be non-negative and limit must be between 1 and 100"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val (matches, total) = withContext(scanDispatcher) {
+                            libraryScanService.tracks(null, query, limit, offset) to libraryScanService.countTracks(null, query)
+                        }
+                        call.respondJson(StandaloneSearchResponse(query, offset, total, matches.map {
+                            TrackResponse(it.id, it.libraryId, it.relativePath, it.title, it.artist, it.album,
+                                it.albumArtist, it.durationSeconds, it.sizeBytes, it.modifiedAt?.toString())
+                        }))
+                    }
                     get("/tracks") {
                     if (libraryScanService == null) {
                         call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -497,6 +519,7 @@ data class TrackResponse(
     val sizeBytes: Long,
     val modifiedAt: String?,
 )
+data class StandaloneSearchResponse(val query: String, val offset: Int, val totalHits: Long, val tracks: List<TrackResponse>)
 data class TrackPage(val items: List<TrackResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
 data class ScanResponse(
     val id: String,

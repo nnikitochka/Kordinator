@@ -82,6 +82,14 @@ class KtorStandaloneScanTest {
                 assertEquals("01 - First Track", items[0].get("title").asText())
                 assertTrue(items[0].get("relativePath").asText().endsWith("01 - First Track.mp3"))
 
+                val search = client.get("/api/v1/search?query=first&limit=1") { bearerAuth(token) }
+                assertEquals(200, search.status.value)
+                val searchBody = mapper.readTree(search.bodyAsText())
+                assertEquals(1, searchBody.get("totalHits").asInt())
+                assertEquals(items[0].get("id").asLong(), searchBody.get("tracks")[0].get("id").asLong())
+                assertEquals(401, client.get("/api/v1/search?query=first").status.value)
+                assertEquals(400, client.get("/api/v1/search?query=first&limit=0") { bearerAuth(token) }.status.value)
+
                 val trackId = items[0].get("id").asLong()
                 val fullStream = client.get("/api/v1/tracks/$trackId/stream") { bearerAuth(token) }
                 assertEquals(200, fullStream.status.value, fullStream.bodyAsText())
