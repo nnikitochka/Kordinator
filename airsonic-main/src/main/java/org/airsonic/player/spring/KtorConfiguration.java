@@ -338,13 +338,14 @@ public class KtorConfiguration {
             DownloadService downloadService,
             CoverArtService coverArtService,
             TranscodingService transcodingService,
-            CoverArtImageService coverArtImageService,
-            HlsSegmentService hlsSegmentService
+            CoverArtImageService coverArtImageService
     ) throws Exception {
         runtime.createCoverArtAccentColorBackfill(coverArtService);
         LocaleService localeService = runtime.createLocaleService(settingsService);
         IndexManager indexManager = runtime.createIndexManager();
         HlsPlaylistService hlsPlaylistService = runtime.createHlsPlaylistService(jwtSecurityService);
+        HlsSegmentService hlsSegmentService = runtime.createHlsSegmentService(
+                mediaFileService, securityService, statusService, settingsService, transcodingService);
         AudioScrobblerService audioScrobblerService = runtime.createAudioScrobblerService(settingsService, securityService);
         org.airsonic.player.service.MediaScannerService mediaScannerService = runtime.createMediaScannerService(
                 playlistService, settingsService, indexManager, mediaFileService, mediaFolderService, coverArtService);

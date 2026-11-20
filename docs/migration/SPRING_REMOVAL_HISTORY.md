@@ -510,7 +510,7 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 20 ноября 2026:** удалены Spring projections `PlayQueueService` и `JukeboxService`; оба root-owned singleton-объекта собираются при servlet wiring из root services. Затем удалены projections `MusicIndexStateService` и `MediaScannerService`: index state, scan controller и music-folder administration используют общий scanner из runtime root. Удалён `PathWatcherService` projection: playlist и path-watcher REST endpoint получают root-owned singleton, lifecycle shutdown остаётся в root registry. Для каждого среза `RuntimeCompositionRootTest`, `RuntimeCompositionRootGraphTest` и `LegacyDatabaseStartupTestCase` прошли 9/9.
 
-**Срез 20 ноября 2026:** удалены Spring projections `PlayerService`, `IndexManager` и `HlsPlaylistService`. Ktor/UPnP assembly запрашивает их shared instances напрямую у `RuntimeCompositionRoot`; HLS playlist service создаётся при сборке servlet рядом с другими Ktor-only dependencies. Runtime graph/startup suite прошёл 9/9 после каждого из этих срезов.
+**Срез 20 ноября 2026:** удалены Spring projections `PlayerService`, `IndexManager`, `HlsPlaylistService` и `HlsSegmentService`. Ktor/UPnP assembly запрашивает их shared instances напрямую у `RuntimeCompositionRoot`; HLS services создаются при сборке servlet рядом с другими Ktor-only dependencies. Runtime graph/startup suite прошёл 9/9 после каждого из этих срезов.
 
 ## 6. Основание и связанные аудиты
 
