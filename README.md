@@ -17,6 +17,9 @@ The Docker image uses the same JAR and defaults to port 4040. Mount data at
 `--airsonic.create-admin=true` and an interactive terminal once with the same
 data volume to create the first administrator.
 
+See the [Kordinator migration plan](SPRING_REMOVAL_PLAN.md) for the current status
+and the remaining work.
+
 ## Airsonic-Advanced project history
 
 The information below describes the upstream project that Kordinator was
@@ -98,8 +101,8 @@ The following is an incomplete list of features that are enhanced from Airsonic:
   - Ability to pass properties via environment or system variables. You can but do not need to modify `airsonic.properties` to change preferences
   - Ability to use custom URLs to scrobble on ListenBrainz servers
   - Ability to use Repeat-One in play queues in web-clients
-  - Chromecast support: [read details](https://github.com/airsonic-advanced/airsonic-advanced/blob/master/CHROMECAST.md)
-  - Accent color of cover art exposed to external clients via Subsonic REST API: [read details](https://github.com/airsonic-advanced/airsonic-advanced/blob/master/ACCENT_COLOR.md)
+  - Chromecast support
+  - Accent color of cover art exposed to external clients via Subsonic REST API
   - Ability to upload to specified folders (via `UploadsFolder` property/parameter)
   - Ability to upload multiple files simultaneously
   - Ability to upload and extract more archive formats:
