@@ -208,24 +208,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     }
 
     @Bean
-    override fun playQueueService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        searchService: org.airsonic.player.service.SearchService,
-        jukeboxService: org.airsonic.player.service.JukeboxService,
-        settingsService: org.airsonic.player.service.SettingsService,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-        playlistService: org.airsonic.player.service.PlaylistService,
-        graph: org.airsonic.player.runtime.DaoGraph,
-        mediaFolderService: org.airsonic.player.service.MediaFolderService,
-        securityService: org.airsonic.player.service.SecurityService,
-        jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
-    ): org.airsonic.player.service.PlayQueueService = runtime.createPlayQueueService(
-        searchService, jukeboxService, settingsService, mediaFileService,
-        runtime.createLastFmService(graph.mediaFileDao, mediaFileService, graph.artistDao),
-        runtime.createRatingService(graph.ratingDao, securityService, mediaFileService), playlistService,
-        graph.mediaFileDao, mediaFolderService, graph.playQueueDao, jwtSecurityService)
-
-    @Bean
     override fun downloadService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         statusService: org.airsonic.player.service.StatusService,

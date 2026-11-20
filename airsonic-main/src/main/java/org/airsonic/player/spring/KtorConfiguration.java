@@ -120,11 +120,11 @@ import org.airsonic.player.service.LastFmService;
 import org.airsonic.player.service.JWTSecurityService;
 import org.airsonic.player.service.JukeboxService;
 import org.airsonic.player.service.JukeboxLegacySubsonicService;
-import org.airsonic.player.service.PlayQueueService;
 import org.airsonic.player.service.MediaFileService;
 import org.airsonic.player.service.MediaFolderService;
 import org.airsonic.player.service.PlayerService;
 import org.airsonic.player.service.PlaylistService;
+import org.airsonic.player.service.PlayQueueService;
 import org.airsonic.player.service.MediaScannerService;
 import org.airsonic.player.service.SecurityService;
 import org.airsonic.player.service.RatingService;
@@ -305,19 +305,6 @@ public class KtorConfiguration {
                 mediaFolderService, coverArtService);
     }
 
-    public PlayQueueService playQueueService(RuntimeCompositionRoot runtime, SearchService searchService, JukeboxService jukeboxService,
-            SettingsService settingsService, MediaFileService mediaFileService,
-            PlaylistService playlistService, org.airsonic.player.runtime.DaoGraph graph,
-            MediaFolderService mediaFolderService, SecurityService securityService,
-            JWTSecurityService jwtSecurityService) {
-        return runtime.createPlayQueueService(searchService, jukeboxService, settingsService, mediaFileService,
-                runtime.createLastFmService(graph.getMediaFileDao(), mediaFileService, graph.getArtistDao()),
-                runtime.createRatingService(graph.getRatingDao(), securityService, mediaFileService),
-                playlistService, graph.getMediaFileDao(), mediaFolderService,
-                graph.getPlayQueueDao(),
-                jwtSecurityService);
-    }
-
     public JukeboxService jukeboxService(RuntimeCompositionRoot runtime, TranscodingService transcodingService,
             StatusService statusService, SettingsService settingsService, SecurityService securityService,
             MediaFileService mediaFileService) {
@@ -381,7 +368,6 @@ public class KtorConfiguration {
             PlaylistService playlistService,
             TagEditService tagEditService,
             JukeboxService jukeboxService,
-            PlayQueueService playQueueService,
             SecurityService securityService,
             CredentialEncoderRegistry credentialEncoderRegistry,
             SettingsService settingsService,
@@ -406,6 +392,11 @@ public class KtorConfiguration {
                 settingsService, graph.getDatabaseDao(), taskSchedulingService);
         RatingService ratingService = runtime.createRatingService(
                 graph.getRatingDao(), securityService, mediaFileService);
+        LastFmService lastFmService = runtime.createLastFmService(
+                graph.getMediaFileDao(), mediaFileService, graph.getArtistDao());
+        PlayQueueService playQueueService = runtime.createPlayQueueService(
+                albumSearchService, jukeboxService, settingsService, mediaFileService, lastFmService, ratingService,
+                playlistService, graph.getMediaFileDao(), mediaFolderService, graph.getPlayQueueDao(), jwtSecurityService);
         JAXBWriter jaxbWriter = runtime.createSubsonicJaxbWriter();
         SubsonicResponseMapper responseMapper = runtime.createSubsonicResponseMapper(
                 mediaFileService, ratingService, coverArtService, transcodingService);
@@ -416,8 +407,6 @@ public class KtorConfiguration {
                 runtime.createSubsonicMusicFoldersService(mediaFolderService));
         GenresController genresController = runtime.createSubsonicGenresController();
         MusicIndexService musicIndexService = runtime.createMusicIndexService(settingsService, mediaFileService);
-        LastFmService lastFmService = runtime.createLastFmService(
-                graph.getMediaFileDao(), mediaFileService, graph.getArtistDao());
         ArtistsController artistsController = runtime.createSubsonicArtistsController(
                 musicIndexService, settingsService, mediaFolderService, responseMapper);
         RestPlayerResolver playerResolver = runtime.createRestPlayerResolver(playerService);
