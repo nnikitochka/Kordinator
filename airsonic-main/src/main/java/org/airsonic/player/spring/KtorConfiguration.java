@@ -324,7 +324,6 @@ public class KtorConfiguration {
             JWTSecurityService jwtSecurityService,
             MediaFileService mediaFileService,
             org.airsonic.player.runtime.DaoGraph graph,
-            SearchService albumSearchService,
             MediaFolderService mediaFolderService,
             PlaylistService playlistService,
             SecurityService securityService,
@@ -342,6 +341,7 @@ public class KtorConfiguration {
         runtime.createCoverArtAccentColorBackfill(coverArtService);
         LocaleService localeService = runtime.createLocaleService(settingsService);
         IndexManager indexManager = runtime.createIndexManager();
+        SearchService albumSearchService = runtime.createSearchService(mediaFileService);
         HlsPlaylistService hlsPlaylistService = runtime.createHlsPlaylistService(jwtSecurityService);
         HlsSegmentService hlsSegmentService = runtime.createHlsSegmentService(
                 mediaFileService, securityService, statusService, settingsService, transcodingService);
