@@ -191,13 +191,13 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
     override fun jukeboxLegacySubsonicService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         transcodingService: org.airsonic.player.service.TranscodingService,
-        audioScrobblerService: org.airsonic.player.service.AudioScrobblerService,
         statusService: org.airsonic.player.service.StatusService,
         settingsService: org.airsonic.player.service.SettingsService,
         securityService: org.airsonic.player.service.SecurityService,
         mediaFileService: org.airsonic.player.service.MediaFileService,
     ): org.airsonic.player.service.JukeboxLegacySubsonicService = runtime.createJukeboxLegacySubsonicService(
-        transcodingService, audioScrobblerService, statusService, settingsService, securityService, mediaFileService)
+        transcodingService, runtime.createAudioScrobblerService(settingsService, securityService), statusService,
+        settingsService, securityService, mediaFileService)
 
     @Bean
     override fun jukeboxService(
@@ -251,14 +251,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         taskSchedulingService: org.airsonic.player.service.TaskSchedulingService,
     ): org.airsonic.player.service.StatusService = runtime.createStatusService(
         mediaFileService, mediaFolderService, settingsService, taskSchedulingService)
-
-    @Bean
-    override fun audioScrobblerService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        settingsService: org.airsonic.player.service.SettingsService,
-        securityService: org.airsonic.player.service.SecurityService,
-    ): org.airsonic.player.service.AudioScrobblerService =
-        runtime.createAudioScrobblerService(settingsService, securityService)
 
     @Bean
     override fun ratingService(

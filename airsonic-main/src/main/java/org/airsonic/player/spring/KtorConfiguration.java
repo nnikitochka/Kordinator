@@ -280,11 +280,6 @@ public class KtorConfiguration {
                 indexManager, settingsService, playerService, transcodingService, jwtSecurityService);
     }
 
-    public AudioScrobblerService audioScrobblerService(RuntimeCompositionRoot runtime, SettingsService settingsService,
-            SecurityService securityService) {
-        return runtime.createAudioScrobblerService(settingsService, securityService);
-    }
-
     public RatingService ratingService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph, SecurityService securityService,
             MediaFileService mediaFileService) {
         return runtime.createRatingService(graph.getRatingDao(), securityService, mediaFileService);
@@ -334,9 +329,10 @@ public class KtorConfiguration {
 
     public JukeboxLegacySubsonicService jukeboxLegacySubsonicService(RuntimeCompositionRoot runtime,
             TranscodingService transcodingService,
-            AudioScrobblerService audioScrobblerService, StatusService statusService,
+            StatusService statusService,
             SettingsService settingsService, SecurityService securityService, MediaFileService mediaFileService) {
-        return runtime.createJukeboxLegacySubsonicService(transcodingService, audioScrobblerService, statusService,
+        return runtime.createJukeboxLegacySubsonicService(transcodingService,
+                runtime.createAudioScrobblerService(settingsService, securityService), statusService,
                 settingsService, securityService, mediaFileService);
     }
 
@@ -409,7 +405,6 @@ public class KtorConfiguration {
             SecurityService securityService,
             CredentialEncoderRegistry credentialEncoderRegistry,
             SettingsService settingsService,
-            AudioScrobblerService audioScrobblerService,
             UPnPService upnpService,
             StatusService statusService,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
@@ -427,6 +422,7 @@ public class KtorConfiguration {
     ) throws java.io.IOException {
         runtime.createCoverArtAccentColorBackfill(coverArtService);
         LocaleService localeService = runtime.createLocaleService(settingsService);
+        AudioScrobblerService audioScrobblerService = runtime.createAudioScrobblerService(settingsService, securityService);
         JAXBWriter jaxbWriter = runtime.createSubsonicJaxbWriter();
         SubsonicResponseMapper responseMapper = runtime.createSubsonicResponseMapper(
                 mediaFileService, ratingService, coverArtService, transcodingService);
