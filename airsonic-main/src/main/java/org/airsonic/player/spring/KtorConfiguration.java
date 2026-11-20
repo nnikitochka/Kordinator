@@ -311,11 +311,6 @@ public class KtorConfiguration {
         return runtime.createTranscodingService(graph.getTranscodingDao(), settingsService, mediaFolderService);
     }
 
-    public PlayerService playerService(RuntimeCompositionRoot runtime, StatusService statusService,
-            SecurityService securityService, TranscodingService transcodingService) throws Exception {
-        return runtime.createPlayerService(runtime.createPlayerDao(), statusService, securityService, transcodingService);
-    }
-
     public TaskSchedulingService taskSchedulingService(RuntimeCompositionRoot runtime) {
         return runtime.createTaskSchedulingService();
     }
@@ -335,7 +330,6 @@ public class KtorConfiguration {
             org.airsonic.player.runtime.DaoGraph graph,
             SearchService albumSearchService,
             MediaFolderService mediaFolderService,
-            PlayerService playerService,
             PlaylistService playlistService,
             TagEditService tagEditService,
             SecurityService securityService,
@@ -362,6 +356,8 @@ public class KtorConfiguration {
                 transcodingService, audioScrobblerService, statusService, settingsService, securityService,
                 mediaFileService);
         JukeboxService jukeboxService = runtime.createJukeboxService(legacyJukebox);
+        PlayerService playerService = runtime.createPlayerService(
+                runtime.createPlayerDao(), statusService, securityService, transcodingService);
         org.airsonic.player.service.DatabaseService databaseService = runtime.createDatabaseService(
                 settingsService, graph.getDatabaseDao(), taskSchedulingService);
         RatingService ratingService = runtime.createRatingService(

@@ -88,7 +88,8 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         playlistService: org.airsonic.player.service.PlaylistService,
         searchService: org.airsonic.player.service.SearchService,
         indexManager: org.airsonic.player.service.search.IndexManager,
-        playerService: org.airsonic.player.service.PlayerService,
+        statusService: org.airsonic.player.service.StatusService,
+        securityService: org.airsonic.player.service.SecurityService,
         transcodingService: org.airsonic.player.service.TranscodingService,
         jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
     ): org.airsonic.player.service.UPnPService = runtime.createUpnpService(
@@ -96,7 +97,8 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         runtime.createDispatchingContentDirectory(
             mediaFileService, mediaFolderService, playlistService, searchService,
             runtime.createMusicIndexService(settingsService, mediaFileService), indexManager,
-            settingsService, playerService, transcodingService, jwtSecurityService))
+            settingsService, runtime.createPlayerService(runtime.createPlayerDao(), statusService, securityService,
+                transcodingService), transcodingService, jwtSecurityService))
 
     @Bean
     override fun jwtSecurityService(
@@ -148,15 +150,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
     ): org.airsonic.player.service.TranscodingService = runtime.createTranscodingService(
         graph.transcodingDao, settingsService, mediaFolderService)
-
-    @Bean
-    override fun playerService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        statusService: org.airsonic.player.service.StatusService,
-        securityService: org.airsonic.player.service.SecurityService,
-        transcodingService: org.airsonic.player.service.TranscodingService,
-    ): org.airsonic.player.service.PlayerService = runtime.createPlayerService(
-        runtime.createPlayerDao(), statusService, securityService, transcodingService)
 
     @Bean
     override fun taskSchedulingService(
