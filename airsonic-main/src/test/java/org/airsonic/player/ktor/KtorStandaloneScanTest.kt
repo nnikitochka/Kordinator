@@ -8,8 +8,12 @@ import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.delete
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.delay
 import org.airsonic.player.runtime.StandaloneDatabase
@@ -17,10 +21,10 @@ import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.junit.jupiter.api.io.TempDir
-import java.nio.file.Files
-import java.nio.file.Path
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
+import java.nio.file.Files
+import java.nio.file.Path
 import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -54,6 +58,8 @@ class KtorStandaloneScanTest {
                 val auth = LocalAuthService(dataSource)
                 auth.createInitialAdmin("admin", "a strong password for tests")
                 val token = auth.login("admin", "a strong password for tests")!!.token
+                val listenerId = auth.createUser("listener", "listener password for tests")
+                val listenerToken = auth.login("listener", "listener password for tests")!!.token
                 val library = runtime.mediaFolderService.getAllMusicFolders(true, true).single()
                 val coreCatalog = mockCoreCatalog(
                     runtime,
@@ -155,6 +161,28 @@ class KtorStandaloneScanTest {
                     delay(25)
                 }
                 assertEquals("COMPLETED", state, "scan $scanId should complete")
+
+                assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/tracks/$coreTrackId") {
+                    bearerAuth(listenerToken)
+                }.status)
+                val grantLibrary = client.put("/api/v1/admin/users/$listenerId/libraries") {
+                    bearerAuth(token)
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"libraryIds":[${library.id}]}""")
+                }
+                assertEquals(HttpStatusCode.NoContent, grantLibrary.status)
+                val userLibraries = client.get("/api/v1/admin/users/$listenerId/libraries") { bearerAuth(token) }
+                assertEquals(HttpStatusCode.OK, userLibraries.status)
+                assertEquals(listOf(library.id.toLong()), mapper.readTree(userLibraries.bodyAsText()).map { it.asLong() })
+                val listenerCatalog = client.get("/api/v1/tracks?libraryId=${library.id}") {
+                    bearerAuth(listenerToken)
+                }
+                assertEquals(HttpStatusCode.OK, listenerCatalog.status)
+                assertEquals(1, mapper.readTree(listenerCatalog.bodyAsText()).get("total").asInt())
+                val deniedLibrary = client.get("/api/v1/tracks?libraryId=${library.id + 1}") {
+                    bearerAuth(listenerToken)
+                }
+                assertEquals(HttpStatusCode.NotFound, deniedLibrary.status)
 
                 val catalog = client.get("/api/v1/tracks?libraryId=${library.id}&q=first&limit=10&offset=0") {
                     bearerAuth(token)

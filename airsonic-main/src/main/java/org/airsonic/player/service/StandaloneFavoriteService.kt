@@ -9,29 +9,32 @@ class StandaloneFavoriteService(
     private val dataSource: DataSource,
     private val mediaCatalog: KtorCoreMediaCatalogService,
 ) {
-    fun list(userId: Long, limit: Int, offset: Int): List<StandaloneTrack> {
+    fun list(userId: Long, limit: Int, offset: Int, accessibleLibraryIds: Set<Long>? = null): List<StandaloneTrack> {
         val safeLimit = limit.coerceIn(1, 100)
         val safeOffset = offset.coerceAtLeast(0)
         val coreTrackIds = dataSource.connection.use { connection ->
-            connection.prepareStatement(SQL).use { statement ->
+            connection.prepareStatement(
+                "SELECT track_id FROM favorite_track WHERE user_id = ? ORDER BY created_at DESC, track_id",
+            ).use { statement ->
                 statement.setLong(1, userId)
-                statement.setInt(2, safeLimit)
-                statement.setInt(3, safeOffset)
                 statement.executeQuery().use { rows -> buildList { while (rows.next()) add(rows.getLong(1)) } }
             }
         }
-        return mediaCatalog.tracksByCoreIds(coreTrackIds)
+        return mediaCatalog.tracksByCoreIds(coreTrackIds, accessibleLibraryIds).drop(safeOffset).take(safeLimit)
     }
 
-    fun count(userId: Long): Long = dataSource.connection.use { connection ->
-        connection.prepareStatement("SELECT COUNT(*) FROM favorite_track WHERE user_id = ?").use { statement ->
-            statement.setLong(1, userId)
-            statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
+    fun count(userId: Long, accessibleLibraryIds: Set<Long>? = null): Long {
+        val trackIds = dataSource.connection.use { connection ->
+            connection.prepareStatement("SELECT track_id FROM favorite_track WHERE user_id = ?").use { statement ->
+                statement.setLong(1, userId)
+                statement.executeQuery().use { rows -> buildList { while (rows.next()) add(rows.getLong(1)) } }
+            }
         }
+        return mediaCatalog.tracksByCoreIds(trackIds, accessibleLibraryIds).size.toLong()
     }
 
-    fun set(userId: Long, trackId: Long, favorite: Boolean): Boolean {
-        if (mediaCatalog.track(trackId) == null) return false
+    fun set(userId: Long, trackId: Long, favorite: Boolean, accessibleLibraryIds: Set<Long>? = null): Boolean {
+        if (mediaCatalog.track(trackId, accessibleLibraryIds) == null) return false
         return dataSource.connection.use { connection ->
             if (favorite) {
                 val alreadyFavorite = connection.prepareStatement(
@@ -64,10 +67,5 @@ class StandaloneFavoriteService(
             }
             true
         }
-    }
-
-    private companion object {
-        const val SQL = "SELECT track_id FROM favorite_track WHERE user_id = ? " +
-            "ORDER BY created_at DESC, track_id LIMIT ? OFFSET ?"
     }
 }

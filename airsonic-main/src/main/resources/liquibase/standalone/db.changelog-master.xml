@@ -240,4 +240,19 @@
         </preConditions>
         <dropTable tableName="media_track"/>
     </changeSet>
+    <changeSet id="standalone-user-library-access-1" author="kordinator">
+        <createTable tableName="local_user_library">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="library_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="local_user_library" columnNames="user_id, library_id"
+                       constraintName="pk_local_user_library"/>
+        <addForeignKeyConstraint baseTableName="local_user_library" baseColumnNames="user_id"
+                                 constraintName="fk_local_user_library_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+    </changeSet>
 </databaseChangeLog>

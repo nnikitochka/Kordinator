@@ -26,22 +26,23 @@ class StandalonePlaylistService(
     private val dataSource: DataSource,
     private val mediaCatalog: KtorCoreMediaCatalogService,
 ) {
-    fun list(ownerId: Long): List<StandalonePlaylistSummary> = dataSource.connection.use { connection ->
+    fun list(ownerId: Long, accessibleLibraryIds: Set<Long>? = null): List<StandalonePlaylistSummary> = dataSource.connection.use { connection ->
         connection.prepareStatement(
-            "SELECT p.id, p.name, p.created_at, p.updated_at, COUNT(t.position) AS track_count " +
-                "FROM user_playlist p LEFT JOIN user_playlist_track t ON t.playlist_id = p.id " +
-                "WHERE p.owner_id = ? GROUP BY p.id, p.name, p.created_at, p.updated_at " +
+            "SELECT p.id, p.name, p.created_at, p.updated_at " +
+                "FROM user_playlist p WHERE p.owner_id = ? " +
                 "ORDER BY p.name, p.id",
         ).use { statement ->
             statement.setLong(1, ownerId)
             statement.executeQuery().use { rows ->
                 buildList {
                     while (rows.next()) {
+                        val playlistId = rows.getLong("id")
+                        val playlist = get(connection, ownerId, playlistId, accessibleLibraryIds)
                         add(
                             StandalonePlaylistSummary(
-                                rows.getLong("id"), rows.getString("name"), rows.getTimestamp("created_at").toInstant(),
-                                rows.getTimestamp("updated_at").toInstant(), rows.getInt("track_count"),
-                            ),
+                                playlistId, rows.getString("name"), rows.getTimestamp("created_at").toInstant(),
+                                rows.getTimestamp("updated_at").toInstant(), playlist?.tracks?.size ?: 0,
+                            )
                         )
                     }
                 }
@@ -49,11 +50,11 @@ class StandalonePlaylistService(
         }
     }
 
-    fun get(ownerId: Long, playlistId: Long): StandalonePlaylist? = dataSource.connection.use { connection ->
-        get(connection, ownerId, playlistId)
+    fun get(ownerId: Long, playlistId: Long, accessibleLibraryIds: Set<Long>? = null): StandalonePlaylist? = dataSource.connection.use { connection ->
+        get(connection, ownerId, playlistId, accessibleLibraryIds)
     }
 
-    private fun get(connection: Connection, ownerId: Long, playlistId: Long): StandalonePlaylist? {
+    private fun get(connection: Connection, ownerId: Long, playlistId: Long, accessibleLibraryIds: Set<Long>?): StandalonePlaylist? {
         val header = connection.prepareStatement(
             "SELECT name, created_at, updated_at FROM user_playlist WHERE id = ? AND owner_id = ?",
         ).use { statement ->
@@ -70,15 +71,15 @@ class StandalonePlaylistService(
             statement.setLong(1, playlistId)
             statement.executeQuery().use { rows -> buildList { while (rows.next()) add(rows.getLong(1)) } }
         }
-        val tracks = mediaCatalog.tracksByCoreIds(coreTrackIds)
+        val tracks = mediaCatalog.tracksByCoreIds(coreTrackIds, accessibleLibraryIds)
         return StandalonePlaylist(playlistId, header.first, header.second, header.third, tracks)
     }
 
-    fun create(ownerId: Long, name: String, trackIds: List<Long>): StandalonePlaylist {
+    fun create(ownerId: Long, name: String, trackIds: List<Long>, accessibleLibraryIds: Set<Long>? = null): StandalonePlaylist {
         val normalizedName = validate(name, trackIds)
         val coreTrackIds = trackIds
         return transaction { connection ->
-            requireTracksExist(coreTrackIds)
+            requireTracksExist(coreTrackIds, accessibleLibraryIds)
             val now = Instant.now()
             val playlistId = connection.prepareStatement(
                 "INSERT INTO user_playlist (owner_id, name, created_at, updated_at) VALUES (?, ?, ?, ?)",
@@ -95,11 +96,17 @@ class StandalonePlaylistService(
                 }
             }
             replaceTracks(connection, playlistId, coreTrackIds)
-            get(connection, ownerId, playlistId) ?: error("Created playlist is not visible to its owner")
+            get(connection, ownerId, playlistId, accessibleLibraryIds) ?: error("Created playlist is not visible to its owner")
         }
     }
 
-    fun update(ownerId: Long, playlistId: Long, name: String, trackIds: List<Long>): StandalonePlaylist? {
+    fun update(
+        ownerId: Long,
+        playlistId: Long,
+        name: String,
+        trackIds: List<Long>,
+        accessibleLibraryIds: Set<Long>? = null,
+    ): StandalonePlaylist? {
         val normalizedName = validate(name, trackIds)
         val coreTrackIds = trackIds
         return transaction { connection ->
@@ -109,7 +116,7 @@ class StandalonePlaylistService(
                 statement.executeQuery().use { it.next() }
             }
             if (!exists) return@transaction null
-            requireTracksExist(coreTrackIds)
+            requireTracksExist(coreTrackIds, accessibleLibraryIds)
             connection.prepareStatement("UPDATE user_playlist SET name = ?, updated_at = ? WHERE id = ? AND owner_id = ?").use { statement ->
                 statement.setString(1, normalizedName)
                 statement.setTimestamp(2, Timestamp.from(Instant.now()))
@@ -118,7 +125,7 @@ class StandalonePlaylistService(
                 check(statement.executeUpdate() == 1)
             }
             replaceTracks(connection, playlistId, coreTrackIds)
-            get(connection, ownerId, playlistId)
+            get(connection, ownerId, playlistId, accessibleLibraryIds)
         }
     }
 
@@ -138,8 +145,10 @@ class StandalonePlaylistService(
         return normalized
     }
 
-    private fun requireTracksExist(coreTrackIds: List<Long>) {
-        require(mediaCatalog.tracksByCoreIds(coreTrackIds).size == coreTrackIds.size) { "Track does not exist" }
+    private fun requireTracksExist(coreTrackIds: List<Long>, accessibleLibraryIds: Set<Long>?) {
+        require(mediaCatalog.tracksByCoreIds(coreTrackIds, accessibleLibraryIds).size == coreTrackIds.size) {
+            "Track does not exist or is not accessible"
+        }
     }
 
     private fun replaceTracks(connection: Connection, playlistId: Long, trackIds: List<Long>) {

@@ -11,7 +11,12 @@ import java.time.Instant
 import java.util.Base64
 import javax.sql.DataSource
 
-data class LocalUserPrincipal(val id: Long, val username: String, val role: String)
+data class LocalUserPrincipal(
+    val id: Long,
+    val username: String,
+    val role: String,
+    val allowedLibraryIds: Set<Long> = emptySet(),
+)
 data class LocalSessionToken(val token: String, val expiresAt: Instant)
 
 /** Owns local password authentication and opaque, revocable bearer sessions. */
@@ -174,9 +179,69 @@ class LocalAuthService(
                 statement.setString(1, sha256(token))
                 statement.setTimestamp(2, Timestamp.from(clock.instant()))
                 statement.executeQuery().use { rows ->
-                    if (rows.next()) LocalUserPrincipal(rows.getLong("id"), rows.getString("username"), rows.getString("role")) else null
+                    if (rows.next()) Triple(rows.getLong("id"), rows.getString("username"), rows.getString("role")) else null
+                }?.let { (userId, username, role) ->
+                    val allowedLibraries = connection.prepareStatement(
+                        "SELECT library_id FROM local_user_library WHERE user_id = ?",
+                    ).use { accessStatement ->
+                        accessStatement.setLong(1, userId)
+                        accessStatement.executeQuery().use { accessRows ->
+                            buildSet { while (accessRows.next()) add(accessRows.getLong("library_id")) }
+                        }
+                    }
+                    LocalUserPrincipal(userId, username, role, allowedLibraries)
                 }
             }
+        }
+    }
+
+    fun setAllowedLibraries(userId: Long, libraryIds: Set<Long>): Boolean {
+        require(libraryIds.all { it >= 0 }) { "Library IDs must be non-negative" }
+        dataSource.connection.use { connection ->
+            connection.autoCommit = false
+            try {
+                val exists = connection.prepareStatement("SELECT 1 FROM local_user WHERE id = ?").use { statement ->
+                    statement.setLong(1, userId)
+                    statement.executeQuery().use { it.next() }
+                }
+                if (!exists) {
+                    connection.rollback()
+                    return false
+                }
+                connection.prepareStatement("DELETE FROM local_user_library WHERE user_id = ?").use { statement ->
+                    statement.setLong(1, userId)
+                    statement.executeUpdate()
+                }
+                connection.prepareStatement(
+                    "INSERT INTO local_user_library (user_id, library_id) VALUES (?, ?)",
+                ).use { statement ->
+                    libraryIds.forEach { libraryId ->
+                        statement.setLong(1, userId)
+                        statement.setLong(2, libraryId)
+                        statement.addBatch()
+                    }
+                    if (libraryIds.isNotEmpty()) statement.executeBatch()
+                }
+                connection.commit()
+                return true
+            } catch (failure: Throwable) {
+                connection.rollback()
+                throw failure
+            } finally {
+                connection.autoCommit = true
+            }
+        }
+    }
+
+    fun allowedLibraries(userId: Long): Set<Long>? = dataSource.connection.use { connection ->
+        val exists = connection.prepareStatement("SELECT 1 FROM local_user WHERE id = ?").use { statement ->
+            statement.setLong(1, userId)
+            statement.executeQuery().use { it.next() }
+        }
+        if (!exists) return@use null
+        connection.prepareStatement("SELECT library_id FROM local_user_library WHERE user_id = ?").use { statement ->
+            statement.setLong(1, userId)
+            statement.executeQuery().use { rows -> buildSet { while (rows.next()) add(rows.getLong("library_id")) } }
         }
     }
 

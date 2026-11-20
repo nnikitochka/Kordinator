@@ -108,8 +108,10 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("invalid_request", "Query is required, offset must be non-negative and limit must be between 1 and 100"), HttpStatusCode.BadRequest)
                             return@get
                         }
+                        val accessibleLibraries = call.catalogLibraryScope()
                         val (matches, total) = withContext(scanDispatcher) {
-                            mediaCatalogService.tracks(null, query, limit, offset) to mediaCatalogService.countTracks(null, query)
+                            mediaCatalogService.tracks(null, query, limit, offset, accessibleLibraries) to
+                                mediaCatalogService.countTracks(null, query, accessibleLibraries)
                         }
                         call.respondJson(StandaloneSearchResponse(query, offset, total, matches.map {
                             TrackResponse(it.id, it.libraryId, it.relativePath, it.title, it.artist, it.album,
@@ -133,7 +135,14 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("invalid_request", "libraryId must be between 0 and ${Int.MAX_VALUE}, limit between 1 and 100, and offset non-negative"), HttpStatusCode.BadRequest)
                             return@get
                         }
-                        val albums = withContext(scanDispatcher) { mediaCatalogService.albums(libraryId, limit, offset) }
+                        val accessibleLibraries = call.catalogLibraryScope()
+                        if (libraryId != null && accessibleLibraries?.contains(libraryId) == false) {
+                            call.respond(HttpStatusCode.NotFound)
+                            return@get
+                        }
+                        val albums = withContext(scanDispatcher) {
+                            mediaCatalogService.albums(libraryId, limit, offset, accessibleLibraries)
+                        }
                         call.respondJson(AlbumPage(albums.map { it.toResponse() }, albums.size, limit, offset))
                     }
                     get("/albums/{id}") {
@@ -147,7 +156,14 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
                             return@get
                         }
-                        val tracks = withContext(scanDispatcher) { service.tracksForAlbum(selector.first, selector.second) }
+                        val accessibleLibraries = call.catalogLibraryScope()
+                        if (accessibleLibraries?.contains(selector.first) == false) {
+                            call.respond(HttpStatusCode.NotFound)
+                            return@get
+                        }
+                        val tracks = withContext(scanDispatcher) {
+                            service.tracksForAlbum(selector.first, selector.second, accessibleLibraries)
+                        }
                         if (tracks.isEmpty()) {
                             call.respond(HttpStatusCode.NotFound)
                             return@get
@@ -174,7 +190,14 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("invalid_request", "libraryId must be between 0 and ${Int.MAX_VALUE}, limit between 1 and 100, and offset non-negative"), HttpStatusCode.BadRequest)
                             return@get
                         }
-                        val artists = withContext(scanDispatcher) { mediaCatalogService.artists(libraryId, limit, offset) }
+                        val accessibleLibraries = call.catalogLibraryScope()
+                        if (libraryId != null && accessibleLibraries?.contains(libraryId) == false) {
+                            call.respond(HttpStatusCode.NotFound)
+                            return@get
+                        }
+                        val artists = withContext(scanDispatcher) {
+                            mediaCatalogService.artists(libraryId, limit, offset, accessibleLibraries)
+                        }
                         call.respondJson(ArtistPage(artists.map { it.toResponse() }, artists.size, limit, offset))
                     }
                     get("/artists/{id}") {
@@ -188,7 +211,14 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
                             return@get
                         }
-                        val tracks = withContext(scanDispatcher) { service.tracksForArtist(selector.first, selector.second) }
+                        val accessibleLibraries = call.catalogLibraryScope()
+                        if (accessibleLibraries?.contains(selector.first) == false) {
+                            call.respond(HttpStatusCode.NotFound)
+                            return@get
+                        }
+                        val tracks = withContext(scanDispatcher) {
+                            service.tracksForArtist(selector.first, selector.second, accessibleLibraries)
+                        }
                         if (tracks.isEmpty()) {
                             call.respond(HttpStatusCode.NotFound)
                             return@get
@@ -211,8 +241,14 @@ fun Application.standaloneModule(
                     val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 50
                     val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
                     val query = call.request.queryParameters["q"]
+                    val accessibleLibraries = call.catalogLibraryScope()
+                    if (libraryId != null && accessibleLibraries?.contains(libraryId) == false) {
+                        call.respond(HttpStatusCode.NotFound)
+                        return@get
+                    }
                     val (requestedTracks, total) = withContext(scanDispatcher) {
-                        mediaCatalogService.tracks(libraryId, query, limit, offset) to mediaCatalogService.countTracks(libraryId, query)
+                        mediaCatalogService.tracks(libraryId, query, limit, offset, accessibleLibraries) to
+                            mediaCatalogService.countTracks(libraryId, query, accessibleLibraries)
                     }
                     val tracks = requestedTracks.map {
                         TrackResponse(
@@ -232,7 +268,9 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
                             return@get
                         }
-                        val track = withContext(scanDispatcher) { mediaCatalogService.track(trackId) }
+                        val track = withContext(scanDispatcher) {
+                            mediaCatalogService.track(trackId, call.catalogLibraryScope())
+                        }
                         if (track == null) {
                             call.respond(HttpStatusCode.NotFound)
                             return@get
@@ -253,7 +291,9 @@ fun Application.standaloneModule(
                         call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
                         return@get
                     }
-                    val catalogTrack = withContext(scanDispatcher) { catalogService.track(trackId) }
+                    val catalogTrack = withContext(scanDispatcher) {
+                        catalogService.track(trackId, call.catalogLibraryScope())
+                    }
                     if (catalogTrack == null) {
                         call.respond(HttpStatusCode.NotFound)
                         return@get
@@ -308,7 +348,9 @@ fun Application.standaloneModule(
                         call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
                         return@get
                     }
-                    val catalogTrack = withContext(scanDispatcher) { catalogService.track(trackId) }
+                    val catalogTrack = withContext(scanDispatcher) {
+                        catalogService.track(trackId, call.catalogLibraryScope())
+                    }
                     if (catalogTrack == null) {
                         call.respond(HttpStatusCode.NotFound)
                         return@get
@@ -366,8 +408,11 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("invalid_request", "Limit must be between 1 and 100 and offset non-negative"), HttpStatusCode.BadRequest)
                             return@get
                         }
-                        val tracks = withContext(scanDispatcher) { service.list(user.id, limit, offset) }
-                        call.respondJson(FavoriteTrackPage(tracks.map { it.toResponse() }, tracks.size, service.count(user.id), limit, offset))
+                        val accessibleLibraries = user.catalogLibraryScope()
+                        val tracks = withContext(scanDispatcher) { service.list(user.id, limit, offset, accessibleLibraries) }
+                        call.respondJson(FavoriteTrackPage(
+                            tracks.map { it.toResponse() }, tracks.size, service.count(user.id, accessibleLibraries), limit, offset,
+                        ))
                     }
                     put("/tracks/{id}/favorite") {
                         setFavorite(call, favoriteService, true)
@@ -382,7 +427,8 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
                             return@get
                         }
-                        val playlists = withContext(scanDispatcher) { playlistService.list(user.id) }
+                        val accessibleLibraries = user.catalogLibraryScope()
+                        val playlists = withContext(scanDispatcher) { playlistService.list(user.id, accessibleLibraries) }
                             .map { PlaylistSummaryResponse(it.id, it.name, it.createdAt.toString(), it.updatedAt.toString(), it.trackCount) }
                         call.respondJson(playlists)
                     }
@@ -400,7 +446,9 @@ fun Application.standaloneModule(
                             return@post
                         }
                         try {
-                            val playlist = withContext(scanDispatcher) { playlistService.create(user.id, request.name, request.trackIds) }
+                            val playlist = withContext(scanDispatcher) {
+                                playlistService.create(user.id, request.name, request.trackIds, user.catalogLibraryScope())
+                            }
                             call.respondJson(playlist.toResponse(), HttpStatusCode.Created)
                         } catch (_: IllegalArgumentException) {
                             call.respondJson(ApiError("invalid_playlist", "Playlist name or track IDs are invalid"), HttpStatusCode.BadRequest)
@@ -419,7 +467,9 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("invalid_request", "Playlist ID must be a non-negative number"), HttpStatusCode.BadRequest)
                             return@get
                         }
-                        val playlist = withContext(scanDispatcher) { service.get(user.id, playlistId) }
+                        val playlist = withContext(scanDispatcher) {
+                            service.get(user.id, playlistId, user.catalogLibraryScope())
+                        }
                         if (playlist == null) call.respond(HttpStatusCode.NotFound) else call.respondJson(playlist.toResponse())
                     }
                     put("/playlists/{id}") {
@@ -442,7 +492,9 @@ fun Application.standaloneModule(
                             return@put
                         }
                         try {
-                            val playlist = withContext(scanDispatcher) { service.update(user.id, playlistId, request.name, request.trackIds) }
+                            val playlist = withContext(scanDispatcher) {
+                                service.update(user.id, playlistId, request.name, request.trackIds, user.catalogLibraryScope())
+                            }
                             if (playlist == null) call.respond(HttpStatusCode.NotFound) else call.respondJson(playlist.toResponse())
                         } catch (_: IllegalArgumentException) {
                             call.respondJson(ApiError("invalid_playlist", "Playlist name or track IDs are invalid"), HttpStatusCode.BadRequest)
@@ -551,6 +603,55 @@ fun Application.standaloneModule(
                         }
                         val changed = withContext(authDispatcher) { authService.setUserEnabled(targetId, request.enabled) }
                         if (changed) call.respond(HttpStatusCode.NoContent) else {
+                            call.respondJson(ApiError("user_not_found", "User does not exist"), HttpStatusCode.NotFound)
+                        }
+                    }
+                    get("/admin/users/{id}/libraries") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val targetId = call.parameters["id"]?.toLongOrNull()
+                        if (targetId == null) {
+                            call.respondJson(ApiError("invalid_request", "User ID must be a number"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val libraries = withContext(authDispatcher) { authService.allowedLibraries(targetId) }
+                        if (libraries == null) call.respondJson(ApiError("user_not_found", "User does not exist"), HttpStatusCode.NotFound)
+                        else call.respondJson(libraries.sorted())
+                    }
+                    put("/admin/users/{id}/libraries") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@put
+                        }
+                        val targetId = call.parameters["id"]?.toLongOrNull()
+                        if (targetId == null) {
+                            call.respondJson(ApiError("invalid_request", "User ID must be a number"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), SetUserLibrariesRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected a libraryIds array"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val validLibraryIds = mediaFolderService?.let { service ->
+                            withContext(authDispatcher) { service.getAllMusicFolders(true, true, true) }
+                                .mapNotNull { it.id?.toLong() }.toSet()
+                        }.orEmpty()
+                        if (!validLibraryIds.containsAll(request.libraryIds)) {
+                            call.respondJson(ApiError("invalid_library", "One or more libraries do not exist"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val updated = withContext(authDispatcher) {
+                            authService.setAllowedLibraries(targetId, request.libraryIds)
+                        }
+                        if (updated) call.respond(HttpStatusCode.NoContent) else {
                             call.respondJson(ApiError("user_not_found", "User does not exist"), HttpStatusCode.NotFound)
                         }
                     }
@@ -679,6 +780,7 @@ data class ApiError(val code: String, val message: String)
 data class ChangePasswordRequest(val currentPassword: String, val newPassword: String)
 data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
 data class SetUserEnabledRequest(val enabled: Boolean)
+data class SetUserLibrariesRequest(val libraryIds: Set<Long>)
 data class CreateLibraryRequest(val name: String, val path: String)
 data class LibraryResponse(val id: Long, val name: String, val path: String, val createdAt: String)
 private fun MusicFolder.toLibraryResponse() = LibraryResponse(
@@ -757,6 +859,14 @@ private fun String.decodeCatalogId(): Pair<Long, String>? {
     }
 }
 
+private fun LocalUserPrincipal.catalogLibraryScope(): Set<Long>? =
+    if (role == "ADMIN") null else allowedLibraryIds
+
+private fun ApplicationCall.catalogLibraryScope(): Set<Long>? {
+    val user = principal<LocalUserPrincipal>() ?: return emptySet()
+    return user.catalogLibraryScope()
+}
+
 private suspend fun setFavorite(call: ApplicationCall, service: StandaloneFavoriteService?, favorite: Boolean) {
     val user = call.principal<LocalUserPrincipal>()
         ?: return call.respond(HttpStatusCode.Unauthorized)
@@ -769,7 +879,7 @@ private suspend fun setFavorite(call: ApplicationCall, service: StandaloneFavori
         call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
         return
     }
-    val updated = withContext(scanDispatcher) { service.set(user.id, trackId, favorite) }
+    val updated = withContext(scanDispatcher) { service.set(user.id, trackId, favorite, user.catalogLibraryScope()) }
     if (updated) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
 }
 data class SavePlaylistRequest(val name: String, val trackIds: List<Long> = emptyList())
