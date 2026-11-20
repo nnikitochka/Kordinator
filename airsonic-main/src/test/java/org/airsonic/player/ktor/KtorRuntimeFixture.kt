@@ -2,8 +2,15 @@ package org.airsonic.player.ktor
 
 import org.airsonic.player.runtime.RuntimeCompositionRoot
 import org.airsonic.player.runtime.RuntimeConfiguration
+import org.airsonic.player.domain.MediaFile
+import org.airsonic.player.domain.MusicFolder
+import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.MediaScannerService
 import java.nio.file.Path
+import java.nio.file.Paths
+import java.time.Instant
+import org.mockito.Mockito
 
 internal class KtorRuntimeFixture(home: Path, defaultMusicFolder: Path, databaseName: String) : AutoCloseable {
     val runtime = RuntimeCompositionRoot(
@@ -30,4 +37,34 @@ internal class KtorRuntimeFixture(home: Path, defaultMusicFolder: Path, database
     override fun close() {
         runtime.lifecycleRegistry.shutdown()
     }
+}
+
+internal data class CoreCatalogFixture(
+    val mediaFileService: MediaFileService,
+    val mediaScannerService: MediaScannerService,
+)
+
+internal fun mockCoreCatalog(folder: MusicFolder, relativePath: String, title: String, sizeBytes: Long): CoreCatalogFixture {
+    val folderId = requireNotNull(folder.id)
+    val scanner = Mockito.mock(MediaScannerService::class.java)
+    val mediaFiles = Mockito.mock(MediaFileService::class.java)
+    val root = MediaFile().apply {
+        path = ""
+        this.folderId = folderId
+        mediaType = MediaFile.MediaType.DIRECTORY
+        this.title = "Music"
+        setPresent(true)
+    }
+    val audio = MediaFile().apply {
+        path = relativePath
+        this.folderId = folderId
+        mediaType = MediaFile.MediaType.MUSIC
+        this.title = title
+        fileSize = sizeBytes
+        changed = Instant.now()
+        setPresent(true)
+    }
+    Mockito.`when`(mediaFiles.getMediaFile(Paths.get(""), folder, true)).thenReturn(root)
+    Mockito.`when`(mediaFiles.getChildrenOf(root, true, true, true, true)).thenReturn(listOf(audio))
+    return CoreCatalogFixture(mediaFiles, scanner)
 }

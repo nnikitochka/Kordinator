@@ -859,7 +859,6 @@ fun main(args: Array<String>) {
     val legacyGraph = runtime.createPersistenceGraph(runtime.createDataSource()).daos
     val settingsService = runtime.createSettingsService()
     val mediaFolderService = runtime.createMediaFolderService()
-    libraryScanService = StandaloneLibraryScanService(standaloneDatabase.dataSource, mediaFolderService)
     val securityService = runtime.createSecurityService(
         legacyGraph.userDao,
         settingsService,
@@ -886,6 +885,12 @@ fun main(args: Array<String>) {
         mediaFileService,
         mediaFolderService,
         coverArtService,
+    )
+    libraryScanService = StandaloneLibraryScanService(
+        standaloneDatabase.dataSource,
+        mediaFolderService,
+        mediaFileService,
+        mediaScannerService,
     )
     val server = embeddedServer(Netty, host = host, port = port) {
         standaloneModule(

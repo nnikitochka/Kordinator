@@ -47,7 +47,18 @@ class KtorStandalonePlaylistTest {
                 val ownerToken = auth.login("owner", "a strong password for tests")!!.token
                 val otherToken = auth.login("other", "another strong password")!!.token
                 val library = runtime.mediaFolderService.getAllMusicFolders(true, true).single()
-                val scans = StandaloneLibraryScanService(dataSource, runtime.mediaFolderService)
+                val coreCatalog = mockCoreCatalog(
+                    library,
+                    "track.mp3",
+                    "track",
+                    Files.size(musicRoot.resolve("track.mp3")),
+                )
+                val scans = StandaloneLibraryScanService(
+                    dataSource,
+                    runtime.mediaFolderService,
+                    coreCatalog.mediaFileService,
+                    coreCatalog.mediaScannerService,
+                )
                 val scan = scans.enqueue(library.id.toLong())
                 scans.run(scan.id)
                 val playlists = StandalonePlaylistService(dataSource)

@@ -1,14 +1,15 @@
 package org.airsonic.player.service
 
-import org.jaudiotagger.audio.AudioFileIO
-import org.jaudiotagger.tag.FieldKey
+import org.airsonic.player.domain.MediaFile
+import org.airsonic.player.service.MediaFileService
+import org.airsonic.player.service.MediaScannerService
 import org.airsonic.player.service.metadata.JaudiotaggerParser
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.io.ByteArrayInputStream
 import javax.imageio.ImageIO
-import java.nio.file.attribute.BasicFileAttributes
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
@@ -54,10 +55,12 @@ data class StandaloneAlbum(
 )
 data class StandaloneArtist(val libraryId: Long, val name: String, val albumCount: Long, val trackCount: Long)
 
-/** Scans registered roots and serves indexed track metadata for the standalone API. */
+/** Coordinates the core media scan and projects its catalog entries into the Ktor API store. */
 class StandaloneLibraryScanService(
     private val dataSource: DataSource,
     private val mediaFolderService: MediaFolderService,
+    private val mediaFileService: MediaFileService,
+    private val mediaScannerService: MediaScannerService,
 ) {
     fun enqueue(libraryId: Long): LibraryScan {
         val musicFolder = libraryId.takeIf { it in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong() }?.toInt()?.let {
@@ -98,19 +101,29 @@ class StandaloneLibraryScanService(
         var errors = 0L
 
         try {
+            runCoreScan()
+            val musicFolder = requireNotNull(mediaFolderService.getMusicFolderById(scan.libraryId.toInt(), true, true))
             val rootPath = root.toRealPath()
-            Files.walk(rootPath).use { paths ->
-                paths.filter { path ->
-                    path != rootPath && !Files.isSymbolicLink(path) && Files.isRegularFile(path) &&
-                        path.fileName.toString().substringAfterLast('.', "").lowercase() in AUDIO_EXTENSIONS
-                }.forEach { file ->
-                    val attributes = Files.readAttributes(file, BasicFileAttributes::class.java)
-                    val metadata = readMetadata(file)
-                    if (metadata.parseError) errors++
-                    val relativePath = rootPath.relativize(file).toString()
-                    upsertTrack(scan, relativePath, file, attributes, metadata)
-                    count++
-                    updateProgress(scanId, count, errors)
+            val rootFile = mediaFileService.getMediaFile(Paths.get(""), musicFolder, true)
+                ?: throw IllegalStateException("Music folder root is unavailable after scanning")
+            val pending = ArrayDeque<MediaFile>()
+            pending.add(rootFile)
+            while (pending.isNotEmpty()) {
+                val parent = pending.removeLast()
+                mediaFileService.getChildrenOf(parent, true, true, true, true).forEach { mediaFile ->
+                    if (mediaFile.isDirectory) {
+                        pending.add(mediaFile)
+                    } else if (mediaFile.isAudio) {
+                        val relativePath = Paths.get(mediaFile.path).normalize()
+                        val file = rootPath.resolve(relativePath).normalize()
+                        if (!file.startsWith(rootPath) || Files.isSymbolicLink(file) || !Files.isRegularFile(file)) {
+                            errors++
+                        } else {
+                            upsertTrack(scan, relativePath.toString(), mediaFile)
+                            count++
+                        }
+                        updateProgress(scanId, count, errors)
+                    }
                 }
             }
             deleteStaleTracks(scan.libraryId, scan.id)
@@ -118,6 +131,17 @@ class StandaloneLibraryScanService(
         } catch (failure: Throwable) {
             LOG.error("Standalone music scan {} failed", scanId, failure)
             finish(scanId, "FAILED", count, errors + 1)
+        }
+    }
+
+    private fun runCoreScan() {
+        if (!mediaScannerService.isScanning) {
+            mediaScannerService.scanLibrary()
+        }
+        val deadline = System.nanoTime() + CORE_SCAN_TIMEOUT_NANOS
+        while (mediaScannerService.isScanning) {
+            check(System.nanoTime() < deadline) { "Media library scan did not finish before timeout" }
+            Thread.sleep(CORE_SCAN_POLL_MILLIS)
         }
     }
 
@@ -351,33 +375,13 @@ class StandaloneLibraryScanService(
         ?.toInt()
         ?.let { mediaFolderService.getMusicFolderById(it, true, true)?.path }
 
-    private fun readMetadata(file: Path): ParsedMetadata = try {
-        val audio = AudioFileIO.read(file.toFile())
-        val tag = audio.tag
-        ParsedMetadata(
-            title = tag?.getFirst(FieldKey.TITLE)?.trim()?.takeIf { it.isNotEmpty() } ?: file.fileName.toString().substringBeforeLast('.'),
-            artist = tag?.getFirst(FieldKey.ARTIST)?.trim()?.takeIf { it.isNotEmpty() },
-            album = tag?.getFirst(FieldKey.ALBUM)?.trim()?.takeIf { it.isNotEmpty() },
-            albumArtist = tag?.getFirst(FieldKey.ALBUM_ARTIST)?.trim()?.takeIf { it.isNotEmpty() },
-            discNumber = tag?.getFirst(FieldKey.DISC_NO)?.toIntTag(),
-            trackNumber = tag?.getFirst(FieldKey.TRACK)?.toIntTag(),
-            year = tag?.getFirst(FieldKey.YEAR)?.toIntTag(),
-            genre = tag?.getFirst(FieldKey.GENRE)?.trim()?.takeIf { it.isNotEmpty() },
-            duration = audio.audioHeader.trackLength.coerceAtLeast(0),
-            parseError = false,
-        )
-    } catch (failure: Exception) {
-        LOG.debug("Could not parse audio tags for {}", file, failure)
-        ParsedMetadata(file.fileName.toString().substringBeforeLast('.'), null, null, null, null, null, null, null, 0, true)
-    }
-
     private fun upsertTrack(
         scan: LibraryScan,
         relativePath: String,
-        file: Path,
-        attributes: BasicFileAttributes,
-        metadata: ParsedMetadata,
+        mediaFile: MediaFile,
     ) {
+        val title = mediaFile.title?.takeIf { it.isNotBlank() } ?: Paths.get(relativePath).fileName.toString().substringBeforeLast('.')
+        val modifiedAt = mediaFile.changed ?: Instant.now()
         dataSource.connection.use { connection ->
             val existingId = connection.prepareStatement(
                 "SELECT id FROM media_track WHERE library_id = ? AND relative_path = ?",
@@ -397,17 +401,17 @@ class StandaloneLibraryScanService(
                 var index = 1
                 if (existingId == null) statement.setLong(index++, scan.libraryId)
                 if (existingId == null) statement.setString(index++, relativePath)
-                statement.setString(index++, metadata.title)
-                statement.setString(index++, metadata.artist)
-                statement.setString(index++, metadata.album)
-                statement.setString(index++, metadata.albumArtist)
-                statement.setObject(index++, metadata.discNumber)
-                statement.setObject(index++, metadata.trackNumber)
-                statement.setObject(index++, metadata.year)
-                statement.setString(index++, metadata.genre)
-                statement.setInt(index++, metadata.duration)
-                statement.setLong(index++, attributes.size())
-                statement.setTimestamp(index++, Timestamp.from(attributes.lastModifiedTime().toInstant()))
+                statement.setString(index++, title)
+                statement.setString(index++, mediaFile.artist)
+                statement.setString(index++, mediaFile.albumName)
+                statement.setString(index++, mediaFile.albumArtist)
+                statement.setObject(index++, mediaFile.discNumber)
+                statement.setObject(index++, mediaFile.trackNumber)
+                statement.setObject(index++, mediaFile.year)
+                statement.setString(index++, mediaFile.genre)
+                statement.setInt(index++, mediaFile.duration?.toInt()?.coerceAtLeast(0) ?: 0)
+                statement.setLong(index++, mediaFile.fileSize ?: 0L)
+                statement.setTimestamp(index++, Timestamp.from(modifiedAt))
                 statement.setString(index++, scan.id)
                 statement.setTimestamp(index++, Timestamp.from(Instant.now()))
                 if (existingId != null) statement.setLong(index, existingId)
@@ -478,24 +482,10 @@ class StandaloneLibraryScanService(
         getTimestamp("modified_at")?.toInstant(),
     )
 
-    private data class ParsedMetadata(
-        val title: String,
-        val artist: String?,
-        val album: String?,
-        val albumArtist: String?,
-        val discNumber: Int?,
-        val trackNumber: Int?,
-        val year: Int?,
-        val genre: String?,
-        val duration: Int,
-        val parseError: Boolean,
-    )
-
-    private fun String?.toIntTag(): Int? = this?.substringBefore('/')?.trim()?.toIntOrNull()?.takeIf { it >= 0 }
-
     private companion object {
         val LOG = LoggerFactory.getLogger(StandaloneLibraryScanService::class.java)
-        val AUDIO_EXTENSIONS = setOf("mp3", "flac", "ogg", "opus", "m4a", "mp4", "wav", "aif", "aiff", "ape", "wma", "dsf", "dff", "wv")
+        const val CORE_SCAN_TIMEOUT_NANOS = 21_600_000_000_000L
+        const val CORE_SCAN_POLL_MILLIS = 100L
         val MIME_TYPES = mapOf("mp3" to "audio/mpeg", "flac" to "audio/flac", "ogg" to "audio/ogg", "opus" to "audio/ogg", "m4a" to "audio/mp4")
         val COVER_FILE_NAMES = listOf(
             "cover.jpg", "cover.jpeg", "cover.png", "folder.jpg", "folder.jpeg", "folder.png", "front.jpg", "front.jpeg", "front.png",

@@ -31,7 +31,7 @@ class KtorStandaloneScanTest {
     lateinit var musicRoot: Path
 
     @Test
-    fun scanIndexesTrackFallbackMetadataAndExposesPaginatedCatalog() {
+    fun scanIndexesCoreMediaMetadataAndExposesPaginatedCatalog() {
         Files.writeString(musicRoot.resolve("01 - First Track.mp3"), "not a decodable audio file")
         val coverBytes = ByteArrayOutputStream().use { output ->
             ImageIO.write(BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), "png", output)
@@ -54,7 +54,18 @@ class KtorStandaloneScanTest {
                 auth.createInitialAdmin("admin", "a strong password for tests")
                 val token = auth.login("admin", "a strong password for tests")!!.token
                 val library = runtime.mediaFolderService.getAllMusicFolders(true, true).single()
-                val scanService = StandaloneLibraryScanService(dataSource, runtime.mediaFolderService)
+                val coreCatalog = mockCoreCatalog(
+                    library,
+                    "01 - First Track.mp3",
+                    "01 - First Track",
+                    Files.size(musicRoot.resolve("01 - First Track.mp3")),
+                )
+                val scanService = StandaloneLibraryScanService(
+                    dataSource,
+                    runtime.mediaFolderService,
+                    coreCatalog.mediaFileService,
+                    coreCatalog.mediaScannerService,
+                )
                 val favoriteService = StandaloneFavoriteService(dataSource)
                 val mapper = jacksonObjectMapper()
 
@@ -63,6 +74,7 @@ class KtorStandaloneScanTest {
 
                 val started = client.post("/api/v1/admin/libraries/${library.id}/scan") { bearerAuth(token) }
                 assertEquals(202, started.status.value)
+                org.mockito.Mockito.verify(coreCatalog.mediaScannerService).scanLibrary()
                 val scanId = mapper.readTree(started.bodyAsText()).get("id").asText()
 
                 var state = "QUEUED"
