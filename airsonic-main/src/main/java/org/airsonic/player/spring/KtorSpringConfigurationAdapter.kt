@@ -22,7 +22,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         mediaFileService: org.airsonic.player.service.MediaFileService,
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
         securityService: org.airsonic.player.service.SecurityService,
-        transcodingService: org.airsonic.player.service.TranscodingService,
         jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
     ): org.airsonic.player.service.UPnPService = runtime.createUpnpService(
         settingsService,
@@ -37,8 +36,8 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
                 runtime.createPlayerDao(),
                 runtime.createStatusService(mediaFileService, mediaFolderService, settingsService,
                     runtime.createTaskSchedulingService()),
-                securityService, transcodingService),
-            transcodingService, jwtSecurityService))
+                securityService, runtime.createTranscodingService(graph.transcodingDao, settingsService, mediaFolderService)),
+            runtime.createTranscodingService(graph.transcodingDao, settingsService, mediaFolderService), jwtSecurityService))
 
     @Bean
     override fun jwtSecurityService(
@@ -81,14 +80,5 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         securityService, settingsService, graph.mediaFileDao, graph.albumDao, runtime.createJaudiotaggerParser(),
         runtime.createMetaDataParserFactory(), runtime.createCoverArtService(graph.coverArtDao),
         runtime.createLocaleService(settingsService))
-
-    @Bean
-    override fun transcodingService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        graph: org.airsonic.player.runtime.DaoGraph,
-        settingsService: org.airsonic.player.service.SettingsService,
-        mediaFolderService: org.airsonic.player.service.MediaFolderService,
-    ): org.airsonic.player.service.TranscodingService = runtime.createTranscodingService(
-        graph.transcodingDao, settingsService, mediaFolderService)
 
 }
