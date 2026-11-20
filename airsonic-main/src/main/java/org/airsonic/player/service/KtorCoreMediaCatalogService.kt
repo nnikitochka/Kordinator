@@ -2,13 +2,14 @@ package org.airsonic.player.service
 
 import javax.sql.DataSource
 
-/** Reads catalog metadata from Airsonic's core media tables while retaining existing Ktor track IDs. */
+/** Reads catalog metadata and stable track IDs from Airsonic's core media tables. */
 class KtorCoreMediaCatalogService(
     private val coreDataSource: DataSource,
     private val ktorDataSource: DataSource,
 ) {
     init {
         migrateStoredTrackReferences()
+        dropLegacyTrackProjection()
     }
 
     fun tracks(libraryId: Long?, query: String?, limit: Int, offset: Int): List<StandaloneTrack> {
@@ -34,7 +35,7 @@ class KtorCoreMediaCatalogService(
                 statement.executeQuery().use { result -> buildList { while (result.next()) add(result.toCoreTrack()) } }
             }
         }
-        return attachKtorIds(rows)
+        return rows.map { it.toStandalone(it.coreId) }
     }
 
     fun countTracks(libraryId: Long?, query: String?): Long {
@@ -56,52 +57,16 @@ class KtorCoreMediaCatalogService(
         }
     }
 
-    fun track(ktorTrackId: Long): StandaloneTrack? {
-        val identity = findCoreIdentity(ktorTrackId) ?: return null
+    fun track(trackId: Long): StandaloneTrack? {
         val coreTrack = coreDataSource.connection.use { connection ->
-            connection.prepareStatement("SELECT $TRACK_COLUMNS FROM media_file WHERE folder_id = ? AND path = ? AND present").use { statement ->
-                statement.setInt(1, identity.first)
-                statement.setString(2, identity.second)
+            connection.prepareStatement(
+                "SELECT $TRACK_COLUMNS FROM media_file WHERE id = ? AND present AND type IN ('MUSIC', 'AUDIOBOOK')",
+            ).use { statement ->
+                statement.setLong(1, trackId)
                 statement.executeQuery().use { rows -> if (rows.next()) rows.toCoreTrack() else null }
             }
         } ?: return null
-        return coreTrack.toStandalone(ktorTrackId)
-    }
-
-    fun coreTrackIdForKtorTrackId(ktorTrackId: Long): Long? {
-        return coreTrackIdsForKtorTrackIds(listOf(ktorTrackId)).singleOrNull()
-    }
-
-    fun coreTrackIdsForKtorTrackIds(ktorTrackIds: List<Long>): List<Long?> {
-        if (ktorTrackIds.isEmpty()) return emptyList()
-        val identities = ktorTrackIds.distinct().chunked(500).flatMap { ids ->
-            val placeholders = ids.joinToString(",") { "?" }
-            ktorDataSource.connection.use { connection ->
-                connection.prepareStatement("SELECT id, library_id, relative_path FROM media_track WHERE id IN ($placeholders)").use { statement ->
-                    ids.forEachIndexed { index, id -> statement.setLong(index + 1, id) }
-                    statement.executeQuery().use { rows ->
-                        buildList { while (rows.next()) add(rows.getLong(1) to (rows.getInt(2) to rows.getString(3))) }
-                    }
-                }
-            }
-        }.toMap()
-        val coreIds = identities.values.distinct().groupBy { it.first }.flatMap { (libraryId, libraryIdentities) ->
-            libraryIdentities.map { it.second }.distinct().chunked(500).flatMap { paths ->
-                val placeholders = paths.joinToString(",") { "?" }
-                coreDataSource.connection.use { connection ->
-                    connection.prepareStatement(
-                        "SELECT id, path FROM media_file WHERE present AND folder_id = ? AND path IN ($placeholders)",
-                    ).use { statement ->
-                        statement.setInt(1, libraryId)
-                        paths.forEachIndexed { index, path -> statement.setString(index + 2, path) }
-                        statement.executeQuery().use { rows ->
-                            buildList { while (rows.next()) add((libraryId to rows.getString(2)) to rows.getLong(1)) }
-                        }
-                    }
-                }
-            }
-        }.toMap()
-        return ktorTrackIds.map { ktorId -> identities[ktorId]?.let(coreIds::get) }
+        return coreTrack.toStandalone(coreTrack.coreId)
     }
 
     fun tracksByCoreIds(coreTrackIds: List<Long>): List<StandaloneTrack> {
@@ -109,16 +74,15 @@ class KtorCoreMediaCatalogService(
         val coreTracks = coreTrackIds.distinct().chunked(500).flatMap { ids ->
             val placeholders = ids.joinToString(",") { "?" }
             coreDataSource.connection.use { connection ->
-                connection.prepareStatement("SELECT $TRACK_COLUMNS FROM media_file WHERE present AND id IN ($placeholders)").use { statement ->
+                connection.prepareStatement(
+                    "SELECT $TRACK_COLUMNS FROM media_file WHERE present AND type IN ('MUSIC', 'AUDIOBOOK') AND id IN ($placeholders)",
+                ).use { statement ->
                     ids.forEachIndexed { index, id -> statement.setLong(index + 1, id) }
                     statement.executeQuery().use { rows -> buildList { while (rows.next()) add(rows.toCoreTrack()) } }
                 }
             }
         }.associateBy { it.coreId }
-        val mappedTracks = attachKtorIds(coreTracks.values.toList()).associateBy { it.libraryId to it.relativePath }
-        return coreTrackIds.mapNotNull { id ->
-            coreTracks[id]?.let { track -> mappedTracks[track.libraryId.toLong() to track.relativePath] }
-        }
+        return coreTrackIds.mapNotNull { id -> coreTracks[id]?.toStandalone(id) }
     }
 
     /** Convert persisted references created before the core catalog became authoritative. */
@@ -137,11 +101,13 @@ class KtorCoreMediaCatalogService(
                     return
                 }
 
-                val identities = connection.prepareStatement("SELECT id, library_id, relative_path FROM media_track").use { statement ->
+                val identities = if (tableExists(connection, "media_track")) connection.prepareStatement(
+                    "SELECT id, library_id, relative_path FROM media_track",
+                ).use { statement ->
                     statement.executeQuery().use { rows ->
                         buildList { while (rows.next()) add(Triple(rows.getLong(1), rows.getInt(2), rows.getString(3))) }
                     }
-                }
+                } else emptyList()
                 val currentCoreIds = coreDataSource.connection.use { coreConnection ->
                     coreConnection.prepareStatement("SELECT id, folder_id, path FROM media_file WHERE present").use { statement ->
                         statement.executeQuery().use { rows ->
@@ -210,6 +176,23 @@ class KtorCoreMediaCatalogService(
             if (migratedTracks.isNotEmpty()) statement.executeBatch()
         }
     }
+
+    private fun dropLegacyTrackProjection() {
+        ktorDataSource.connection.use { connection ->
+            if (tableExists(connection, "media_track")) {
+                connection.createStatement().use { it.execute("DROP TABLE media_track") }
+            }
+        }
+    }
+
+    private fun tableExists(connection: java.sql.Connection, tableName: String): Boolean =
+        connection.metaData.getTables(connection.catalog, null, null, arrayOf("TABLE")).use { tables ->
+            var exists = false
+            while (tables.next()) {
+                if (tables.getString("TABLE_NAME").equals(tableName, ignoreCase = true)) exists = true
+            }
+            exists
+        }
 
     fun tracksForAlbum(libraryId: Long, album: String): List<StandaloneTrack> = tracksForCatalogEntry(
         libraryId,
@@ -291,35 +274,7 @@ class KtorCoreMediaCatalogService(
                 statement.executeQuery().use { result -> buildList { while (result.next()) add(result.toCoreTrack()) } }
             }
         }
-        return attachKtorIds(rows)
-    }
-
-    private fun attachKtorIds(rows: List<CoreTrack>): List<StandaloneTrack> {
-        if (rows.isEmpty()) return emptyList()
-        val ids = mutableMapOf<Pair<Int, String>, Long>()
-        rows.groupBy { it.libraryId }.forEach { (libraryId, libraryRows) ->
-            val paths = libraryRows.map { it.relativePath }.distinct()
-            ktorDataSource.connection.use { connection ->
-                val placeholders = paths.joinToString(",") { "?" }
-                connection.prepareStatement(
-                    "SELECT id, relative_path FROM media_track WHERE library_id = ? AND relative_path IN ($placeholders)",
-                ).use { statement ->
-                    statement.setInt(1, libraryId)
-                    paths.forEachIndexed { index, path -> statement.setString(index + 2, path) }
-                    statement.executeQuery().use { result ->
-                        while (result.next()) ids[libraryId to result.getString("relative_path")] = result.getLong("id")
-                    }
-                }
-            }
-        }
-        return rows.mapNotNull { track -> ids[track.libraryId to track.relativePath]?.let(track::toStandalone) }
-    }
-
-    private fun findCoreIdentity(ktorTrackId: Long): Pair<Int, String>? = ktorDataSource.connection.use { connection ->
-        connection.prepareStatement("SELECT library_id, relative_path FROM media_track WHERE id = ?").use { statement ->
-            statement.setLong(1, ktorTrackId)
-            statement.executeQuery().use { rows -> if (rows.next()) rows.getInt(1) to rows.getString(2) else null }
-        }
+        return rows.map { it.toStandalone(it.coreId) }
     }
 
     private data class CoreTrack(

@@ -231,4 +231,13 @@
             </column>
         </createTable>
     </changeSet>
+    <changeSet id="standalone-drop-track-projection-1" author="kordinator">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="media_track"/>
+                <sqlCheck expectedResult="0">SELECT COUNT(*) FROM media_track</sqlCheck>
+            </and>
+        </preConditions>
+        <dropTable tableName="media_track"/>
+    </changeSet>
 </databaseChangeLog>

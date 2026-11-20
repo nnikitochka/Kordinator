@@ -31,14 +31,14 @@ class StandaloneFavoriteService(
     }
 
     fun set(userId: Long, trackId: Long, favorite: Boolean): Boolean {
-        val coreTrackId = mediaCatalog.coreTrackIdForKtorTrackId(trackId) ?: return false
+        if (mediaCatalog.track(trackId) == null) return false
         return dataSource.connection.use { connection ->
             if (favorite) {
                 val alreadyFavorite = connection.prepareStatement(
                     "SELECT 1 FROM favorite_track WHERE user_id = ? AND track_id = ?",
                 ).use { statement ->
                     statement.setLong(1, userId)
-                    statement.setLong(2, coreTrackId)
+                    statement.setLong(2, trackId)
                     statement.executeQuery().use { it.next() }
                 }
                 if (!alreadyFavorite) {
@@ -47,7 +47,7 @@ class StandaloneFavoriteService(
                             "INSERT INTO favorite_track (user_id, track_id, created_at) VALUES (?, ?, ?)",
                         ).use { statement ->
                             statement.setLong(1, userId)
-                            statement.setLong(2, coreTrackId)
+                            statement.setLong(2, trackId)
                             statement.setTimestamp(3, Timestamp.from(Instant.now()))
                             statement.executeUpdate()
                         }
@@ -58,7 +58,7 @@ class StandaloneFavoriteService(
             } else {
                 connection.prepareStatement("DELETE FROM favorite_track WHERE user_id = ? AND track_id = ?").use { statement ->
                     statement.setLong(1, userId)
-                    statement.setLong(2, coreTrackId)
+                    statement.setLong(2, trackId)
                     statement.executeUpdate()
                 }
             }

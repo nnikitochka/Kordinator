@@ -119,14 +119,12 @@ class StandaloneLibraryScanService(
                         if (!file.startsWith(rootPath) || Files.isSymbolicLink(file) || !Files.isRegularFile(file)) {
                             errors++
                         } else {
-                            upsertTrack(scan, relativePath.toString(), mediaFile)
                             count++
                         }
                         updateProgress(scanId, count, errors)
                     }
                 }
             }
-            deleteStaleTracks(scan.libraryId, scan.id)
             finish(scanId, "COMPLETED", count, errors)
         } catch (failure: Throwable) {
             LOG.error("Standalone music scan {} failed", scanId, failure)
@@ -226,51 +224,6 @@ class StandaloneLibraryScanService(
         ?.toInt()
         ?.let { mediaFolderService.getMusicFolderById(it, true, true)?.path }
 
-    private fun upsertTrack(
-        scan: LibraryScan,
-        relativePath: String,
-        mediaFile: MediaFile,
-    ) {
-        val title = mediaFile.title?.takeIf { it.isNotBlank() } ?: Paths.get(relativePath).fileName.toString().substringBeforeLast('.')
-        val modifiedAt = mediaFile.changed ?: Instant.now()
-        dataSource.connection.use { connection ->
-            val existingId = connection.prepareStatement(
-                "SELECT id FROM media_track WHERE library_id = ? AND relative_path = ?",
-            ).use { statement ->
-                statement.setLong(1, scan.libraryId)
-                statement.setString(2, relativePath)
-                statement.executeQuery().use { rows -> if (rows.next()) rows.getLong(1) else null }
-            }
-            val sql = if (existingId == null) {
-                "INSERT INTO media_track (library_id, relative_path, title, artist, album, album_artist, disc_number, track_number, year, genre, duration_seconds, size_bytes, modified_at, scan_id, scanned_at) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-            } else {
-                "UPDATE media_track SET title = ?, artist = ?, album = ?, album_artist = ?, disc_number = ?, track_number = ?, year = ?, genre = ?, duration_seconds = ?, size_bytes = ?, " +
-                    "modified_at = ?, scan_id = ?, scanned_at = ? WHERE id = ?"
-            }
-            connection.prepareStatement(sql).use { statement ->
-                var index = 1
-                if (existingId == null) statement.setLong(index++, scan.libraryId)
-                if (existingId == null) statement.setString(index++, relativePath)
-                statement.setString(index++, title)
-                statement.setString(index++, mediaFile.artist)
-                statement.setString(index++, mediaFile.albumName)
-                statement.setString(index++, mediaFile.albumArtist)
-                statement.setObject(index++, mediaFile.discNumber)
-                statement.setObject(index++, mediaFile.trackNumber)
-                statement.setObject(index++, mediaFile.year)
-                statement.setString(index++, mediaFile.genre)
-                statement.setInt(index++, mediaFile.duration?.toInt()?.coerceAtLeast(0) ?: 0)
-                statement.setLong(index++, mediaFile.fileSize ?: 0L)
-                statement.setTimestamp(index++, Timestamp.from(modifiedAt))
-                statement.setString(index++, scan.id)
-                statement.setTimestamp(index++, Timestamp.from(Instant.now()))
-                if (existingId != null) statement.setLong(index, existingId)
-                statement.executeUpdate()
-            }
-        }
-    }
-
     private fun updateProgress(scanId: String, count: Long, errors: Long) {
         dataSource.connection.use { connection ->
             connection.prepareStatement(
@@ -290,16 +243,6 @@ class StandaloneLibraryScanService(
                 statement.setString(1, state)
                 statement.setTimestamp(2, Timestamp.from(Instant.now()))
                 statement.setString(3, scanId)
-                statement.executeUpdate()
-            }
-        }
-    }
-
-    private fun deleteStaleTracks(libraryId: Long, scanId: String) {
-        dataSource.connection.use { connection ->
-            connection.prepareStatement("DELETE FROM media_track WHERE library_id = ? AND scan_id <> ?").use { statement ->
-                statement.setLong(1, libraryId)
-                statement.setString(2, scanId)
                 statement.executeUpdate()
             }
         }

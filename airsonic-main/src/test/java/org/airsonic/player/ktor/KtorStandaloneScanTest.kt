@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class KtorStandaloneScanTest {
@@ -61,31 +62,72 @@ class KtorStandaloneScanTest {
                     "01 - First Track",
                     Files.size(musicRoot.resolve("01 - First Track.mp3")),
                 )
+                val coreTrackId = runtime.coreDataSource.connection.use { connection ->
+                    connection.prepareStatement("SELECT id FROM media_file WHERE path = ? AND folder_id = ?").use { statement ->
+                        statement.setString(1, "01 - First Track.mp3")
+                        statement.setInt(2, library.id)
+                        statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
+                    }
+                }
                 val scanService = StandaloneLibraryScanService(
                     dataSource,
                     runtime.mediaFolderService,
                     coreCatalog.mediaFileService,
                     coreCatalog.mediaScannerService,
                 )
-                val initialScan = scanService.enqueue(library.id.toLong())
-                scanService.run(initialScan.id)
-                val legacyTrackId = dataSource.connection.use { connection ->
-                    connection.prepareStatement("SELECT id FROM media_track WHERE library_id = ? AND relative_path = ?").use { statement ->
-                        statement.setLong(1, library.id.toLong())
-                        statement.setString(2, "01 - First Track.mp3")
-                        statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
-                    }
-                }
+                val adminId = auth.authenticate(token)!!.id
+                val legacyTrackId = 9_876_543L
                 dataSource.connection.use { connection ->
+                    connection.createStatement().use {
+                        it.execute("CREATE TABLE media_track (id BIGINT PRIMARY KEY, library_id BIGINT NOT NULL, relative_path VARCHAR(4096) NOT NULL)")
+                    }
+                    connection.prepareStatement("INSERT INTO media_track (id, library_id, relative_path) VALUES (?, ?, ?)").use { statement ->
+                        statement.setLong(1, legacyTrackId)
+                        statement.setInt(2, library.id)
+                        statement.setString(3, "01 - First Track.mp3")
+                        statement.executeUpdate()
+                    }
                     connection.prepareStatement(
                         "INSERT INTO favorite_track (user_id, track_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
                     ).use { statement ->
-                        statement.setLong(1, auth.authenticate(token)!!.id)
+                        statement.setLong(1, adminId)
                         statement.setLong(2, legacyTrackId)
-                        assertEquals(1, statement.executeUpdate())
+                        statement.executeUpdate()
+                    }
+                    connection.prepareStatement(
+                        "INSERT INTO user_playlist (id, owner_id, name, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                    ).use { statement ->
+                        statement.setLong(1, 9_876_543L)
+                        statement.setLong(2, adminId)
+                        statement.setString(3, "Legacy")
+                        statement.executeUpdate()
+                    }
+                    connection.prepareStatement(
+                        "INSERT INTO user_playlist_track (playlist_id, position, track_id) VALUES (?, 0, ?)",
+                    ).use { statement ->
+                        statement.setLong(1, 9_876_543L)
+                        statement.setLong(2, legacyTrackId)
+                        statement.executeUpdate()
                     }
                 }
                 val mediaCatalogService = org.airsonic.player.service.KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
+                val hasTrackProjection = dataSource.connection.use { connection ->
+                    connection.metaData.getTables(connection.catalog, null, null, arrayOf("TABLE")).use { tables ->
+                        generateSequence { if (tables.next()) tables.getString("TABLE_NAME") else null }
+                            .any { it.equals("media_track", ignoreCase = true) }
+                    }
+                }
+                assertFalse(hasTrackProjection)
+                dataSource.connection.use { connection ->
+                    connection.prepareStatement("SELECT track_id FROM favorite_track WHERE user_id = ?").use { statement ->
+                        statement.setLong(1, adminId)
+                        statement.executeQuery().use { rows -> rows.next(); assertEquals(coreTrackId, rows.getLong(1)) }
+                    }
+                    connection.prepareStatement("SELECT track_id FROM user_playlist_track WHERE playlist_id = ?").use { statement ->
+                        statement.setLong(1, 9_876_543L)
+                        statement.executeQuery().use { rows -> rows.next(); assertEquals(coreTrackId, rows.getLong(1)) }
+                    }
+                }
                 val favoriteService = StandaloneFavoriteService(dataSource, mediaCatalogService)
                 val mapper = jacksonObjectMapper()
 
@@ -102,7 +144,7 @@ class KtorStandaloneScanTest {
 
                 val started = client.post("/api/v1/admin/libraries/${library.id}/scan") { bearerAuth(token) }
                 assertEquals(202, started.status.value)
-                org.mockito.Mockito.verify(coreCatalog.mediaScannerService, org.mockito.Mockito.times(2)).scanLibrary()
+                org.mockito.Mockito.verify(coreCatalog.mediaScannerService).scanLibrary()
                 val scanId = mapper.readTree(started.bodyAsText()).get("id").asText()
 
                 var state = "QUEUED"
@@ -123,6 +165,7 @@ class KtorStandaloneScanTest {
                 val items = catalogBody.get("items")
                 assertEquals(1, items.size())
                 assertEquals(1, catalogBody.get("total").asInt())
+                assertEquals(coreTrackId, items[0].get("id").asLong())
                 assertEquals("01 - First Track", items[0].get("title").asText())
                 assertTrue(items[0].get("relativePath").asText().endsWith("01 - First Track.mp3"))
 
@@ -196,13 +239,6 @@ class KtorStandaloneScanTest {
                 assertEquals(200, favorites.status.value)
                 assertEquals(1, mapper.readTree(favorites.bodyAsText()).get("total").asInt())
                 assertEquals(trackId, mapper.readTree(favorites.bodyAsText()).get("items")[0].get("id").asLong())
-                val coreTrackId = runtime.coreDataSource.connection.use { connection ->
-                    connection.prepareStatement("SELECT id FROM media_file WHERE path = ? AND folder_id = ?").use { statement ->
-                        statement.setString(1, "01 - First Track.mp3")
-                        statement.setInt(2, library.id)
-                        statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
-                    }
-                }
                 dataSource.connection.use { connection ->
                     connection.prepareStatement("SELECT track_id FROM favorite_track WHERE user_id = ?").use { statement ->
                         statement.setLong(1, auth.authenticate(token)!!.id)

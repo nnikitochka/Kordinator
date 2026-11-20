@@ -76,7 +76,7 @@ class StandalonePlaylistService(
 
     fun create(ownerId: Long, name: String, trackIds: List<Long>): StandalonePlaylist {
         val normalizedName = validate(name, trackIds)
-        val coreTrackIds = resolveCoreTrackIds(trackIds)
+        val coreTrackIds = trackIds
         return transaction { connection ->
             requireTracksExist(coreTrackIds)
             val now = Instant.now()
@@ -101,7 +101,7 @@ class StandalonePlaylistService(
 
     fun update(ownerId: Long, playlistId: Long, name: String, trackIds: List<Long>): StandalonePlaylist? {
         val normalizedName = validate(name, trackIds)
-        val coreTrackIds = resolveCoreTrackIds(trackIds)
+        val coreTrackIds = trackIds
         return transaction { connection ->
             val exists = connection.prepareStatement("SELECT 1 FROM user_playlist WHERE id = ? AND owner_id = ?").use { statement ->
                 statement.setLong(1, playlistId)
@@ -137,9 +137,6 @@ class StandalonePlaylistService(
         require(trackIds.all { it >= 0 }) { "Track IDs must be non-negative" }
         return normalized
     }
-
-    private fun resolveCoreTrackIds(trackIds: List<Long>): List<Long> =
-        mediaCatalog.coreTrackIdsForKtorTrackIds(trackIds).map { it ?: throw IllegalArgumentException("Track does not exist") }
 
     private fun requireTracksExist(coreTrackIds: List<Long>) {
         require(mediaCatalog.tracksByCoreIds(coreTrackIds).size == coreTrackIds.size) { "Track does not exist" }
