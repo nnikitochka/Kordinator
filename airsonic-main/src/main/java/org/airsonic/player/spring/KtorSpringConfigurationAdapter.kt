@@ -136,10 +136,9 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         settingsService: org.airsonic.player.service.SettingsService,
         graph: org.airsonic.player.runtime.DaoGraph,
         coverArtService: org.airsonic.player.service.CoverArtService,
-        localeService: org.airsonic.player.i18n.LocaleService,
     ): org.airsonic.player.service.MediaFileService = runtime.createMediaFileService(
         securityService, settingsService, graph.mediaFileDao, graph.albumDao, runtime.createJaudiotaggerParser(),
-        runtime.createMetaDataParserFactory(), coverArtService, localeService)
+        runtime.createMetaDataParserFactory(), coverArtService, runtime.createLocaleService(settingsService))
 
     @Bean
     override fun mediaScannerService(
@@ -242,12 +241,6 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         coverArtService: org.airsonic.player.service.CoverArtService,
     ): org.airsonic.player.service.DownloadService = runtime.createDownloadService(
         statusService, securityService, playlistService, settingsService, mediaFileService, coverArtService)
-
-    @Bean
-    override fun localeService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        settingsService: org.airsonic.player.service.SettingsService,
-    ): org.airsonic.player.i18n.LocaleService = runtime.createLocaleService(settingsService)
 
     @Bean
     override fun statusService(

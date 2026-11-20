@@ -187,10 +187,6 @@ public class KtorConfiguration {
         return runtime.createPlayerDaoPlayQueueFactory();
     }
 
-    public LocaleService localeService(RuntimeCompositionRoot runtime, SettingsService settingsService) {
-        return runtime.createLocaleService(settingsService);
-    }
-
     public StatusService statusService(RuntimeCompositionRoot runtime, MediaFileService mediaFileService,
             MediaFolderService mediaFolderService, SettingsService settingsService,
             TaskSchedulingService taskSchedulingService) {
@@ -369,10 +365,10 @@ public class KtorConfiguration {
     }
 
     public MediaFileService mediaFileService(RuntimeCompositionRoot runtime, SecurityService securityService, SettingsService settingsService,
-            org.airsonic.player.runtime.DaoGraph graph, CoverArtService coverArtService,
-            LocaleService localeService) {
+            org.airsonic.player.runtime.DaoGraph graph, CoverArtService coverArtService) {
         return runtime.createMediaFileService(securityService, settingsService, graph.getMediaFileDao(), graph.getAlbumDao(),
-                runtime.createJaudiotaggerParser(), runtime.createMetaDataParserFactory(), coverArtService, localeService);
+                runtime.createJaudiotaggerParser(), runtime.createMetaDataParserFactory(), coverArtService,
+                runtime.createLocaleService(settingsService));
     }
 
     public TranscodingService transcodingService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph,
@@ -438,12 +434,12 @@ public class KtorConfiguration {
             CoverArtService coverArtService,
             IndexManager indexManager,
             TranscodingService transcodingService,
-            LocaleService localeService,
             CoverArtImageService coverArtImageService,
             HlsPlaylistService hlsPlaylistService,
             HlsSegmentService hlsSegmentService
     ) throws java.io.IOException {
         runtime.createCoverArtAccentColorBackfill(coverArtService);
+        LocaleService localeService = runtime.createLocaleService(settingsService);
         JAXBWriter jaxbWriter = runtime.createSubsonicJaxbWriter();
         SubsonicResponseMapper responseMapper = runtime.createSubsonicResponseMapper(
                 mediaFileService, ratingService, coverArtService, transcodingService);
