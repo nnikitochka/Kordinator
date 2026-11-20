@@ -279,11 +279,6 @@ public class KtorConfiguration {
                 indexManager, settingsService, playerService, transcodingService, jwtSecurityService);
     }
 
-    public RatingService ratingService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph, SecurityService securityService,
-            MediaFileService mediaFileService) {
-        return runtime.createRatingService(graph.getRatingDao(), securityService, mediaFileService);
-    }
-
     public JWTSecurityService jwtSecurityService(RuntimeCompositionRoot runtime, SettingsService settingsService) {
         return runtime.createJwtSecurityService(settingsService);
     }
@@ -312,12 +307,13 @@ public class KtorConfiguration {
 
     public PlayQueueService playQueueService(RuntimeCompositionRoot runtime, SearchService searchService, JukeboxService jukeboxService,
             SettingsService settingsService, MediaFileService mediaFileService,
-            RatingService ratingService, PlaylistService playlistService, org.airsonic.player.runtime.DaoGraph graph,
-            MediaFolderService mediaFolderService,
+            PlaylistService playlistService, org.airsonic.player.runtime.DaoGraph graph,
+            MediaFolderService mediaFolderService, SecurityService securityService,
             JWTSecurityService jwtSecurityService) {
         return runtime.createPlayQueueService(searchService, jukeboxService, settingsService, mediaFileService,
                 runtime.createLastFmService(graph.getMediaFileDao(), mediaFileService, graph.getArtistDao()),
-                ratingService, playlistService, graph.getMediaFileDao(), mediaFolderService,
+                runtime.createRatingService(graph.getRatingDao(), securityService, mediaFileService),
+                playlistService, graph.getMediaFileDao(), mediaFolderService,
                 graph.getPlayQueueDao(),
                 jwtSecurityService);
     }
@@ -379,7 +375,6 @@ public class KtorConfiguration {
             MediaScannerService mediaScannerService,
             MediaFileService mediaFileService,
             org.airsonic.player.runtime.DaoGraph graph,
-            RatingService ratingService,
             SearchService albumSearchService,
             MediaFolderService mediaFolderService,
             PlayerService playerService,
@@ -409,6 +404,8 @@ public class KtorConfiguration {
         AudioScrobblerService audioScrobblerService = runtime.createAudioScrobblerService(settingsService, securityService);
         org.airsonic.player.service.DatabaseService databaseService = runtime.createDatabaseService(
                 settingsService, graph.getDatabaseDao(), taskSchedulingService);
+        RatingService ratingService = runtime.createRatingService(
+                graph.getRatingDao(), securityService, mediaFileService);
         JAXBWriter jaxbWriter = runtime.createSubsonicJaxbWriter();
         SubsonicResponseMapper responseMapper = runtime.createSubsonicResponseMapper(
                 mediaFileService, ratingService, coverArtService, transcodingService);

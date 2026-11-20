@@ -214,14 +214,15 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         jukeboxService: org.airsonic.player.service.JukeboxService,
         settingsService: org.airsonic.player.service.SettingsService,
         mediaFileService: org.airsonic.player.service.MediaFileService,
-        ratingService: org.airsonic.player.service.RatingService,
         playlistService: org.airsonic.player.service.PlaylistService,
         graph: org.airsonic.player.runtime.DaoGraph,
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
+        securityService: org.airsonic.player.service.SecurityService,
         jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
     ): org.airsonic.player.service.PlayQueueService = runtime.createPlayQueueService(
         searchService, jukeboxService, settingsService, mediaFileService,
-        runtime.createLastFmService(graph.mediaFileDao, mediaFileService, graph.artistDao), ratingService, playlistService,
+        runtime.createLastFmService(graph.mediaFileDao, mediaFileService, graph.artistDao),
+        runtime.createRatingService(graph.ratingDao, securityService, mediaFileService), playlistService,
         graph.mediaFileDao, mediaFolderService, graph.playQueueDao, jwtSecurityService)
 
     @Bean
@@ -245,13 +246,5 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         taskSchedulingService: org.airsonic.player.service.TaskSchedulingService,
     ): org.airsonic.player.service.StatusService = runtime.createStatusService(
         mediaFileService, mediaFolderService, settingsService, taskSchedulingService)
-
-    @Bean
-    override fun ratingService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        graph: org.airsonic.player.runtime.DaoGraph,
-        securityService: org.airsonic.player.service.SecurityService,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-    ): org.airsonic.player.service.RatingService = runtime.createRatingService(graph.ratingDao, securityService, mediaFileService)
 
 }
