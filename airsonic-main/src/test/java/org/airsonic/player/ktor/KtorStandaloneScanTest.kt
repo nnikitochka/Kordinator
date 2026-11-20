@@ -84,13 +84,17 @@ class KtorStandaloneScanTest {
 
                 dataSource.connection.use { connection ->
                     connection.prepareStatement(
-                        "UPDATE media_track SET artist = ?, album_artist = ?, album = ?, duration_seconds = ? WHERE id = ?",
+                        "UPDATE media_track SET artist = ?, album_artist = ?, album = ?, duration_seconds = ?, disc_number = ?, track_number = ?, year = ?, genre = ? WHERE id = ?",
                     ).use { statement ->
                         statement.setString(1, "Test Artist")
                         statement.setString(2, "Test Artist")
                         statement.setString(3, "Test Album")
                         statement.setInt(4, 213)
-                        statement.setLong(5, items[0].get("id").asLong())
+                        statement.setInt(5, 2)
+                        statement.setInt(6, 7)
+                        statement.setInt(7, 1997)
+                        statement.setString(8, "Test Genre")
+                        statement.setLong(9, items[0].get("id").asLong())
                         assertEquals(1, statement.executeUpdate())
                     }
                 }
@@ -102,9 +106,16 @@ class KtorStandaloneScanTest {
                 assertEquals("Test Album", albumItems[0].get("name").asText())
                 assertEquals("Test Artist", albumItems[0].get("artist").asText())
                 assertEquals(213, albumItems[0].get("durationSeconds").asInt())
+                assertEquals(1997, albumItems[0].get("year").asInt())
+                assertEquals("Test Genre", albumItems[0].get("genre").asText())
                 val albumDetails = client.get("/api/v1/albums/${albumItems[0].get("id").asText()}") { bearerAuth(token) }
                 assertEquals(200, albumDetails.status.value)
                 assertEquals(1, mapper.readTree(albumDetails.bodyAsText()).get("tracks").size())
+                val albumTrack = mapper.readTree(albumDetails.bodyAsText()).get("tracks")[0]
+                assertEquals(2, albumTrack.get("discNumber").asInt())
+                assertEquals(7, albumTrack.get("trackNumber").asInt())
+                assertEquals(1997, albumTrack.get("year").asInt())
+                assertEquals("Test Genre", albumTrack.get("genre").asText())
                 assertEquals(401, client.get("/api/v1/albums").status.value)
                 assertEquals(400, client.get("/api/v1/albums?limit=0") { bearerAuth(token) }.status.value)
                 assertEquals(400, client.get("/api/v1/albums/invalid") { bearerAuth(token) }.status.value)

@@ -622,11 +622,16 @@ data class TrackResponse(
     val durationSeconds: Int,
     val sizeBytes: Long,
     val modifiedAt: String?,
+    val discNumber: Int? = null,
+    val trackNumber: Int? = null,
+    val year: Int? = null,
+    val genre: String? = null,
 )
 data class StandaloneSearchResponse(val query: String, val offset: Int, val totalHits: Long, val tracks: List<TrackResponse>)
 data class TrackPage(val items: List<TrackResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
 data class AlbumSummaryResponse(
-    val id: String, val libraryId: Long, val name: String, val artist: String?, val trackCount: Long, val durationSeconds: Long,
+    val id: String, val libraryId: Long, val name: String, val artist: String?, val year: Int?, val genre: String?,
+    val trackCount: Long, val durationSeconds: Long,
 )
 data class AlbumDetailsResponse(
     val id: String, val name: String, val artist: String?, val durationSeconds: Long, val tracks: List<TrackResponse>,
@@ -648,7 +653,7 @@ data class ScanResponse(
 )
 
 private fun StandaloneAlbum.toResponse() = AlbumSummaryResponse(
-    catalogId(libraryId, name), libraryId, name, artist, trackCount, durationSeconds,
+    catalogId(libraryId, name), libraryId, name, artist, year, genre, trackCount, durationSeconds,
 )
 
 private fun StandaloneArtist.toResponse() = ArtistSummaryResponse(
@@ -657,6 +662,7 @@ private fun StandaloneArtist.toResponse() = ArtistSummaryResponse(
 
 private fun StandaloneTrack.toResponse() = TrackResponse(
     id, libraryId, relativePath, title, artist, album, albumArtist, durationSeconds, sizeBytes, modifiedAt?.toString(),
+    discNumber, trackNumber, year, genre,
 )
 
 private fun catalogId(libraryId: Long, name: String): String =

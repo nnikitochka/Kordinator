@@ -65,6 +65,7 @@ class StandalonePlaylistService(
 
         val tracks = connection.prepareStatement(
             "SELECT m.id, m.library_id, m.relative_path, m.title, m.artist, m.album, m.album_artist, " +
+                "m.disc_number, m.track_number, m.year, m.genre, " +
                 "m.duration_seconds, m.size_bytes, m.modified_at FROM user_playlist_track p " +
                 "JOIN media_track m ON m.id = p.track_id WHERE p.playlist_id = ? ORDER BY p.position",
         ).use { statement ->
@@ -76,7 +77,10 @@ class StandalonePlaylistService(
                             StandaloneTrack(
                                 rows.getLong("id"), rows.getLong("library_id"), rows.getString("relative_path"),
                                 rows.getString("title"), rows.getString("artist"), rows.getString("album"),
-                                rows.getString("album_artist"), rows.getInt("duration_seconds"), rows.getLong("size_bytes"),
+                                rows.getString("album_artist"), rows.getObject("disc_number")?.let { rows.getInt("disc_number") },
+                                rows.getObject("track_number")?.let { rows.getInt("track_number") },
+                                rows.getObject("year")?.let { rows.getInt("year") }, rows.getString("genre"),
+                                rows.getInt("duration_seconds"), rows.getLong("size_bytes"),
                                 rows.getTimestamp("modified_at")?.toInstant(),
                             ),
                         )

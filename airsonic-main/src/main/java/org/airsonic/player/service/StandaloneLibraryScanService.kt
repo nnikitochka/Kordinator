@@ -32,6 +32,10 @@ data class StandaloneTrack(
     val artist: String?,
     val album: String?,
     val albumArtist: String?,
+    val discNumber: Int?,
+    val trackNumber: Int?,
+    val year: Int?,
+    val genre: String?,
     val durationSeconds: Int,
     val sizeBytes: Long,
     val modifiedAt: Instant?,
@@ -39,7 +43,15 @@ data class StandaloneTrack(
 
 data class StandaloneTrackFile(val path: Path, val sizeBytes: Long, val contentType: String)
 data class StandaloneArtwork(val bytes: ByteArray, val contentType: String)
-data class StandaloneAlbum(val libraryId: Long, val name: String, val artist: String?, val trackCount: Long, val durationSeconds: Long)
+data class StandaloneAlbum(
+    val libraryId: Long,
+    val name: String,
+    val artist: String?,
+    val year: Int?,
+    val genre: String?,
+    val trackCount: Long,
+    val durationSeconds: Long,
+)
 data class StandaloneArtist(val libraryId: Long, val name: String, val albumCount: Long, val trackCount: Long)
 
 /** Scans registered roots and serves indexed track metadata for the standalone API. */
@@ -125,7 +137,7 @@ class StandaloneLibraryScanService(
         val safeLimit = limit.coerceIn(1, 200)
         val safeOffset = offset.coerceAtLeast(0)
         val normalizedQuery = query?.trim()?.takeIf { it.isNotEmpty() }?.lowercase()?.let { "%$it%" }
-        val sql = "SELECT id, library_id, relative_path, title, artist, album, album_artist, duration_seconds, " +
+        val sql = "SELECT id, library_id, relative_path, title, artist, album, album_artist, disc_number, track_number, year, genre, duration_seconds, " +
             "size_bytes, modified_at FROM media_track WHERE (? IS NULL OR library_id = ?) " +
             "AND (? IS NULL OR LOWER(title) LIKE ? OR LOWER(artist) LIKE ? OR LOWER(album) LIKE ?) " +
             "ORDER BY LOWER(COALESCE(artist, '')), LOWER(COALESCE(album, '')), LOWER(title), id LIMIT ? OFFSET ?"
@@ -148,7 +160,7 @@ class StandaloneLibraryScanService(
 
     fun track(trackId: Long): StandaloneTrack? = dataSource.connection.use { connection ->
         connection.prepareStatement(
-            "SELECT id, library_id, relative_path, title, artist, album, album_artist, duration_seconds, " +
+            "SELECT id, library_id, relative_path, title, artist, album, album_artist, disc_number, track_number, year, genre, duration_seconds, " +
                 "size_bytes, modified_at FROM media_track WHERE id = ?",
         ).use { statement ->
             statement.setLong(1, trackId)
@@ -179,7 +191,7 @@ class StandaloneLibraryScanService(
     fun albums(libraryId: Long?, limit: Int, offset: Int): List<StandaloneAlbum> {
         val safeLimit = limit.coerceIn(1, 100)
         val safeOffset = offset.coerceAtLeast(0)
-        val sql = "SELECT library_id, album, MAX(COALESCE(album_artist, artist)) AS album_artist, " +
+        val sql = "SELECT library_id, album, MAX(COALESCE(album_artist, artist)) AS album_artist, MAX(year) AS year, MAX(genre) AS genre, " +
             "COUNT(*) AS track_count, SUM(duration_seconds) AS duration_seconds FROM media_track " +
             "WHERE (? IS NULL OR library_id = ?) AND album IS NOT NULL AND TRIM(album) <> '' " +
             "GROUP BY library_id, album ORDER BY LOWER(album), library_id LIMIT ? OFFSET ?"
@@ -194,6 +206,7 @@ class StandaloneLibraryScanService(
                         while (rows.next()) add(
                             StandaloneAlbum(
                                 rows.getLong("library_id"), rows.getString("album"), rows.getString("album_artist"),
+                                rows.getObject("year")?.let { rows.getInt("year") }, rows.getString("genre"),
                                 rows.getLong("track_count"), rows.getLong("duration_seconds"),
                             ),
                         )
@@ -245,9 +258,9 @@ class StandaloneLibraryScanService(
     )
 
     private fun tracksForCatalogEntry(libraryId: Long, predicate: String, value: String): List<StandaloneTrack> {
-        val sql = "SELECT id, library_id, relative_path, title, artist, album, album_artist, duration_seconds, " +
+        val sql = "SELECT id, library_id, relative_path, title, artist, album, album_artist, disc_number, track_number, year, genre, duration_seconds, " +
             "size_bytes, modified_at FROM media_track WHERE library_id = ? AND $predicate " +
-            "ORDER BY LOWER(title), id"
+            "ORDER BY COALESCE(disc_number, 0), COALESCE(track_number, 0), LOWER(title), id"
         return dataSource.connection.use { connection ->
             connection.prepareStatement(sql).use { statement ->
                 statement.setLong(1, libraryId)
@@ -349,12 +362,16 @@ class StandaloneLibraryScanService(
             artist = tag?.getFirst(FieldKey.ARTIST)?.trim()?.takeIf { it.isNotEmpty() },
             album = tag?.getFirst(FieldKey.ALBUM)?.trim()?.takeIf { it.isNotEmpty() },
             albumArtist = tag?.getFirst(FieldKey.ALBUM_ARTIST)?.trim()?.takeIf { it.isNotEmpty() },
+            discNumber = tag?.getFirst(FieldKey.DISC_NO)?.toIntTag(),
+            trackNumber = tag?.getFirst(FieldKey.TRACK)?.toIntTag(),
+            year = tag?.getFirst(FieldKey.YEAR)?.toIntTag(),
+            genre = tag?.getFirst(FieldKey.GENRE)?.trim()?.takeIf { it.isNotEmpty() },
             duration = audio.audioHeader.trackLength.coerceAtLeast(0),
             parseError = false,
         )
     } catch (failure: Exception) {
         LOG.debug("Could not parse audio tags for {}", file, failure)
-        ParsedMetadata(file.fileName.toString().substringBeforeLast('.'), null, null, null, 0, true)
+        ParsedMetadata(file.fileName.toString().substringBeforeLast('.'), null, null, null, null, null, null, null, 0, true)
     }
 
     private fun upsertTrack(
@@ -373,10 +390,10 @@ class StandaloneLibraryScanService(
                 statement.executeQuery().use { rows -> if (rows.next()) rows.getLong(1) else null }
             }
             val sql = if (existingId == null) {
-                "INSERT INTO media_track (library_id, relative_path, title, artist, album, album_artist, duration_seconds, size_bytes, modified_at, scan_id, scanned_at) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO media_track (library_id, relative_path, title, artist, album, album_artist, disc_number, track_number, year, genre, duration_seconds, size_bytes, modified_at, scan_id, scanned_at) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             } else {
-                "UPDATE media_track SET title = ?, artist = ?, album = ?, album_artist = ?, duration_seconds = ?, size_bytes = ?, " +
+                "UPDATE media_track SET title = ?, artist = ?, album = ?, album_artist = ?, disc_number = ?, track_number = ?, year = ?, genre = ?, duration_seconds = ?, size_bytes = ?, " +
                     "modified_at = ?, scan_id = ?, scanned_at = ? WHERE id = ?"
             }
             connection.prepareStatement(sql).use { statement ->
@@ -387,6 +404,10 @@ class StandaloneLibraryScanService(
                 statement.setString(index++, metadata.artist)
                 statement.setString(index++, metadata.album)
                 statement.setString(index++, metadata.albumArtist)
+                statement.setObject(index++, metadata.discNumber)
+                statement.setObject(index++, metadata.trackNumber)
+                statement.setObject(index++, metadata.year)
+                statement.setString(index++, metadata.genre)
                 statement.setInt(index++, metadata.duration)
                 statement.setLong(index++, attributes.size())
                 statement.setTimestamp(index++, Timestamp.from(attributes.lastModifiedTime().toInstant()))
@@ -454,7 +475,9 @@ class StandaloneLibraryScanService(
 
     private fun java.sql.ResultSet.toTrack() = StandaloneTrack(
         getLong("id"), getLong("library_id"), getString("relative_path"), getString("title"), getString("artist"),
-        getString("album"), getString("album_artist"), getInt("duration_seconds"), getLong("size_bytes"),
+        getString("album"), getString("album_artist"), getObject("disc_number")?.let { getInt("disc_number") },
+        getObject("track_number")?.let { getInt("track_number") }, getObject("year")?.let { getInt("year") },
+        getString("genre"), getInt("duration_seconds"), getLong("size_bytes"),
         getTimestamp("modified_at")?.toInstant(),
     )
 
@@ -463,9 +486,15 @@ class StandaloneLibraryScanService(
         val artist: String?,
         val album: String?,
         val albumArtist: String?,
+        val discNumber: Int?,
+        val trackNumber: Int?,
+        val year: Int?,
+        val genre: String?,
         val duration: Int,
         val parseError: Boolean,
     )
+
+    private fun String?.toIntTag(): Int? = this?.substringBefore('/')?.trim()?.toIntOrNull()?.takeIf { it >= 0 }
 
     private companion object {
         val LOG = LoggerFactory.getLogger(StandaloneLibraryScanService::class.java)

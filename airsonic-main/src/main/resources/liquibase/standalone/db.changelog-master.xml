@@ -183,4 +183,12 @@
             <column name="track_id"/>
         </createIndex>
     </changeSet>
+    <changeSet id="standalone-track-tags-1" author="kordinator">
+        <addColumn tableName="media_track">
+            <column name="disc_number" type="INT"/>
+            <column name="track_number" type="INT"/>
+            <column name="year" type="INT"/>
+            <column name="genre" type="VARCHAR(512)"/>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>
