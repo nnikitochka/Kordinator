@@ -82,6 +82,39 @@ class KtorStandaloneScanTest {
                 assertEquals("01 - First Track", items[0].get("title").asText())
                 assertTrue(items[0].get("relativePath").asText().endsWith("01 - First Track.mp3"))
 
+                dataSource.connection.use { connection ->
+                    connection.prepareStatement(
+                        "UPDATE media_track SET artist = ?, album_artist = ?, album = ?, duration_seconds = ? WHERE id = ?",
+                    ).use { statement ->
+                        statement.setString(1, "Test Artist")
+                        statement.setString(2, "Test Artist")
+                        statement.setString(3, "Test Album")
+                        statement.setInt(4, 213)
+                        statement.setLong(5, items[0].get("id").asLong())
+                        assertEquals(1, statement.executeUpdate())
+                    }
+                }
+
+                val albums = client.get("/api/v1/albums?libraryId=${library.id}") { bearerAuth(token) }
+                assertEquals(200, albums.status.value)
+                val albumItems = mapper.readTree(albums.bodyAsText()).get("items")
+                assertEquals(1, albumItems.size())
+                assertEquals("Test Album", albumItems[0].get("name").asText())
+                assertEquals("Test Artist", albumItems[0].get("artist").asText())
+                assertEquals(213, albumItems[0].get("durationSeconds").asInt())
+                assertEquals(401, client.get("/api/v1/albums").status.value)
+                assertEquals(400, client.get("/api/v1/albums?limit=0") { bearerAuth(token) }.status.value)
+
+                val artists = client.get("/api/v1/artists?libraryId=${library.id}") { bearerAuth(token) }
+                assertEquals(200, artists.status.value)
+                val artistItems = mapper.readTree(artists.bodyAsText()).get("items")
+                assertEquals(1, artistItems.size())
+                assertEquals("Test Artist", artistItems[0].get("name").asText())
+                assertEquals(1, artistItems[0].get("albumCount").asInt())
+                assertEquals(1, artistItems[0].get("trackCount").asInt())
+                assertEquals(401, client.get("/api/v1/artists").status.value)
+                assertEquals(400, client.get("/api/v1/artists?offset=-1") { bearerAuth(token) }.status.value)
+
                 val search = client.get("/api/v1/search?query=first&limit=1") { bearerAuth(token) }
                 assertEquals(200, search.status.value)
                 val searchBody = mapper.readTree(search.bodyAsText())

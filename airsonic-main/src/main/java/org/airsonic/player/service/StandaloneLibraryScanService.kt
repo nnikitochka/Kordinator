@@ -39,6 +39,8 @@ data class StandaloneTrack(
 
 data class StandaloneTrackFile(val path: Path, val sizeBytes: Long, val contentType: String)
 data class StandaloneArtwork(val bytes: ByteArray, val contentType: String)
+data class StandaloneAlbum(val libraryId: Long, val name: String, val artist: String?, val trackCount: Long, val durationSeconds: Long)
+data class StandaloneArtist(val libraryId: Long, val name: String, val albumCount: Long, val trackCount: Long)
 
 /** Scans registered roots and serves indexed track metadata for the standalone API. */
 class StandaloneLibraryScanService(
@@ -169,6 +171,62 @@ class StandaloneLibraryScanService(
                 statement.executeQuery().use { rows ->
                     rows.next()
                     rows.getLong(1)
+                }
+            }
+        }
+    }
+
+    fun albums(libraryId: Long?, limit: Int, offset: Int): List<StandaloneAlbum> {
+        val safeLimit = limit.coerceIn(1, 100)
+        val safeOffset = offset.coerceAtLeast(0)
+        val sql = "SELECT library_id, album, MAX(COALESCE(album_artist, artist)) AS album_artist, " +
+            "COUNT(*) AS track_count, SUM(duration_seconds) AS duration_seconds FROM media_track " +
+            "WHERE (? IS NULL OR library_id = ?) AND album IS NOT NULL AND TRIM(album) <> '' " +
+            "GROUP BY library_id, album ORDER BY LOWER(album), library_id LIMIT ? OFFSET ?"
+        return dataSource.connection.use { connection ->
+            connection.prepareStatement(sql).use { statement ->
+                statement.setObject(1, libraryId)
+                statement.setObject(2, libraryId)
+                statement.setInt(3, safeLimit)
+                statement.setInt(4, safeOffset)
+                statement.executeQuery().use { rows ->
+                    buildList {
+                        while (rows.next()) add(
+                            StandaloneAlbum(
+                                rows.getLong("library_id"), rows.getString("album"), rows.getString("album_artist"),
+                                rows.getLong("track_count"), rows.getLong("duration_seconds"),
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun artists(libraryId: Long?, limit: Int, offset: Int): List<StandaloneArtist> {
+        val safeLimit = limit.coerceIn(1, 100)
+        val safeOffset = offset.coerceAtLeast(0)
+        val sql = "SELECT library_id, COALESCE(NULLIF(TRIM(album_artist), ''), TRIM(artist)) AS artist_name, " +
+            "COUNT(DISTINCT NULLIF(TRIM(album), '')) AS album_count, COUNT(*) AS track_count FROM media_track " +
+            "WHERE (? IS NULL OR library_id = ?) AND " +
+            "COALESCE(NULLIF(TRIM(album_artist), ''), NULLIF(TRIM(artist), '')) IS NOT NULL " +
+            "GROUP BY library_id, COALESCE(NULLIF(TRIM(album_artist), ''), TRIM(artist)) " +
+            "ORDER BY LOWER(artist_name), library_id LIMIT ? OFFSET ?"
+        return dataSource.connection.use { connection ->
+            connection.prepareStatement(sql).use { statement ->
+                statement.setObject(1, libraryId)
+                statement.setObject(2, libraryId)
+                statement.setInt(3, safeLimit)
+                statement.setInt(4, safeOffset)
+                statement.executeQuery().use { rows ->
+                    buildList {
+                        while (rows.next()) add(
+                            StandaloneArtist(
+                                rows.getLong("library_id"), rows.getString("artist_name"),
+                                rows.getLong("album_count"), rows.getLong("track_count"),
+                            ),
+                        )
+                    }
                 }
             }
         }

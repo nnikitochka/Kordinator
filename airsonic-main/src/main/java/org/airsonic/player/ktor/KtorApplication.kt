@@ -104,6 +104,46 @@ fun Application.standaloneModule(
                                 it.albumArtist, it.durationSeconds, it.sizeBytes, it.modifiedAt?.toString())
                         }))
                     }
+                    get("/albums") {
+                        if (libraryScanService == null) {
+                            call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val requestedLibraryId = call.request.queryParameters["libraryId"]
+                        val libraryId = requestedLibraryId?.toLongOrNull()
+                        val limitValue = call.request.queryParameters["limit"]
+                        val offsetValue = call.request.queryParameters["offset"]
+                        val limit = limitValue?.toIntOrNull() ?: if (limitValue == null) 50 else null
+                        val offset = offsetValue?.toIntOrNull() ?: if (offsetValue == null) 0 else null
+                        if ((requestedLibraryId != null && (libraryId == null || libraryId < 0)) ||
+                            limit == null || limit !in 1..100 || offset == null || offset < 0
+                        ) {
+                            call.respondJson(ApiError("invalid_request", "libraryId must be non-negative, limit between 1 and 100, and offset non-negative"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val albums = withContext(scanDispatcher) { libraryScanService.albums(libraryId, limit, offset) }
+                        call.respondJson(AlbumPage(albums, albums.size, limit, offset))
+                    }
+                    get("/artists") {
+                        if (libraryScanService == null) {
+                            call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val requestedLibraryId = call.request.queryParameters["libraryId"]
+                        val libraryId = requestedLibraryId?.toLongOrNull()
+                        val limitValue = call.request.queryParameters["limit"]
+                        val offsetValue = call.request.queryParameters["offset"]
+                        val limit = limitValue?.toIntOrNull() ?: if (limitValue == null) 50 else null
+                        val offset = offsetValue?.toIntOrNull() ?: if (offsetValue == null) 0 else null
+                        if ((requestedLibraryId != null && (libraryId == null || libraryId < 0)) ||
+                            limit == null || limit !in 1..100 || offset == null || offset < 0
+                        ) {
+                            call.respondJson(ApiError("invalid_request", "libraryId must be non-negative, limit between 1 and 100, and offset non-negative"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val artists = withContext(scanDispatcher) { libraryScanService.artists(libraryId, limit, offset) }
+                        call.respondJson(ArtistPage(artists, artists.size, limit, offset))
+                    }
                     get("/tracks") {
                     if (libraryScanService == null) {
                         call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -540,6 +580,8 @@ data class TrackResponse(
 )
 data class StandaloneSearchResponse(val query: String, val offset: Int, val totalHits: Long, val tracks: List<TrackResponse>)
 data class TrackPage(val items: List<TrackResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
+data class AlbumPage(val items: List<org.airsonic.player.service.StandaloneAlbum>, val count: Int, val limit: Int, val offset: Int)
+data class ArtistPage(val items: List<org.airsonic.player.service.StandaloneArtist>, val count: Int, val limit: Int, val offset: Int)
 data class ScanResponse(
     val id: String,
     val libraryId: Long,
