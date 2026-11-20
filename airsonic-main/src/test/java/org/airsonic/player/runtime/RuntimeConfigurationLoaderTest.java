@@ -69,6 +69,45 @@ class RuntimeConfigurationLoaderTest {
     }
 
     @Test
+    void legacySpringDatabaseAndMigrationKeysNormalizeToKordinatorKeys() {
+        Properties application = new Properties();
+        application.setProperty("spring.datasource.url", "jdbc:postgresql://db/airsonic");
+        application.setProperty("spring.liquibase.change-log", "classpath:custom-changelog.xml");
+        application.setProperty("spring.liquibase.parameters.customValue", "legacy-value");
+        application.setProperty("spring.datasource.hikari.maximum-pool-size", "12");
+
+        RuntimeConfiguration config = loader.load(new String[0], new Properties(), Collections.emptyMap(), application,
+                Collections.emptyMap());
+
+        assertEquals("jdbc:postgresql://db/airsonic", config.getProperty(RuntimeConfiguration.DATABASE_URL_KEY));
+        assertEquals("jdbc:postgresql://db/airsonic", config.getDatabaseUrl());
+        assertEquals("classpath:custom-changelog.xml",
+                config.getProperty(RuntimeConfiguration.DATABASE_MIGRATION_CHANGELOG_KEY));
+        assertEquals("legacy-value",
+                config.getProperty(RuntimeConfiguration.DATABASE_MIGRATION_PARAMETERS_PREFIX + "customValue"));
+        assertEquals("12", config.getProperty(RuntimeConfiguration.DATABASE_HIKARI_PREFIX + "maximum-pool-size"));
+        assertEquals("jdbc:postgresql://db/airsonic", config.getProperty("spring.datasource.url"));
+    }
+
+    @Test
+    void canonicalDatabaseKeysWinWithinALayerAndLegacyKeysKeepLayerPrecedence() {
+        Properties application = new Properties();
+        application.setProperty("spring.datasource.url", "jdbc:postgresql://legacy/app");
+        application.setProperty(RuntimeConfiguration.DATABASE_URL_KEY, "jdbc:postgresql://canonical/app");
+        Map<String, String> environment = Map.of(
+                "KORDINATOR_DATABASE_URL", "jdbc:postgresql://env/app");
+
+        RuntimeConfiguration config = loader.load(new String[] {"--spring.datasource.url=jdbc:postgresql://cli/app"},
+                new Properties(), environment, application, Collections.emptyMap());
+
+        assertEquals("jdbc:postgresql://cli/app", config.getDatabaseUrl());
+
+        RuntimeConfiguration appOnly = loader.load(new String[0], new Properties(), Collections.emptyMap(), application,
+                Collections.emptyMap());
+        assertEquals("jdbc:postgresql://canonical/app", appOnly.getDatabaseUrl());
+    }
+
+    @Test
     void defaultEmbeddedDatabaseUrlHasOptionsRequiredByTheLiquibaseSchema() {
         RuntimeConfiguration config = loader.load(
                 new String[0], new Properties(), Collections.emptyMap(), new Properties(), Collections.emptyMap());
@@ -95,21 +134,21 @@ class RuntimeConfigurationLoaderTest {
 
     @Test
     void migrationAliasesResolveWithProperPrecedence() {
-        // DatabaseConfigEmbedUrl is a legacy alias for spring.datasource.url
+        // DatabaseConfigEmbedUrl is a legacy alias for the canonical database URL.
         Map<String, String> env = Map.of("DatabaseConfigEmbedUrl", "jdbc:mysql://localhost:3306/airsonic");
         RuntimeConfiguration config = loader.load(new String[0], new Properties(), env, new Properties(), Collections.emptyMap());
 
-        assertEquals("jdbc:mysql://localhost:3306/airsonic", config.getProperty("spring.datasource.url"));
+        assertEquals("jdbc:mysql://localhost:3306/airsonic", config.getProperty(RuntimeConfiguration.DATABASE_URL_KEY));
         assertEquals("jdbc:mysql://localhost:3306/airsonic", config.getDatabaseUrl());
     }
 
     @Test
     void chainMigrationAliasesResolveCorrectly() {
-        // database.config.embed.url -> DatabaseConfigEmbedUrl -> spring.datasource.url
+        // database.config.embed.url -> DatabaseConfigEmbedUrl -> canonical database URL
         Map<String, String> fileProps = Map.of("database.config.embed.url", "jdbc:mariadb://localhost/airsonic");
         RuntimeConfiguration config = loader.load(new String[0], new Properties(), Collections.emptyMap(), new Properties(), fileProps);
 
-        assertEquals("jdbc:mariadb://localhost/airsonic", config.getProperty("spring.datasource.url"));
+        assertEquals("jdbc:mariadb://localhost/airsonic", config.getProperty(RuntimeConfiguration.DATABASE_URL_KEY));
         assertEquals("jdbc:mariadb://localhost/airsonic", config.getDatabaseUrl());
     }
 

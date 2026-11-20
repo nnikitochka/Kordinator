@@ -9,7 +9,7 @@ import javax.sql.DataSource
 
 /** Creates JDBC connections without Spring JDBC auto-configuration. */
 object RuntimeDataSourceFactory {
-    private const val HIKARI_PREFIX = "spring.datasource.hikari."
+    private const val LEGACY_HIKARI_PREFIX = "spring.datasource.hikari."
 
     fun create(configuration: RuntimeConfiguration): DataSource {
         LegacyHsqlMigrationUtil.upgradeFileHsqlDbIfNeeded(configuration::getProperty)
@@ -28,13 +28,24 @@ object RuntimeDataSourceFactory {
             configuration.databaseDriver?.let { setProperty("driverClassName", it) }
             setProperty("username", configuration.databaseUsername)
             setProperty("password", configuration.databasePassword)
+            val hikariProperties = linkedMapOf<String, String>()
             configuration.propertyNames.asSequence()
-                .filter { it.startsWith(HIKARI_PREFIX) }
+                .filter { it.startsWith(LEGACY_HIKARI_PREFIX) }
                 .forEach { key ->
                     configuration.getProperty(key)?.let { value ->
-                        setProperty(key.removePrefix(HIKARI_PREFIX).toHikariPropertyName(), value)
+                        hikariProperties[key.removePrefix(LEGACY_HIKARI_PREFIX)] = value
                     }
                 }
+            configuration.propertyNames.asSequence()
+                .filter { it.startsWith(RuntimeConfiguration.DATABASE_HIKARI_PREFIX) }
+                .forEach { key ->
+                    configuration.getProperty(key)?.let { value ->
+                        hikariProperties[key.removePrefix(RuntimeConfiguration.DATABASE_HIKARI_PREFIX)] = value
+                    }
+                }
+            hikariProperties.forEach { (key, value) ->
+                setProperty(key.toHikariPropertyName(), value)
+            }
         }
         return HikariDataSource(HikariConfig(properties))
     }

@@ -14,7 +14,7 @@ import java.util.*;
 /**
  * Loads framework-neutral application configuration following the exact precedence order:
  * CLI arguments > JVM system properties > Environment variables > application.properties >
- * airsonic.properties > Migrated aliases > Default constants.
+ * airsonic.properties > Default constants. Legacy aliases are normalized within each source layer.
  */
 public final class RuntimeConfigurationLoader {
 
@@ -31,15 +31,22 @@ public final class RuntimeConfigurationLoader {
                                     Map<String, String> environment,
                                     Properties applicationProperties,
                                     Map<String, String> airsonicProperties) {
-        Map<String, String> cliMap = parseCliArgs(cliArgs);
-        Map<String, String> jvmMap = propertiesToMap(jvmProperties);
-        Map<String, String> envMap = environment != null ? new LinkedHashMap<>(environment) : Collections.emptyMap();
-        Map<String, String> appMap = applicationProperties != null
+        Map<String, String> rawCliMap = parseCliArgs(cliArgs);
+        Map<String, String> rawJvmMap = propertiesToMap(jvmProperties);
+        Map<String, String> rawEnvMap = environment != null ? new LinkedHashMap<>(environment) : Collections.emptyMap();
+        Map<String, String> rawAppMap = applicationProperties != null
                 ? propertiesToMap(applicationProperties)
                 : loadClasspathProperties(APP_PROPERTIES_RESOURCE);
-        Map<String, String> fileMap = airsonicProperties != null
+        Map<String, String> rawFileMap = airsonicProperties != null
                 ? new LinkedHashMap<>(airsonicProperties)
                 : Collections.emptyMap();
+
+        Map<String, String> keyMaps = SettingsService.getMigratedPropertyKeys();
+        Map<String, String> cliMap = normalizeLayer(rawCliMap, keyMaps, rawCliMap::get, "cli");
+        Map<String, String> jvmMap = normalizeLayer(rawJvmMap, keyMaps, rawJvmMap::get, "jvm");
+        Map<String, String> envMap = normalizeLayer(rawEnvMap, keyMaps, key -> lookupEnv(rawEnvMap, key), "environment");
+        Map<String, String> appMap = normalizeLayer(rawAppMap, keyMaps, rawAppMap::get, "application.properties");
+        Map<String, String> fileMap = normalizeLayer(rawFileMap, keyMaps, rawFileMap::get, "airsonic.properties");
 
         return buildConfiguration(cliMap, jvmMap, envMap, appMap, fileMap);
     }
@@ -68,23 +75,7 @@ public final class RuntimeConfigurationLoader {
                                                     Map<String, String> env,
                                                     Map<String, String> app,
                                                     Map<String, String> file) {
-        // Migration aliases
-        Map<String, String> keyMaps = SettingsService.getMigratedPropertyKeys();
-        Map<String, Object> migrated = new LinkedHashMap<>();
-
-        // Migrate in precedence order: CLI > JVM > ENV > app > file
-        SettingsService.migrateKeys(keyMaps, cli::get, "cli", migrated);
-        SettingsService.migrateKeys(keyMaps, jvm::get, "jvm", migrated);
-        SettingsService.migrateKeys(keyMaps, key -> lookupEnv(env, key), "environment", migrated);
-        SettingsService.migrateKeys(keyMaps, app::get, "application.properties", migrated);
-        SettingsService.migrateKeys(keyMaps, file::get, "airsonic.properties", migrated);
-
-        Map<String, String> migratedStringMap = new LinkedHashMap<>();
-        migrated.forEach((k, v) -> {
-            if (v != null) {
-                migratedStringMap.put(k, v.toString());
-            }
-        });
+        Map<String, String> migratedStringMap = Collections.emptyMap();
 
         // Determine airsonic home first (needed for default paths)
         String airsonicHomeStr = resolveRaw(cli, jvm, env, app, file, migratedStringMap, Collections.emptyMap(), "airsonic.home");
@@ -102,18 +93,22 @@ public final class RuntimeConfigurationLoader {
         // Default constants
         Map<String, String> defaults = new LinkedHashMap<>();
         defaults.put("management.endpoint.health.status.order", RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER);
-        defaults.put("spring.datasource.username", "sa");
-        defaults.put("spring.datasource.password", "");
-        defaults.put("spring.datasource.driver-class-name", "org.hsqldb.jdbc.JDBCDriver");
-        defaults.put("spring.datasource.url", "jdbc:hsqldb:file:"
+        defaults.put(RuntimeConfiguration.DATABASE_USERNAME_KEY, "sa");
+        defaults.put(RuntimeConfiguration.DATABASE_PASSWORD_KEY, "");
+        defaults.put(RuntimeConfiguration.DATABASE_DRIVER_KEY, "org.hsqldb.jdbc.JDBCDriver");
+        defaults.put(RuntimeConfiguration.DATABASE_URL_KEY, "jdbc:hsqldb:file:"
                 + airsonicHome.resolve("db/airsonic").toString()
                 + ";hsqldb.default_table_type=cached;hsqldb.cache_rows=100000;hsqldb.cache_size=65536;hsqldb.applog=0"
                 + ";hsqldb.tx=mvcc;sql.enforce_size=false;sql.char_literal=false;sql.nulls_first=false;sql.pad_space=false"
                 + ";hsqldb.defrag_limit=50;shutdown=true");
         defaults.put("logging.file.name", airsonicHome.resolve("airsonic.log").toString());
-        defaults.put("spring.liquibase.rollback-file", airsonicHome.resolve("rollback.sql").toString());
-        defaults.put("spring.liquibase.parameters.mysqlVarcharLimit", "255");
-        defaults.put("spring.liquibase.parameters.defaultMusicFolder",
+        defaults.put(RuntimeConfiguration.DATABASE_MIGRATION_ENABLED_KEY, "true");
+        defaults.put(RuntimeConfiguration.DATABASE_MIGRATION_CHANGELOG_KEY, "classpath:liquibase/db-changelog.xml");
+        defaults.put(RuntimeConfiguration.DATABASE_MIGRATION_CONTEXTS_KEY, "");
+        defaults.put(RuntimeConfiguration.DATABASE_MIGRATION_LABEL_FILTER_KEY, "");
+        defaults.put(RuntimeConfiguration.DATABASE_MIGRATION_ROLLBACK_FILE_KEY, airsonicHome.resolve("rollback.sql").toString());
+        defaults.put(RuntimeConfiguration.DATABASE_MIGRATION_MYSQL_VARCHAR_LIMIT_KEY, "255");
+        defaults.put(RuntimeConfiguration.DATABASE_MIGRATION_DEFAULT_MUSIC_FOLDER_KEY,
                 System.getProperty("os.name", "unknown").toLowerCase().contains("win") ? "c:\\music" : "/var/music");
 
         // Merge all known keys
@@ -121,7 +116,7 @@ public final class RuntimeConfigurationLoader {
         allKeys.addAll(cli.keySet());
         allKeys.addAll(jvm.keySet());
         allKeys.addAll(env.keySet());
-        // Map relaxed env keys to dotted keys if they look like relaxed Spring properties
+        // Map relaxed environment keys to dotted property names.
         for (String envKey : env.keySet()) {
             if (envKey.contains("_")) {
                 allKeys.add(envKey.toLowerCase(Locale.ROOT).replace('_', '.'));
@@ -141,6 +136,32 @@ public final class RuntimeConfigurationLoader {
         }
 
         return new RuntimeConfiguration(resolved);
+    }
+
+    private Map<String, String> normalizeLayer(Map<String, String> source,
+                                              Map<String, String> keyMaps,
+                                              java.util.function.Function<String, Object> propertyLookup,
+                                              String sourceName) {
+        Map<String, String> normalized = new LinkedHashMap<>(source);
+        Map<String, Object> migrated = new LinkedHashMap<>();
+        SettingsService.migrateKeys(keyMaps, propertyLookup, sourceName, migrated);
+        migrated.forEach((key, value) -> normalized.putIfAbsent(key, value.toString()));
+
+        for (Map.Entry<String, String> entry : source.entrySet()) {
+            String key = entry.getKey();
+            String canonicalKey = null;
+            if (key.startsWith("spring.liquibase.parameters.")) {
+                canonicalKey = RuntimeConfiguration.DATABASE_MIGRATION_PARAMETERS_PREFIX
+                        + key.substring("spring.liquibase.parameters.".length());
+            } else if (key.startsWith("spring.datasource.hikari.")) {
+                canonicalKey = RuntimeConfiguration.DATABASE_HIKARI_PREFIX
+                        + key.substring("spring.datasource.hikari.".length());
+            }
+            if (canonicalKey != null) {
+                normalized.putIfAbsent(canonicalKey, entry.getValue());
+            }
+        }
+        return normalized;
     }
 
     private String resolveRaw(Map<String, String> cli,

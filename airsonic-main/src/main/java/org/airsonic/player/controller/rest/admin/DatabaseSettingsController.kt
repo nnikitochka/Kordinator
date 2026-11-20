@@ -18,6 +18,7 @@ import org.airsonic.player.service.DatabaseService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.SettingsService
 import org.airsonic.player.service.StatusService
+import org.airsonic.player.runtime.RuntimeConfiguration
 import org.airsonic.player.util.FileUtil
 import org.subsonic.restapi.DatabaseSettings
 import java.nio.file.Files
@@ -118,18 +119,20 @@ class DatabaseSettingsController(
         } finally { withContext(kotlinx.coroutines.NonCancellable + Dispatchers.IO) { database.cleanup(file) } }
     }
 
-    private fun configured(key: String, fallback: String?): String? =
-        properties.configuration.getString(key, fallback)
+    private fun configured(key: String, fallback: String?): String? = properties.configuration.getString(key, fallback)
+
+    private fun configured(key: String, legacyKey: String, fallback: String?): String? =
+        properties.configuration.getString(key, properties.configuration.getString(legacyKey, fallback))
 
     @Synchronized
     private fun read() = DatabaseSettings().apply {
-        // Startup defaults may have higher priority in Spring's environment. Show pending values
+        // Startup defaults may have higher priority in the runtime configuration. Show pending values
         // from the properties file so the form reflects what will be used after restart.
-        driver = configured("spring.datasource.driver-class-name", settings.databaseDriver).orEmpty()
-        url = configured(SettingsService.KEY_DATABASE_URL, settings.databaseUrl).orEmpty()
-        username = configured(SettingsService.KEY_DATABASE_USERNAME, settings.databaseUsername).orEmpty()
-        jndiName = configured("spring.datasource.jndi-name", settings.databaseJNDIName).orEmpty()
-        val password = configured(SettingsService.KEY_DATABASE_PASSWORD, settings.databasePassword).orEmpty()
+        driver = configured(RuntimeConfiguration.DATABASE_DRIVER_KEY, "spring.datasource.driver-class-name", settings.databaseDriver).orEmpty()
+        url = configured(SettingsService.KEY_DATABASE_URL, "spring.datasource.url", settings.databaseUrl).orEmpty()
+        username = configured(SettingsService.KEY_DATABASE_USERNAME, "spring.datasource.username", settings.databaseUsername).orEmpty()
+        jndiName = configured(RuntimeConfiguration.DATABASE_JNDI_NAME_KEY, "spring.datasource.jndi-name", settings.databaseJNDIName).orEmpty()
+        val password = configured(SettingsService.KEY_DATABASE_PASSWORD, "spring.datasource.password", settings.databasePassword).orEmpty()
         configType = when {
             jndiName.isNotBlank() -> "JNDI"
             url == SettingsService.getDefaultJDBCUrl() && username == SettingsService.getDefaultJDBCUsername() &&
@@ -137,7 +140,8 @@ class DatabaseSettingsController(
             else -> "EXTERNAL"
         }
         mysqlVarcharMaxlength = properties.configuration.getInt(
-            "spring.liquibase.parameters.mysqlVarcharLimit", settings.databaseMysqlVarcharMaxlength)
+            RuntimeConfiguration.DATABASE_MIGRATION_MYSQL_VARCHAR_LIMIT_KEY,
+            properties.configuration.getInt("spring.liquibase.parameters.mysqlVarcharLimit", settings.databaseMysqlVarcharMaxlength))
         dbBackupInterval = settings.dbBackupInterval; dbBackupRetentionCount = settings.dbBackupRetentionCount
         backuppable = database.backuppable()
     }

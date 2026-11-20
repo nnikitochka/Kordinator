@@ -1,9 +1,29 @@
 package org.airsonic.player.runtime
 
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 class RuntimeLiquibaseMigratorTest {
+    @Test
+    fun `canonical hikari options override legacy Spring aliases`() {
+        val configuration = RuntimeConfiguration(
+            mapOf(
+                "spring.datasource.url" to "jdbc:hsqldb:mem:runtime_hikari_aliases",
+                "spring.datasource.username" to "sa",
+                "spring.datasource.password" to "",
+                "spring.datasource.hikari.maximum-pool-size" to "5",
+                "kordinator.database.hikari.maximum-pool-size" to "9",
+            ),
+        )
+        val dataSource = RuntimeDataSourceFactory.create(configuration) as com.zaxxer.hikari.HikariDataSource
+        try {
+            assertEquals(9, dataSource.hikariConfigMXBean.maximumPoolSize)
+        } finally {
+            dataSource.close()
+        }
+    }
+
     @Test
     fun `migrates the production schema from runtime configuration`() {
         val configuration = RuntimeConfiguration(

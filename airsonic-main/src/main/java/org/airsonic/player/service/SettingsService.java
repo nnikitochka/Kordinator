@@ -122,14 +122,14 @@ public class SettingsService {
     private static final String KEY_RECAPTCHA_SECRET_KEY = "ReCaptchaSecretKey";
 
     // Database Settings
-    private static final String KEY_DATABASE_DRIVER = "spring.datasource.driver-class-name";
-    public static final String KEY_DATABASE_URL = "spring.datasource.url";
-    public static final String KEY_DATABASE_USERNAME = "spring.datasource.username";
-    public static final String KEY_DATABASE_PASSWORD = "spring.datasource.password";
-    public static final String KEY_DATABASE_JNDI_NAME = "spring.datasource.jndi-name";
-    private static final String KEY_DATABASE_MIGRATION_ROLLBACK_FILE = "spring.liquibase.rollback-file";
-    private static final String KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH = "spring.liquibase.parameters.mysqlVarcharLimit";
-    private static final String KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_MUSIC_FOLDER = "spring.liquibase.parameters.defaultMusicFolder";
+    private static final String KEY_DATABASE_DRIVER = RuntimeConfiguration.DATABASE_DRIVER_KEY;
+    public static final String KEY_DATABASE_URL = RuntimeConfiguration.DATABASE_URL_KEY;
+    public static final String KEY_DATABASE_USERNAME = RuntimeConfiguration.DATABASE_USERNAME_KEY;
+    public static final String KEY_DATABASE_PASSWORD = RuntimeConfiguration.DATABASE_PASSWORD_KEY;
+    public static final String KEY_DATABASE_JNDI_NAME = RuntimeConfiguration.DATABASE_JNDI_NAME_KEY;
+    private static final String KEY_DATABASE_MIGRATION_ROLLBACK_FILE = RuntimeConfiguration.DATABASE_MIGRATION_ROLLBACK_FILE_KEY;
+    private static final String KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH = RuntimeConfiguration.DATABASE_MIGRATION_MYSQL_VARCHAR_LIMIT_KEY;
+    private static final String KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_MUSIC_FOLDER = RuntimeConfiguration.DATABASE_MIGRATION_DEFAULT_MUSIC_FOLDER_KEY;
     public static final String KEY_PROPERTIES_FILE_RETAIN_OBSOLETE_KEYS = "PropertiesFileRetainObsoleteKeys";
 
     // Default values.
@@ -266,18 +266,31 @@ public class SettingsService {
 
         keyMaps.put("database.config.embed.driver", "DatabaseConfigEmbedDriver");
         keyMaps.put("DatabaseConfigEmbedDriver", KEY_DATABASE_DRIVER);
+        keyMaps.put("spring.datasource.driver-class-name", KEY_DATABASE_DRIVER);
 
         keyMaps.put("database.config.embed.url", "DatabaseConfigEmbedUrl");
         keyMaps.put("DatabaseConfigEmbedUrl", KEY_DATABASE_URL);
+        keyMaps.put("spring.datasource.url", KEY_DATABASE_URL);
 
         keyMaps.put("database.config.embed.username", "DatabaseConfigEmbedUsername");
         keyMaps.put("DatabaseConfigEmbedUsername", KEY_DATABASE_USERNAME);
+        keyMaps.put("spring.datasource.username", KEY_DATABASE_USERNAME);
 
         keyMaps.put("database.config.embed.password", "DatabaseConfigEmbedPassword");
         keyMaps.put("DatabaseConfigEmbedPassword", KEY_DATABASE_PASSWORD);
+        keyMaps.put("spring.datasource.password", KEY_DATABASE_PASSWORD);
 
         keyMaps.put("database.config.jndi.name", "DatabaseConfigJNDIName");
         keyMaps.put("DatabaseConfigJNDIName", KEY_DATABASE_JNDI_NAME);
+        keyMaps.put("spring.datasource.jndi-name", KEY_DATABASE_JNDI_NAME);
+
+        keyMaps.put("spring.liquibase.rollback-file", KEY_DATABASE_MIGRATION_ROLLBACK_FILE);
+        keyMaps.put("spring.liquibase.parameters.mysqlVarcharLimit", KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH);
+        keyMaps.put("spring.liquibase.parameters.defaultMusicFolder", KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_MUSIC_FOLDER);
+        keyMaps.put("spring.liquibase.enabled", RuntimeConfiguration.DATABASE_MIGRATION_ENABLED_KEY);
+        keyMaps.put("spring.liquibase.change-log", RuntimeConfiguration.DATABASE_MIGRATION_CHANGELOG_KEY);
+        keyMaps.put("spring.liquibase.contexts", RuntimeConfiguration.DATABASE_MIGRATION_CONTEXTS_KEY);
+        keyMaps.put("spring.liquibase.label-filter", RuntimeConfiguration.DATABASE_MIGRATION_LABEL_FILTER_KEY);
 
         keyMaps.put("database.varchar.maxlength", "DatabaseMysqlMaxlength");
         keyMaps.put("DatabaseMysqlMaxlength", KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH);

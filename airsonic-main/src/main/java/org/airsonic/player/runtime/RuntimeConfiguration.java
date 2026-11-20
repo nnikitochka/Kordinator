@@ -11,6 +11,21 @@ public final class RuntimeConfiguration {
 
     public static final String DEFAULT_HEALTH_STATUS_ORDER = "DOWN,OUT_OF_SERVICE,UP,UNKNOWN";
     public static final String HEALTH_STATUS_ORDER_KEY = "management.endpoint.health.status.order";
+    public static final String DATABASE_DRIVER_KEY = "kordinator.database.driver";
+    public static final String DATABASE_URL_KEY = "kordinator.database.url";
+    public static final String DATABASE_USERNAME_KEY = "kordinator.database.username";
+    public static final String DATABASE_PASSWORD_KEY = "kordinator.database.password";
+    public static final String DATABASE_JNDI_NAME_KEY = "kordinator.database.jndi-name";
+    public static final String DATABASE_HIKARI_PREFIX = "kordinator.database.hikari.";
+    public static final String DATABASE_MIGRATION_PREFIX = "kordinator.database.migrations.";
+    public static final String DATABASE_MIGRATION_ENABLED_KEY = DATABASE_MIGRATION_PREFIX + "enabled";
+    public static final String DATABASE_MIGRATION_CHANGELOG_KEY = DATABASE_MIGRATION_PREFIX + "change-log";
+    public static final String DATABASE_MIGRATION_CONTEXTS_KEY = DATABASE_MIGRATION_PREFIX + "contexts";
+    public static final String DATABASE_MIGRATION_LABEL_FILTER_KEY = DATABASE_MIGRATION_PREFIX + "label-filter";
+    public static final String DATABASE_MIGRATION_ROLLBACK_FILE_KEY = DATABASE_MIGRATION_PREFIX + "rollback-file";
+    public static final String DATABASE_MIGRATION_PARAMETERS_PREFIX = DATABASE_MIGRATION_PREFIX + "parameters.";
+    public static final String DATABASE_MIGRATION_MYSQL_VARCHAR_LIMIT_KEY = DATABASE_MIGRATION_PARAMETERS_PREFIX + "mysqlVarcharLimit";
+    public static final String DATABASE_MIGRATION_DEFAULT_MUSIC_FOLDER_KEY = DATABASE_MIGRATION_PARAMETERS_PREFIX + "defaultMusicFolder";
 
     private static final Path AIRSONIC_HOME_WINDOWS = Paths.get("c:/airsonic");
     private static final Path AIRSONIC_HOME_OTHER = Paths.get("/var/airsonic");
@@ -153,27 +168,31 @@ public final class RuntimeConfiguration {
     }
 
     public String getDatabaseUrl() {
-        return getProperty("spring.datasource.url");
+        return getProperty(DATABASE_URL_KEY, getProperty("spring.datasource.url"));
     }
 
     public String getDatabaseDriver() {
-        return getProperty("spring.datasource.driver-class-name");
+        return getProperty(DATABASE_DRIVER_KEY, getProperty("spring.datasource.driver-class-name"));
     }
 
     public String getDatabaseUsername() {
-        return getProperty("spring.datasource.username", "sa");
+        return getProperty(DATABASE_USERNAME_KEY,
+                getProperty("spring.datasource.username", "sa"));
     }
 
     public String getDatabasePassword() {
-        return getProperty("spring.datasource.password", "");
+        return getProperty(DATABASE_PASSWORD_KEY,
+                getProperty("spring.datasource.password", ""));
     }
 
     public String getDatabaseJndiName() {
-        return getProperty("spring.datasource.jndi-name");
+        return getProperty(DATABASE_JNDI_NAME_KEY,
+                getProperty("spring.datasource.jndi-name"));
     }
 
     public String getLiquibaseRollbackFile() {
-        String configured = getProperty("spring.liquibase.rollback-file");
+        String configured = getProperty(DATABASE_MIGRATION_ROLLBACK_FILE_KEY,
+                getProperty("spring.liquibase.rollback-file"));
         if (configured != null && !configured.trim().isEmpty()) {
             return configured.trim();
         }
@@ -181,10 +200,20 @@ public final class RuntimeConfiguration {
     }
 
     public int getLiquibaseMysqlVarcharLimit() {
-        return getIntProperty("spring.liquibase.parameters.mysqlVarcharLimit", 255);
+        String configured = getProperty(DATABASE_MIGRATION_MYSQL_VARCHAR_LIMIT_KEY,
+                getProperty("spring.liquibase.parameters.mysqlVarcharLimit"));
+        if (configured == null || configured.trim().isEmpty()) {
+            return 255;
+        }
+        try {
+            return Integer.parseInt(configured.trim());
+        } catch (NumberFormatException e) {
+            return 255;
+        }
     }
 
     public String getLiquibaseDefaultMusicFolder() {
-        return getProperty("spring.liquibase.parameters.defaultMusicFolder");
+        return getProperty(DATABASE_MIGRATION_DEFAULT_MUSIC_FOLDER_KEY,
+                getProperty("spring.liquibase.parameters.defaultMusicFolder"));
     }
 }
