@@ -4,10 +4,10 @@ import org.airsonic.player.service.SettingsService
 
 /** Adapts the shared legacy codecs to the framework-neutral security service API. */
 class LegacyCredentialEncoderRegistry(settingsService: SettingsService) : CredentialEncoderRegistry {
-    private val encoders = LegacyCredentialEncoders.ENCODERS
+    private val encoders = LegacyPasswordEncoders.CODECS
 
     init {
-        LegacyCredentialEncoders.configureEncryption(settingsService)
+        LegacyPasswordEncoders.configureEncryption(settingsService)
     }
 
     override fun encode(encoderName: String, credential: CharSequence): String =
@@ -28,8 +28,8 @@ class LegacyCredentialEncoderRegistry(settingsService: SettingsService) : Creden
         return decoder.decode(encodedCredential)
     }
 
-    override fun isDecodable(encoderName: String): Boolean = encoderName in LegacyCredentialEncoders.DECODABLE_ENCODERS
-    override fun isOpenText(encoderName: String): Boolean = encoderName in LegacyCredentialEncoders.OPENTEXT_ENCODERS
-    override fun decodableEncoderNames(): Set<String> = LegacyCredentialEncoders.DECODABLE_ENCODERS
-    override fun openTextEncoderNames(): Set<String> = LegacyCredentialEncoders.OPENTEXT_ENCODERS
+    override fun isDecodable(encoderName: String): Boolean = encoderName in LegacyPasswordEncoders.DECODABLE_ENCODERS
+    override fun isOpenText(encoderName: String): Boolean = encoderName in LegacyPasswordEncoders.OPEN_TEXT_ENCODERS
+    override fun decodableEncoderNames(): Set<String> = LegacyPasswordEncoders.DECODABLE_ENCODERS
+    override fun openTextEncoderNames(): Set<String> = LegacyPasswordEncoders.OPEN_TEXT_ENCODERS
 }
