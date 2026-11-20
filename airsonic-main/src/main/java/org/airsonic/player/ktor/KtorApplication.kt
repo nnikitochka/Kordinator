@@ -33,12 +33,13 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.airsonic.player.runtime.LifecycleRegistry
+import org.airsonic.player.runtime.RuntimeCompositionRoot
+import org.airsonic.player.runtime.RuntimeConfigurationLoader
+import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.security.LoginRateLimiter
-import org.airsonic.player.runtime.LifecycleRegistry
-import org.airsonic.player.runtime.RuntimeConfigurationLoader
-import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.service.StandaloneLibraryService
 import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlaylistService
@@ -789,20 +790,25 @@ fun main(args: Array<String>) {
     val host = configuration.getProperty("airsonic.http.host", "0.0.0.0")
     val port = configuration.getIntProperty("airsonic.http.port", 8080)
     val lifecycle = LifecycleRegistry()
-    val database = StandaloneDatabase.connect(configuration)
-    lifecycle.registerShutdown("database", database)
     Runtime.getRuntime().addShutdownHook(Thread({ lifecycle.shutdown() }, "airsonic-shutdown"))
+    val runtime = RuntimeCompositionRoot(configuration, lifecycle)
+    lateinit var standaloneDatabase: StandaloneDatabase
     try {
-        database.migrate()
+        standaloneDatabase = StandaloneDatabase.connect(configuration)
+        lifecycle.registerShutdown("standaloneDatabase", standaloneDatabase)
+        val legacyDataSource = runtime.createDataSource()
+        runtime.migrateDatabase()
+        runtime.createPersistenceGraph(legacyDataSource)
+        StandaloneDatabase.migrate(standaloneDatabase.dataSource)
     } catch (failure: Throwable) {
         lifecycle.shutdown()
         throw failure
     }
-    val authService = LocalAuthService(database.dataSource)
-    val libraryService = StandaloneLibraryService(database.dataSource)
-    val libraryScanService = StandaloneLibraryScanService(database.dataSource)
-    val playlistService = StandalonePlaylistService(database.dataSource)
-    val favoriteService = StandaloneFavoriteService(database.dataSource)
+    val authService = LocalAuthService(standaloneDatabase.dataSource)
+    val libraryService = StandaloneLibraryService(standaloneDatabase.dataSource)
+    val libraryScanService = StandaloneLibraryScanService(standaloneDatabase.dataSource)
+    val playlistService = StandalonePlaylistService(standaloneDatabase.dataSource)
+    val favoriteService = StandaloneFavoriteService(standaloneDatabase.dataSource)
     if (configuration.getBooleanProperty("airsonic.create-admin", false)) {
         try {
             val console = System.console()
