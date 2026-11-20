@@ -232,6 +232,33 @@ class StandaloneLibraryScanService(
         }
     }
 
+    fun tracksForAlbum(libraryId: Long, album: String): List<StandaloneTrack> = tracksForCatalogEntry(
+        libraryId,
+        "album = ?",
+        album,
+    )
+
+    fun tracksForArtist(libraryId: Long, artist: String): List<StandaloneTrack> = tracksForCatalogEntry(
+        libraryId,
+        "COALESCE(NULLIF(TRIM(album_artist), ''), TRIM(artist)) = ?",
+        artist,
+    )
+
+    private fun tracksForCatalogEntry(libraryId: Long, predicate: String, value: String): List<StandaloneTrack> {
+        val sql = "SELECT id, library_id, relative_path, title, artist, album, album_artist, duration_seconds, " +
+            "size_bytes, modified_at FROM media_track WHERE library_id = ? AND $predicate " +
+            "ORDER BY LOWER(title), id"
+        return dataSource.connection.use { connection ->
+            connection.prepareStatement(sql).use { statement ->
+                statement.setLong(1, libraryId)
+                statement.setString(2, value)
+                statement.executeQuery().use { rows ->
+                    buildList { while (rows.next()) add(rows.toTrack()) }
+                }
+            }
+        }
+    }
+
     fun streamFile(trackId: Long): StandaloneTrackFile? {
         val locations = dataSource.connection.use { connection ->
             connection.prepareStatement(

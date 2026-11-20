@@ -102,8 +102,12 @@ class KtorStandaloneScanTest {
                 assertEquals("Test Album", albumItems[0].get("name").asText())
                 assertEquals("Test Artist", albumItems[0].get("artist").asText())
                 assertEquals(213, albumItems[0].get("durationSeconds").asInt())
+                val albumDetails = client.get("/api/v1/albums/${albumItems[0].get("id").asText()}") { bearerAuth(token) }
+                assertEquals(200, albumDetails.status.value)
+                assertEquals(1, mapper.readTree(albumDetails.bodyAsText()).get("tracks").size())
                 assertEquals(401, client.get("/api/v1/albums").status.value)
                 assertEquals(400, client.get("/api/v1/albums?limit=0") { bearerAuth(token) }.status.value)
+                assertEquals(400, client.get("/api/v1/albums/invalid") { bearerAuth(token) }.status.value)
 
                 val artists = client.get("/api/v1/artists?libraryId=${library.id}") { bearerAuth(token) }
                 assertEquals(200, artists.status.value)
@@ -112,6 +116,9 @@ class KtorStandaloneScanTest {
                 assertEquals("Test Artist", artistItems[0].get("name").asText())
                 assertEquals(1, artistItems[0].get("albumCount").asInt())
                 assertEquals(1, artistItems[0].get("trackCount").asInt())
+                val artistDetails = client.get("/api/v1/artists/${artistItems[0].get("id").asText()}") { bearerAuth(token) }
+                assertEquals(200, artistDetails.status.value)
+                assertEquals(1, mapper.readTree(artistDetails.bodyAsText()).get("tracks").size())
                 assertEquals(401, client.get("/api/v1/artists").status.value)
                 assertEquals(400, client.get("/api/v1/artists?offset=-1") { bearerAuth(token) }.status.value)
 

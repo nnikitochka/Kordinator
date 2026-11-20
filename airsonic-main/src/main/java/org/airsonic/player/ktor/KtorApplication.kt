@@ -42,10 +42,14 @@ import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.service.StandaloneLibraryService
 import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlaylistService
+import org.airsonic.player.service.StandaloneAlbum
+import org.airsonic.player.service.StandaloneArtist
+import org.airsonic.player.service.StandaloneTrack
 import java.nio.file.Path
 import java.nio.channels.FileChannel
 import java.nio.ByteBuffer
 import java.nio.file.StandardOpenOption
+import java.util.Base64
 
 private val authDispatcher = Dispatchers.IO.limitedParallelism(4)
 private val scanDispatcher = Dispatchers.IO.limitedParallelism(2)
@@ -122,7 +126,28 @@ fun Application.standaloneModule(
                             return@get
                         }
                         val albums = withContext(scanDispatcher) { libraryScanService.albums(libraryId, limit, offset) }
-                        call.respondJson(AlbumPage(albums, albums.size, limit, offset))
+                        call.respondJson(AlbumPage(albums.map { it.toResponse() }, albums.size, limit, offset))
+                    }
+                    get("/albums/{id}") {
+                        val selector = call.parameters["id"]?.decodeCatalogId()
+                        if (selector == null) {
+                            call.respondJson(ApiError("invalid_request", "Album ID is invalid"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val service = libraryScanService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val tracks = withContext(scanDispatcher) { service.tracksForAlbum(selector.first, selector.second) }
+                        if (tracks.isEmpty()) {
+                            call.respond(HttpStatusCode.NotFound)
+                            return@get
+                        }
+                        call.respondJson(AlbumDetailsResponse(
+                            catalogId(selector.first, selector.second), selector.second, tracks.first().albumArtist ?: tracks.first().artist,
+                            tracks.sumOf { it.durationSeconds.toLong() }, tracks.map { it.toResponse() },
+                        ))
                     }
                     get("/artists") {
                         if (libraryScanService == null) {
@@ -142,7 +167,27 @@ fun Application.standaloneModule(
                             return@get
                         }
                         val artists = withContext(scanDispatcher) { libraryScanService.artists(libraryId, limit, offset) }
-                        call.respondJson(ArtistPage(artists, artists.size, limit, offset))
+                        call.respondJson(ArtistPage(artists.map { it.toResponse() }, artists.size, limit, offset))
+                    }
+                    get("/artists/{id}") {
+                        val selector = call.parameters["id"]?.decodeCatalogId()
+                        if (selector == null) {
+                            call.respondJson(ApiError("invalid_request", "Artist ID is invalid"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val service = libraryScanService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val tracks = withContext(scanDispatcher) { service.tracksForArtist(selector.first, selector.second) }
+                        if (tracks.isEmpty()) {
+                            call.respond(HttpStatusCode.NotFound)
+                            return@get
+                        }
+                        call.respondJson(ArtistDetailsResponse(
+                            catalogId(selector.first, selector.second), selector.second, tracks.map { it.toResponse() },
+                        ))
                     }
                     get("/tracks") {
                     if (libraryScanService == null) {
@@ -580,8 +625,18 @@ data class TrackResponse(
 )
 data class StandaloneSearchResponse(val query: String, val offset: Int, val totalHits: Long, val tracks: List<TrackResponse>)
 data class TrackPage(val items: List<TrackResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
-data class AlbumPage(val items: List<org.airsonic.player.service.StandaloneAlbum>, val count: Int, val limit: Int, val offset: Int)
-data class ArtistPage(val items: List<org.airsonic.player.service.StandaloneArtist>, val count: Int, val limit: Int, val offset: Int)
+data class AlbumSummaryResponse(
+    val id: String, val libraryId: Long, val name: String, val artist: String?, val trackCount: Long, val durationSeconds: Long,
+)
+data class AlbumDetailsResponse(
+    val id: String, val name: String, val artist: String?, val durationSeconds: Long, val tracks: List<TrackResponse>,
+)
+data class ArtistSummaryResponse(
+    val id: String, val libraryId: Long, val name: String, val albumCount: Long, val trackCount: Long,
+)
+data class ArtistDetailsResponse(val id: String, val name: String, val tracks: List<TrackResponse>)
+data class AlbumPage(val items: List<AlbumSummaryResponse>, val count: Int, val limit: Int, val offset: Int)
+data class ArtistPage(val items: List<ArtistSummaryResponse>, val count: Int, val limit: Int, val offset: Int)
 data class ScanResponse(
     val id: String,
     val libraryId: Long,
@@ -591,6 +646,33 @@ data class ScanResponse(
     val startedAt: String,
     val finishedAt: String?,
 )
+
+private fun StandaloneAlbum.toResponse() = AlbumSummaryResponse(
+    catalogId(libraryId, name), libraryId, name, artist, trackCount, durationSeconds,
+)
+
+private fun StandaloneArtist.toResponse() = ArtistSummaryResponse(
+    catalogId(libraryId, name), libraryId, name, albumCount, trackCount,
+)
+
+private fun StandaloneTrack.toResponse() = TrackResponse(
+    id, libraryId, relativePath, title, artist, album, albumArtist, durationSeconds, sizeBytes, modifiedAt?.toString(),
+)
+
+private fun catalogId(libraryId: Long, name: String): String =
+    "$libraryId.${Base64.getUrlEncoder().withoutPadding().encodeToString(name.toByteArray(Charsets.UTF_8))}"
+
+private fun String.decodeCatalogId(): Pair<Long, String>? {
+    return try {
+        val separator = indexOf('.')
+        if (separator < 1 || separator == lastIndex) return null
+        val libraryId = substring(0, separator).toLongOrNull()?.takeIf { it >= 0 } ?: return null
+        val name = Base64.getUrlDecoder().decode(substring(separator + 1)).toString(Charsets.UTF_8)
+        if (name.isBlank()) null else libraryId to name
+    } catch (_: IllegalArgumentException) {
+        null
+    }
+}
 data class SavePlaylistRequest(val name: String, val trackIds: List<Long> = emptyList())
 data class PlaylistSummaryResponse(val id: Long, val name: String, val createdAt: String, val updatedAt: String, val trackCount: Int)
 data class PlaylistTrackResponse(
