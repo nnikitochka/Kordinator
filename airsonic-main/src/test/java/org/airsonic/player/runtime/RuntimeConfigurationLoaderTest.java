@@ -3,7 +3,9 @@ package org.airsonic.player.runtime;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -13,6 +15,26 @@ import static org.junit.jupiter.api.Assertions.*;
 class RuntimeConfigurationLoaderTest {
 
     private final RuntimeConfigurationLoader loader = new RuntimeConfigurationLoader();
+
+    @Test
+    void loadsAirsonicPropertiesFromConfiguredHomeAndKeepsHigherPrecedence() throws Exception {
+        Path home = Files.createDirectory(tempDir.resolve("configured-home"));
+        Files.writeString(home.resolve("airsonic.properties"),
+                "server.port=9091\nlogging.file.name=" + home.resolve("from-file.log") + "\n");
+        Properties application = new Properties();
+        application.setProperty("airsonic.home", home.toString());
+
+        RuntimeConfiguration fromFile = loader.load(new String[0], new Properties(), Collections.emptyMap(), application);
+        RuntimeConfiguration fromCli = loader.load(new String[] {"--server.port=9092"}, new Properties(),
+                Collections.emptyMap(), application);
+
+        assertEquals("9091", fromFile.getProperty("server.port"));
+        assertEquals(home.resolve("from-file.log").toString(), fromFile.getLogFile());
+        assertEquals("9092", fromCli.getProperty("server.port"));
+    }
+
+    @TempDir
+    Path tempDir;
 
     @ParameterizedTest(name = "layers: cli={0}, jvm={1}, env={2}, app={3}, file={4} => expected={5}")
     @CsvSource({

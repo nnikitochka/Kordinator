@@ -834,7 +834,7 @@ private fun org.airsonic.player.service.StandalonePlaylist.toResponse() = Playli
 )
 
 fun main(args: Array<String>) {
-    val configuration = RuntimeConfigurationLoader().load(args, System.getProperties(), System.getenv(), null, emptyMap())
+    val configuration = RuntimeConfigurationLoader().load(args, System.getProperties(), System.getenv(), null)
     val host = configuration.getProperty("airsonic.http.host", "0.0.0.0")
     val port = configuration.getIntProperty("airsonic.http.port", 8080)
     val lifecycle = LifecycleRegistry()

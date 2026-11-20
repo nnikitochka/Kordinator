@@ -6,7 +6,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -27,6 +29,13 @@ public final class RuntimeConfigurationLoader {
     }
 
     public RuntimeConfiguration load(String[] cliArgs,
+                                     Properties jvmProperties,
+                                     Map<String, String> environment,
+                                     Properties applicationProperties) {
+        return load(cliArgs, jvmProperties, environment, applicationProperties, (Map<String, String>) null);
+    }
+
+    public RuntimeConfiguration load(String[] cliArgs,
                                     Properties jvmProperties,
                                     Map<String, String> environment,
                                     Properties applicationProperties,
@@ -37,15 +46,14 @@ public final class RuntimeConfigurationLoader {
         Map<String, String> rawAppMap = applicationProperties != null
                 ? propertiesToMap(applicationProperties)
                 : loadClasspathProperties(APP_PROPERTIES_RESOURCE);
-        Map<String, String> rawFileMap = airsonicProperties != null
-                ? new LinkedHashMap<>(airsonicProperties)
-                : Collections.emptyMap();
-
         Map<String, String> keyMaps = SettingsService.getMigratedPropertyKeys();
         Map<String, String> cliMap = normalizeLayer(rawCliMap, keyMaps, rawCliMap::get, "cli");
         Map<String, String> jvmMap = normalizeLayer(rawJvmMap, keyMaps, rawJvmMap::get, "jvm");
         Map<String, String> envMap = normalizeLayer(rawEnvMap, keyMaps, key -> lookupEnv(rawEnvMap, key), "environment");
         Map<String, String> appMap = normalizeLayer(rawAppMap, keyMaps, rawAppMap::get, "application.properties");
+        Map<String, String> rawFileMap = airsonicProperties != null
+                ? new LinkedHashMap<>(airsonicProperties)
+                : loadAirsonicProperties(cliMap, jvmMap, envMap, appMap);
         Map<String, String> fileMap = normalizeLayer(rawFileMap, keyMaps, rawFileMap::get, "airsonic.properties");
 
         return buildConfiguration(cliMap, jvmMap, envMap, appMap, fileMap);
@@ -254,6 +262,37 @@ public final class RuntimeConfigurationLoader {
             }
         } catch (Exception e) {
             LOG.warn("Could not load classpath properties from {}", resourcePath, e);
+        }
+        return propertiesToMap(properties);
+    }
+
+    private Map<String, String> loadAirsonicProperties(Map<String, String> cli,
+                                                       Map<String, String> jvm,
+                                                       Map<String, String> env,
+                                                       Map<String, String> app) {
+        String home = resolveRaw(cli, jvm, env, app, Collections.emptyMap(), Collections.emptyMap(),
+                Collections.emptyMap(), "airsonic.home");
+        if (StringUtils.isBlank(home)) {
+            home = resolveRaw(cli, jvm, env, app, Collections.emptyMap(), Collections.emptyMap(),
+                    Collections.emptyMap(), "libresonic.home");
+        }
+        if (StringUtils.isBlank(home)) {
+            boolean isWin = System.getProperty("os.name", "unknown").toLowerCase(Locale.ROOT).contains("win");
+            home = isWin ? "c:/airsonic" : "/var/airsonic";
+        }
+
+        Path homePath = Paths.get(home.trim());
+        String fileName = homePath.toString().contains("libresonic") ? "libresonic.properties" : "airsonic.properties";
+        Path propertyFile = homePath.resolve(fileName);
+        if (!Files.isRegularFile(propertyFile)) {
+            return Collections.emptyMap();
+        }
+
+        Properties properties = new Properties();
+        try (InputStream input = Files.newInputStream(propertyFile)) {
+            properties.load(input);
+        } catch (IOException failure) {
+            throw new IllegalStateException("Could not load application properties from " + propertyFile, failure);
         }
         return propertiesToMap(properties);
     }
