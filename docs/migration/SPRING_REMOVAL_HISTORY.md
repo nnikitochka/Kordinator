@@ -524,6 +524,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 20 ноября 2026:** удалён `spring-boot-starter-parent` из корневого Maven проекта. Его унаследованные версии зависимостей и build plugins зафиксированы в явном `dependencyManagement`/`pluginManagement`, Java compiler release задан через `${java.version}`, а Spring-исключения из dependency analyzer удалены. `dependencyConvergence` проходит; standalone shaded Netty package успешен; Ktor regression набор прошёл 45/45. Effective POM не содержит Spring Boot plugin/parent, а test dependency tree не содержит Spring.
 
+**Срез 20 ноября 2026:** удалены неиспользуемые servlet filters и `ServletConditionalRequest`, а также прямой `ktor-server-servlet-jakarta-jvm` dependency и его shade exclusion. Standalone runtime dependency tree не содержит Ktor servlet engine или Spring; Ktor regression набор прошёл 45/45. `jakarta.servlet-api` пока остаётся `provided`, потому что ещё не перенесены на нейтральные HTTP-типы некоторые legacy services (`PlayerService`, `SecurityService`, `NetworkService`, `ShareService`, `JAXBWriter` и `Util`).
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

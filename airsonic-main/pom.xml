@@ -62,11 +62,6 @@
         </dependency>
         <dependency>
             <groupId>io.ktor</groupId>
-            <artifactId>ktor-server-servlet-jakarta-jvm</artifactId>
-            <version>${ktor.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.ktor</groupId>
             <artifactId>ktor-server-netty-jvm</artifactId>
             <version>${ktor.version}</version>
         </dependency>
@@ -577,9 +572,7 @@
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <artifactSet>
                                 <excludes>
-                                    <exclude>org.apache.tomcat.embed:*</exclude>
                                     <exclude>jakarta.servlet:*</exclude>
-                                    <exclude>io.ktor:ktor-server-servlet*</exclude>
                                 </excludes>
                             </artifactSet>
                             <filters>
