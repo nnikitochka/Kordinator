@@ -242,7 +242,7 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <!-- Not managed by Boot 3 anymore -->
+            <!-- Keep the legacy HTTP client version explicit. -->
             <version>4.5.14</version>
         </dependency>
 
