@@ -214,23 +214,15 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         jukeboxService: org.airsonic.player.service.JukeboxService,
         settingsService: org.airsonic.player.service.SettingsService,
         mediaFileService: org.airsonic.player.service.MediaFileService,
-        lastFmService: org.airsonic.player.service.LastFmService,
         ratingService: org.airsonic.player.service.RatingService,
         playlistService: org.airsonic.player.service.PlaylistService,
         graph: org.airsonic.player.runtime.DaoGraph,
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
         jwtSecurityService: org.airsonic.player.service.JWTSecurityService,
     ): org.airsonic.player.service.PlayQueueService = runtime.createPlayQueueService(
-        searchService, jukeboxService, settingsService, mediaFileService, lastFmService, ratingService, playlistService,
+        searchService, jukeboxService, settingsService, mediaFileService,
+        runtime.createLastFmService(graph.mediaFileDao, mediaFileService, graph.artistDao), ratingService, playlistService,
         graph.mediaFileDao, mediaFolderService, graph.playQueueDao, jwtSecurityService)
-
-    @Bean
-    override fun lastFmService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        graph: org.airsonic.player.runtime.DaoGraph,
-        mediaFileService: org.airsonic.player.service.MediaFileService,
-    ): org.airsonic.player.service.LastFmService = runtime.createLastFmService(
-        graph.mediaFileDao, mediaFileService, graph.artistDao)
 
     @Bean
     override fun downloadService(

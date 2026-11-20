@@ -311,12 +311,13 @@ public class KtorConfiguration {
     }
 
     public PlayQueueService playQueueService(RuntimeCompositionRoot runtime, SearchService searchService, JukeboxService jukeboxService,
-            SettingsService settingsService, MediaFileService mediaFileService, LastFmService lastFmService,
+            SettingsService settingsService, MediaFileService mediaFileService,
             RatingService ratingService, PlaylistService playlistService, org.airsonic.player.runtime.DaoGraph graph,
             MediaFolderService mediaFolderService,
             JWTSecurityService jwtSecurityService) {
         return runtime.createPlayQueueService(searchService, jukeboxService, settingsService, mediaFileService,
-                lastFmService, ratingService, playlistService, graph.getMediaFileDao(), mediaFolderService,
+                runtime.createLastFmService(graph.getMediaFileDao(), mediaFileService, graph.getArtistDao()),
+                ratingService, playlistService, graph.getMediaFileDao(), mediaFolderService,
                 graph.getPlayQueueDao(),
                 jwtSecurityService);
     }
@@ -328,11 +329,6 @@ public class KtorConfiguration {
                 transcodingService, runtime.createAudioScrobblerService(settingsService, securityService),
                 statusService, settingsService, securityService, mediaFileService);
         return runtime.createJukeboxService(legacyJukebox);
-    }
-
-    public LastFmService lastFmService(RuntimeCompositionRoot runtime, org.airsonic.player.runtime.DaoGraph graph,
-            MediaFileService mediaFileService) {
-        return runtime.createLastFmService(graph.getMediaFileDao(), mediaFileService, graph.getArtistDao());
     }
 
     public MediaFolderService mediaFolderService(RuntimeCompositionRoot runtime) {
@@ -385,7 +381,6 @@ public class KtorConfiguration {
             org.airsonic.player.runtime.DaoGraph graph,
             RatingService ratingService,
             SearchService albumSearchService,
-            LastFmService lastFmService,
             MediaFolderService mediaFolderService,
             PlayerService playerService,
             PlaylistService playlistService,
@@ -424,6 +419,8 @@ public class KtorConfiguration {
                 runtime.createSubsonicMusicFoldersService(mediaFolderService));
         GenresController genresController = runtime.createSubsonicGenresController();
         MusicIndexService musicIndexService = runtime.createMusicIndexService(settingsService, mediaFileService);
+        LastFmService lastFmService = runtime.createLastFmService(
+                graph.getMediaFileDao(), mediaFileService, graph.getArtistDao());
         ArtistsController artistsController = runtime.createSubsonicArtistsController(
                 musicIndexService, settingsService, mediaFolderService, responseMapper);
         RestPlayerResolver playerResolver = runtime.createRestPlayerResolver(playerService);
