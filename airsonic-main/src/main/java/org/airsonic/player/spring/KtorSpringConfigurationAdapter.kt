@@ -260,12 +260,4 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         mediaFileService: org.airsonic.player.service.MediaFileService,
     ): org.airsonic.player.service.RatingService = runtime.createRatingService(graph.ratingDao, securityService, mediaFileService)
 
-    @Bean
-    override fun databaseService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-        settingsService: org.airsonic.player.service.SettingsService,
-        graph: org.airsonic.player.runtime.DaoGraph,
-        taskSchedulingService: org.airsonic.player.service.TaskSchedulingService,
-    ): org.airsonic.player.service.DatabaseService =
-        runtime.createDatabaseService(settingsService, graph.databaseDao, taskSchedulingService)
 }

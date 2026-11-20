@@ -67,7 +67,6 @@ import org.airsonic.player.service.MusicIndexService;
 import org.airsonic.player.service.DownloadService;
 import org.airsonic.player.service.CoverArtService;
 import org.airsonic.player.service.CoverArtImageService;
-import org.airsonic.player.service.DatabaseService;
 import org.airsonic.player.controller.rest.playqueue.PlayQueueController;
 import org.airsonic.player.dao.PlayQueueDao;
 import org.airsonic.player.controller.rest.users.UsersController;
@@ -285,11 +284,6 @@ public class KtorConfiguration {
         return runtime.createRatingService(graph.getRatingDao(), securityService, mediaFileService);
     }
 
-    public DatabaseService databaseService(RuntimeCompositionRoot runtime, SettingsService settingsService, org.airsonic.player.runtime.DaoGraph graph,
-            TaskSchedulingService taskSchedulingService) {
-        return runtime.createDatabaseService(settingsService, graph.getDatabaseDao(), taskSchedulingService);
-    }
-
     public JWTSecurityService jwtSecurityService(RuntimeCompositionRoot runtime, SettingsService settingsService) {
         return runtime.createJwtSecurityService(settingsService);
     }
@@ -410,7 +404,6 @@ public class KtorConfiguration {
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             TaskSchedulingService taskSchedulingService,
             org.airsonic.player.service.PathWatcherService pathWatcherService,
-            org.airsonic.player.service.DatabaseService databaseService,
             DownloadService downloadService,
             MusicIndexStateService musicIndexStateService,
             CoverArtService coverArtService,
@@ -423,6 +416,8 @@ public class KtorConfiguration {
         runtime.createCoverArtAccentColorBackfill(coverArtService);
         LocaleService localeService = runtime.createLocaleService(settingsService);
         AudioScrobblerService audioScrobblerService = runtime.createAudioScrobblerService(settingsService, securityService);
+        org.airsonic.player.service.DatabaseService databaseService = runtime.createDatabaseService(
+                settingsService, graph.getDatabaseDao(), taskSchedulingService);
         JAXBWriter jaxbWriter = runtime.createSubsonicJaxbWriter();
         SubsonicResponseMapper responseMapper = runtime.createSubsonicResponseMapper(
                 mediaFileService, ratingService, coverArtService, transcodingService);
