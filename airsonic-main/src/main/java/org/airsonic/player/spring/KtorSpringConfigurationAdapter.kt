@@ -88,18 +88,12 @@ class KtorSpringConfigurationAdapter : KtorConfiguration() {
         graph.transcodingDao, settingsService, mediaFolderService)
 
     @Bean
-    override fun taskSchedulingService(
-        runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
-    ): org.airsonic.player.service.TaskSchedulingService = runtime.createTaskSchedulingService()
-
-    @Bean
-    override fun statusService(
+    fun statusService(
         runtime: org.airsonic.player.runtime.RuntimeCompositionRoot,
         mediaFileService: org.airsonic.player.service.MediaFileService,
         mediaFolderService: org.airsonic.player.service.MediaFolderService,
         settingsService: org.airsonic.player.service.SettingsService,
-        taskSchedulingService: org.airsonic.player.service.TaskSchedulingService,
     ): org.airsonic.player.service.StatusService = runtime.createStatusService(
-        mediaFileService, mediaFolderService, settingsService, taskSchedulingService)
+        mediaFileService, mediaFolderService, settingsService, runtime.createTaskSchedulingService())
 
 }
