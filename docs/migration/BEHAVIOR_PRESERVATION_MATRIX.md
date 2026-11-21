@@ -17,7 +17,7 @@
 | Bearer | `GET` и `POST /api/v1/playlists`; `GET`, `PUT`, `DELETE /api/v1/playlists/{id}` | Основные операции `PlaylistsController`; импорт/экспорт и sharing в этой регистрации отсутствуют | `KtorStandalonePlaylistTest`, `KtorStandaloneRealScanIsolationTest` |
 | Bearer | `GET`, `PUT`, `DELETE /api/v1/me/play-queue` | Персональная сохраняемая очередь треков с текущим треком и позицией; очередь не управляет аудиодекодером и не зависит от WebSocket-соединения | `KtorStandalonePlaylistTest`, `KtorStandaloneAuthTest` проверяет очистку при удалении пользователя |
 | Bearer | `GET /api/v1/me/bookmarks`; `PUT`, `DELETE /api/v1/tracks/{id}/bookmark` | Персональные позиции продолжения и комментарии; позиция ближе минуты к концу удаляет закладку | `KtorStandalonePlaylistTest` |
-| Bearer | `PUT /api/v1/tracks/{id}/rating` | Персональная оценка 1–5; значение `0` удаляет оценку | `KtorStandalonePlaylistTest` |
+| Bearer | `GET`, `PUT /api/v1/tracks/{id}/rating` | Персональная оценка 1–5; значение `0` удаляет оценку; чтение доступно только для треков в библиотеке пользователя | `KtorStandalonePlaylistTest` |
 | Bearer | `POST /api/v1/tracks/{id}/scrobble` | Обновление счётчика прослушиваний, статуса проигрывания и вызов настроенного внешнего скробблера | `KtorStandalonePlaylistTest` |
 | Bearer | `GET /api/v1/lyrics?artist=…&title=…` | Поиск текста песни через существующий `LyricsService`; `tryLater` включается по запросу | `KtorStandalonePlaylistTest`, `LyricsServiceTest` |
 | Bearer | `GET /api/v1/tracks/random` | Случайные треки с теми же жанровым, годовым и библиотечным фильтрами старого `RandomSongsController` | `KtorStandalonePlaylistTest` |

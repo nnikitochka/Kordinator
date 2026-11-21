@@ -9,6 +9,14 @@ class StandaloneRatingService(
     private val dataSource: DataSource,
     private val mediaCatalog: KtorCoreMediaCatalogService,
 ) {
+    fun get(userId: Long, trackId: Long): Int? = dataSource.connection.use { connection ->
+        connection.prepareStatement("SELECT rating FROM track_rating WHERE user_id = ? AND track_id = ?").use { statement ->
+            statement.setLong(1, userId)
+            statement.setLong(2, trackId)
+            statement.executeQuery().use { rows -> if (rows.next()) rows.getInt("rating") else null }
+        }
+    }
+
     fun set(userId: Long, trackId: Long, rating: Int, accessibleLibraryIds: Set<Long>? = null): Boolean {
         require(rating in 0..5) { "Rating must be between 0 and 5" }
         if (mediaCatalog.track(trackId, accessibleLibraryIds) == null) return false

@@ -794,6 +794,27 @@ fun Application.standaloneModule(
                         val deleted = withContext(authDispatcher) { service.delete(user.id, trackId) }
                         if (deleted) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
                     }
+                    get("/tracks/{id}/rating") {
+                        val service = ratingService
+                        val catalog = mediaCatalogService
+                        if (service == null || catalog == null) {
+                            call.respondJson(ApiError("unavailable", "Rating storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val trackId = call.parameters["id"]?.toLongOrNull()
+                        if (trackId == null || trackId < 0) {
+                            call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        if (catalog.track(trackId, user.catalogLibraryScope()) == null) {
+                            call.respond(HttpStatusCode.NotFound)
+                            return@get
+                        }
+                        val rating = withContext(authDispatcher) { service.get(user.id, trackId) }
+                        call.respondJson(TrackRatingResponse(rating))
+                    }
                     put("/tracks/{id}/rating") {
                         val service = ratingService
                         if (service == null) {
@@ -1301,6 +1322,7 @@ data class BookmarkResponse(
 )
 data class SetBookmarkRequest(val positionMillis: Long, val comment: String? = null)
 data class SetTrackRatingRequest(val rating: Int)
+data class TrackRatingResponse(val rating: Int?)
 data class ScrobbleTrackRequest(val time: String? = null, val submission: Boolean = true)
 data class LyricsResponse(val artist: String?, val title: String?, val lyrics: String?, val tryLater: Boolean?)
 data class RandomTrackResponse(val items: List<TrackResponse>, val count: Int)

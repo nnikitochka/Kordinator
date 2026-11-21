@@ -155,6 +155,12 @@ class KtorStandalonePlaylistTest {
                 }
                 assertEquals(1, ratingRows.size)
                 assertEquals(4, ratingRows.single().second)
+                assertEquals(4, mapper.readTree(client.get("/api/v1/tracks/$trackId/rating") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText()).get("rating").asInt())
+                assertEquals(404, client.get("/api/v1/tracks/$trackId/rating") {
+                    bearerAuth(otherToken)
+                }.status.value)
                 assertEquals(400, client.put("/api/v1/tracks/$trackId/rating") {
                     bearerAuth(ownerToken)
                     header(io.ktor.http.HttpHeaders.ContentType, "application/json")
@@ -172,6 +178,9 @@ class KtorStandalonePlaylistTest {
                         statement.executeQuery().use { rows -> rows.next(); rows.getInt(1) }
                     }
                 })
+                assertEquals(true, mapper.readTree(client.get("/api/v1/tracks/$trackId/rating") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText()).get("rating").isNull)
 
                 assertEquals(204, client.post("/api/v1/tracks/$trackId/scrobble") {
                     bearerAuth(ownerToken)
