@@ -1817,7 +1817,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.SecurityService securityService,
             org.airsonic.player.service.MediaFileService mediaFileService) {
         if (jukeboxLegacySubsonicService == null) {
-            jukeboxLegacySubsonicService = new org.airsonic.player.service.JukeboxLegacySubsonicService(
+            jukeboxLegacySubsonicService = RuntimePlaybackServiceFactory.createLegacyJukeboxService(
                     transcodingService, audioScrobblerService, statusService, settingsService,
                     securityService, mediaFileService);
         }
@@ -1827,7 +1827,7 @@ public final class RuntimeCompositionRoot {
     public synchronized org.airsonic.player.service.JukeboxService createJukeboxService(
             org.airsonic.player.service.JukeboxLegacySubsonicService legacyJukebox) {
         if (jukeboxService == null) {
-            jukeboxService = new org.airsonic.player.service.JukeboxService(legacyJukebox);
+            jukeboxService = RuntimePlaybackServiceFactory.createJukeboxService(legacyJukebox);
         }
         return jukeboxService;
     }
@@ -1845,7 +1845,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.dao.PlayQueueDao playQueueDao,
             org.airsonic.player.service.JWTSecurityService jwtSecurityService) {
         if (playQueueService == null) {
-            playQueueService = new org.airsonic.player.service.PlayQueueService(
+            playQueueService = RuntimePlaybackServiceFactory.createPlayQueueService(
                     searchService, jukeboxService, settingsService, mediaFileService, lastFmService,
                     ratingService, playlistService, mediaFileDao, mediaFolderService, playQueueDao, jwtSecurityService);
         }
@@ -1928,7 +1928,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.MediaFolderService mediaFolderService,
             java.util.function.Supplier<org.airsonic.player.service.PlayerService> playerServiceSupplier) {
         if (transcodingService == null) {
-            transcodingService = new org.airsonic.player.service.TranscodingService(
+            transcodingService = RuntimePlaybackServiceFactory.createTranscodingService(
                     transcodingDao, settingsService, mediaFolderService, playerServiceSupplier);
         }
         return transcodingService;
@@ -1947,7 +1947,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.SecurityService securityService,
             org.airsonic.player.service.TranscodingService transcodingService) {
         if (playerService == null) {
-            playerService = new org.airsonic.player.service.PlayerService(
+            playerService = RuntimePlaybackServiceFactory.createPlayerService(
                     playerDao, statusService, securityService, transcodingService);
             playerService.init();
         }
