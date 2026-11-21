@@ -1702,7 +1702,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.VersionService versions,
             org.airsonic.player.service.SettingsService settingsService) {
         if (serverInfoService == null) {
-            serverInfoService = new org.airsonic.player.service.ServerInfoService(versions, settingsService);
+            serverInfoService = RuntimeApplicationServiceFactory.createServerInfoService(versions, settingsService);
         }
         return serverInfoService;
     }
@@ -1713,7 +1713,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.SettingsService settingsService,
             org.airsonic.player.service.TaskSchedulingService taskSchedulingService) {
         if (statusService == null) {
-            statusService = new org.airsonic.player.service.StatusService(
+            statusService = RuntimeApplicationServiceFactory.createStatusService(
                     mediaFileService, mediaFolderService, settingsService, taskSchedulingService);
             statusService.cleanup();
         }
@@ -1724,7 +1724,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.SettingsService settingsService,
             org.airsonic.player.service.SecurityService securityService) {
         if (passwordRecoveryService == null) {
-            passwordRecoveryService = new org.airsonic.player.service.PasswordRecoveryService(
+            passwordRecoveryService = RuntimeApplicationServiceFactory.createPasswordRecoveryService(
                     settingsService, securityService);
         }
         return passwordRecoveryService;
@@ -1732,7 +1732,7 @@ public final class RuntimeCompositionRoot {
 
     public synchronized org.airsonic.player.service.LyricsService createLyricsService() {
         if (lyricsService == null) {
-            lyricsService = new org.airsonic.player.service.LyricsService();
+            lyricsService = RuntimeApplicationServiceFactory.createLyricsService();
         }
         return lyricsService;
     }
@@ -1741,7 +1741,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.dao.BookmarkDao bookmarkDao,
             org.airsonic.player.service.MediaFileService mediaFileService) {
         if (bookmarkService == null) {
-            bookmarkService = new org.airsonic.player.service.BookmarkService(bookmarkDao, mediaFileService);
+            bookmarkService = RuntimeApplicationServiceFactory.createBookmarkService(bookmarkDao, mediaFileService);
         }
         return bookmarkService;
     }
@@ -1751,7 +1751,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.SecurityService securityService,
             org.airsonic.player.service.MediaFileService mediaFileService) {
         if (ratingService == null) {
-            ratingService = new org.airsonic.player.service.RatingService(ratingDao, securityService, mediaFileService);
+            ratingService = RuntimeApplicationServiceFactory.createRatingService(ratingDao, securityService, mediaFileService);
         }
         return ratingService;
     }
@@ -1760,7 +1760,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.SettingsService settingsService,
             org.airsonic.player.service.MediaFileService mediaFileService) {
         if (musicIndexService == null) {
-            musicIndexService = new org.airsonic.player.service.MusicIndexService(settingsService, mediaFileService);
+            musicIndexService = RuntimeApplicationServiceFactory.createMusicIndexService(settingsService, mediaFileService);
         }
         return musicIndexService;
     }
@@ -1802,7 +1802,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.dao.DatabaseDao databaseDao,
             org.airsonic.player.service.TaskSchedulingService taskSchedulingService) {
         if (databaseService == null) {
-            databaseService = new org.airsonic.player.service.DatabaseService(
+            databaseService = RuntimeApplicationServiceFactory.createDatabaseService(
                     settingsService, databaseDao, taskSchedulingService);
             databaseService.init();
         }
@@ -1857,7 +1857,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.MediaFileService mediaFileService,
             org.airsonic.player.dao.ArtistDao artistDao) {
         if (lastFmService == null) {
-            lastFmService = new org.airsonic.player.service.LastFmService(mediaFileDao, mediaFileService, artistDao);
+            lastFmService = RuntimeApplicationServiceFactory.createLastFmService(mediaFileDao, mediaFileService, artistDao);
             lastFmService.init();
         }
         return lastFmService;
@@ -1867,7 +1867,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.dao.ShareDao shareDao,
             org.airsonic.player.service.MediaFileService mediaFileService) {
         if (shareService == null) {
-            shareService = new org.airsonic.player.service.ShareService(shareDao, mediaFileService);
+            shareService = RuntimeApplicationServiceFactory.createShareService(shareDao, mediaFileService);
         }
         return shareService;
     }
@@ -1875,7 +1875,7 @@ public final class RuntimeCompositionRoot {
     public synchronized org.airsonic.player.service.UploadFileService createUploadFileService(
             org.airsonic.player.service.SecurityService securityService) {
         if (uploadFileService == null) {
-            uploadFileService = new org.airsonic.player.service.UploadFileService(securityService);
+            uploadFileService = RuntimeApplicationServiceFactory.createUploadFileService(securityService);
         }
         return uploadFileService;
     }
@@ -1884,7 +1884,8 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.SettingsService settingsService,
             org.airsonic.player.service.SecurityService securityService) {
         if (audioScrobblerService == null) {
-            audioScrobblerService = new org.airsonic.player.service.AudioScrobblerService(settingsService, securityService);
+            audioScrobblerService = RuntimeApplicationServiceFactory.createAudioScrobblerService(
+                    settingsService, securityService);
         }
         return audioScrobblerService;
     }
@@ -1896,7 +1897,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory,
             org.airsonic.player.service.JWTSecurityService jwtSecurityService) {
         if (captionService == null) {
-            captionService = new org.airsonic.player.service.CaptionService(
+            captionService = RuntimeApplicationServiceFactory.createCaptionService(
                     mediaFileService, mediaFolderService, settingsService, metaDataParserFactory, jwtSecurityService);
         }
         return captionService;
@@ -1909,7 +1910,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.BookmarkService bookmarkService,
             org.airsonic.player.service.SettingsService settingsService) {
         if (videoPlaybackService == null) {
-            videoPlaybackService = new org.airsonic.player.service.VideoPlaybackService(
+            videoPlaybackService = RuntimeApplicationServiceFactory.createVideoPlaybackService(
                     mediaFileService, captionService, jwtSecurityService, bookmarkService, settingsService);
         }
         return videoPlaybackService;
