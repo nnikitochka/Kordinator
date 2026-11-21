@@ -202,15 +202,16 @@ class StandaloneLibraryScanService(
             return StandaloneArtwork(bytes, contentType)
         }
 
-        return try {
-            val bytes = JaudiotaggerParser.getArtwork(track.path)?.binaryData ?: return null
-            if (bytes.isEmpty() || bytes.size > MAX_ARTWORK_BYTES) return null
-            val contentType = imageContentType(bytes) ?: return null
-            StandaloneArtwork(bytes, contentType)
+        val embedded = try {
+            JaudiotaggerParser.getArtwork(track.path)?.binaryData
         } catch (failure: Exception) {
             LOG.debug("Could not read embedded cover art for {}", relativePath, failure)
             null
         }
+        if (embedded != null && embedded.isNotEmpty() && embedded.size <= MAX_ARTWORK_BYTES) {
+            imageContentType(embedded)?.let { return StandaloneArtwork(embedded, it) }
+        }
+        return DEFAULT_COVER_BYTES?.let { StandaloneArtwork(it.copyOf(), "image/jpeg") }
     }
 
     private fun imageContentType(bytes: ByteArray): String? = try {
@@ -296,5 +297,11 @@ class StandaloneLibraryScanService(
             "cover.jpg", "cover.jpeg", "cover.png", "folder.jpg", "folder.jpeg", "folder.png", "front.jpg", "front.jpeg", "front.png",
         )
         const val MAX_ARTWORK_BYTES = 20L * 1024 * 1024
+        val DEFAULT_COVER_BYTES: ByteArray? by lazy {
+            StandaloneLibraryScanService::class.java
+                .getResourceAsStream("/org/airsonic/player/controller/default_cover.jpg")
+                ?.use { it.readBytes() }
+                ?.takeIf { it.isNotEmpty() }
+        }
     }
 }

@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.delete
@@ -297,11 +298,36 @@ class KtorStandaloneScanTest {
                 assertEquals(401, client.get("/api/v1/tracks/$trackId/stream").status.value)
                 assertEquals("bytes", fullStream.headers["Accept-Ranges"])
                 assertTrue("not a decodable audio file".toByteArray().contentEquals(fullStream.bodyAsBytes()))
+                val streamEtag = requireNotNull(fullStream.headers["ETag"])
+                val streamModified = requireNotNull(fullStream.headers["Last-Modified"])
+                assertEquals(304, client.get("/api/v1/tracks/$trackId/stream") {
+                    bearerAuth(token)
+                    header("If-None-Match", streamEtag)
+                }.status.value)
+                assertEquals(304, client.get("/api/v1/tracks/$trackId/stream") {
+                    bearerAuth(token)
+                    header("If-Modified-Since", streamModified)
+                }.status.value)
 
                 val artwork = client.get("/api/v1/tracks/$trackId/artwork") { bearerAuth(token) }
                 assertEquals(200, artwork.status.value)
                 assertEquals("image/png", artwork.headers["Content-Type"]?.substringBefore(';'))
                 assertTrue(coverBytes.contentEquals(artwork.bodyAsBytes()))
+                assertEquals(null, artwork.headers["Last-Modified"])
+                val artworkEtag = requireNotNull(artwork.headers["ETag"])
+                assertTrue(artwork.headers["Cache-Control"]!!.contains("max-age=300"))
+                assertEquals(304, client.get("/api/v1/tracks/$trackId/artwork") {
+                    bearerAuth(token)
+                    header("If-None-Match", artworkEtag)
+                }.status.value)
+                Files.delete(musicRoot.resolve("cover.png"))
+                val fallbackArtwork = client.get("/api/v1/tracks/$trackId/artwork") { bearerAuth(token) }
+                val defaultCover = requireNotNull(javaClass.getResourceAsStream(
+                    "/org/airsonic/player/controller/default_cover.jpg",
+                )).use { it.readBytes() }
+                assertEquals(200, fallbackArtwork.status.value)
+                assertEquals("image/jpeg", fallbackArtwork.headers["Content-Type"]?.substringBefore(';'))
+                assertTrue(defaultCover.contentEquals(fallbackArtwork.bodyAsBytes()))
                 assertEquals(401, client.get("/api/v1/tracks/$trackId/artwork").status.value)
                 assertEquals(404, client.get("/api/v1/tracks/999999/artwork") { bearerAuth(token) }.status.value)
 

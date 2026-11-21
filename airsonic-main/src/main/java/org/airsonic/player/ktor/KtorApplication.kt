@@ -68,6 +68,10 @@ import java.nio.channels.FileChannel
 import java.nio.ByteBuffer
 import java.nio.file.StandardOpenOption
 import java.util.Base64
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.security.MessageDigest
 
 private val authDispatcher = Dispatchers.IO.limitedParallelism(4)
 private val scanDispatcher = Dispatchers.IO.limitedParallelism(2)
@@ -513,6 +517,13 @@ fun Application.standaloneModule(
                         call.respond(HttpStatusCode.NotFound)
                         return@get
                     }
+                    val modifiedAt = runCatching { Files.getLastModifiedTime(track.path).toInstant() }.getOrNull()
+                    val etag = "W/\"$trackId-${track.sizeBytes}-${modifiedAt?.toEpochMilli() ?: 0}\""
+                    call.setRepresentationValidators(etag, modifiedAt)
+                    if (call.isNotModified(etag, modifiedAt)) {
+                        call.respond(HttpStatusCode.NotModified)
+                        return@get
+                    }
                     call.response.headers.append(HttpHeaders.AcceptRanges, "bytes")
                     val rangeHeader = call.request.headers[HttpHeaders.Range]
                     val range = if (rangeHeader == null) ByteRange(0, track.sizeBytes - 1) else parseByteRange(rangeHeader, track.sizeBytes)
@@ -571,6 +582,12 @@ fun Application.standaloneModule(
                         return@get
                     }
                     call.response.headers.append(HttpHeaders.CacheControl, "private, max-age=300")
+                    val etag = "\"${MessageDigest.getInstance("SHA-256").digest(artwork.bytes).joinToString("") { "%02x".format(it) }}\""
+                    call.setRepresentationValidators(etag, null)
+                    if (call.isNotModified(etag, null)) {
+                        call.respond(HttpStatusCode.NotModified)
+                        return@get
+                    }
                     call.respondBytes(artwork.bytes, ContentType.parse(artwork.contentType))
                     }
                 }
@@ -1597,6 +1614,33 @@ data class PlaylistResponse(
 )
 
 private data class ByteRange(val start: Long, val end: Long)
+
+private fun ApplicationCall.setRepresentationValidators(etag: String, modifiedAt: Instant?) {
+    response.headers.append(HttpHeaders.ETag, etag)
+    modifiedAt?.let {
+        response.headers.append(
+            HttpHeaders.LastModified,
+            DateTimeFormatter.RFC_1123_DATE_TIME.format(it.truncatedTo(java.time.temporal.ChronoUnit.SECONDS).atZone(ZoneOffset.UTC)),
+        )
+    }
+}
+
+private fun ApplicationCall.isNotModified(etag: String, modifiedAt: Instant?): Boolean {
+    val entityTags = request.headers[HttpHeaders.IfNoneMatch]
+    if (entityTags != null) {
+        val current = etag.removePrefix("W/").removeSurrounding("\"")
+        return entityTags.split(',').any { candidate ->
+            val normalized = candidate.trim()
+            normalized == "*" || normalized.removePrefix("W/").removeSurrounding("\"") == current
+        }
+    }
+    if (modifiedAt == null) return false
+    val ifModifiedSince = request.headers[HttpHeaders.IfModifiedSince] ?: return false
+    val since = runCatching {
+        Instant.from(DateTimeFormatter.RFC_1123_DATE_TIME.parse(ifModifiedSince))
+    }.getOrNull() ?: return false
+    return !modifiedAt.truncatedTo(java.time.temporal.ChronoUnit.SECONDS).isAfter(since)
+}
 
 private fun parseByteRange(header: String, size: Long): ByteRange? {
     if (size <= 0 || !header.startsWith("bytes=") || header.contains(',')) return null
