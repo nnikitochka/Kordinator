@@ -1610,7 +1610,7 @@ public final class RuntimeCompositionRoot {
     public synchronized org.airsonic.player.service.playlist.DefaultPlaylistExportHandler createDefaultPlaylistExportHandler(
             org.airsonic.player.dao.MediaFileDao mediaFileDao) {
         if (defaultPlaylistExportHandler == null) {
-            defaultPlaylistExportHandler = new org.airsonic.player.service.playlist.DefaultPlaylistExportHandler(
+            defaultPlaylistExportHandler = RuntimePlaylistServiceFactory.createDefaultExportHandler(
                     mediaFileDao, createMediaFolderService());
         }
         return defaultPlaylistExportHandler;
@@ -1620,7 +1620,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.MediaFileService mediaFileService,
             org.airsonic.player.service.SettingsService settingsService) {
         if (defaultPlaylistImportHandler == null) {
-            defaultPlaylistImportHandler = new org.airsonic.player.service.playlist.DefaultPlaylistImportHandler(
+            defaultPlaylistImportHandler = RuntimePlaylistServiceFactory.createDefaultImportHandler(
                     mediaFileService, settingsService);
         }
         return defaultPlaylistImportHandler;
@@ -1631,7 +1631,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.dao.PlaylistDao playlistDao,
             org.airsonic.player.service.CoverArtService coverArtService) {
         if (xspfPlaylistExportHandler == null) {
-            xspfPlaylistExportHandler = new org.airsonic.player.service.playlist.XspfPlaylistExportHandler(
+            xspfPlaylistExportHandler = RuntimePlaylistServiceFactory.createXspfExportHandler(
                     mediaFileDao, playlistDao, createMediaFolderService(), coverArtService);
         }
         return xspfPlaylistExportHandler;
@@ -1641,7 +1641,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.MediaFileService mediaFileService,
             org.airsonic.player.service.SettingsService settingsService) {
         if (xspfPlaylistImportHandler == null) {
-            xspfPlaylistImportHandler = new org.airsonic.player.service.playlist.XspfPlaylistImportHandler(
+            xspfPlaylistImportHandler = RuntimePlaylistServiceFactory.createXspfImportHandler(
                     mediaFileService, settingsService);
         }
         return xspfPlaylistImportHandler;
@@ -1663,7 +1663,7 @@ public final class RuntimeCompositionRoot {
             java.util.List<org.airsonic.player.service.playlist.PlaylistImportHandler> importHandlers = java.util.List.of(
                     createDefaultPlaylistImportHandler(mediaFileService, settingsService),
                     createXspfPlaylistImportHandler(mediaFileService, settingsService));
-            playlistService = new org.airsonic.player.service.PlaylistService(
+            playlistService = RuntimePlaylistServiceFactory.createPlaylistService(
                     daos.getMediaFileDao(), daos.getPlaylistDao(),
                     securityService, settingsService, exportHandlers, importHandlers,
                     createPathWatcherService(), createCacheManager());
