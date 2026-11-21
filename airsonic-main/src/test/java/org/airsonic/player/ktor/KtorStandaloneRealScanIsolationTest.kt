@@ -1,8 +1,10 @@
 package org.airsonic.player.ktor
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import io.ktor.client.HttpClient
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.post
@@ -28,6 +30,9 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
+import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -42,6 +47,11 @@ class KtorStandaloneRealScanIsolationTest {
         val secondRoot = Files.createDirectory(home.resolve("second-library"))
         val firstBytes = copyAudioFixture(firstRoot.resolve("first.mp3"))
         val secondBytes = copyAudioFixture(secondRoot.resolve("second.mp3"))
+        val firstCover = ByteArrayOutputStream().use { output ->
+            ImageIO.write(BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), "png", output)
+            output.toByteArray()
+        }
+        Files.write(firstRoot.resolve("cover.png"), firstCover)
         val dataSource = HikariDataSource(HikariConfig().apply {
             jdbcUrl = "jdbc:hsqldb:mem:real_scan_isolation_${home.fileName}"
             driverClassName = "org.hsqldb.jdbc.JDBCDriver"
@@ -149,6 +159,26 @@ class KtorStandaloneRealScanIsolationTest {
                     assertEquals(HttpStatusCode.OK, firstCatalog.status)
                     val firstTrack = mapper.readTree(firstCatalog.bodyAsText()).get("items").single()
                     assertTrue(firstTrack.get("relativePath").asText().endsWith("first.mp3"))
+                    val firstTrackId = firstTrack.get("id").asLong()
+                    assertEquals(HttpStatusCode.OK, client.get("/api/v1/tracks/$firstTrackId") {
+                        bearerAuth(firstToken)
+                    }.status)
+                    assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/tracks/$firstTrackId") {
+                        bearerAuth(secondToken)
+                    }.status)
+                    val firstArtwork = client.get("/api/v1/tracks/$firstTrackId/artwork") { bearerAuth(firstToken) }
+                    assertEquals(HttpStatusCode.OK, firstArtwork.status)
+                    assertTrue(firstCover.contentEquals(firstArtwork.bodyAsBytes()))
+                    assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/tracks/$firstTrackId/artwork") {
+                        bearerAuth(secondToken)
+                    }.status)
+                    val firstTrackRange = client.get("/api/v1/tracks/$firstTrackId/stream") {
+                        bearerAuth(firstToken)
+                        headers.append("Range", "bytes=0-5")
+                    }
+                    assertEquals(HttpStatusCode.PartialContent, firstTrackRange.status)
+                    assertEquals("bytes 0-5/${firstBytes.size}", firstTrackRange.headers["Content-Range"])
+                    assertTrue(firstBytes.copyOfRange(0, 6).contentEquals(firstTrackRange.bodyAsBytes()))
 
                     val secondCatalog = client.get("/api/v1/tracks?libraryId=$secondLibraryId") {
                         bearerAuth(secondToken)
@@ -157,66 +187,15 @@ class KtorStandaloneRealScanIsolationTest {
                     val secondTrack = mapper.readTree(secondCatalog.bodyAsText()).get("items").single()
                     assertTrue(secondTrack.get("relativePath").asText().endsWith("second.mp3"))
 
-                    val trackPage0 = mapper.readTree(client.get("/api/v1/tracks?limit=1&offset=0") {
-                        bearerAuth(adminToken)
-                    }.bodyAsText())
-                    val trackPage1 = mapper.readTree(client.get("/api/v1/tracks?limit=1&offset=1") {
-                        bearerAuth(adminToken)
-                    }.bodyAsText())
-                    assertEquals(2, trackPage0.get("total").asInt())
-                    assertEquals(1, trackPage0.get("count").asInt())
-                    assertEquals(1, trackPage1.get("count").asInt())
-                    assertTrue(trackPage0.get("items")[0].get("id").asLong() != trackPage1.get("items")[0].get("id").asLong())
-                    val repeatedTrackPage0 = mapper.readTree(client.get("/api/v1/tracks?limit=1&offset=0") {
-                        bearerAuth(adminToken)
-                    }.bodyAsText())
-                    assertEquals(trackPage0.get("items")[0].get("id").asLong(), repeatedTrackPage0.get("items")[0].get("id").asLong())
-
-                    val allArtists = mapper.readTree(client.get("/api/v1/artists?limit=10") {
-                        bearerAuth(adminToken)
-                    }.bodyAsText())
-                    assertEquals(2, allArtists.get("total").asInt())
-                    assertEquals(allArtists.get("items")[0].get("name").asText(), allArtists.get("items")[1].get("name").asText())
-                    assertTrue(allArtists.get("items")[0].get("id").asText() != allArtists.get("items")[1].get("id").asText())
-                    val artistPage0 = mapper.readTree(client.get("/api/v1/artists?limit=1&offset=0") {
-                        bearerAuth(adminToken)
-                    }.bodyAsText()).get("items")[0]
-                    val artistPage1 = mapper.readTree(client.get("/api/v1/artists?limit=1&offset=1") {
-                        bearerAuth(adminToken)
-                    }.bodyAsText()).get("items")[0]
-                    assertTrue(artistPage0.get("id").asText() != artistPage1.get("id").asText())
-                    assertEquals(1, mapper.readTree(client.get("/api/v1/artists") {
-                        bearerAuth(firstToken)
-                    }.bodyAsText()).get("total").asInt())
-
-                    val allAlbums = mapper.readTree(client.get("/api/v1/albums?limit=10") {
-                        bearerAuth(adminToken)
-                    }.bodyAsText())
-                    assertEquals(2, allAlbums.get("total").asInt())
-                    assertEquals(allAlbums.get("items")[0].get("name").asText(), allAlbums.get("items")[1].get("name").asText())
-                    assertTrue(allAlbums.get("items")[0].get("id").asText() != allAlbums.get("items")[1].get("id").asText())
-                    val albumPage0 = mapper.readTree(client.get("/api/v1/albums?limit=1&offset=0") {
-                        bearerAuth(adminToken)
-                    }.bodyAsText()).get("items")[0]
-                    val albumPage1 = mapper.readTree(client.get("/api/v1/albums?limit=1&offset=1") {
-                        bearerAuth(adminToken)
-                    }.bodyAsText()).get("items")[0]
-                    assertTrue(albumPage0.get("id").asText() != albumPage1.get("id").asText())
-                    assertEquals(1, mapper.readTree(client.get("/api/v1/albums") {
-                        bearerAuth(firstToken)
-                    }.bodyAsText()).get("total").asInt())
-
-                    val searchQuery = URLEncoder.encode(firstTrack.get("title").asText(), StandardCharsets.UTF_8)
-                    val searchPage0 = mapper.readTree(client.get("/api/v1/search?query=$searchQuery&limit=1&offset=0") {
-                        bearerAuth(adminToken)
-                    }.bodyAsText())
-                    val searchPage1 = mapper.readTree(client.get("/api/v1/search?query=$searchQuery&limit=1&offset=1") {
-                        bearerAuth(adminToken)
-                    }.bodyAsText())
-                    assertEquals(2, searchPage0.get("totalHits").asInt())
-                    assertEquals(1, searchPage0.get("tracks").size())
-                    assertEquals(1, searchPage1.get("tracks").size())
-                    assertTrue(searchPage0.get("tracks")[0].get("id").asLong() != searchPage1.get("tracks")[0].get("id").asLong())
+                    assertCatalogPagination(
+                        client,
+                        mapper,
+                        adminToken,
+                        firstToken,
+                        secondToken,
+                        firstLibrary.id!!.toLong(),
+                        firstTrack.get("title").asText(),
+                    )
 
                     assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/tracks?libraryId=$secondLibraryId") {
                         bearerAuth(firstToken)
@@ -399,5 +378,90 @@ class KtorStandaloneRealScanIsolationTest {
         val bytes = requireNotNull(javaClass.getResourceAsStream("/MEDIAS/piano.mp3")).use { it.readBytes() }
         Files.write(destination, bytes)
         return bytes
+    }
+
+    private suspend fun assertCatalogPagination(
+        client: HttpClient,
+        mapper: ObjectMapper,
+        adminToken: String,
+        firstToken: String,
+        secondToken: String,
+        firstLibraryId: Long,
+        sharedTitle: String,
+    ) {
+        val trackPage0 = mapper.readTree(client.get("/api/v1/tracks?limit=1&offset=0") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        val trackPage1 = mapper.readTree(client.get("/api/v1/tracks?limit=1&offset=1") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        assertEquals(2, trackPage0.get("total").asInt())
+        assertEquals(1, trackPage0.get("count").asInt())
+        assertEquals(1, trackPage1.get("count").asInt())
+        assertTrue(trackPage0.get("items")[0].get("id").asLong() != trackPage1.get("items")[0].get("id").asLong())
+        val repeatedTrackPage0 = mapper.readTree(client.get("/api/v1/tracks?limit=1&offset=0") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        assertEquals(trackPage0.get("items")[0].get("id").asLong(), repeatedTrackPage0.get("items")[0].get("id").asLong())
+
+        val allArtists = mapper.readTree(client.get("/api/v1/artists?limit=10") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        assertEquals(2, allArtists.get("total").asInt())
+        assertEquals(allArtists.get("items")[0].get("name").asText(), allArtists.get("items")[1].get("name").asText())
+        assertTrue(allArtists.get("items")[0].get("id").asText() != allArtists.get("items")[1].get("id").asText())
+        val firstArtist = allArtists.get("items").first { it.get("libraryId").asLong() == firstLibraryId }
+        assertEquals(HttpStatusCode.OK, client.get("/api/v1/artists/${firstArtist.get("id").asText()}") {
+            bearerAuth(firstToken)
+        }.status)
+        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/artists/${firstArtist.get("id").asText()}") {
+            bearerAuth(secondToken)
+        }.status)
+        val artistPage0 = mapper.readTree(client.get("/api/v1/artists?limit=1&offset=0") {
+            bearerAuth(adminToken)
+        }.bodyAsText()).get("items")[0]
+        val artistPage1 = mapper.readTree(client.get("/api/v1/artists?limit=1&offset=1") {
+            bearerAuth(adminToken)
+        }.bodyAsText()).get("items")[0]
+        assertTrue(artistPage0.get("id").asText() != artistPage1.get("id").asText())
+        assertEquals(1, mapper.readTree(client.get("/api/v1/artists") {
+            bearerAuth(firstToken)
+        }.bodyAsText()).get("total").asInt())
+
+        val allAlbums = mapper.readTree(client.get("/api/v1/albums?limit=10") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        assertEquals(2, allAlbums.get("total").asInt())
+        assertEquals(allAlbums.get("items")[0].get("name").asText(), allAlbums.get("items")[1].get("name").asText())
+        assertTrue(allAlbums.get("items")[0].get("id").asText() != allAlbums.get("items")[1].get("id").asText())
+        val firstAlbum = allAlbums.get("items").first { it.get("libraryId").asLong() == firstLibraryId }
+        assertEquals(HttpStatusCode.OK, client.get("/api/v1/albums/${firstAlbum.get("id").asText()}") {
+            bearerAuth(firstToken)
+        }.status)
+        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/albums/${firstAlbum.get("id").asText()}") {
+            bearerAuth(secondToken)
+        }.status)
+        val albumPage0 = mapper.readTree(client.get("/api/v1/albums?limit=1&offset=0") {
+            bearerAuth(adminToken)
+        }.bodyAsText()).get("items")[0]
+        val albumPage1 = mapper.readTree(client.get("/api/v1/albums?limit=1&offset=1") {
+            bearerAuth(adminToken)
+        }.bodyAsText()).get("items")[0]
+        assertTrue(albumPage0.get("id").asText() != albumPage1.get("id").asText())
+        assertEquals(1, mapper.readTree(client.get("/api/v1/albums") {
+            bearerAuth(firstToken)
+        }.bodyAsText()).get("total").asInt())
+
+        val searchQuery = URLEncoder.encode(sharedTitle, StandardCharsets.UTF_8)
+        val searchPage0 = mapper.readTree(client.get("/api/v1/search?query=$searchQuery&limit=1&offset=0") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        val searchPage1 = mapper.readTree(client.get("/api/v1/search?query=$searchQuery&limit=1&offset=1") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        assertEquals(2, searchPage0.get("totalHits").asInt())
+        assertEquals(1, searchPage0.get("tracks").size())
+        assertEquals(1, searchPage1.get("tracks").size())
+        assertTrue(searchPage0.get("tracks")[0].get("id").asLong() != searchPage1.get("tracks")[0].get("id").asLong())
     }
 }
