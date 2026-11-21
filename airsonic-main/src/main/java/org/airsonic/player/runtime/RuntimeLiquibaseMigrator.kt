@@ -19,19 +19,18 @@ object RuntimeLiquibaseMigrator {
         if (!enabled) return
         System.setProperty("liquibase.analytics.enabled", "false")
 
-        val changelog = configuration.getProperty(
+        val changelog = (configuration.getProperty(
             RuntimeConfiguration.DATABASE_MIGRATION_CHANGELOG_KEY,
             configuration.getProperty("spring.liquibase.change-log", DEFAULT_CHANGELOG),
-        )
-            .removePrefix(CHANGELOG_PREFIX)
+        ) ?: DEFAULT_CHANGELOG).removePrefix(CHANGELOG_PREFIX)
         val contexts = Contexts(configuration.getProperty(
             RuntimeConfiguration.DATABASE_MIGRATION_CONTEXTS_KEY,
             configuration.getProperty("spring.liquibase.contexts", ""),
-        ))
+        ) ?: "")
         val labels = LabelExpression(configuration.getProperty(
             RuntimeConfiguration.DATABASE_MIGRATION_LABEL_FILTER_KEY,
             configuration.getProperty("spring.liquibase.label-filter", ""),
-        ))
+        ) ?: "")
 
         dataSource.connection.use { connection ->
             val database = DatabaseFactory.getInstance()
@@ -43,14 +42,14 @@ object RuntimeLiquibaseMigrator {
             )
             try {
                 val parameters = linkedMapOf<String, String>()
-                configuration.getPropertyNames().asSequence()
+                configuration.propertyNames.asSequence()
                     .filter { it.startsWith("spring.liquibase.parameters.") }
                     .forEach { key ->
                         configuration.getProperty(key)?.let { value ->
                             parameters[key.removePrefix("spring.liquibase.parameters.")] = value
                         }
                     }
-                configuration.getPropertyNames().asSequence()
+                configuration.propertyNames.asSequence()
                     .filter { it.startsWith(RuntimeConfiguration.DATABASE_MIGRATION_PARAMETERS_PREFIX) }
                     .forEach { key ->
                         configuration.getProperty(key)?.let { value ->

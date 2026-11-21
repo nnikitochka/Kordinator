@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
+import org.hibernate.validator.messageinterpolation.ParameterMessageInterpolator;
 
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -187,7 +188,9 @@ public final class Util {
         private static final Validator VALIDATOR;
 
         static {
-            try (var factory = Validation.buildDefaultValidatorFactory()) {
+            try (var factory = Validation.byDefaultProvider().configure()
+                    .messageInterpolator(new ParameterMessageInterpolator())
+                    .buildValidatorFactory()) {
                 VALIDATOR = factory.getValidator();
             }
         }
