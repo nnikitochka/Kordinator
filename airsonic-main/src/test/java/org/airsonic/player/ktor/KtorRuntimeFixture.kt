@@ -15,12 +15,18 @@ import java.nio.file.Paths
 import java.time.Instant
 import org.mockito.Mockito
 
-internal class KtorRuntimeFixture(home: Path, defaultMusicFolder: Path, databaseName: String) : AutoCloseable {
+internal class KtorRuntimeFixture(
+    home: Path,
+    defaultMusicFolder: Path,
+    databaseName: String,
+    coreDatabaseUrl: String? = null,
+) : AutoCloseable {
     val runtime = RuntimeCompositionRoot(
         RuntimeConfiguration(
             mapOf(
                 "airsonic.home" to home.toString(),
-                "spring.datasource.url" to "jdbc:hsqldb:mem:$databaseName;hsqldb.tx=mvcc;sql.enforce_size=false;sql.char_literal=false;sql.nulls_first=false",
+                "spring.datasource.url" to (coreDatabaseUrl
+                    ?: "jdbc:hsqldb:mem:$databaseName;hsqldb.tx=mvcc;sql.enforce_size=false;sql.char_literal=false;sql.nulls_first=false"),
                 "spring.datasource.driver-class-name" to "org.hsqldb.jdbc.JDBCDriver",
                 "spring.datasource.username" to "sa",
                 "spring.datasource.password" to "",
@@ -55,10 +61,15 @@ internal data class RealMediaServices(
 )
 
 internal fun createRealMediaServices(runtime: KtorRuntimeFixture): RealMediaServices {
-    val root = runtime.runtime
+    return createRealMediaServices(runtime.runtime, runtime.mediaFolderService)
+}
+
+internal fun createRealMediaServices(
+    root: RuntimeCompositionRoot,
+    folders: MediaFolderService = root.createMediaFolderService(),
+): RealMediaServices {
     val daos = root.createPersistenceGraph().daos
     val settings = root.createSettingsService()
-    val folders = runtime.mediaFolderService
     val security = root.createSecurityService(
         daos.userDao,
         settings,
