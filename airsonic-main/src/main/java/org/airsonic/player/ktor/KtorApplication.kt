@@ -58,7 +58,9 @@ import org.airsonic.player.service.SearchService
 import org.airsonic.player.service.LastFmService
 import org.airsonic.player.domain.RandomSearchCriteria
 import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.KtorCoreMediaCatalogService
+import org.airsonic.player.dao.ArtistDao
 import org.airsonic.player.domain.MusicFolder
 import java.nio.file.Path
 import java.nio.file.Files
@@ -94,6 +96,8 @@ fun Application.standaloneModule(
     randomSearchService: SearchService? = null,
     genreSeparators: String = ";",
     topSongsService: LastFmService? = null,
+    mediaFileService: MediaFileService? = null,
+    artistDao: ArtistDao? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -324,6 +328,92 @@ fun Application.standaloneModule(
                             catalog.tracksByCoreIds(recommendations.map { it.id.toLong() }, scope)
                         }
                         call.respondJson(TopTrackPage(artist.second, tracks.map { it.toResponse() }, tracks.size))
+                    }
+                    get("/artists/{id}/similar-tracks") {
+                        val recommendations = topSongsService
+                        val folders = mediaFolderService
+                        val catalog = mediaCatalogService
+                        val dao = artistDao
+                        if (recommendations == null || folders == null || catalog == null || dao == null) {
+                            call.respondJson(ApiError("unavailable", "Similar track lookup is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val artist = call.parameters["id"]?.decodeCatalogId()
+                        val scope = user.catalogLibraryScope()
+                        if (artist == null || scope?.contains(artist.first) == false) {
+                            call.respond(HttpStatusCode.NotFound)
+                            return@get
+                        }
+                        val requestedCount = call.request.queryParameters["count"]
+                        val count = requestedCount?.toIntOrNull() ?: if (requestedCount == null) 50 else null
+                        if (count == null || count !in 0..500) {
+                            call.respondJson(ApiError("invalid_request", "count must be between 0 and 500"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        if (withContext(scanDispatcher) { catalog.tracksForArtist(artist.first, artist.second, scope) }.isEmpty()) {
+                            call.respond(HttpStatusCode.NotFound)
+                            return@get
+                        }
+                        val allowedFolders = withContext(authDispatcher) {
+                            folders.getAllMusicFolders(false, false).filter { folder ->
+                                val id = folder.id?.toLong()
+                                id != null && (scope == null || id in scope)
+                            }
+                        }
+                        val coreArtist = withContext(scanDispatcher) { dao.getArtist(artist.second, allowedFolders) }
+                            ?: return@get call.respond(HttpStatusCode.NotFound)
+                        val similar = withContext(scanDispatcher) {
+                            recommendations.getSimilarSongs(coreArtist, count, allowedFolders)
+                        }
+                        val tracks = withContext(scanDispatcher) {
+                            catalog.tracksByCoreIds(similar.map { it.id.toLong() }, scope)
+                        }
+                        call.respondJson(SimilarTrackPage(artist.second, tracks.map { it.toResponse() }, tracks.size))
+                    }
+                    get("/tracks/{id}/similar-tracks") {
+                        val recommendations = topSongsService
+                        val folders = mediaFolderService
+                        val catalog = mediaCatalogService
+                        val files = mediaFileService
+                        if (recommendations == null || folders == null || catalog == null || files == null) {
+                            call.respondJson(ApiError("unavailable", "Similar track lookup is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val trackId = call.parameters["id"]?.toLongOrNull()
+                        if (trackId == null || trackId !in 0..Int.MAX_VALUE.toLong()) {
+                            call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative integer"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val scope = user.catalogLibraryScope()
+                        if (catalog.track(trackId, scope) == null) {
+                            call.respond(HttpStatusCode.NotFound)
+                            return@get
+                        }
+                        val requestedCount = call.request.queryParameters["count"]
+                        val count = requestedCount?.toIntOrNull() ?: if (requestedCount == null) 50 else null
+                        if (count == null || count !in 0..500) {
+                            call.respondJson(ApiError("invalid_request", "count must be between 0 and 500"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val allowedFolders = withContext(authDispatcher) {
+                            folders.getAllMusicFolders(false, false).filter { folder ->
+                                val id = folder.id?.toLong()
+                                id != null && (scope == null || id in scope)
+                            }
+                        }
+                        val mediaFile = withContext(scanDispatcher) { files.getMediaFile(trackId.toInt()) }
+                            ?: return@get call.respond(HttpStatusCode.NotFound)
+                        val similar = withContext(scanDispatcher) {
+                            recommendations.getSimilarSongs(mediaFile, count, allowedFolders)
+                        }
+                        val tracks = withContext(scanDispatcher) {
+                            catalog.tracksByCoreIds(similar.map { it.id.toLong() }, scope)
+                        }
+                        call.respondJson(SimilarTrackPage(null, tracks.map { it.toResponse() }, tracks.size))
                     }
                     get("/genres") {
                         val catalog = mediaCatalogService
@@ -1329,6 +1419,7 @@ data class RandomTrackResponse(val items: List<TrackResponse>, val count: Int)
 data class GenreListResponse(val items: List<GenreResponse>, val count: Int)
 data class GenreResponse(val name: String, val trackCount: Int, val albumCount: Int)
 data class TopTrackPage(val artist: String, val items: List<TrackResponse>, val count: Int)
+data class SimilarTrackPage(val artist: String?, val items: List<TrackResponse>, val count: Int)
 data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
 data class RenameUserRequest(val username: String)
 data class SetUserEnabledRequest(val enabled: Boolean)
@@ -1672,6 +1763,8 @@ fun main(args: Array<String>) {
             randomSearchService,
             settingsService.getGenreSeparators(),
             topSongsService,
+            mediaFileService,
+            legacyGraph.artistDao,
         )
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })

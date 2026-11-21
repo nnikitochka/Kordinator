@@ -92,11 +92,20 @@ class KtorStandalonePlaylistTest {
                 """ }
                 val randomSearch = Mockito.mock(SearchService::class.java)
                 val topSongs = Mockito.mock(LastFmService::class.java)
+                val artistDao = Mockito.mock(org.airsonic.player.dao.ArtistDao::class.java)
                 val coreTrackId = mediaCatalogService.tracks(null, null, 10, 0, null).single().id
                 val coreFile = runtime.runtime.createPersistenceGraph().daos.mediaFileDao.getMediaFile(coreTrackId.toInt())
                 Mockito.`when`(coreCatalog.mediaFileService.getMediaFile(coreTrackId.toInt())).thenReturn(coreFile)
                 Mockito.`when`(randomSearch.getRandomSongs(Mockito.any(RandomSearchCriteria::class.java))).thenReturn(listOf(coreFile))
                 Mockito.`when`(topSongs.getTopSongs(Mockito.anyString(), Mockito.anyInt(), Mockito.anyList())).thenReturn(listOf(coreFile))
+                Mockito.`when`(topSongs.getSimilarSongs(
+                    Mockito.any(org.airsonic.player.domain.Artist::class.java), Mockito.anyInt(), Mockito.anyList(),
+                )).thenReturn(listOf(coreFile))
+                Mockito.`when`(topSongs.getSimilarSongs(
+                    Mockito.any(org.airsonic.player.domain.MediaFile::class.java), Mockito.anyInt(), Mockito.anyList(),
+                )).thenReturn(listOf(coreFile))
+                Mockito.`when`(artistDao.getArtist(Mockito.eq("Album Artist"), Mockito.anyList()))
+                    .thenReturn(org.airsonic.player.domain.Artist().apply { name = "Album Artist" })
                 val mapper = jacksonObjectMapper()
 
                 testApplication {
@@ -115,6 +124,8 @@ class KtorStandalonePlaylistTest {
                             lyricsService = lyrics,
                             randomSearchService = randomSearch,
                             topSongsService = topSongs,
+                            mediaFileService = coreCatalog.mediaFileService,
+                            artistDao = artistDao,
                         )
                     }
 
@@ -237,6 +248,19 @@ class KtorStandalonePlaylistTest {
                 }.bodyAsText())
                 assertEquals(1, topTracks.get("count").asInt())
                 assertEquals(trackId, topTracks.get("items")[0].get("id").asLong())
+                val similarArtistTracks = mapper.readTree(client.get("/api/v1/artists/$artistId/similar-tracks?count=1") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText())
+                assertEquals(1, similarArtistTracks.get("count").asInt())
+                assertEquals(trackId, similarArtistTracks.get("items")[0].get("id").asLong())
+                val similarTrackTracks = mapper.readTree(client.get("/api/v1/tracks/$trackId/similar-tracks?count=1") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText())
+                assertEquals(1, similarTrackTracks.get("count").asInt())
+                assertEquals(trackId, similarTrackTracks.get("items")[0].get("id").asLong())
+                assertEquals(400, client.get("/api/v1/tracks/$trackId/similar-tracks?count=bad") {
+                    bearerAuth(ownerToken)
+                }.status.value)
 
                 assertEquals(204, client.put("/api/v1/albums/$albumId/favorite") { bearerAuth(ownerToken) }.status.value)
                 assertEquals(204, client.put("/api/v1/albums/$albumId/favorite") { bearerAuth(ownerToken) }.status.value)
