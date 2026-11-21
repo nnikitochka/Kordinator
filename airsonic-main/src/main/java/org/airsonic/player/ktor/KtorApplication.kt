@@ -54,6 +54,8 @@ import org.airsonic.player.service.StandaloneBookmarkService
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
 import org.airsonic.player.service.LyricsService
+import org.airsonic.player.service.SearchService
+import org.airsonic.player.domain.RandomSearchCriteria
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.domain.MusicFolder
@@ -88,6 +90,7 @@ fun Application.standaloneModule(
     ratingService: StandaloneRatingService? = null,
     scrobbleService: StandaloneScrobbleService? = null,
     lyricsService: LyricsService? = null,
+    randomSearchService: SearchService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -129,6 +132,50 @@ fun Application.standaloneModule(
                             TrackResponse(it.id, it.libraryId, it.relativePath, it.title, it.artist, it.album,
                                 it.albumArtist, it.durationSeconds, it.sizeBytes, it.modifiedAt?.toString())
                         }))
+                    }
+                    get("/tracks/random") {
+                        val search = randomSearchService
+                        val folders = mediaFolderService
+                        val catalog = mediaCatalogService
+                        if (search == null || folders == null || catalog == null) {
+                            call.respondJson(ApiError("unavailable", "Random track search is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val parameters = call.request.queryParameters
+                        val rawSize = parameters["size"]
+                        val size = rawSize?.toIntOrNull() ?: if (rawSize == null) 10 else null
+                        val rawFromYear = parameters["fromYear"]
+                        val fromYear = rawFromYear?.toIntOrNull()
+                        val rawToYear = parameters["toYear"]
+                        val toYear = rawToYear?.toIntOrNull()
+                        val rawLibraryId = parameters["libraryId"]
+                        val libraryId = rawLibraryId?.toLongOrNull()
+                        if (size == null || size !in 0..500 ||
+                            rawFromYear != null && fromYear == null || rawToYear != null && toYear == null ||
+                            rawLibraryId != null && (libraryId == null || libraryId !in 0..Int.MAX_VALUE.toLong())) {
+                            call.respondJson(ApiError("invalid_request", "Invalid size, year, or libraryId"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val libraryScope = user.catalogLibraryScope()
+                        if (libraryId != null && libraryScope != null && libraryId !in libraryScope) {
+                            call.respond(HttpStatusCode.NotFound)
+                            return@get
+                        }
+                        val allowedFolders = withContext(authDispatcher) {
+                            folders.getAllMusicFolders(false, false).filter { folder ->
+                                val id = folder.id?.toLong()
+                                id != null && (libraryScope == null || id in libraryScope) && (libraryId == null || id == libraryId)
+                            }
+                        }
+                        val result = withContext(scanDispatcher) {
+                            search.getRandomSongs(RandomSearchCriteria(size, parameters["genre"], fromYear, toYear, allowedFolders))
+                        }
+                        val tracks = withContext(scanDispatcher) {
+                            catalog.tracksByCoreIds(result.map { it.id.toLong() }, libraryScope)
+                        }
+                        call.respondJson(RandomTrackResponse(tracks.map { it.toResponse() }, tracks.size))
                     }
                     get("/albums") {
                         if (mediaCatalogService == null) {
@@ -1203,6 +1250,7 @@ data class SetBookmarkRequest(val positionMillis: Long, val comment: String? = n
 data class SetTrackRatingRequest(val rating: Int)
 data class ScrobbleTrackRequest(val time: String? = null, val submission: Boolean = true)
 data class LyricsResponse(val artist: String?, val title: String?, val lyrics: String?, val tryLater: Boolean?)
+data class RandomTrackResponse(val items: List<TrackResponse>, val count: Int)
 data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
 data class RenameUserRequest(val username: String)
 data class SetUserEnabledRequest(val enabled: Boolean)
@@ -1513,6 +1561,7 @@ fun main(args: Array<String>) {
     )
     val lyricsService = runtime.createLyricsService()
     val searchIndex = runtime.createIndexManager()
+    val randomSearchService = runtime.createSearchService(mediaFileService)
     val corePlaylistService = runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService)
     val mediaScannerService = runtime.createMediaScannerService(
         corePlaylistService,
@@ -1541,6 +1590,7 @@ fun main(args: Array<String>) {
             ratingService,
             scrobbleService,
             lyricsService,
+            randomSearchService,
         )
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })

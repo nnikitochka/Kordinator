@@ -24,6 +24,8 @@ import org.airsonic.player.service.StandaloneScrobbleService
 import org.airsonic.player.service.StatusService
 import org.airsonic.player.service.AudioScrobblerService
 import org.airsonic.player.service.LyricsService
+import org.airsonic.player.service.SearchService
+import org.airsonic.player.domain.RandomSearchCriteria
 import org.mockito.Mockito
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
@@ -86,6 +88,11 @@ class KtorStandalonePlaylistTest {
                 val lyrics = LyricsService { """
                     <GetLyricResult><Lyric>Test lyrics</Lyric><LyricArtist>Test Artist</LyricArtist><LyricSong>Test Song</LyricSong></GetLyricResult>
                 """ }
+                val randomSearch = Mockito.mock(SearchService::class.java)
+                val coreTrackId = mediaCatalogService.tracks(null, null, 10, 0, null).single().id
+                val coreFile = runtime.runtime.createPersistenceGraph().daos.mediaFileDao.getMediaFile(coreTrackId.toInt())
+                Mockito.`when`(coreCatalog.mediaFileService.getMediaFile(coreTrackId.toInt())).thenReturn(coreFile)
+                Mockito.`when`(randomSearch.getRandomSongs(Mockito.any(RandomSearchCriteria::class.java))).thenReturn(listOf(coreFile))
                 val mapper = jacksonObjectMapper()
 
                 testApplication {
@@ -102,11 +109,21 @@ class KtorStandalonePlaylistTest {
                             ratingService = ratings,
                             scrobbleService = scrobbleService,
                             lyricsService = lyrics,
+                            randomSearchService = randomSearch,
                         )
                     }
 
                 val tracksResponse = client.get("/api/v1/tracks") { bearerAuth(ownerToken) }
                 val trackId = mapper.readTree(tracksResponse.bodyAsText()).get("items")[0].get("id").asLong()
+
+                val randomTracks = mapper.readTree(client.get(
+                    "/api/v1/tracks/random?size=1&genre=Rock&fromYear=1990&toYear=2000&libraryId=${library.id}",
+                ) { bearerAuth(ownerToken) }.bodyAsText())
+                assertEquals(1, randomTracks.get("count").asInt())
+                assertEquals(trackId, randomTracks.get("items")[0].get("id").asLong())
+                assertEquals(400, client.get("/api/v1/tracks/random?fromYear=bad") {
+                    bearerAuth(ownerToken)
+                }.status.value)
 
                 assertEquals(204, client.put("/api/v1/tracks/$trackId/rating") {
                     bearerAuth(ownerToken)
@@ -139,8 +156,6 @@ class KtorStandalonePlaylistTest {
                     }
                 })
 
-                val coreFile = runtime.runtime.createPersistenceGraph().daos.mediaFileDao.getMediaFile(trackId.toInt())
-                Mockito.`when`(coreCatalog.mediaFileService.getMediaFile(trackId.toInt())).thenReturn(coreFile)
                 assertEquals(204, client.post("/api/v1/tracks/$trackId/scrobble") {
                     bearerAuth(ownerToken)
                     header(io.ktor.http.HttpHeaders.ContentType, "application/json")
