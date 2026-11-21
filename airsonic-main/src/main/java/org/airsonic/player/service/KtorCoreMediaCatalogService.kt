@@ -295,7 +295,7 @@ class KtorCoreMediaCatalogService(
             "WHERE present AND type IN ('MUSIC', 'AUDIOBOOK') AND (? IS NULL OR folder_id = ?) " +
             "AND album IS NOT NULL AND TRIM(album) <> ''" + libraryScope(accessibleLibraryIds) + " " +
             "GROUP BY folder_id, album " +
-            "ORDER BY LOWER(album), folder_id LIMIT ? OFFSET ?"
+            "ORDER BY LOWER(album), album, folder_id LIMIT ? OFFSET ?"
         return coreDataSource.connection.use { connection ->
             connection.prepareStatement(sql).use { statement ->
                 statement.setObject(1, folderId)
@@ -318,6 +318,14 @@ class KtorCoreMediaCatalogService(
         }
     }
 
+    fun countAlbums(libraryId: Long?, accessibleLibraryIds: Set<Long>? = null): Long =
+        countCatalogEntries(
+            "album",
+            "album IS NOT NULL AND TRIM(album) <> ''",
+            libraryId,
+            accessibleLibraryIds,
+        )
+
     fun artists(libraryId: Long?, limit: Int, offset: Int, accessibleLibraryIds: Set<Long>? = null): List<StandaloneArtist> {
         val folderId = libraryId?.toCoreFolderId()
         val artistExpression = "COALESCE(NULLIF(TRIM(album_artist), ''), TRIM(artist))"
@@ -326,7 +334,7 @@ class KtorCoreMediaCatalogService(
             "FROM media_file WHERE present AND type IN ('MUSIC', 'AUDIOBOOK') AND (? IS NULL OR folder_id = ?) " +
             "AND $artistExpression IS NOT NULL" + libraryScope(accessibleLibraryIds) + " " +
             "GROUP BY folder_id, $artistExpression " +
-            "ORDER BY LOWER(artist_name), folder_id LIMIT ? OFFSET ?"
+            "ORDER BY LOWER(artist_name), artist_name, folder_id LIMIT ? OFFSET ?"
         return coreDataSource.connection.use { connection ->
             connection.prepareStatement(sql).use { statement ->
                 statement.setObject(1, folderId)
@@ -344,6 +352,32 @@ class KtorCoreMediaCatalogService(
                         )
                     }
                 }
+            }
+        }
+    }
+
+    fun countArtists(libraryId: Long?, accessibleLibraryIds: Set<Long>? = null): Long {
+        val artistExpression = "COALESCE(NULLIF(TRIM(album_artist), ''), TRIM(artist))"
+        return countCatalogEntries(artistExpression, "$artistExpression IS NOT NULL", libraryId, accessibleLibraryIds)
+    }
+
+    private fun countCatalogEntries(
+        entryExpression: String,
+        entryCondition: String,
+        libraryId: Long?,
+        accessibleLibraryIds: Set<Long>?,
+    ): Long {
+        val folderId = libraryId?.toCoreFolderId()
+        val sql = "SELECT COUNT(*) FROM (SELECT folder_id, $entryExpression AS catalog_entry FROM media_file " +
+            "WHERE present AND type IN ('MUSIC', 'AUDIOBOOK') AND (? IS NULL OR folder_id = ?) " +
+            "AND $entryCondition" + libraryScope(accessibleLibraryIds) +
+            " GROUP BY folder_id, $entryExpression) catalog_entries"
+        return coreDataSource.connection.use { connection ->
+            connection.prepareStatement(sql).use { statement ->
+                statement.setObject(1, folderId)
+                statement.setObject(2, folderId)
+                bindLibraryScope(statement, 3, accessibleLibraryIds)
+                statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
             }
         }
     }

@@ -209,7 +209,10 @@ fun Application.standaloneModule(
                         val albums = withContext(scanDispatcher) {
                             mediaCatalogService.albums(libraryId, limit, offset, accessibleLibraries)
                         }
-                        call.respondJson(AlbumPage(albums.map { it.toResponse() }, albums.size, limit, offset))
+                        val total = withContext(scanDispatcher) {
+                            mediaCatalogService.countAlbums(libraryId, accessibleLibraries)
+                        }
+                        call.respondJson(AlbumPage(albums.map { it.toResponse() }, albums.size, total, limit, offset))
                     }
                     get("/albums/{id}") {
                         val selector = call.parameters["id"]?.decodeCatalogId()
@@ -264,7 +267,10 @@ fun Application.standaloneModule(
                         val artists = withContext(scanDispatcher) {
                             mediaCatalogService.artists(libraryId, limit, offset, accessibleLibraries)
                         }
-                        call.respondJson(ArtistPage(artists.map { it.toResponse() }, artists.size, limit, offset))
+                        val total = withContext(scanDispatcher) {
+                            mediaCatalogService.countArtists(libraryId, accessibleLibraries)
+                        }
+                        call.respondJson(ArtistPage(artists.map { it.toResponse() }, artists.size, total, limit, offset))
                     }
                     get("/artists/{id}") {
                         val selector = call.parameters["id"]?.decodeCatalogId()
@@ -1464,8 +1470,8 @@ data class ArtistSummaryResponse(
     val id: String, val libraryId: Long, val name: String, val albumCount: Long, val trackCount: Long,
 )
 data class ArtistDetailsResponse(val id: String, val name: String, val tracks: List<TrackResponse>)
-data class AlbumPage(val items: List<AlbumSummaryResponse>, val count: Int, val limit: Int, val offset: Int)
-data class ArtistPage(val items: List<ArtistSummaryResponse>, val count: Int, val limit: Int, val offset: Int)
+data class AlbumPage(val items: List<AlbumSummaryResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
+data class ArtistPage(val items: List<ArtistSummaryResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
 data class FavoriteTrackPage(val items: List<TrackResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
 data class FavoriteAlbumPage(val items: List<AlbumSummaryResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
 data class FavoriteArtistPage(val items: List<ArtistSummaryResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
