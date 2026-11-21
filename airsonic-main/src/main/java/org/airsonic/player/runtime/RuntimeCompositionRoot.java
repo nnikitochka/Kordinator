@@ -1163,14 +1163,14 @@ public final class RuntimeCompositionRoot {
 
     public synchronized org.airsonic.player.service.search.AnalyzerFactory createAnalyzerFactory() {
         if (analyzerFactory == null) {
-            analyzerFactory = new org.airsonic.player.service.search.AnalyzerFactory();
+            analyzerFactory = RuntimeSearchServiceFactory.createAnalyzerFactory();
         }
         return analyzerFactory;
     }
 
     public synchronized org.airsonic.player.service.search.DocumentFactory createDocumentFactory() {
         if (documentFactory == null) {
-            documentFactory = new org.airsonic.player.service.search.DocumentFactory();
+            documentFactory = RuntimeSearchServiceFactory.createDocumentFactory();
         }
         return documentFactory;
     }
@@ -1181,7 +1181,7 @@ public final class RuntimeCompositionRoot {
                 throw new IllegalStateException("Persistence graph must be created before IndexManager");
             }
             DaoGraph daos = persistenceGraph.getDaos();
-            indexManager = new org.airsonic.player.service.search.IndexManager(
+            indexManager = RuntimeSearchServiceFactory.createIndexManager(
                     createAnalyzerFactory(), createDocumentFactory(), daos.getMediaFileDao(),
                     daos.getArtistDao(), daos.getAlbumDao());
         }
@@ -1190,7 +1190,7 @@ public final class RuntimeCompositionRoot {
 
     public synchronized org.airsonic.player.service.search.QueryFactory createQueryFactory() {
         if (queryFactory == null) {
-            queryFactory = new org.airsonic.player.service.search.QueryFactory(createAnalyzerFactory());
+            queryFactory = RuntimeSearchServiceFactory.createQueryFactory(createAnalyzerFactory());
         }
         return queryFactory;
     }
@@ -1202,7 +1202,7 @@ public final class RuntimeCompositionRoot {
                 throw new IllegalStateException("Persistence graph must be created before SearchServiceUtilities");
             }
             DaoGraph daos = persistenceGraph.getDaos();
-            searchServiceUtilities = new org.airsonic.player.service.search.SearchServiceUtilities(
+            searchServiceUtilities = RuntimeSearchServiceFactory.createSearchServiceUtilities(
                     daos.getArtistDao(), daos.getAlbumDao(), mediaFileService);
         }
         return searchServiceUtilities;
@@ -1211,7 +1211,7 @@ public final class RuntimeCompositionRoot {
     public synchronized org.airsonic.player.service.search.SearchServiceImpl createSearchService(
             org.airsonic.player.service.MediaFileService mediaFileService) {
         if (searchService == null) {
-            searchService = new org.airsonic.player.service.search.SearchServiceImpl(
+            searchService = RuntimeSearchServiceFactory.createSearchService(
                     createQueryFactory(), createIndexManager(), createSearchServiceUtilities(mediaFileService));
         }
         return searchService;
