@@ -6,10 +6,22 @@ import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.dao.MusicFolderDao
 import org.airsonic.player.i18n.LocaleService
 import org.airsonic.player.service.CoverArtService
+import org.airsonic.player.service.CoverArtImageService
+import org.airsonic.player.service.DownloadService
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.MediaScannerService
+import org.airsonic.player.service.MusicIndexStateService
+import org.airsonic.player.service.PlaylistService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.SettingsService
+import org.airsonic.player.service.StatusService
+import org.airsonic.player.service.TagEditService
+import org.airsonic.player.service.TranscodingService
+import org.airsonic.player.service.UserAdministrationService
+import org.airsonic.player.service.JWTSecurityService
+import org.airsonic.player.service.hls.HlsPlaylistService
+import org.airsonic.player.service.hls.HlsSegmentService
 import org.airsonic.player.service.metadata.DefaultMetaDataParser
 import org.airsonic.player.service.metadata.FFmpegParser
 import org.airsonic.player.service.metadata.JaudiotaggerParser
@@ -69,4 +81,70 @@ object RuntimeMediaServiceFactory {
         jaudiotaggerParser: JaudiotaggerParser,
         cacheManager: CacheManager,
     ): CoverArtService = CoverArtService(coverArtDao, mediaFolderService, jaudiotaggerParser, cacheManager)
+
+    @JvmStatic
+    fun createHlsPlaylistService(jwtSecurityService: JWTSecurityService): HlsPlaylistService =
+        HlsPlaylistService(jwtSecurityService)
+
+    @JvmStatic
+    fun createHlsSegmentService(
+        mediaFileService: MediaFileService,
+        securityService: SecurityService,
+        statusService: StatusService,
+        settingsService: SettingsService,
+        transcodingService: TranscodingService,
+    ): HlsSegmentService = HlsSegmentService(
+        mediaFileService, securityService, statusService, settingsService, transcodingService,
+    )
+
+    @JvmStatic
+    fun createTagEditService(
+        metaDataParserFactory: MetaDataParserFactory,
+        mediaFileService: MediaFileService,
+        mediaFolderService: MediaFolderService,
+        securityService: SecurityService,
+    ): TagEditService = TagEditService(metaDataParserFactory, mediaFileService, mediaFolderService, securityService)
+
+    @JvmStatic
+    fun createDownloadService(
+        statusService: StatusService,
+        securityService: SecurityService,
+        playlistService: PlaylistService,
+        settingsService: SettingsService,
+        mediaFileService: MediaFileService,
+        mediaFolderService: MediaFolderService,
+        coverArtService: CoverArtService,
+    ): DownloadService = DownloadService(
+        statusService, securityService, playlistService, settingsService, mediaFileService,
+        mediaFolderService, coverArtService,
+    )
+
+    @JvmStatic
+    fun createUserAdministrationService(
+        securityService: SecurityService,
+        settingsService: SettingsService,
+        mediaFolderService: MediaFolderService,
+    ): UserAdministrationService = UserAdministrationService(securityService, settingsService, mediaFolderService)
+
+    @JvmStatic
+    fun createMusicIndexStateService(
+        scanner: MediaScannerService,
+        settingsService: SettingsService,
+        mediaFolderService: MediaFolderService,
+    ): MusicIndexStateService = MusicIndexStateService(scanner, settingsService, mediaFolderService)
+
+    @JvmStatic
+    fun createCoverArtImageService(
+        mediaFileService: MediaFileService,
+        coverArtService: CoverArtService,
+        transcodingService: TranscodingService,
+        settingsService: SettingsService,
+        playlistService: PlaylistService,
+        artistDao: org.airsonic.player.dao.ArtistDao,
+        albumDao: AlbumDao,
+        jaudiotaggerParser: JaudiotaggerParser,
+    ): CoverArtImageService = CoverArtImageService(
+        mediaFileService, coverArtService, transcodingService, settingsService, playlistService,
+        artistDao, albumDao, jaudiotaggerParser,
+    )
 }

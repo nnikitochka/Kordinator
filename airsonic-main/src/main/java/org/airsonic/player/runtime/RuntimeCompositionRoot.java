@@ -1510,7 +1510,7 @@ public final class RuntimeCompositionRoot {
     public synchronized org.airsonic.player.service.hls.HlsPlaylistService createHlsPlaylistService(
             org.airsonic.player.service.JWTSecurityService jwtSecurityService) {
         if (hlsPlaylistService == null) {
-            hlsPlaylistService = new org.airsonic.player.service.hls.HlsPlaylistService(jwtSecurityService);
+            hlsPlaylistService = RuntimeMediaServiceFactory.createHlsPlaylistService(jwtSecurityService);
         }
         return hlsPlaylistService;
     }
@@ -1522,7 +1522,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.SettingsService settingsService,
             org.airsonic.player.service.TranscodingService transcodingService) {
         if (hlsSegmentService == null) {
-            hlsSegmentService = new org.airsonic.player.service.hls.HlsSegmentService(
+            hlsSegmentService = RuntimeMediaServiceFactory.createHlsSegmentService(
                     mediaFileService, securityService, statusService, settingsService, transcodingService);
             hlsSegmentService.init();
         }
@@ -1534,7 +1534,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.MediaFileService mediaFileService,
             org.airsonic.player.service.SecurityService securityService) {
         if (tagEditService == null) {
-            tagEditService = new org.airsonic.player.service.TagEditService(
+            tagEditService = RuntimeMediaServiceFactory.createTagEditService(
                     metaDataParserFactory, mediaFileService, createMediaFolderService(), securityService);
         }
         return tagEditService;
@@ -1548,7 +1548,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.MediaFileService mediaFileService,
             org.airsonic.player.service.CoverArtService coverArtService) {
         if (downloadService == null) {
-            downloadService = new org.airsonic.player.service.DownloadService(statusService, securityService,
+            downloadService = RuntimeMediaServiceFactory.createDownloadService(statusService, securityService,
                     playlistService, settingsService, mediaFileService, createMediaFolderService(), coverArtService);
         }
         return downloadService;
@@ -1558,7 +1558,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.SecurityService securityService,
             org.airsonic.player.service.SettingsService settingsService) {
         if (userAdministrationService == null) {
-            userAdministrationService = new org.airsonic.player.service.UserAdministrationService(
+            userAdministrationService = RuntimeMediaServiceFactory.createUserAdministrationService(
                     securityService, settingsService, createMediaFolderService());
         }
         return userAdministrationService;
@@ -1568,7 +1568,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.MediaScannerService scanner,
             org.airsonic.player.service.SettingsService settingsService) {
         if (musicIndexStateService == null) {
-            musicIndexStateService = new org.airsonic.player.service.MusicIndexStateService(
+            musicIndexStateService = RuntimeMediaServiceFactory.createMusicIndexStateService(
                     scanner, settingsService, createMediaFolderService());
         }
         return musicIndexStateService;
@@ -1583,7 +1583,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.dao.ArtistDao artistDao,
             org.airsonic.player.dao.AlbumDao albumDao) {
         if (coverArtImageService == null) {
-            coverArtImageService = new org.airsonic.player.service.CoverArtImageService(
+            coverArtImageService = RuntimeMediaServiceFactory.createCoverArtImageService(
                     mediaFileService, coverArtService, transcodingService, settingsService, playlistService,
                     artistDao, albumDao, createJaudiotaggerParser());
             coverArtImageService.init();
