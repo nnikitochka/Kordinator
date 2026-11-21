@@ -23,6 +23,7 @@ import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
 import org.airsonic.player.service.StatusService
 import org.airsonic.player.service.AudioScrobblerService
+import org.airsonic.player.service.LyricsService
 import org.mockito.Mockito
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
@@ -82,6 +83,9 @@ class KtorStandalonePlaylistTest {
                 val statusService = Mockito.mock(StatusService::class.java)
                 val scrobblerService = Mockito.mock(AudioScrobblerService::class.java)
                 val scrobbleService = StandaloneScrobbleService(coreCatalog.mediaFileService, statusService, scrobblerService)
+                val lyrics = LyricsService { """
+                    <GetLyricResult><Lyric>Test lyrics</Lyric><LyricArtist>Test Artist</LyricArtist><LyricSong>Test Song</LyricSong></GetLyricResult>
+                """ }
                 val mapper = jacksonObjectMapper()
 
                 testApplication {
@@ -97,6 +101,7 @@ class KtorStandalonePlaylistTest {
                             bookmarkService = bookmarks,
                             ratingService = ratings,
                             scrobbleService = scrobbleService,
+                            lyricsService = lyrics,
                         )
                     }
 
@@ -143,6 +148,14 @@ class KtorStandalonePlaylistTest {
                 }.status.value)
                 Mockito.verify(coreCatalog.mediaFileService).incrementPlayCount(coreFile)
                 Mockito.verify(scrobblerService).register(coreFile, "owner", true, null)
+
+                val lyricsResponse = mapper.readTree(client.get(
+                    "/api/v1/lyrics?artist=Test%20Artist&title=Test%20Song&includeLookupStatus=true",
+                ) { bearerAuth(ownerToken) }.bodyAsText())
+                assertEquals("Test Artist", lyricsResponse.get("artist").asText())
+                assertEquals("Test Song", lyricsResponse.get("title").asText())
+                assertEquals("Test lyrics", lyricsResponse.get("lyrics").asText())
+                assertEquals(false, lyricsResponse.get("tryLater").asBoolean())
 
                 assertEquals(204, client.put("/api/v1/tracks/$trackId/bookmark") {
                     bearerAuth(ownerToken)

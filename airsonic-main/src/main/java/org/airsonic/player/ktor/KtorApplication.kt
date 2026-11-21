@@ -53,6 +53,7 @@ import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.StandaloneBookmarkService
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
+import org.airsonic.player.service.LyricsService
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.domain.MusicFolder
@@ -86,6 +87,7 @@ fun Application.standaloneModule(
     bookmarkService: StandaloneBookmarkService? = null,
     ratingService: StandaloneRatingService? = null,
     scrobbleService: StandaloneScrobbleService? = null,
+    lyricsService: LyricsService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -757,6 +759,22 @@ fun Application.standaloneModule(
                         }
                         if (recorded) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
                     }
+                    get("/lyrics") {
+                        val service = lyricsService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Lyrics lookup is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val artist = call.request.queryParameters["artist"]
+                        val title = call.request.queryParameters["title"]
+                        val result = withContext(authDispatcher) { service.getLyrics(artist, title) }
+                        call.respondJson(
+                            LyricsResponse(
+                                result.artist(), result.title(), result.lyrics(),
+                                if (call.request.queryParameters["includeLookupStatus"] == "true") result.tryLater() else null,
+                            ),
+                        )
+                    }
                     put("/me/password") {
                         val user = call.principal<LocalUserPrincipal>()
                             ?: return@put call.respond(HttpStatusCode.Unauthorized)
@@ -1184,6 +1202,7 @@ data class BookmarkResponse(
 data class SetBookmarkRequest(val positionMillis: Long, val comment: String? = null)
 data class SetTrackRatingRequest(val rating: Int)
 data class ScrobbleTrackRequest(val time: String? = null, val submission: Boolean = true)
+data class LyricsResponse(val artist: String?, val title: String?, val lyrics: String?, val tryLater: Boolean?)
 data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
 data class RenameUserRequest(val username: String)
 data class SetUserEnabledRequest(val enabled: Boolean)
@@ -1492,6 +1511,7 @@ fun main(args: Array<String>) {
         statusService,
         runtime.createAudioScrobblerService(settingsService, securityService),
     )
+    val lyricsService = runtime.createLyricsService()
     val searchIndex = runtime.createIndexManager()
     val corePlaylistService = runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService)
     val mediaScannerService = runtime.createMediaScannerService(
@@ -1520,6 +1540,7 @@ fun main(args: Array<String>) {
             bookmarkService,
             ratingService,
             scrobbleService,
+            lyricsService,
         )
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })
