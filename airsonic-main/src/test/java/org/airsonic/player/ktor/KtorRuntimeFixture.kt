@@ -7,6 +7,9 @@ import org.airsonic.player.domain.MusicFolder
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.MediaScannerService
+import org.airsonic.player.service.CoverArtService
+import org.airsonic.player.service.PlaylistService
+import org.airsonic.player.security.LegacyCredentialEncoderRegistry
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.time.Instant
@@ -45,6 +48,39 @@ internal data class CoreCatalogFixture(
     val mediaFileService: MediaFileService,
     val mediaScannerService: MediaScannerService,
 )
+
+internal data class RealMediaServices(
+    val mediaFileService: MediaFileService,
+    val mediaScannerService: MediaScannerService,
+)
+
+internal fun createRealMediaServices(runtime: KtorRuntimeFixture): RealMediaServices {
+    val root = runtime.runtime
+    val daos = root.createPersistenceGraph().daos
+    val settings = root.createSettingsService()
+    val folders = runtime.mediaFolderService
+    val security = root.createSecurityService(
+        daos.userDao,
+        settings,
+        folders,
+        LegacyCredentialEncoderRegistry(settings),
+    )
+    val coverArt: CoverArtService = root.createCoverArtService(daos.coverArtDao)
+    val mediaFiles = root.createMediaFileService(
+        security,
+        settings,
+        daos.mediaFileDao,
+        daos.albumDao,
+        root.createJaudiotaggerParser(),
+        root.createMetaDataParserFactory(),
+        coverArt,
+        root.createLocaleService(settings),
+    )
+    val index = root.createIndexManager()
+    val playlists: PlaylistService = root.createPlaylistService(security, settings, mediaFiles, coverArt)
+    val scanner = root.createMediaScannerService(playlists, settings, index, mediaFiles, folders, coverArt)
+    return RealMediaServices(mediaFiles, scanner)
+}
 
 internal fun mockCoreCatalog(
     runtime: KtorRuntimeFixture,
