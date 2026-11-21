@@ -523,8 +523,7 @@ public final class RuntimeCompositionRoot {
 
     public synchronized org.airsonic.player.health.StatusAggregator createStatusAggregator() {
         if (statusAggregator == null) {
-            statusAggregator = new org.airsonic.player.health.SimpleStatusAggregator(
-                    configuration.getHealthStatusOrder());
+            statusAggregator = RuntimeHealthFactory.createStatusAggregator(configuration);
         }
         return statusAggregator;
     }
@@ -551,7 +550,7 @@ public final class RuntimeCompositionRoot {
 
     public synchronized io.micrometer.core.instrument.MeterRegistry createMeterRegistry() {
         if (meterRegistry == null) {
-            meterRegistry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+            meterRegistry = RuntimeHealthFactory.createMeterRegistry();
         }
         return meterRegistry;
     }
@@ -1102,7 +1101,7 @@ public final class RuntimeCompositionRoot {
 
     public synchronized org.airsonic.player.monitor.MetricsManager createMetricsManager() {
         if (metricsManager == null) {
-            metricsManager = new org.airsonic.player.monitor.MetricsManager(configuration);
+            metricsManager = RuntimeHealthFactory.createMetricsManager(configuration);
             lifecycleRegistry.registerShutdown("metricsManager", metricsManager);
         }
         return metricsManager;
@@ -1111,13 +1110,7 @@ public final class RuntimeCompositionRoot {
     public synchronized org.airsonic.player.health.HealthContributorRegistry createHealthContributorRegistry(
             DataSource dataSource) {
         if (healthContributorRegistry == null) {
-            org.airsonic.player.health.DefaultHealthContributorRegistry registry =
-                    new org.airsonic.player.health.DefaultHealthContributorRegistry();
-            registry.registerContributor("db", new org.airsonic.player.health.DatabaseHealthIndicator(dataSource));
-            registry.registerContributor("diskSpace", new org.airsonic.player.health.DiskSpaceHealthIndicator(
-                    org.airsonic.player.service.SettingsService.getAirsonicHome()));
-            registry.registerContributor("ping", new org.airsonic.player.health.PingHealthIndicator());
-            healthContributorRegistry = registry;
+            healthContributorRegistry = RuntimeHealthFactory.createHealthContributorRegistry(dataSource);
         }
         return healthContributorRegistry;
     }
