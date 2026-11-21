@@ -1445,10 +1445,9 @@ public final class RuntimeCompositionRoot {
             throw new IllegalStateException("Persistence graph must be created before media services");
         }
         if (mediaFolderService == null) {
-            mediaFolderService = new org.airsonic.player.service.MediaFolderService(
+            mediaFolderService = RuntimeMediaServiceFactory.createMediaFolderService(
                     persistenceGraph.getDaos().getMusicFolderDao(),
-                    persistenceGraph.getDaos().getMediaFileDao(),
-                    createCacheManager());
+                    persistenceGraph.getDaos().getMediaFileDao(), createCacheManager());
         }
         return mediaFolderService;
     }
@@ -1463,8 +1462,8 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.CoverArtService coverArtService,
             org.airsonic.player.i18n.LocaleService localeService) {
         if (mediaFileService == null) {
-            mediaFileService = new org.airsonic.player.service.MediaFileService(
-                    securityService, settingsService, mediaFileDao, createMediaFolderService(), albumDao,
+            mediaFileService = RuntimeMediaServiceFactory.createMediaFileService(
+                    securityService, settingsService, mediaFileDao, albumDao, createMediaFolderService(),
                     parser, metaDataParserFactory, coverArtService, localeService, createCacheManager());
         }
         return mediaFileService;
@@ -1472,30 +1471,29 @@ public final class RuntimeCompositionRoot {
 
     public synchronized org.airsonic.player.service.metadata.DefaultMetaDataParser createDefaultMetaDataParser() {
         if (defaultMetaDataParser == null) {
-            defaultMetaDataParser = new org.airsonic.player.service.metadata.DefaultMetaDataParser(createMediaFolderService());
+            defaultMetaDataParser = RuntimeMediaServiceFactory.createDefaultMetaDataParser(createMediaFolderService());
         }
         return defaultMetaDataParser;
     }
 
     public synchronized org.airsonic.player.service.metadata.FFmpegParser createFFmpegParser() {
         if (ffmpegParser == null) {
-            ffmpegParser = new org.airsonic.player.service.metadata.FFmpegParser(createMediaFolderService());
+            ffmpegParser = RuntimeMediaServiceFactory.createFFmpegParser(createMediaFolderService());
         }
         return ffmpegParser;
     }
 
     public synchronized org.airsonic.player.service.metadata.JaudiotaggerParser createJaudiotaggerParser() {
         if (jaudiotaggerParser == null) {
-            jaudiotaggerParser = new org.airsonic.player.service.metadata.JaudiotaggerParser(createMediaFolderService());
+            jaudiotaggerParser = RuntimeMediaServiceFactory.createJaudiotaggerParser(createMediaFolderService());
         }
         return jaudiotaggerParser;
     }
 
     public synchronized org.airsonic.player.service.metadata.MetaDataParserFactory createMetaDataParserFactory() {
         if (metaDataParserFactory == null) {
-            metaDataParserFactory = new org.airsonic.player.service.metadata.MetaDataParserFactory(
-                    new java.util.ArrayList<>(java.util.List.of(
-                            createJaudiotaggerParser(), createFFmpegParser(), createDefaultMetaDataParser())));
+            metaDataParserFactory = RuntimeMediaServiceFactory.createMetaDataParserFactory(
+                    createJaudiotaggerParser(), createFFmpegParser(), createDefaultMetaDataParser());
         }
         return metaDataParserFactory;
     }
@@ -1503,7 +1501,7 @@ public final class RuntimeCompositionRoot {
     public synchronized org.airsonic.player.service.CoverArtService createCoverArtService(
             org.airsonic.player.dao.CoverArtDao coverArtDao) {
         if (coverArtService == null) {
-            coverArtService = new org.airsonic.player.service.CoverArtService(
+            coverArtService = RuntimeMediaServiceFactory.createCoverArtService(
                     coverArtDao, createMediaFolderService(), createJaudiotaggerParser(), createCacheManager());
         }
         return coverArtService;
