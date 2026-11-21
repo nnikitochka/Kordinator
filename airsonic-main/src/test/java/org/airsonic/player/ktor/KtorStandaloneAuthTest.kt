@@ -96,6 +96,13 @@ class KtorStandaloneAuthTest {
                     statement.setLong(1, victimId)
                     statement.executeUpdate()
                 }
+                connection.prepareStatement(
+                    "INSERT INTO user_now_playing (user_id, client_id, track_id, position_ms, is_playing, updated_at) " +
+                        "VALUES (?, 'desktop', 12345, 0, TRUE, CURRENT_TIMESTAMP)",
+                ).use { statement ->
+                    statement.setLong(1, victimId)
+                    statement.executeUpdate()
+                }
             }
 
             testApplication {
@@ -135,6 +142,7 @@ class KtorStandaloneAuthTest {
                     assertEquals(0L, count("SELECT COUNT(*) FROM local_user_library WHERE user_id = ?", victimId))
                     assertEquals(0L, count("SELECT COUNT(*) FROM user_play_queue WHERE user_id = ?", victimId))
                     assertEquals(0L, count("SELECT COUNT(*) FROM user_play_queue_track WHERE user_id = ?", victimId))
+                    assertEquals(0L, count("SELECT COUNT(*) FROM user_now_playing WHERE user_id = ?", victimId))
                     assertEquals(1L, count("SELECT COUNT(*) FROM local_user WHERE id = ?", otherId))
                 }
             }

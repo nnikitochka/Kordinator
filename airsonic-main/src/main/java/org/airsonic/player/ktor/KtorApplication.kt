@@ -46,6 +46,7 @@ import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandalonePlayQueueService
 import org.airsonic.player.service.StandalonePlayQueue
+import org.airsonic.player.service.StandaloneNowPlayingService
 import org.airsonic.player.service.StandaloneAlbum
 import org.airsonic.player.service.StandaloneArtist
 import org.airsonic.player.service.StandaloneTrack
@@ -80,6 +81,7 @@ fun Application.standaloneModule(
     mediaFolderService: MediaFolderService? = null,
     mediaCatalogService: KtorCoreMediaCatalogService? = null,
     playQueueService: StandalonePlayQueueService? = null,
+    nowPlayingService: StandaloneNowPlayingService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -625,6 +627,69 @@ fun Application.standaloneModule(
                         withContext(authDispatcher) { service.clear(user.id) }
                         call.respond(HttpStatusCode.NoContent)
                     }
+                    get("/me/now-playing") {
+                        val service = nowPlayingService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Now Playing storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val reports = withContext(scanDispatcher) { service.list(user.id, user.catalogLibraryScope()) }
+                        call.respondJson(NowPlayingPage(reports.map { it.toResponse() }, reports.size))
+                    }
+                    put("/me/now-playing") {
+                        val service = nowPlayingService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Now Playing storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@put
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), ReportNowPlayingRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected clientId, trackId, positionMillis and isPlaying"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val updated = try {
+                            withContext(scanDispatcher) {
+                                service.report(
+                                    user.id,
+                                    request.clientId,
+                                    request.trackId,
+                                    request.positionMillis,
+                                    request.isPlaying,
+                                    user.catalogLibraryScope(),
+                                )
+                            }
+                        } catch (failure: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_request", failure.message ?: "Now Playing report is invalid"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        if (updated) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
+                    }
+                    delete("/me/now-playing/{clientId}") {
+                        val service = nowPlayingService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Now Playing storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@delete
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                        val clientId = call.parameters["clientId"]
+                        if (clientId.isNullOrBlank()) {
+                            call.respondJson(ApiError("invalid_request", "Client ID is required"), HttpStatusCode.BadRequest)
+                            return@delete
+                        }
+                        try {
+                            withContext(authDispatcher) { service.clear(user.id, clientId) }
+                        } catch (failure: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_request", failure.message ?: "Client ID is invalid"), HttpStatusCode.BadRequest)
+                            return@delete
+                        }
+                        call.respond(HttpStatusCode.NoContent)
+                    }
                     put("/me/password") {
                         val user = call.principal<LocalUserPrincipal>()
                             ?: return@put call.respond(HttpStatusCode.Unauthorized)
@@ -1041,6 +1106,18 @@ data class PlayQueueResponse(
     val tracks: List<PlayQueueTrackResponse>,
 )
 data class PlayQueueTrackResponse(val id: Long, val title: String, val artist: String?, val album: String?, val durationSeconds: Int)
+data class ReportNowPlayingRequest(val clientId: String, val trackId: Long, val positionMillis: Long, val isPlaying: Boolean)
+data class NowPlayingPage(val items: List<NowPlayingResponse>, val count: Int)
+data class NowPlayingResponse(
+    val clientId: String,
+    val trackId: Long,
+    val title: String,
+    val artist: String?,
+    val album: String?,
+    val positionMillis: Long,
+    val isPlaying: Boolean,
+    val updatedAt: String,
+)
 data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
 data class RenameUserRequest(val username: String)
 data class SetUserEnabledRequest(val enabled: Boolean)
@@ -1271,6 +1348,10 @@ private suspend fun StandalonePlayQueue.toResponse(
     )
 }
 
+private fun org.airsonic.player.service.StandaloneNowPlayingEntry.toResponse() = NowPlayingResponse(
+    clientId, track.id, track.title, track.artist, track.album, positionMillis, isPlaying, updatedAt.toString(),
+)
+
 fun main(args: Array<String>) {
     val configuration = RuntimeConfigurationLoader().load(args, System.getProperties(), System.getenv(), null)
     val host = configuration.getProperty("airsonic.http.host", "0.0.0.0") ?: "0.0.0.0"
@@ -1319,6 +1400,7 @@ fun main(args: Array<String>) {
     val playlistService = StandalonePlaylistService(standaloneDatabase.dataSource, mediaCatalogService)
     val favoriteService = StandaloneFavoriteService(standaloneDatabase.dataSource, mediaCatalogService)
     val playQueueService = StandalonePlayQueueService(standaloneDatabase.dataSource, mediaCatalogService)
+    val nowPlayingService = StandaloneNowPlayingService(standaloneDatabase.dataSource, mediaCatalogService)
     val securityService = runtime.createSecurityService(
         legacyGraph.userDao,
         settingsService,
@@ -1361,6 +1443,7 @@ fun main(args: Array<String>) {
             mediaFolderService,
             mediaCatalogService,
             playQueueService,
+            nowPlayingService,
         )
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })

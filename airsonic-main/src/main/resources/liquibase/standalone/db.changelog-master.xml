@@ -324,4 +324,32 @@
                                  constraintName="fk_favorite_artist_user" referencedTableName="local_user"
                                  referencedColumnNames="id" onDelete="CASCADE"/>
     </changeSet>
+    <changeSet id="standalone-user-now-playing-1" author="kordinator">
+        <createTable tableName="user_now_playing">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_now_playing"/>
+            </column>
+            <column name="client_id" type="VARCHAR(128)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_now_playing"/>
+            </column>
+            <column name="track_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="position_ms" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_playing" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_now_playing" baseColumnNames="user_id"
+                                 constraintName="fk_user_now_playing_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="user_now_playing" indexName="ix_user_now_playing_updated_at">
+            <column name="updated_at"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>

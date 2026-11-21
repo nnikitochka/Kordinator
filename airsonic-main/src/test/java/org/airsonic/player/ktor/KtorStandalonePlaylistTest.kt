@@ -18,9 +18,13 @@ import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandalonePlayQueueService
 import org.airsonic.player.service.StandaloneFavoriteService
+import org.airsonic.player.service.StandaloneNowPlayingService
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
+import java.sql.Timestamp
+import java.time.Duration
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -71,6 +75,7 @@ class KtorStandalonePlaylistTest {
                 val playlists = StandalonePlaylistService(dataSource, mediaCatalogService)
                 val playQueue = StandalonePlayQueueService(dataSource, mediaCatalogService)
                 val favorites = StandaloneFavoriteService(dataSource, mediaCatalogService)
+                val nowPlaying = StandaloneNowPlayingService(dataSource, mediaCatalogService)
                 val mapper = jacksonObjectMapper()
 
                 testApplication {
@@ -83,11 +88,76 @@ class KtorStandalonePlaylistTest {
                             mediaFolderService = runtime.mediaFolderService,
                             mediaCatalogService = mediaCatalogService,
                             playQueueService = playQueue,
+                            nowPlayingService = nowPlaying,
                         )
                     }
 
                 val tracksResponse = client.get("/api/v1/tracks") { bearerAuth(ownerToken) }
                 val trackId = mapper.readTree(tracksResponse.bodyAsText()).get("items")[0].get("id").asLong()
+
+                assertEquals(401, client.get("/api/v1/me/now-playing").status.value)
+                val firstReport = client.put("/api/v1/me/now-playing") {
+                    bearerAuth(ownerToken)
+                    header("Content-Type", "application/json")
+                    setBody("""{"clientId":"desktop-main","trackId":$trackId,"positionMillis":18500,"isPlaying":true}""")
+                }
+                assertEquals(204, firstReport.status.value)
+                val privateState = mapper.readTree(client.get("/api/v1/me/now-playing") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText())
+                assertEquals(1, privateState.get("count").asInt())
+                assertEquals(trackId, privateState.get("items")[0].get("trackId").asLong())
+                assertEquals("desktop-main", privateState.get("items")[0].get("clientId").asText())
+                assertEquals(18500, privateState.get("items")[0].get("positionMillis").asLong())
+                assertEquals("track", privateState.get("items")[0].get("title").asText())
+                assertEquals(0, mapper.readTree(client.get("/api/v1/me/now-playing") {
+                    bearerAuth(otherToken)
+                }.bodyAsText()).get("count").asInt())
+                assertEquals(404, client.put("/api/v1/me/now-playing") {
+                    bearerAuth(otherToken)
+                    header("Content-Type", "application/json")
+                    setBody("""{"clientId":"other-client","trackId":$trackId,"positionMillis":0,"isPlaying":true}""")
+                }.status.value)
+                assertEquals(400, client.put("/api/v1/me/now-playing") {
+                    bearerAuth(ownerToken)
+                    header("Content-Type", "application/json")
+                    setBody("""{"clientId":"desktop-main","trackId":$trackId,"positionMillis":-1,"isPlaying":true}""")
+                }.status.value)
+
+                val updatedReport = client.put("/api/v1/me/now-playing") {
+                    bearerAuth(ownerToken)
+                    header("Content-Type", "application/json")
+                    setBody("""{"clientId":"desktop-main","trackId":$trackId,"positionMillis":30000,"isPlaying":false}""")
+                }
+                assertEquals(204, updatedReport.status.value)
+                val updatedState = mapper.readTree(client.get("/api/v1/me/now-playing") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText())
+                assertEquals(1, updatedState.get("count").asInt())
+                assertEquals(30000, updatedState.get("items")[0].get("positionMillis").asLong())
+                assertEquals(false, updatedState.get("items")[0].get("isPlaying").asBoolean())
+                assertEquals(204, client.delete("/api/v1/me/now-playing/desktop-main") {
+                    bearerAuth(ownerToken)
+                }.status.value)
+                assertEquals(0, mapper.readTree(client.get("/api/v1/me/now-playing") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText()).get("count").asInt())
+                assertEquals(204, client.put("/api/v1/me/now-playing") {
+                    bearerAuth(ownerToken)
+                    header("Content-Type", "application/json")
+                    setBody("""{"clientId":"stale-client","trackId":$trackId,"positionMillis":0,"isPlaying":false}""")
+                }.status.value)
+                dataSource.connection.use { connection ->
+                    connection.prepareStatement("UPDATE user_now_playing SET updated_at = ? WHERE user_id = ? AND client_id = ?").use { statement ->
+                        statement.setTimestamp(1, Timestamp.from(Instant.now().minus(Duration.ofMinutes(6))))
+                        statement.setLong(2, auth.users().first { it.username == "owner" }.id)
+                        statement.setString(3, "stale-client")
+                        statement.executeUpdate()
+                    }
+                }
+                assertEquals(0, mapper.readTree(client.get("/api/v1/me/now-playing") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText()).get("count").asInt())
 
                 val albums = client.get("/api/v1/albums?libraryId=${library.id}") { bearerAuth(ownerToken) }
                 val album = mapper.readTree(albums.bodyAsText()).get("items")[0]
