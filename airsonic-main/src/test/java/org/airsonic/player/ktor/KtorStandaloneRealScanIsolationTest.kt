@@ -21,6 +21,7 @@ import org.airsonic.player.service.StandaloneLibraryScanService
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -255,7 +256,32 @@ class KtorStandaloneRealScanIsolationTest {
                     assertEquals(firstTrack.get("id").asLong(), changedTrack.get("id").asLong())
                     assertEquals(firstBytes.size + 1L, changedTrack.get("sizeBytes").asLong())
 
-                    Files.delete(firstRoot.resolve("first.mp3"))
+                    val renamedPath = firstRoot.resolve("renamed.mp3")
+                    Files.move(firstRoot.resolve("first.mp3"), renamedPath, StandardCopyOption.ATOMIC_MOVE)
+                    val renamedScan = client.post("/api/v1/admin/libraries/${firstLibrary.id}/scan") {
+                        bearerAuth(adminToken)
+                    }
+                    assertEquals(HttpStatusCode.Accepted, renamedScan.status)
+                    var renamedState = "QUEUED"
+                    for (attempt in 0 until 200) {
+                        renamedState = mapper.readTree(client.get("/api/v1/admin/libraries/${firstLibrary.id}/scan") {
+                            bearerAuth(adminToken)
+                        }.bodyAsText()).get("state").asText()
+                        if (renamedState == "COMPLETED" || renamedState == "FAILED") break
+                        delay(50)
+                    }
+                    assertEquals("COMPLETED", renamedState)
+                    val renamedTracks = mapper.readTree(client.get("/api/v1/tracks?libraryId=${firstLibrary.id}") {
+                        bearerAuth(firstToken)
+                    }.bodyAsText()).get("items")
+                    assertEquals(1, renamedTracks.size())
+                    assertTrue(renamedTracks[0].get("relativePath").asText().endsWith("renamed.mp3"))
+                    assertTrue(renamedTracks[0].get("id").asLong() != changedTrack.get("id").asLong())
+                    assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/tracks/${changedTrack.get("id").asLong()}") {
+                        bearerAuth(firstToken)
+                    }.status)
+
+                    Files.delete(renamedPath)
                     val deletedScan = client.post("/api/v1/admin/libraries/${firstLibrary.id}/scan") {
                         bearerAuth(adminToken)
                     }
