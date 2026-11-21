@@ -38,6 +38,7 @@ import org.airsonic.player.runtime.RuntimeCompositionRoot
 import org.airsonic.player.runtime.RuntimeConfigurationLoader
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
+import org.airsonic.player.security.LastEnabledAdministratorException
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.security.LoginRateLimiter
 import org.airsonic.player.security.LegacyCredentialEncoderRegistry
@@ -553,6 +554,18 @@ fun Application.standaloneModule(
                         if (token != null) withContext(authDispatcher) { authService.logout(token) }
                         call.respond(HttpStatusCode.NoContent)
                     }
+                    get("/admin/users") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val users = withContext(authDispatcher) {
+                            authService.users().map { AdminUserResponse(it.id, it.username, it.role, it.enabled) }
+                        }
+                        call.respondJson(users)
+                    }
                     post("/admin/users") {
                         val actor = call.principal<LocalUserPrincipal>()
                             ?: return@post call.respond(HttpStatusCode.Unauthorized)
@@ -577,6 +590,39 @@ fun Application.standaloneModule(
                             } else {
                                 throw failure
                             }
+                        }
+                    }
+                    put("/admin/users/{id}/role") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@put
+                        }
+                        val targetId = call.parameters["id"]?.toLongOrNull()
+                        if (targetId == null) {
+                            call.respondJson(ApiError("invalid_request", "User ID must be a number"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        if (targetId == actor.id) {
+                            call.respondJson(ApiError("invalid_operation", "Cannot change the current administrator role"), HttpStatusCode.Conflict)
+                            return@put
+                        }
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), SetUserRoleRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected role"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        try {
+                            val updated = withContext(authDispatcher) { authService.setUserRole(targetId, request.role) }
+                            if (updated) call.respond(HttpStatusCode.NoContent) else {
+                                call.respondJson(ApiError("user_not_found", "User does not exist"), HttpStatusCode.NotFound)
+                            }
+                        } catch (_: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_role", "Role must be USER or ADMIN"), HttpStatusCode.BadRequest)
+                        } catch (_: LastEnabledAdministratorException) {
+                            call.respondJson(ApiError("last_administrator", "At least one enabled administrator must remain"), HttpStatusCode.Conflict)
                         }
                     }
                     put("/admin/users/{id}/enabled") {
@@ -776,10 +822,12 @@ data class HealthResponse(val status: String)
 data class LoginRequest(val username: String, val password: String)
 data class LoginResponse(val accessToken: String, val tokenType: String = "Bearer", val expiresAt: String)
 data class CurrentUserResponse(val id: Long, val username: String, val role: String)
+data class AdminUserResponse(val id: Long, val username: String, val role: String, val enabled: Boolean)
 data class ApiError(val code: String, val message: String)
 data class ChangePasswordRequest(val currentPassword: String, val newPassword: String)
 data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
 data class SetUserEnabledRequest(val enabled: Boolean)
+data class SetUserRoleRequest(val role: String)
 data class SetUserLibrariesRequest(val libraryIds: Set<Long>)
 data class CreateLibraryRequest(val name: String, val path: String)
 data class LibraryResponse(val id: Long, val name: String, val path: String, val createdAt: String)

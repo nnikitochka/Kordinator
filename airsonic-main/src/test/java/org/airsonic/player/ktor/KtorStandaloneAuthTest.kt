@@ -13,6 +13,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
 import org.airsonic.player.runtime.StandaloneDatabase
+import org.airsonic.player.security.LastEnabledAdministratorException
 import org.airsonic.player.security.LocalAuthService
 import java.time.Clock
 import java.time.Duration
@@ -24,6 +25,82 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class KtorStandaloneAuthTest {
+    @Test
+    fun administratorsCanListAccountsAndChangeRolesSafely() {
+        val dataSource = HikariDataSource(HikariConfig().apply {
+            jdbcUrl = "jdbc:hsqldb:mem:standalone_user_administration"
+            driverClassName = "org.hsqldb.jdbc.JDBCDriver"
+            username = "sa"
+            password = ""
+            maximumPoolSize = 2
+        })
+
+        dataSource.use {
+            StandaloneDatabase.migrate(dataSource)
+            val auth = LocalAuthService(dataSource)
+            auth.createInitialAdmin("admin", "a strong password for tests")
+            val adminId = auth.users().single().id
+            val userId = auth.createUser("listener", "listener password for tests")
+            val userSession = auth.login("listener", "listener password for tests")!!
+
+            testApplication {
+                application { standaloneModule(auth) }
+
+                val adminLogin = client.post("/api/v1/auth/login") {
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"admin","password":"a strong password for tests"}""")
+                }
+                val adminToken = extractToken(adminLogin.bodyAsText())
+
+                assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/admin/users") { bearerAuth(userSession.token) }.status)
+                assertEquals(HttpStatusCode.Forbidden, client.put("/api/v1/admin/users/$userId/role") {
+                    bearerAuth(userSession.token)
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"role":"ADMIN"}""")
+                }.status)
+
+                val accounts = client.get("/api/v1/admin/users") { bearerAuth(adminToken) }
+                assertEquals(HttpStatusCode.OK, accounts.status)
+                assertTrue(accounts.bodyAsText().contains("\"username\":\"listener\",\"role\":\"USER\",\"enabled\":true"))
+                assertTrue(!accounts.bodyAsText().contains("password"))
+
+                assertEquals(HttpStatusCode.Conflict, client.put("/api/v1/admin/users/$adminId/role") {
+                    bearerAuth(adminToken)
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"role":"USER"}""")
+                }.status)
+                assertEquals(HttpStatusCode.BadRequest, client.put("/api/v1/admin/users/$userId/role") {
+                    bearerAuth(adminToken)
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"role":"OWNER"}""")
+                }.status)
+
+                assertEquals(HttpStatusCode.NoContent, client.put("/api/v1/admin/users/$userId/role") {
+                    bearerAuth(adminToken)
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"role":"ADMIN"}""")
+                }.status)
+                assertEquals(HttpStatusCode.Unauthorized, client.get("/api/v1/me") { bearerAuth(userSession.token) }.status)
+
+                val promotedLogin = client.post("/api/v1/auth/login") {
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"listener","password":"listener password for tests"}""")
+                }
+                val promotedToken = extractToken(promotedLogin.bodyAsText())
+                assertEquals(HttpStatusCode.OK, client.get("/api/v1/admin/users") { bearerAuth(promotedToken) }.status)
+
+                assertEquals(HttpStatusCode.NoContent, client.put("/api/v1/admin/users/$adminId/role") {
+                    bearerAuth(promotedToken)
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"role":"USER"}""")
+                }.status)
+                assertEquals(HttpStatusCode.Unauthorized, client.get("/api/v1/me") { bearerAuth(adminToken) }.status)
+                assertFailsWith<LastEnabledAdministratorException> { auth.setUserRole(userId, "USER") }
+                assertEquals("ADMIN", auth.users().single { it.id == userId }.role)
+            }
+        }
+    }
+
     @Test
     fun loginCreatesBearerSessionWhichCanBeReadAndRevoked() {
         val dataSource = HikariDataSource(HikariConfig().apply {

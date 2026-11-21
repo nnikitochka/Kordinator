@@ -17,7 +17,9 @@ data class LocalUserPrincipal(
     val role: String,
     val allowedLibraryIds: Set<Long> = emptySet(),
 )
+data class LocalUserAccount(val id: Long, val username: String, val role: String, val enabled: Boolean)
 data class LocalSessionToken(val token: String, val expiresAt: Instant)
+class LastEnabledAdministratorException : IllegalStateException("Cannot demote the last enabled administrator")
 
 /** Owns local password authentication and opaque, revocable bearer sessions. */
 class LocalAuthService(
@@ -123,6 +125,78 @@ class LocalAuthService(
             } catch (failure: Throwable) {
                 connection.rollback()
                 throw failure
+            }
+        }
+    }
+
+    fun users(): List<LocalUserAccount> = dataSource.connection.use { connection ->
+        connection.prepareStatement("SELECT id, username, role, enabled FROM local_user ORDER BY username").use { statement ->
+            statement.executeQuery().use { rows ->
+                buildList {
+                    while (rows.next()) {
+                        add(
+                            LocalUserAccount(
+                                rows.getLong("id"),
+                                rows.getString("username"),
+                                rows.getString("role"),
+                                rows.getBoolean("enabled"),
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    /** Updates a role and revokes sessions so the new authorization applies immediately. */
+    fun setUserRole(userId: Long, role: String): Boolean {
+        require(role in ALLOWED_ROLES) { "Unsupported account role" }
+        dataSource.connection.use { connection ->
+            val previousAutoCommit = connection.autoCommit
+            val previousIsolation = connection.transactionIsolation
+            connection.transactionIsolation = java.sql.Connection.TRANSACTION_SERIALIZABLE
+            connection.autoCommit = false
+            try {
+                val user = connection.prepareStatement(
+                    "SELECT role, enabled FROM local_user WHERE id = ?",
+                ).use { statement ->
+                    statement.setLong(1, userId)
+                    statement.executeQuery().use { rows ->
+                        if (rows.next()) rows.getString("role") to rows.getBoolean("enabled") else null
+                    }
+                }
+                if (user == null) {
+                    connection.rollback()
+                    return false
+                }
+                if (user.first == "ADMIN" && user.second && role != "ADMIN") {
+                    val otherEnabledAdmins = connection.prepareStatement(
+                        "SELECT COUNT(*) FROM local_user WHERE role = 'ADMIN' AND enabled = TRUE AND id <> ?",
+                    ).use { statement ->
+                        statement.setLong(1, userId)
+                        statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
+                    }
+                    if (otherEnabledAdmins == 0L) throw LastEnabledAdministratorException()
+                }
+                if (user.first != role) {
+                    connection.prepareStatement("UPDATE local_user SET role = ? WHERE id = ?").use { statement ->
+                        statement.setString(1, role)
+                        statement.setLong(2, userId)
+                        check(statement.executeUpdate() == 1) { "Account disappeared during role update" }
+                    }
+                    connection.prepareStatement("DELETE FROM user_session WHERE user_id = ?").use { statement ->
+                        statement.setLong(1, userId)
+                        statement.executeUpdate()
+                    }
+                }
+                connection.commit()
+                return true
+            } catch (failure: Throwable) {
+                connection.rollback()
+                throw failure
+            } finally {
+                connection.autoCommit = previousAutoCommit
+                connection.transactionIsolation = previousIsolation
             }
         }
     }
