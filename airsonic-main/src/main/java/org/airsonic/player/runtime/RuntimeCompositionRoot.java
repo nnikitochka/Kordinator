@@ -1771,7 +1771,7 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.MediaFolderService mediaFolderService,
             org.airsonic.player.security.CredentialEncoderRegistry credentialEncoders) {
         if (securityService == null) {
-            securityService = new org.airsonic.player.service.SecurityService(
+            securityService = RuntimeSecurityServiceFactory.createSecurityService(
                     userDao, settingsService, mediaFolderService, createCacheManager(), credentialEncoders);
         }
         return securityService;
@@ -1782,8 +1782,9 @@ public final class RuntimeCompositionRoot {
                     org.airsonic.player.service.SecurityService securityService,
                     org.airsonic.player.security.CredentialEncoderRegistry credentialEncoders) {
         if (subsonicCredentialAuthenticationService == null) {
-            subsonicCredentialAuthenticationService = new org.airsonic.player.security.SubsonicCredentialAuthenticationService(
-                    securityService, credentialEncoders);
+            subsonicCredentialAuthenticationService =
+                    RuntimeSecurityServiceFactory.createCredentialAuthenticationService(
+                            securityService, credentialEncoders);
         }
         return subsonicCredentialAuthenticationService;
     }
@@ -1791,8 +1792,7 @@ public final class RuntimeCompositionRoot {
     public synchronized org.airsonic.player.service.JWTSecurityService createJwtSecurityService(
             org.airsonic.player.service.SettingsService settingsService) {
         if (jwtSecurityService == null) {
-            org.airsonic.player.service.JWTSecurityService.initializeSigningKey(settingsService);
-            jwtSecurityService = new org.airsonic.player.service.JWTSecurityService(settingsService);
+            jwtSecurityService = RuntimeSecurityServiceFactory.createJwtSecurityService(settingsService);
         }
         return jwtSecurityService;
     }
