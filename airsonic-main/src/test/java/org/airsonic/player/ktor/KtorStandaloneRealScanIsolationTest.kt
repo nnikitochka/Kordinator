@@ -21,6 +21,9 @@ import org.airsonic.player.service.StandaloneLibraryScanService
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -58,12 +61,27 @@ class KtorStandaloneRealScanIsolationTest {
                 val secondToken = auth.login("second-listener", "second listener password")!!.token
                 val firstLibrary = runtime.mediaFolderService.getAllMusicFolders(true, true).single()
                 val realServices = createRealMediaServices(runtime)
+                val originalScanService = StandaloneLibraryScanService(
+                    dataSource,
+                    runtime.mediaFolderService,
+                    realServices.mediaFileService,
+                    realServices.mediaScannerService,
+                )
+                val interruptedScan = originalScanService.enqueue(firstLibrary.id!!.toLong())
+                dataSource.connection.use { connection ->
+                    connection.prepareStatement("UPDATE library_scan_job SET state = 'RUNNING' WHERE id = ?").use { statement ->
+                        statement.setString(1, interruptedScan.id)
+                        assertEquals(1, statement.executeUpdate())
+                    }
+                }
                 val scanService = StandaloneLibraryScanService(
                     dataSource,
                     runtime.mediaFolderService,
                     realServices.mediaFileService,
                     realServices.mediaScannerService,
                 )
+                assertEquals("FAILED", scanService.latestScan(firstLibrary.id!!.toLong())?.state)
+                assertTrue(scanService.latestScan(firstLibrary.id!!.toLong())?.finishedAt != null)
                 val mediaCatalog = KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
                 val mapper = jacksonObjectMapper()
 
@@ -123,6 +141,85 @@ class KtorStandaloneRealScanIsolationTest {
                     assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/tracks?libraryId=${firstLibrary.id}") {
                         bearerAuth(secondToken)
                     }.status)
+
+                    val repeatedScan = client.post("/api/v1/admin/libraries/${firstLibrary.id}/scan") {
+                        bearerAuth(adminToken)
+                    }
+                    assertEquals(HttpStatusCode.Accepted, repeatedScan.status)
+                    var repeatState = "QUEUED"
+                    for (attempt in 0 until 200) {
+                        repeatState = mapper.readTree(client.get("/api/v1/admin/libraries/${firstLibrary.id}/scan") {
+                            bearerAuth(adminToken)
+                        }.bodyAsText()).get("state").asText()
+                        if (repeatState == "COMPLETED" || repeatState == "FAILED") break
+                        delay(50)
+                    }
+                    assertEquals("COMPLETED", repeatState)
+                    val repeatedCatalog = client.get("/api/v1/tracks?libraryId=${firstLibrary.id}") {
+                        bearerAuth(firstToken)
+                    }
+                    val repeatedItems = mapper.readTree(repeatedCatalog.bodyAsText()).get("items")
+                    assertEquals(1, repeatedItems.size(), "repeat scan must not duplicate tracks")
+                    assertEquals(firstTrack.get("id").asLong(), repeatedItems[0].get("id").asLong())
+
+                    val executor = Executors.newFixedThreadPool(2)
+                    val ready = CountDownLatch(2)
+                    val startTogether = CountDownLatch(1)
+                    val concurrentEnqueues = try {
+                        (1..2).map {
+                            executor.submit<Boolean> {
+                                ready.countDown()
+                                check(startTogether.await(5, TimeUnit.SECONDS))
+                                try {
+                                    scanService.enqueue(secondLibraryId.toLong())
+                                    true
+                                } catch (_: IllegalArgumentException) {
+                                    false
+                                }
+                            }
+                        }.also {
+                            assertTrue(ready.await(5, TimeUnit.SECONDS))
+                            startTogether.countDown()
+                        }.map { it.get(5, TimeUnit.SECONDS) }
+                    } finally {
+                        executor.shutdownNow()
+                    }
+                    assertEquals(1, concurrentEnqueues.count { it }, "only one simultaneous scan enqueue may win")
+                    val duplicateScan = client.post("/api/v1/admin/libraries/$secondLibraryId/scan") {
+                        bearerAuth(adminToken)
+                    }
+                    assertEquals(HttpStatusCode.Conflict, duplicateScan.status)
+                    scanService.run(requireNotNull(scanService.latestScan(secondLibraryId.toLong())).id)
+                    assertEquals("COMPLETED", scanService.latestScan(secondLibraryId.toLong())?.state)
+
+                    val missingRoot = Files.createDirectory(home.resolve("removed-library"))
+                    val missingLibraryResponse = client.post("/api/v1/admin/libraries") {
+                        bearerAuth(adminToken)
+                        contentType(ContentType.Application.Json)
+                        setBody(mapper.writeValueAsString(mapOf("name" to "Removed library", "path" to missingRoot.toString())))
+                    }
+                    assertEquals(HttpStatusCode.Created, missingLibraryResponse.status)
+                    val missingLibraryId = mapper.readTree(missingLibraryResponse.bodyAsText()).get("id").asInt()
+                    Files.delete(missingRoot)
+                    val missingScan = client.post("/api/v1/admin/libraries/$missingLibraryId/scan") {
+                        bearerAuth(adminToken)
+                    }
+                    assertEquals(HttpStatusCode.Accepted, missingScan.status)
+                    var missingScanState = "QUEUED"
+                    for (attempt in 0 until 100) {
+                        val status = client.get("/api/v1/admin/libraries/$missingLibraryId/scan") {
+                            bearerAuth(adminToken)
+                        }
+                        val body = mapper.readTree(status.bodyAsText())
+                        missingScanState = body.get("state").asText()
+                        if (missingScanState == "COMPLETED" || missingScanState == "FAILED") {
+                            assertTrue(body.get("errorCount").asLong() > 0)
+                            break
+                        }
+                        delay(25)
+                    }
+                    assertEquals("FAILED", missingScanState)
+
                     val firstStream = client.get("/api/v1/tracks/${firstTrack.get("id").asLong()}/stream") {
                         bearerAuth(firstToken)
                     }

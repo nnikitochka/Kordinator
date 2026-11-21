@@ -33,6 +33,23 @@ class RuntimeConfigurationLoaderTest {
         assertEquals("9092", fromCli.getProperty("server.port"));
     }
 
+    @Test
+    void normalizesAndMasksLegacyAliasesLoadedFromAirsonicProperties() throws Exception {
+        Path home = Files.createDirectory(tempDir.resolve("legacy-config-home"));
+        Files.writeString(home.resolve("airsonic.properties"),
+                "spring.datasource.url=jdbc:postgresql://legacy/music\n"
+                        + "spring.datasource.password=hidden-from-logs\n"
+                        + "spring.liquibase.parameters.mysqlVarcharLimit=512\n");
+        Properties application = new Properties();
+        application.setProperty("airsonic.home", home.toString());
+
+        RuntimeConfiguration config = loader.load(new String[0], new Properties(), Collections.emptyMap(), application);
+
+        assertEquals("jdbc:postgresql://legacy/music", config.getDatabaseUrl());
+        assertEquals("512", config.getProperty(RuntimeConfiguration.DATABASE_MIGRATION_MYSQL_VARCHAR_LIMIT_KEY));
+        assertEquals("******", config.asMaskedMap().get("spring.datasource.password"));
+    }
+
     @TempDir
     Path tempDir;
 

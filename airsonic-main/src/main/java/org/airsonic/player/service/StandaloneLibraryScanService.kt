@@ -62,6 +62,11 @@ class StandaloneLibraryScanService(
     private val mediaFileService: MediaFileService,
     private val mediaScannerService: MediaScannerService,
 ) {
+    init {
+        recoverInterruptedScans()
+    }
+
+    @Synchronized
     fun enqueue(libraryId: Long): LibraryScan {
         val musicFolder = libraryId.takeIf { it in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong() }?.toInt()?.let {
             mediaFolderService.getMusicFolderById(it, true, true)
@@ -75,7 +80,9 @@ class StandaloneLibraryScanService(
                 "SELECT 1 FROM library_scan_job WHERE library_id = ? AND state IN ('QUEUED', 'RUNNING')",
             ).use { statement ->
                 statement.setLong(1, libraryId)
-                statement.executeQuery().use { check(!it.next()) { "Library scan is already running" } }
+                statement.executeQuery().use {
+                    if (it.next()) throw IllegalArgumentException("Library scan is already running")
+                }
             }
             connection.prepareStatement(
                 "INSERT INTO library_scan_job (id, library_id, state, tracks_scanned, error_count, started_at) " +
@@ -88,6 +95,18 @@ class StandaloneLibraryScanService(
             }
         }
         return LibraryScan(id, libraryId, "QUEUED", 0, 0, now, null)
+    }
+
+    private fun recoverInterruptedScans() {
+        dataSource.connection.use { connection ->
+            connection.prepareStatement(
+                "UPDATE library_scan_job SET state = 'FAILED', error_count = error_count + 1, finished_at = ? " +
+                    "WHERE state IN ('QUEUED', 'RUNNING')",
+            ).use { statement ->
+                statement.setTimestamp(1, Timestamp.from(Instant.now()))
+                statement.executeUpdate()
+            }
+        }
     }
 
     fun run(scanId: String) {
