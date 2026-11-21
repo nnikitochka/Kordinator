@@ -216,6 +216,31 @@ class KtorCoreMediaCatalogService(
         accessibleLibraryIds,
     )
 
+    fun album(libraryId: Long, name: String, accessibleLibraryIds: Set<Long>? = null): StandaloneAlbum? {
+        val tracks = tracksForAlbum(libraryId, name, accessibleLibraryIds)
+        if (tracks.isEmpty()) return null
+        return StandaloneAlbum(
+            libraryId,
+            name,
+            tracks.first().albumArtist ?: tracks.first().artist,
+            tracks.mapNotNull { it.year }.maxOrNull(),
+            tracks.firstNotNullOfOrNull { it.genre },
+            tracks.size.toLong(),
+            tracks.sumOf { it.durationSeconds.toLong() },
+        )
+    }
+
+    fun artist(libraryId: Long, name: String, accessibleLibraryIds: Set<Long>? = null): StandaloneArtist? {
+        val tracks = tracksForArtist(libraryId, name, accessibleLibraryIds)
+        if (tracks.isEmpty()) return null
+        return StandaloneArtist(
+            libraryId,
+            name,
+            tracks.mapNotNull { it.album?.takeIf(String::isNotBlank) }.distinct().size.toLong(),
+            tracks.size.toLong(),
+        )
+    }
+
     fun albums(libraryId: Long?, limit: Int, offset: Int, accessibleLibraryIds: Set<Long>? = null): List<StandaloneAlbum> {
         val folderId = libraryId?.toCoreFolderId()
         val sql = "SELECT folder_id, album, MAX(COALESCE(NULLIF(TRIM(album_artist), ''), TRIM(artist))) AS album_artist, " +

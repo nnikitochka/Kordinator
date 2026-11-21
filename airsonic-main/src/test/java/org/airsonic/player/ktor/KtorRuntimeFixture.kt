@@ -90,6 +90,9 @@ internal fun mockCoreCatalog(
     sizeBytes: Long,
     scanner: MediaScannerService = Mockito.mock(MediaScannerService::class.java),
     mediaFiles: MediaFileService = Mockito.mock(MediaFileService::class.java),
+    artist: String? = null,
+    album: String? = null,
+    albumArtist: String? = null,
 ): CoreCatalogFixture {
     val folderId = requireNotNull(folder.id)
     val root = MediaFile().apply {
@@ -104,6 +107,9 @@ internal fun mockCoreCatalog(
         this.folderId = folderId
         mediaType = MediaFile.MediaType.MUSIC
         this.title = title
+        this.artist = artist
+        albumName = album
+        this.albumArtist = albumArtist
         fileSize = sizeBytes
         changed = Instant.now()
         setPresent(true)
@@ -115,6 +121,9 @@ internal fun mockCoreCatalog(
         mediaType = MediaFile.MediaType.MUSIC
         format = relativePath.substringAfterLast('.', "")
         this.title = title
+        this.artist = artist
+        albumName = album
+        this.albumArtist = albumArtist
         parentPath = ""
         fileSize = sizeBytes
         duration = 0.0

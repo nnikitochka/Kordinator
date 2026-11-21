@@ -418,11 +418,57 @@ fun Application.standaloneModule(
                             tracks.map { it.toResponse() }, tracks.size, service.count(user.id, accessibleLibraries), limit, offset,
                         ))
                     }
+                    get("/favorites/albums") {
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val service = favoriteService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Favorite storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val (limit, offset) = call.favoritePageParameters() ?: run {
+                            call.respondJson(ApiError("invalid_request", "Limit must be between 1 and 100 and offset non-negative"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val favorites = withContext(scanDispatcher) { service.albums(user.id, user.catalogLibraryScope()) }
+                        call.respondJson(FavoriteAlbumPage(
+                            favorites.drop(offset).take(limit).map { it.toResponse() }, favorites.size, favorites.size.toLong(), limit, offset,
+                        ))
+                    }
+                    get("/favorites/artists") {
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val service = favoriteService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Favorite storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val (limit, offset) = call.favoritePageParameters() ?: run {
+                            call.respondJson(ApiError("invalid_request", "Limit must be between 1 and 100 and offset non-negative"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val favorites = withContext(scanDispatcher) { service.artists(user.id, user.catalogLibraryScope()) }
+                        call.respondJson(FavoriteArtistPage(
+                            favorites.drop(offset).take(limit).map { it.toResponse() }, favorites.size, favorites.size.toLong(), limit, offset,
+                        ))
+                    }
                     put("/tracks/{id}/favorite") {
                         setFavorite(call, favoriteService, true)
                     }
                     delete("/tracks/{id}/favorite") {
                         setFavorite(call, favoriteService, false)
+                    }
+                    put("/albums/{id}/favorite") {
+                        setCatalogFavorite(call, favoriteService, favorite = true, artist = false)
+                    }
+                    delete("/albums/{id}/favorite") {
+                        setCatalogFavorite(call, favoriteService, favorite = false, artist = false)
+                    }
+                    put("/artists/{id}/favorite") {
+                        setCatalogFavorite(call, favoriteService, favorite = true, artist = true)
+                    }
+                    delete("/artists/{id}/favorite") {
+                        setCatalogFavorite(call, favoriteService, favorite = false, artist = true)
                     }
                     get("/playlists") {
                         val user = call.principal<LocalUserPrincipal>()
@@ -1042,6 +1088,8 @@ data class ArtistDetailsResponse(val id: String, val name: String, val tracks: L
 data class AlbumPage(val items: List<AlbumSummaryResponse>, val count: Int, val limit: Int, val offset: Int)
 data class ArtistPage(val items: List<ArtistSummaryResponse>, val count: Int, val limit: Int, val offset: Int)
 data class FavoriteTrackPage(val items: List<TrackResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
+data class FavoriteAlbumPage(val items: List<AlbumSummaryResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
+data class FavoriteArtistPage(val items: List<ArtistSummaryResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
 data class ScanResponse(
     val id: String,
     val libraryId: Long,
@@ -1102,6 +1150,48 @@ private suspend fun setFavorite(call: ApplicationCall, service: StandaloneFavori
     }
     val updated = withContext(scanDispatcher) { service.set(user.id, trackId, favorite, user.catalogLibraryScope()) }
     if (updated) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
+}
+
+private suspend fun setCatalogFavorite(
+    call: ApplicationCall,
+    service: StandaloneFavoriteService?,
+    favorite: Boolean,
+    artist: Boolean,
+) {
+    val user = call.principal<LocalUserPrincipal>()
+        ?: return call.respond(HttpStatusCode.Unauthorized)
+    if (service == null) {
+        call.respondJson(ApiError("unavailable", "Favorite storage is not configured"), HttpStatusCode.ServiceUnavailable)
+        return
+    }
+    val selector = call.parameters["id"]?.decodeCatalogId()
+    if (selector == null || selector.first > Int.MAX_VALUE.toLong()) {
+        call.respondJson(ApiError("invalid_request", "Catalog ID is invalid"), HttpStatusCode.BadRequest)
+        return
+    }
+    val saved = try {
+        withContext(scanDispatcher) {
+            if (artist) service.setArtist(user.id, selector.first, selector.second, favorite, user.catalogLibraryScope())
+            else service.setAlbum(user.id, selector.first, selector.second, favorite, user.catalogLibraryScope())
+        }
+    } catch (failure: IllegalArgumentException) {
+        call.respondJson(ApiError("invalid_request", failure.message ?: "Catalog favorite is invalid"), HttpStatusCode.BadRequest)
+        return
+    }
+    if (!saved) {
+        call.respond(HttpStatusCode.NotFound)
+    } else {
+        call.respond(HttpStatusCode.NoContent)
+    }
+}
+
+private fun ApplicationCall.favoritePageParameters(): Pair<Int, Int>? {
+    val limitValue = request.queryParameters["limit"]
+    val offsetValue = request.queryParameters["offset"]
+    val limit = limitValue?.toIntOrNull() ?: if (limitValue == null) 50 else null
+    val offset = offsetValue?.toIntOrNull() ?: if (offsetValue == null) 0 else null
+    if (limit == null || limit !in 1..100 || offset == null || offset < 0) return null
+    return limit to offset
 }
 data class SavePlaylistRequest(val name: String, val trackIds: List<Long> = emptyList())
 data class PlaylistSummaryResponse(val id: Long, val name: String, val createdAt: String, val updatedAt: String, val trackCount: Int)

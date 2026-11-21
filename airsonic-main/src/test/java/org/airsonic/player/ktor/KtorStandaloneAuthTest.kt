@@ -70,6 +70,18 @@ class KtorStandaloneAuthTest {
                     statement.setLong(1, victimId)
                     statement.executeUpdate()
                 }
+                connection.prepareStatement(
+                    "INSERT INTO favorite_album (user_id, library_id, album_name, created_at) VALUES (?, 77, 'Album', CURRENT_TIMESTAMP)",
+                ).use { statement ->
+                    statement.setLong(1, victimId)
+                    statement.executeUpdate()
+                }
+                connection.prepareStatement(
+                    "INSERT INTO favorite_artist (user_id, library_id, artist_name, created_at) VALUES (?, 77, 'Artist', CURRENT_TIMESTAMP)",
+                ).use { statement ->
+                    statement.setLong(1, victimId)
+                    statement.executeUpdate()
+                }
                 connection.prepareStatement("INSERT INTO local_user_library (user_id, library_id) VALUES (?, 77)").use { statement ->
                     statement.setLong(1, victimId)
                     statement.executeUpdate()
@@ -118,6 +130,8 @@ class KtorStandaloneAuthTest {
                     assertEquals(0L, count("SELECT COUNT(*) FROM user_playlist WHERE owner_id = ?", victimId))
                     assertEquals(0L, count("SELECT COUNT(*) FROM user_playlist_track WHERE playlist_id = ?", playlistId))
                     assertEquals(0L, count("SELECT COUNT(*) FROM favorite_track WHERE user_id = ?", victimId))
+                    assertEquals(0L, count("SELECT COUNT(*) FROM favorite_album WHERE user_id = ?", victimId))
+                    assertEquals(0L, count("SELECT COUNT(*) FROM favorite_artist WHERE user_id = ?", victimId))
                     assertEquals(0L, count("SELECT COUNT(*) FROM local_user_library WHERE user_id = ?", victimId))
                     assertEquals(0L, count("SELECT COUNT(*) FROM user_play_queue WHERE user_id = ?", victimId))
                     assertEquals(0L, count("SELECT COUNT(*) FROM user_play_queue_track WHERE user_id = ?", victimId))

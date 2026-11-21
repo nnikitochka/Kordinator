@@ -287,4 +287,41 @@
                                  constraintName="fk_user_play_queue_track_queue" referencedTableName="user_play_queue"
                                  referencedColumnNames="user_id" onDelete="CASCADE"/>
     </changeSet>
+    <changeSet id="standalone-catalog-favorites-1" author="kordinator">
+        <createTable tableName="favorite_album">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_album"/>
+            </column>
+            <column name="library_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_album"/>
+            </column>
+            <column name="album_name" type="VARCHAR(512)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_album"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="favorite_album" baseColumnNames="user_id"
+                                 constraintName="fk_favorite_album_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+
+        <createTable tableName="favorite_artist">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_artist"/>
+            </column>
+            <column name="library_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_artist"/>
+            </column>
+            <column name="artist_name" type="VARCHAR(512)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_artist"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="favorite_artist" baseColumnNames="user_id"
+                                 constraintName="fk_favorite_artist_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+    </changeSet>
 </databaseChangeLog>

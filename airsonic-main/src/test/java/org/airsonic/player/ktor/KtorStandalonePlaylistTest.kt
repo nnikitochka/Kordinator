@@ -17,6 +17,7 @@ import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandalonePlayQueueService
+import org.airsonic.player.service.StandaloneFavoriteService
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
@@ -54,6 +55,9 @@ class KtorStandalonePlaylistTest {
                     "track.mp3",
                     "track",
                     Files.size(musicRoot.resolve("track.mp3")),
+                    artist = "Track Artist",
+                    album = "Test Album",
+                    albumArtist = "Album Artist",
                 )
                 val scans = StandaloneLibraryScanService(
                     dataSource,
@@ -66,6 +70,7 @@ class KtorStandalonePlaylistTest {
                 scans.run(scan.id)
                 val playlists = StandalonePlaylistService(dataSource, mediaCatalogService)
                 val playQueue = StandalonePlayQueueService(dataSource, mediaCatalogService)
+                val favorites = StandaloneFavoriteService(dataSource, mediaCatalogService)
                 val mapper = jacksonObjectMapper()
 
                 testApplication {
@@ -74,6 +79,7 @@ class KtorStandalonePlaylistTest {
                             authService = auth,
                             libraryScanService = scans,
                             playlistService = playlists,
+                            favoriteService = favorites,
                             mediaFolderService = runtime.mediaFolderService,
                             mediaCatalogService = mediaCatalogService,
                             playQueueService = playQueue,
@@ -82,6 +88,44 @@ class KtorStandalonePlaylistTest {
 
                 val tracksResponse = client.get("/api/v1/tracks") { bearerAuth(ownerToken) }
                 val trackId = mapper.readTree(tracksResponse.bodyAsText()).get("items")[0].get("id").asLong()
+
+                val albums = client.get("/api/v1/albums?libraryId=${library.id}") { bearerAuth(ownerToken) }
+                val album = mapper.readTree(albums.bodyAsText()).get("items")[0]
+                val albumId = album.get("id").asText()
+                assertEquals("Test Album", album.get("name").asText())
+                val artists = client.get("/api/v1/artists?libraryId=${library.id}") { bearerAuth(ownerToken) }
+                val artist = mapper.readTree(artists.bodyAsText()).get("items")[0]
+                val artistId = artist.get("id").asText()
+                assertEquals("Album Artist", artist.get("name").asText())
+
+                assertEquals(204, client.put("/api/v1/albums/$albumId/favorite") { bearerAuth(ownerToken) }.status.value)
+                assertEquals(204, client.put("/api/v1/albums/$albumId/favorite") { bearerAuth(ownerToken) }.status.value)
+                assertEquals(204, client.put("/api/v1/artists/$artistId/favorite") { bearerAuth(ownerToken) }.status.value)
+                val favoriteAlbums = mapper.readTree(client.get("/api/v1/favorites/albums") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText())
+                assertEquals(1, favoriteAlbums.get("total").asInt())
+                assertEquals(albumId, favoriteAlbums.get("items")[0].get("id").asText())
+                val favoriteArtists = mapper.readTree(client.get("/api/v1/favorites/artists") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText())
+                assertEquals(1, favoriteArtists.get("total").asInt())
+                assertEquals(artistId, favoriteArtists.get("items")[0].get("id").asText())
+                assertEquals(0, mapper.readTree(client.get("/api/v1/favorites/albums") {
+                    bearerAuth(otherToken)
+                }.bodyAsText()).get("total").asInt())
+                assertEquals(404, client.put("/api/v1/albums/$albumId/favorite") {
+                    bearerAuth(otherToken)
+                }.status.value)
+                assertEquals(404, client.put("/api/v1/albums/${library.id}.bm9uZXhpc3RlbnQ/favorite") {
+                    bearerAuth(ownerToken)
+                }.status.value)
+                assertEquals(204, client.delete("/api/v1/albums/$albumId/favorite") { bearerAuth(ownerToken) }.status.value)
+                assertEquals(204, client.delete("/api/v1/albums/$albumId/favorite") { bearerAuth(ownerToken) }.status.value)
+                assertEquals(204, client.delete("/api/v1/artists/$artistId/favorite") { bearerAuth(ownerToken) }.status.value)
+                assertEquals(0, mapper.readTree(client.get("/api/v1/favorites/artists") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText()).get("total").asInt())
 
                 val created = client.post("/api/v1/playlists") {
                     bearerAuth(ownerToken)
