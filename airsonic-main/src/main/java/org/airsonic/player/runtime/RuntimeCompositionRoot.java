@@ -1152,7 +1152,7 @@ public final class RuntimeCompositionRoot {
             int scannerParallelism = configuration.getIntProperty("MediaScannerParallelism",
                     Runtime.getRuntime().availableProcessors() + 1);
             DaoGraph daos = persistenceGraph.getDaos();
-            mediaScannerService = new org.airsonic.player.service.MediaScannerService(
+            mediaScannerService = RuntimeScannerFactory.createMediaScannerService(
                     playlistService, settingsService, indexManager, mediaFileService, mediaFolderService,
                     coverArtService, daos.getMediaFileDao(), daos.getArtistDao(), daos.getAlbumDao(),
                     createTaskSchedulingService(), scannerParallelism);
