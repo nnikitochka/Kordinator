@@ -1228,7 +1228,7 @@ public final class RuntimeCompositionRoot {
     public synchronized org.airsonic.player.i18n.LocaleService createLocaleService(
             org.airsonic.player.service.SettingsService settingsService) {
         if (localeService == null) {
-            localeService = new org.airsonic.player.i18n.LocaleService(settingsService);
+            localeService = RuntimeSettingsServiceFactory.createLocaleService(settingsService);
         }
         return localeService;
     }
@@ -1239,7 +1239,7 @@ public final class RuntimeCompositionRoot {
                 throw new IllegalStateException("Persistence graph must be created before SettingsService");
             }
             DaoGraph daos = persistenceGraph.getDaos();
-            settingsService = new org.airsonic.player.service.SettingsService(
+            settingsService = RuntimeSettingsServiceFactory.createSettingsService(
                     daos.getUserDao(), daos.getAvatarDao(), configuration, createCacheManager(),
                     createConfigurationPropertiesService());
             settingsService.init();
@@ -1251,7 +1251,7 @@ public final class RuntimeCompositionRoot {
             createGeneralSettingsAdministrationService(org.airsonic.player.service.SettingsService settingsService,
                     org.airsonic.player.service.PlaylistService playlistService) {
         if (generalSettingsAdministrationService == null) {
-            generalSettingsAdministrationService = new org.airsonic.player.service.GeneralSettingsAdministrationService(
+            generalSettingsAdministrationService = RuntimeSettingsServiceFactory.createGeneralSettingsAdministrationService(
                     settingsService, playlistService);
         }
         return generalSettingsAdministrationService;
@@ -1268,7 +1268,7 @@ public final class RuntimeCompositionRoot {
                     org.airsonic.player.service.PlaylistService playlistService,
                     org.airsonic.player.service.CoverArtService coverArtService) {
         if (musicFolderAdministrationService == null) {
-            musicFolderAdministrationService = new org.airsonic.player.service.MusicFolderAdministrationService(
+            musicFolderAdministrationService = RuntimeSettingsServiceFactory.createMusicFolderAdministrationService(
                     settingsService, mediaScannerService, mediaFolderService, artistDao, albumDao, mediaFileDao,
                     indexManager, playlistService, coverArtService);
         }
@@ -1278,7 +1278,7 @@ public final class RuntimeCompositionRoot {
     public synchronized org.airsonic.player.service.CoverArtAccentColorBackfill createCoverArtAccentColorBackfill(
             org.airsonic.player.service.CoverArtService coverArtService) {
         if (coverArtAccentColorBackfill == null) {
-            coverArtAccentColorBackfill = new org.airsonic.player.service.CoverArtAccentColorBackfill(coverArtService);
+            coverArtAccentColorBackfill = RuntimeSettingsServiceFactory.createCoverArtAccentColorBackfill(coverArtService);
             lifecycleRegistry.registerStartup("coverArtAccentColorBackfill",
                     coverArtAccentColorBackfill::backfillAccentColors);
         }
