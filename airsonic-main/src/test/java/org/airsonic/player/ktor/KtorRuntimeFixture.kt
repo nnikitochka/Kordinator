@@ -93,6 +93,7 @@ internal fun mockCoreCatalog(
     artist: String? = null,
     album: String? = null,
     albumArtist: String? = null,
+    genre: String? = null,
 ): CoreCatalogFixture {
     val folderId = requireNotNull(folder.id)
     val root = MediaFile().apply {
@@ -110,6 +111,7 @@ internal fun mockCoreCatalog(
         this.artist = artist
         albumName = album
         this.albumArtist = albumArtist
+        this.genre = genre
         fileSize = sizeBytes
         changed = Instant.now()
         setPresent(true)
@@ -124,6 +126,7 @@ internal fun mockCoreCatalog(
         this.artist = artist
         albumName = album
         this.albumArtist = albumArtist
+        this.genre = genre
         parentPath = ""
         fileSize = sizeBytes
         duration = 0.0

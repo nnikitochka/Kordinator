@@ -67,6 +67,7 @@ class KtorStandalonePlaylistTest {
                     artist = "Track Artist",
                     album = "Test Album",
                     albumArtist = "Album Artist",
+                    genre = "Rock",
                 )
                 val scans = StandaloneLibraryScanService(
                     dataSource,
@@ -124,6 +125,12 @@ class KtorStandalonePlaylistTest {
                 assertEquals(400, client.get("/api/v1/tracks/random?fromYear=bad") {
                     bearerAuth(ownerToken)
                 }.status.value)
+
+                val rockTracks = mapper.readTree(client.get("/api/v1/tracks?genre=Rock") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText())
+                assertEquals(1, rockTracks.get("total").asInt())
+                assertEquals(trackId, rockTracks.get("items")[0].get("id").asLong())
 
                 assertEquals(204, client.put("/api/v1/tracks/$trackId/rating") {
                     bearerAuth(ownerToken)

@@ -12,14 +12,22 @@ class KtorCoreMediaCatalogService(
         dropLegacyTrackProjection()
     }
 
-    fun tracks(libraryId: Long?, query: String?, limit: Int, offset: Int, accessibleLibraryIds: Set<Long>? = null): List<StandaloneTrack> {
+    fun tracks(
+        libraryId: Long?,
+        query: String?,
+        limit: Int,
+        offset: Int,
+        accessibleLibraryIds: Set<Long>? = null,
+        genre: String? = null,
+    ): List<StandaloneTrack> {
         val safeLimit = limit.coerceIn(1, 200)
         val safeOffset = offset.coerceAtLeast(0)
         val folderId = libraryId?.toCoreFolderId()
         val pattern = query?.trim()?.takeIf(String::isNotEmpty)?.lowercase()?.let { "%$it%" }
         val sql = "SELECT $TRACK_COLUMNS FROM media_file WHERE present AND type IN ('MUSIC', 'AUDIOBOOK') " +
             "AND (? IS NULL OR folder_id = ?) AND (? IS NULL OR LOWER(COALESCE(title, '')) LIKE ? " +
-            "OR LOWER(COALESCE(artist, '')) LIKE ? OR LOWER(COALESCE(album, '')) LIKE ?)" +
+            "OR LOWER(COALESCE(artist, '')) LIKE ? OR LOWER(COALESCE(album, '')) LIKE ?) " +
+            "AND (? IS NULL OR genre = ?)" +
             libraryScope(accessibleLibraryIds) + " " +
             "ORDER BY LOWER(COALESCE(artist, '')), LOWER(COALESCE(album, '')), LOWER(COALESCE(title, '')), id " +
             "LIMIT ? OFFSET ?"
@@ -31,7 +39,9 @@ class KtorCoreMediaCatalogService(
                 statement.setString(4, pattern)
                 statement.setString(5, pattern)
                 statement.setString(6, pattern)
-                val nextParameter = bindLibraryScope(statement, 7, accessibleLibraryIds)
+                statement.setString(7, genre)
+                statement.setString(8, genre)
+                val nextParameter = bindLibraryScope(statement, 9, accessibleLibraryIds)
                 statement.setInt(nextParameter, safeLimit)
                 statement.setInt(nextParameter + 1, safeOffset)
                 statement.executeQuery().use { result -> buildList { while (result.next()) add(result.toCoreTrack()) } }
@@ -40,12 +50,18 @@ class KtorCoreMediaCatalogService(
         return rows.map { it.toStandalone(it.coreId) }
     }
 
-    fun countTracks(libraryId: Long?, query: String?, accessibleLibraryIds: Set<Long>? = null): Long {
+    fun countTracks(
+        libraryId: Long?,
+        query: String?,
+        accessibleLibraryIds: Set<Long>? = null,
+        genre: String? = null,
+    ): Long {
         val folderId = libraryId?.toCoreFolderId()
         val pattern = query?.trim()?.takeIf(String::isNotEmpty)?.lowercase()?.let { "%$it%" }
         val sql = "SELECT COUNT(*) FROM media_file WHERE present AND type IN ('MUSIC', 'AUDIOBOOK') " +
             "AND (? IS NULL OR folder_id = ?) AND (? IS NULL OR LOWER(COALESCE(title, '')) LIKE ? " +
-            "OR LOWER(COALESCE(artist, '')) LIKE ? OR LOWER(COALESCE(album, '')) LIKE ?)" +
+            "OR LOWER(COALESCE(artist, '')) LIKE ? OR LOWER(COALESCE(album, '')) LIKE ?) " +
+            "AND (? IS NULL OR genre = ?)" +
             libraryScope(accessibleLibraryIds)
         return coreDataSource.connection.use { connection ->
             connection.prepareStatement(sql).use { statement ->
@@ -55,7 +71,9 @@ class KtorCoreMediaCatalogService(
                 statement.setString(4, pattern)
                 statement.setString(5, pattern)
                 statement.setString(6, pattern)
-                bindLibraryScope(statement, 7, accessibleLibraryIds)
+                statement.setString(7, genre)
+                statement.setString(8, genre)
+                bindLibraryScope(statement, 9, accessibleLibraryIds)
                 statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
             }
         }

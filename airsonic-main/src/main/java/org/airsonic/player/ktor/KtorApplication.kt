@@ -300,14 +300,15 @@ fun Application.standaloneModule(
                     val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 50
                     val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
                     val query = call.request.queryParameters["q"]
+                    val genre = call.request.queryParameters["genre"]
                     val accessibleLibraries = call.catalogLibraryScope()
                     if (libraryId != null && accessibleLibraries?.contains(libraryId) == false) {
                         call.respond(HttpStatusCode.NotFound)
                         return@get
                     }
                     val (requestedTracks, total) = withContext(scanDispatcher) {
-                        mediaCatalogService.tracks(libraryId, query, limit, offset, accessibleLibraries) to
-                            mediaCatalogService.countTracks(libraryId, query, accessibleLibraries)
+                        mediaCatalogService.tracks(libraryId, query, limit, offset, accessibleLibraries, genre) to
+                            mediaCatalogService.countTracks(libraryId, query, accessibleLibraries, genre)
                     }
                     val tracks = requestedTracks.map {
                         TrackResponse(
