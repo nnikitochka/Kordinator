@@ -1070,7 +1070,7 @@ public final class RuntimeCompositionRoot {
 
     public synchronized DataSource createDataSource() {
         if (dataSource == null) {
-            ownDataSource(RuntimeDataSourceFactory.INSTANCE.create(configuration));
+            ownDataSource(RuntimePersistenceFactory.createDataSource(configuration));
         }
         return dataSource;
     }
@@ -1096,7 +1096,7 @@ public final class RuntimeCompositionRoot {
         if (liquibaseMigrated) {
             return;
         }
-        org.airsonic.player.runtime.RuntimeLiquibaseMigrator.INSTANCE.update(configuration, createDataSource());
+        RuntimePersistenceFactory.migrateDatabase(configuration, createDataSource());
         liquibaseMigrated = true;
     }
 
@@ -1428,18 +1428,13 @@ public final class RuntimeCompositionRoot {
             return persistenceGraph;
         }
 
-        JdbcFactory jdbcFactory = new JdbcFactory();
-        org.airsonic.player.dao.TransactionManager transactionManager =
-                jdbcFactory.transactionManager(dataSource);
-        org.airsonic.player.dao.JdbcHelper jdbcHelper = jdbcFactory.jdbcHelper(dataSource, transactionManager);
-        DaoGraph daoGraph = new DaoFactory().create(jdbcHelper, transactionManager);
-        persistenceGraph = new PersistenceGraph(dataSource, transactionManager, jdbcHelper, daoGraph);
+        persistenceGraph = RuntimePersistenceFactory.createPersistenceGraph(dataSource);
         return persistenceGraph;
     }
 
     public synchronized javax.cache.CacheManager createCacheManager() {
         if (cacheManager == null) {
-            cacheManager = new CacheFactory().createCacheManager();
+            cacheManager = RuntimePersistenceFactory.createCacheManager();
             lifecycleRegistry.registerShutdown("cacheManager", cacheManager::close);
         }
         return cacheManager;
