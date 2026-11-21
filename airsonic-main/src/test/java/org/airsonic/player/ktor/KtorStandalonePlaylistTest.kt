@@ -18,6 +18,7 @@ import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandalonePlayQueueService
 import org.airsonic.player.service.StandaloneFavoriteService
+import org.airsonic.player.service.StandaloneBookmarkService
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
@@ -71,6 +72,7 @@ class KtorStandalonePlaylistTest {
                 val playlists = StandalonePlaylistService(dataSource, mediaCatalogService)
                 val playQueue = StandalonePlayQueueService(dataSource, mediaCatalogService)
                 val favorites = StandaloneFavoriteService(dataSource, mediaCatalogService)
+                val bookmarks = StandaloneBookmarkService(dataSource, mediaCatalogService)
                 val mapper = jacksonObjectMapper()
 
                 testApplication {
@@ -83,11 +85,38 @@ class KtorStandalonePlaylistTest {
                             mediaFolderService = runtime.mediaFolderService,
                             mediaCatalogService = mediaCatalogService,
                             playQueueService = playQueue,
+                            bookmarkService = bookmarks,
                         )
                     }
 
                 val tracksResponse = client.get("/api/v1/tracks") { bearerAuth(ownerToken) }
                 val trackId = mapper.readTree(tracksResponse.bodyAsText()).get("items")[0].get("id").asLong()
+
+                assertEquals(204, client.put("/api/v1/tracks/$trackId/bookmark") {
+                    bearerAuth(ownerToken)
+                    header(io.ktor.http.HttpHeaders.ContentType, "application/json")
+                    setBody("""{"positionMillis":42000,"comment":"resume here"}""")
+                }.status.value)
+                val savedBookmark = mapper.readTree(client.get("/api/v1/me/bookmarks") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText())
+                assertEquals(1, savedBookmark.get("count").asInt())
+                assertEquals(42000, savedBookmark.get("items")[0].get("positionMillis").asLong())
+                assertEquals("resume here", savedBookmark.get("items")[0].get("comment").asText())
+                assertEquals(0, mapper.readTree(client.get("/api/v1/me/bookmarks") {
+                    bearerAuth(otherToken)
+                }.bodyAsText()).get("count").asInt())
+                assertEquals(400, client.put("/api/v1/tracks/$trackId/bookmark") {
+                    bearerAuth(ownerToken)
+                    header(io.ktor.http.HttpHeaders.ContentType, "application/json")
+                    setBody("""{"positionMillis":-1}""")
+                }.status.value)
+                assertEquals(204, client.delete("/api/v1/tracks/$trackId/bookmark") {
+                    bearerAuth(ownerToken)
+                }.status.value)
+                assertEquals(404, client.delete("/api/v1/tracks/$trackId/bookmark") {
+                    bearerAuth(ownerToken)
+                }.status.value)
 
                 val albums = client.get("/api/v1/albums?libraryId=${library.id}") { bearerAuth(ownerToken) }
                 val album = mapper.readTree(albums.bodyAsText()).get("items")[0]

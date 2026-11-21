@@ -324,4 +324,31 @@
                                  constraintName="fk_favorite_artist_user" referencedTableName="local_user"
                                  referencedColumnNames="id" onDelete="CASCADE"/>
     </changeSet>
+    <changeSet id="standalone-track-bookmarks-1" author="kordinator">
+        <createTable tableName="track_bookmark">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_track_bookmark"/>
+            </column>
+            <column name="track_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_track_bookmark"/>
+            </column>
+            <column name="position_ms" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="comment" type="VARCHAR(1024)"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="track_bookmark" baseColumnNames="user_id"
+                                 constraintName="fk_track_bookmark_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="track_bookmark" indexName="ix_track_bookmark_user_updated">
+            <column name="user_id"/>
+            <column name="updated_at"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>

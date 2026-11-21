@@ -50,6 +50,7 @@ import org.airsonic.player.service.StandaloneAlbum
 import org.airsonic.player.service.StandaloneArtist
 import org.airsonic.player.service.StandaloneTrack
 import org.airsonic.player.service.StandaloneFavoriteService
+import org.airsonic.player.service.StandaloneBookmarkService
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.domain.MusicFolder
@@ -80,6 +81,7 @@ fun Application.standaloneModule(
     mediaFolderService: MediaFolderService? = null,
     mediaCatalogService: KtorCoreMediaCatalogService? = null,
     playQueueService: StandalonePlayQueueService? = null,
+    bookmarkService: StandaloneBookmarkService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -625,6 +627,67 @@ fun Application.standaloneModule(
                         withContext(authDispatcher) { service.clear(user.id) }
                         call.respond(HttpStatusCode.NoContent)
                     }
+                    get("/me/bookmarks") {
+                        val service = bookmarkService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Bookmark storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val items = withContext(scanDispatcher) { service.list(user.id, user.catalogLibraryScope()) }
+                        call.respondJson(BookmarkPage(items.map { bookmark ->
+                            BookmarkResponse(
+                                bookmark.track.toResponse(), bookmark.positionMillis, bookmark.comment,
+                                bookmark.createdAt.toString(), bookmark.updatedAt.toString(),
+                            )
+                        }, items.size))
+                    }
+                    put("/tracks/{id}/bookmark") {
+                        val service = bookmarkService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Bookmark storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@put
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        val trackId = call.parameters["id"]?.toLongOrNull()
+                        if (trackId == null || trackId < 0) {
+                            call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), SetBookmarkRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected non-negative positionMillis and optional comment"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val saved = try {
+                            withContext(scanDispatcher) {
+                                service.set(user.id, trackId, request.positionMillis, request.comment, user.catalogLibraryScope())
+                            }
+                        } catch (failure: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_request", failure.message ?: "Bookmark is invalid"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        if (saved) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
+                    }
+                    delete("/tracks/{id}/bookmark") {
+                        val service = bookmarkService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Bookmark storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@delete
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                        val trackId = call.parameters["id"]?.toLongOrNull()
+                        if (trackId == null || trackId < 0) {
+                            call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@delete
+                        }
+                        val deleted = withContext(authDispatcher) { service.delete(user.id, trackId) }
+                        if (deleted) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
+                    }
                     put("/me/password") {
                         val user = call.principal<LocalUserPrincipal>()
                             ?: return@put call.respond(HttpStatusCode.Unauthorized)
@@ -1041,6 +1104,15 @@ data class PlayQueueResponse(
     val tracks: List<PlayQueueTrackResponse>,
 )
 data class PlayQueueTrackResponse(val id: Long, val title: String, val artist: String?, val album: String?, val durationSeconds: Int)
+data class BookmarkPage(val items: List<BookmarkResponse>, val count: Int)
+data class BookmarkResponse(
+    val track: TrackResponse,
+    val positionMillis: Long,
+    val comment: String?,
+    val createdAt: String,
+    val updatedAt: String,
+)
+data class SetBookmarkRequest(val positionMillis: Long, val comment: String? = null)
 data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
 data class RenameUserRequest(val username: String)
 data class SetUserEnabledRequest(val enabled: Boolean)
@@ -1319,6 +1391,7 @@ fun main(args: Array<String>) {
     val playlistService = StandalonePlaylistService(standaloneDatabase.dataSource, mediaCatalogService)
     val favoriteService = StandaloneFavoriteService(standaloneDatabase.dataSource, mediaCatalogService)
     val playQueueService = StandalonePlayQueueService(standaloneDatabase.dataSource, mediaCatalogService)
+    val bookmarkService = StandaloneBookmarkService(standaloneDatabase.dataSource, mediaCatalogService)
     val securityService = runtime.createSecurityService(
         legacyGraph.userDao,
         settingsService,
@@ -1361,6 +1434,7 @@ fun main(args: Array<String>) {
             mediaFolderService,
             mediaCatalogService,
             playQueueService,
+            bookmarkService,
         )
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })
