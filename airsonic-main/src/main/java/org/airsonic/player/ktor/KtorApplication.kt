@@ -600,8 +600,8 @@ fun Application.standaloneModule(
                             return@put
                         }
                         val targetId = call.parameters["id"]?.toLongOrNull()
-                        if (targetId == null || targetId <= 0) {
-                            call.respondJson(ApiError("invalid_request", "User ID must be a positive number"), HttpStatusCode.BadRequest)
+                        if (targetId == null || targetId < 0) {
+                            call.respondJson(ApiError("invalid_request", "User ID must be a non-negative number"), HttpStatusCode.BadRequest)
                             return@put
                         }
                         val request = try {
@@ -623,6 +623,31 @@ fun Application.standaloneModule(
                             } else {
                                 throw failure
                             }
+                        }
+                    }
+                    delete("/admin/users/{id}") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@delete
+                        }
+                        val targetId = call.parameters["id"]?.toLongOrNull()
+                        if (targetId == null || targetId < 0) {
+                            call.respondJson(ApiError("invalid_request", "User ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@delete
+                        }
+                        if (targetId == actor.id) {
+                            call.respondJson(ApiError("invalid_operation", "Cannot delete the current administrator account"), HttpStatusCode.Conflict)
+                            return@delete
+                        }
+                        try {
+                            val deleted = withContext(authDispatcher) { authService.deleteUser(targetId) }
+                            if (deleted) call.respond(HttpStatusCode.NoContent) else {
+                                call.respondJson(ApiError("user_not_found", "User does not exist"), HttpStatusCode.NotFound)
+                            }
+                        } catch (_: LastEnabledAdministratorException) {
+                            call.respondJson(ApiError("last_administrator", "At least one enabled administrator must remain"), HttpStatusCode.Conflict)
                         }
                     }
                     put("/admin/users/{id}/role") {

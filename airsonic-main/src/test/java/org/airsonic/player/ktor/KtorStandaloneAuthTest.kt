@@ -3,6 +3,7 @@ package org.airsonic.player.ktor
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.put
@@ -25,6 +26,98 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class KtorStandaloneAuthTest {
+    @Test
+    fun deletingUserRemovesOwnedDataAndRevokesSessions() {
+        val dataSource = HikariDataSource(HikariConfig().apply {
+            jdbcUrl = "jdbc:hsqldb:mem:standalone_user_delete"
+            driverClassName = "org.hsqldb.jdbc.JDBCDriver"
+            username = "sa"
+            password = ""
+            maximumPoolSize = 2
+        })
+
+        dataSource.use {
+            StandaloneDatabase.migrate(dataSource)
+            val auth = LocalAuthService(dataSource)
+            val adminId = auth.createInitialAdmin("admin", "a strong password for tests")
+            val victimId = auth.createUser("listener", "listener password for tests")
+            val otherId = auth.createUser("another", "another strong password for tests")
+            val victimSession = auth.login("listener", "listener password for tests")!!
+            val otherSession = auth.login("another", "another strong password for tests")!!
+            val adminToken = auth.login("admin", "a strong password for tests")!!.token
+
+            val playlistId = dataSource.connection.use { connection ->
+                connection.prepareStatement(
+                    "INSERT INTO user_playlist (owner_id, name, created_at, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                    arrayOf("id"),
+                ).use { statement ->
+                    statement.setLong(1, victimId)
+                    statement.setString(2, "Victim playlist")
+                    statement.executeUpdate()
+                    statement.generatedKeys.use { keys -> keys.next(); keys.getLong(1) }
+                }
+            }
+            dataSource.connection.use { connection ->
+                connection.prepareStatement(
+                    "INSERT INTO user_playlist_track (playlist_id, position, track_id) VALUES (?, 0, 12345)",
+                ).use { statement ->
+                    statement.setLong(1, playlistId)
+                    statement.executeUpdate()
+                }
+                connection.prepareStatement(
+                    "INSERT INTO favorite_track (user_id, track_id, created_at) VALUES (?, 12345, CURRENT_TIMESTAMP)",
+                ).use { statement ->
+                    statement.setLong(1, victimId)
+                    statement.executeUpdate()
+                }
+                connection.prepareStatement("INSERT INTO local_user_library (user_id, library_id) VALUES (?, 77)").use { statement ->
+                    statement.setLong(1, victimId)
+                    statement.executeUpdate()
+                }
+            }
+
+            testApplication {
+                application { standaloneModule(auth) }
+
+                assertEquals(HttpStatusCode.Forbidden, client.delete("/api/v1/admin/users/$victimId") {
+                    bearerAuth(victimSession.token)
+                }.status)
+                assertEquals(HttpStatusCode.Conflict, client.delete("/api/v1/admin/users/$adminId") {
+                    bearerAuth(adminToken)
+                }.status)
+                assertEquals(HttpStatusCode.NotFound, client.delete("/api/v1/admin/users/999999") {
+                    bearerAuth(adminToken)
+                }.status)
+
+                val deleted = client.delete("/api/v1/admin/users/$victimId") { bearerAuth(adminToken) }
+                assertEquals(HttpStatusCode.NoContent, deleted.status)
+                assertEquals(HttpStatusCode.Unauthorized, client.get("/api/v1/me") { bearerAuth(victimSession.token) }.status)
+                assertEquals(HttpStatusCode.Unauthorized, client.post("/api/v1/auth/login") {
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"listener","password":"listener password for tests"}""")
+                }.status)
+                assertEquals(HttpStatusCode.OK, client.get("/api/v1/me") { bearerAuth(otherSession.token) }.status)
+
+                dataSource.connection.use { connection ->
+                    fun count(sql: String, id: Long): Long = connection.prepareStatement(sql).use { statement ->
+                        statement.setLong(1, id)
+                        statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
+                    }
+                    assertEquals(0L, count("SELECT COUNT(*) FROM local_user WHERE id = ?", victimId))
+                    assertEquals(0L, count("SELECT COUNT(*) FROM user_session WHERE user_id = ?", victimId))
+                    assertEquals(0L, count("SELECT COUNT(*) FROM user_playlist WHERE owner_id = ?", victimId))
+                    assertEquals(0L, count("SELECT COUNT(*) FROM user_playlist_track WHERE playlist_id = ?", playlistId))
+                    assertEquals(0L, count("SELECT COUNT(*) FROM favorite_track WHERE user_id = ?", victimId))
+                    assertEquals(0L, count("SELECT COUNT(*) FROM local_user_library WHERE user_id = ?", victimId))
+                    assertEquals(1L, count("SELECT COUNT(*) FROM local_user WHERE id = ?", otherId))
+                }
+            }
+
+            assertFailsWith<LastEnabledAdministratorException> { auth.deleteUser(adminId) }
+            assertEquals("ADMIN", auth.users().single { it.id == adminId }.role)
+        }
+    }
+
     @Test
     fun administratorsCanRenameUsersWithoutRevokingTheirSessions() {
         val dataSource = HikariDataSource(HikariConfig().apply {

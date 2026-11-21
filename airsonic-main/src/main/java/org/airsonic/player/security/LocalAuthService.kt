@@ -19,7 +19,7 @@ data class LocalUserPrincipal(
 )
 data class LocalUserAccount(val id: Long, val username: String, val role: String, val enabled: Boolean)
 data class LocalSessionToken(val token: String, val expiresAt: Instant)
-class LastEnabledAdministratorException : IllegalStateException("Cannot demote the last enabled administrator")
+class LastEnabledAdministratorException : IllegalStateException("At least one enabled administrator must remain")
 
 /** Owns local password authentication and opaque, revocable bearer sessions. */
 class LocalAuthService(
@@ -161,6 +161,49 @@ class LocalAuthService(
                 statement.setString(1, username)
                 statement.setLong(2, userId)
                 statement.executeUpdate() == 1
+            }
+        }
+    }
+
+    /** Deletes an account and all account-owned rows covered by database cascades. */
+    fun deleteUser(userId: Long): Boolean {
+        dataSource.connection.use { connection ->
+            val previousAutoCommit = connection.autoCommit
+            val previousIsolation = connection.transactionIsolation
+            connection.transactionIsolation = java.sql.Connection.TRANSACTION_SERIALIZABLE
+            connection.autoCommit = false
+            try {
+                val user = connection.prepareStatement("SELECT role, enabled FROM local_user WHERE id = ?").use { statement ->
+                    statement.setLong(1, userId)
+                    statement.executeQuery().use { rows ->
+                        if (rows.next()) rows.getString("role") to rows.getBoolean("enabled") else null
+                    }
+                }
+                if (user == null) {
+                    connection.rollback()
+                    return false
+                }
+                if (user.first == "ADMIN" && user.second) {
+                    val otherEnabledAdmins = connection.prepareStatement(
+                        "SELECT COUNT(*) FROM local_user WHERE role = 'ADMIN' AND enabled = TRUE AND id <> ?",
+                    ).use { statement ->
+                        statement.setLong(1, userId)
+                        statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
+                    }
+                    if (otherEnabledAdmins == 0L) throw LastEnabledAdministratorException()
+                }
+                connection.prepareStatement("DELETE FROM local_user WHERE id = ?").use { statement ->
+                    statement.setLong(1, userId)
+                    check(statement.executeUpdate() == 1) { "Account disappeared during deletion" }
+                }
+                connection.commit()
+                return true
+            } catch (failure: Throwable) {
+                connection.rollback()
+                throw failure
+            } finally {
+                connection.autoCommit = previousAutoCommit
+                connection.transactionIsolation = previousIsolation
             }
         }
     }
