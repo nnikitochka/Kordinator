@@ -19,6 +19,11 @@ import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandalonePlayQueueService
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.StandaloneBookmarkService
+import org.airsonic.player.service.StandaloneRatingService
+import org.airsonic.player.service.StandaloneScrobbleService
+import org.airsonic.player.service.StatusService
+import org.airsonic.player.service.AudioScrobblerService
+import org.mockito.Mockito
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
@@ -73,6 +78,10 @@ class KtorStandalonePlaylistTest {
                 val playQueue = StandalonePlayQueueService(dataSource, mediaCatalogService)
                 val favorites = StandaloneFavoriteService(dataSource, mediaCatalogService)
                 val bookmarks = StandaloneBookmarkService(dataSource, mediaCatalogService)
+                val ratings = StandaloneRatingService(dataSource, mediaCatalogService)
+                val statusService = Mockito.mock(StatusService::class.java)
+                val scrobblerService = Mockito.mock(AudioScrobblerService::class.java)
+                val scrobbleService = StandaloneScrobbleService(coreCatalog.mediaFileService, statusService, scrobblerService)
                 val mapper = jacksonObjectMapper()
 
                 testApplication {
@@ -86,11 +95,54 @@ class KtorStandalonePlaylistTest {
                             mediaCatalogService = mediaCatalogService,
                             playQueueService = playQueue,
                             bookmarkService = bookmarks,
+                            ratingService = ratings,
+                            scrobbleService = scrobbleService,
                         )
                     }
 
                 val tracksResponse = client.get("/api/v1/tracks") { bearerAuth(ownerToken) }
                 val trackId = mapper.readTree(tracksResponse.bodyAsText()).get("items")[0].get("id").asLong()
+
+                assertEquals(204, client.put("/api/v1/tracks/$trackId/rating") {
+                    bearerAuth(ownerToken)
+                    header(io.ktor.http.HttpHeaders.ContentType, "application/json")
+                    setBody("""{"rating":4}""")
+                }.status.value)
+                val ratingRows = dataSource.connection.use { connection ->
+                    connection.prepareStatement("SELECT user_id, rating FROM track_rating WHERE track_id = ?").use { statement ->
+                        statement.setLong(1, trackId)
+                        statement.executeQuery().use { rows -> buildList { while (rows.next()) add(rows.getLong(1) to rows.getInt(2)) } }
+                    }
+                }
+                assertEquals(1, ratingRows.size)
+                assertEquals(4, ratingRows.single().second)
+                assertEquals(400, client.put("/api/v1/tracks/$trackId/rating") {
+                    bearerAuth(ownerToken)
+                    header(io.ktor.http.HttpHeaders.ContentType, "application/json")
+                    setBody("""{"rating":6}""")
+                }.status.value)
+                assertEquals(204, client.put("/api/v1/tracks/$trackId/rating") {
+                    bearerAuth(ownerToken)
+                    header(io.ktor.http.HttpHeaders.ContentType, "application/json")
+                    setBody("""{"rating":0}""")
+                }.status.value)
+                assertEquals(0, dataSource.connection.use { connection ->
+                    connection.prepareStatement("SELECT COUNT(*) FROM track_rating WHERE user_id = ? AND track_id = ?").use { statement ->
+                        statement.setLong(1, auth.authenticate(ownerToken)!!.id)
+                        statement.setLong(2, trackId)
+                        statement.executeQuery().use { rows -> rows.next(); rows.getInt(1) }
+                    }
+                })
+
+                val coreFile = runtime.runtime.createPersistenceGraph().daos.mediaFileDao.getMediaFile(trackId.toInt())
+                Mockito.`when`(coreCatalog.mediaFileService.getMediaFile(trackId.toInt())).thenReturn(coreFile)
+                assertEquals(204, client.post("/api/v1/tracks/$trackId/scrobble") {
+                    bearerAuth(ownerToken)
+                    header(io.ktor.http.HttpHeaders.ContentType, "application/json")
+                    setBody("{}")
+                }.status.value)
+                Mockito.verify(coreCatalog.mediaFileService).incrementPlayCount(coreFile)
+                Mockito.verify(scrobblerService).register(coreFile, "owner", true, null)
 
                 assertEquals(204, client.put("/api/v1/tracks/$trackId/bookmark") {
                     bearerAuth(ownerToken)

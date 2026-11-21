@@ -351,4 +351,23 @@
             <column name="updated_at"/>
         </createIndex>
     </changeSet>
+    <changeSet id="standalone-track-ratings-1" author="kordinator">
+        <createTable tableName="track_rating">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_track_rating"/>
+            </column>
+            <column name="track_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_track_rating"/>
+            </column>
+            <column name="rating" type="INT">
+                <constraints nullable="false" checkConstraint="rating BETWEEN 1 AND 5"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="track_rating" baseColumnNames="user_id"
+                                 constraintName="fk_track_rating_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+    </changeSet>
 </databaseChangeLog>
