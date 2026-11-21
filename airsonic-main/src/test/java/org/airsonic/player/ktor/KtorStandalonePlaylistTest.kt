@@ -25,6 +25,7 @@ import org.airsonic.player.service.StatusService
 import org.airsonic.player.service.AudioScrobblerService
 import org.airsonic.player.service.LyricsService
 import org.airsonic.player.service.SearchService
+import org.airsonic.player.service.LastFmService
 import org.airsonic.player.domain.RandomSearchCriteria
 import org.mockito.Mockito
 import org.junit.jupiter.api.io.TempDir
@@ -90,10 +91,12 @@ class KtorStandalonePlaylistTest {
                     <GetLyricResult><Lyric>Test lyrics</Lyric><LyricArtist>Test Artist</LyricArtist><LyricSong>Test Song</LyricSong></GetLyricResult>
                 """ }
                 val randomSearch = Mockito.mock(SearchService::class.java)
+                val topSongs = Mockito.mock(LastFmService::class.java)
                 val coreTrackId = mediaCatalogService.tracks(null, null, 10, 0, null).single().id
                 val coreFile = runtime.runtime.createPersistenceGraph().daos.mediaFileDao.getMediaFile(coreTrackId.toInt())
                 Mockito.`when`(coreCatalog.mediaFileService.getMediaFile(coreTrackId.toInt())).thenReturn(coreFile)
                 Mockito.`when`(randomSearch.getRandomSongs(Mockito.any(RandomSearchCriteria::class.java))).thenReturn(listOf(coreFile))
+                Mockito.`when`(topSongs.getTopSongs(Mockito.anyString(), Mockito.anyInt(), Mockito.anyList())).thenReturn(listOf(coreFile))
                 val mapper = jacksonObjectMapper()
 
                 testApplication {
@@ -111,6 +114,7 @@ class KtorStandalonePlaylistTest {
                             scrobbleService = scrobbleService,
                             lyricsService = lyrics,
                             randomSearchService = randomSearch,
+                            topSongsService = topSongs,
                         )
                     }
 
@@ -219,6 +223,11 @@ class KtorStandalonePlaylistTest {
                 val artist = mapper.readTree(artists.bodyAsText()).get("items")[0]
                 val artistId = artist.get("id").asText()
                 assertEquals("Album Artist", artist.get("name").asText())
+                val topTracks = mapper.readTree(client.get("/api/v1/artists/$artistId/top-tracks?count=1") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText())
+                assertEquals(1, topTracks.get("count").asInt())
+                assertEquals(trackId, topTracks.get("items")[0].get("id").asLong())
 
                 assertEquals(204, client.put("/api/v1/albums/$albumId/favorite") { bearerAuth(ownerToken) }.status.value)
                 assertEquals(204, client.put("/api/v1/albums/$albumId/favorite") { bearerAuth(ownerToken) }.status.value)

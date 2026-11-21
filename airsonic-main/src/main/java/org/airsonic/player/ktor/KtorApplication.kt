@@ -55,6 +55,7 @@ import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
 import org.airsonic.player.service.LyricsService
 import org.airsonic.player.service.SearchService
+import org.airsonic.player.service.LastFmService
 import org.airsonic.player.domain.RandomSearchCriteria
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.KtorCoreMediaCatalogService
@@ -92,6 +93,7 @@ fun Application.standaloneModule(
     lyricsService: LyricsService? = null,
     randomSearchService: SearchService? = null,
     genreSeparators: String = ";",
+    topSongsService: LastFmService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -286,6 +288,42 @@ fun Application.standaloneModule(
                         call.respondJson(ArtistDetailsResponse(
                             catalogId(selector.first, selector.second), selector.second, tracks.map { it.toResponse() },
                         ))
+                    }
+                    get("/artists/{id}/top-tracks") {
+                        val service = topSongsService
+                        val folders = mediaFolderService
+                        val catalog = mediaCatalogService
+                        if (service == null || folders == null || catalog == null) {
+                            call.respondJson(ApiError("unavailable", "Top track lookup is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val artist = call.parameters["id"]?.decodeCatalogId()
+                        if (artist == null || user.catalogLibraryScope()?.contains(artist.first) == false) {
+                            call.respond(HttpStatusCode.NotFound)
+                            return@get
+                        }
+                        val requestedCount = call.request.queryParameters["count"]
+                        val count = requestedCount?.toIntOrNull() ?: if (requestedCount == null) 50 else null
+                        if (count == null || count !in 0..500) {
+                            call.respondJson(ApiError("invalid_request", "count must be between 0 and 500"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val scope = user.catalogLibraryScope()
+                        val allowedFolders = withContext(authDispatcher) {
+                            folders.getAllMusicFolders(false, false).filter { folder ->
+                                val id = folder.id?.toLong()
+                                id != null && (scope == null || id in scope)
+                            }
+                        }
+                        val recommendations = withContext(scanDispatcher) {
+                            service.getTopSongs(artist.second, count, allowedFolders)
+                        }
+                        val tracks = withContext(scanDispatcher) {
+                            catalog.tracksByCoreIds(recommendations.map { it.id.toLong() }, scope)
+                        }
+                        call.respondJson(TopTrackPage(artist.second, tracks.map { it.toResponse() }, tracks.size))
                     }
                     get("/genres") {
                         val catalog = mediaCatalogService
@@ -1268,6 +1306,7 @@ data class LyricsResponse(val artist: String?, val title: String?, val lyrics: S
 data class RandomTrackResponse(val items: List<TrackResponse>, val count: Int)
 data class GenreListResponse(val items: List<GenreResponse>, val count: Int)
 data class GenreResponse(val name: String, val trackCount: Int, val albumCount: Int)
+data class TopTrackPage(val artist: String, val items: List<TrackResponse>, val count: Int)
 data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
 data class RenameUserRequest(val username: String)
 data class SetUserEnabledRequest(val enabled: Boolean)
@@ -1579,6 +1618,7 @@ fun main(args: Array<String>) {
     val lyricsService = runtime.createLyricsService()
     val searchIndex = runtime.createIndexManager()
     val randomSearchService = runtime.createSearchService(mediaFileService)
+    val topSongsService = runtime.createLastFmService(legacyGraph.mediaFileDao, mediaFileService, legacyGraph.artistDao)
     val corePlaylistService = runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService)
     val mediaScannerService = runtime.createMediaScannerService(
         corePlaylistService,
@@ -1609,6 +1649,7 @@ fun main(args: Array<String>) {
             lyricsService,
             randomSearchService,
             settingsService.getGenreSeparators(),
+            topSongsService,
         )
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })
