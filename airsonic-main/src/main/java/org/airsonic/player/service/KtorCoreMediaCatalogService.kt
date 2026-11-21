@@ -1,12 +1,40 @@
 package org.airsonic.player.service
 
 import javax.sql.DataSource
+import org.apache.commons.lang3.StringUtils
 
 /** Reads catalog metadata and stable track IDs from Airsonic's core media tables. */
 class KtorCoreMediaCatalogService(
     private val coreDataSource: DataSource,
     private val ktorDataSource: DataSource,
 ) {
+    fun genres(accessibleLibraryIds: Set<Long>?, separators: String): List<CatalogGenre> {
+        val rawGenres = coreDataSource.connection.use { connection ->
+            connection.prepareStatement(
+                "SELECT type, genre FROM media_file WHERE present AND genre IS NOT NULL " +
+                    "AND type IN ('ALBUM', 'MUSIC', 'AUDIOBOOK')" + libraryScope(accessibleLibraryIds),
+            ).use { statement ->
+                bindLibraryScope(statement, 1, accessibleLibraryIds)
+                statement.executeQuery().use { rows ->
+                    buildList { while (rows.next()) add(rows.getString("type") to rows.getString("genre")) }
+                }
+            }
+        }
+        data class Counts(var tracks: Int = 0, var albums: Int = 0)
+        val counts = linkedMapOf<String, Counts>()
+        rawGenres.forEach { (type, name) ->
+            val targets = mutableListOf(name)
+            val split = StringUtils.split(name, separators)
+            if (split.size > 1) targets += split.map(String::trim).filter(String::isNotBlank)
+            targets.forEach { genre ->
+                val aggregate = counts.getOrPut(genre) { Counts() }
+                if (type == "ALBUM") aggregate.albums++ else aggregate.tracks++
+            }
+        }
+        return counts.map { (name, value) -> CatalogGenre(name, value.tracks, value.albums) }
+            .sortedBy { it.name.lowercase() }
+    }
+
     init {
         migrateStoredTrackReferences()
         dropLegacyTrackProjection()
@@ -393,3 +421,5 @@ class KtorCoreMediaCatalogService(
             "track_number, year, genre, duration, file_size, changed"
     }
 }
+
+data class CatalogGenre(val name: String, val trackCount: Int, val albumCount: Int)

@@ -131,6 +131,12 @@ class KtorStandalonePlaylistTest {
                 }.bodyAsText())
                 assertEquals(1, rockTracks.get("total").asInt())
                 assertEquals(trackId, rockTracks.get("items")[0].get("id").asLong())
+                val genres = mapper.readTree(client.get("/api/v1/genres") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText())
+                assertEquals(1, genres.get("count").asInt())
+                assertEquals("Rock", genres.get("items")[0].get("name").asText())
+                assertEquals(1, genres.get("items")[0].get("trackCount").asInt())
 
                 assertEquals(204, client.put("/api/v1/tracks/$trackId/rating") {
                     bearerAuth(ownerToken)

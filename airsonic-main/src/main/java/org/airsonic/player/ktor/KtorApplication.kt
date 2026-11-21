@@ -91,6 +91,7 @@ fun Application.standaloneModule(
     scrobbleService: StandaloneScrobbleService? = null,
     lyricsService: LyricsService? = null,
     randomSearchService: SearchService? = null,
+    genreSeparators: String = ";",
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -285,6 +286,19 @@ fun Application.standaloneModule(
                         call.respondJson(ArtistDetailsResponse(
                             catalogId(selector.first, selector.second), selector.second, tracks.map { it.toResponse() },
                         ))
+                    }
+                    get("/genres") {
+                        val catalog = mediaCatalogService
+                        if (catalog == null) {
+                            call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val genres = withContext(scanDispatcher) { catalog.genres(user.catalogLibraryScope(), genreSeparators) }
+                        call.respondJson(GenreListResponse(genres.map {
+                            GenreResponse(it.name, it.trackCount, it.albumCount)
+                        }, genres.size))
                     }
                     get("/tracks") {
                     if (mediaCatalogService == null) {
@@ -1252,6 +1266,8 @@ data class SetTrackRatingRequest(val rating: Int)
 data class ScrobbleTrackRequest(val time: String? = null, val submission: Boolean = true)
 data class LyricsResponse(val artist: String?, val title: String?, val lyrics: String?, val tryLater: Boolean?)
 data class RandomTrackResponse(val items: List<TrackResponse>, val count: Int)
+data class GenreListResponse(val items: List<GenreResponse>, val count: Int)
+data class GenreResponse(val name: String, val trackCount: Int, val albumCount: Int)
 data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
 data class RenameUserRequest(val username: String)
 data class SetUserEnabledRequest(val enabled: Boolean)
@@ -1592,6 +1608,7 @@ fun main(args: Array<String>) {
             scrobbleService,
             lyricsService,
             randomSearchService,
+            settingsService.getGenreSeparators(),
         )
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })
