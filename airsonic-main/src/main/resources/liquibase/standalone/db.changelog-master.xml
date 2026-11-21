@@ -255,4 +255,36 @@
                                  constraintName="fk_local_user_library_user" referencedTableName="local_user"
                                  referencedColumnNames="id" onDelete="CASCADE"/>
     </changeSet>
+    <changeSet id="standalone-user-play-queue-1" author="kordinator">
+        <createTable tableName="user_play_queue">
+            <column name="user_id" type="BIGINT">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_user_play_queue"/>
+            </column>
+            <column name="current_track_id" type="BIGINT"/>
+            <column name="position_ms" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_play_queue" baseColumnNames="user_id"
+                                 constraintName="fk_user_play_queue_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+
+        <createTable tableName="user_play_queue_track">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_play_queue_track"/>
+            </column>
+            <column name="position" type="INT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_play_queue_track"/>
+            </column>
+            <column name="track_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_play_queue_track" baseColumnNames="user_id"
+                                 constraintName="fk_user_play_queue_track_queue" referencedTableName="user_play_queue"
+                                 referencedColumnNames="user_id" onDelete="CASCADE"/>
+    </changeSet>
 </databaseChangeLog>

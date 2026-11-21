@@ -16,6 +16,7 @@ import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlaylistService
+import org.airsonic.player.service.StandalonePlayQueueService
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
@@ -64,6 +65,7 @@ class KtorStandalonePlaylistTest {
                 val scan = scans.enqueue(library.id.toLong())
                 scans.run(scan.id)
                 val playlists = StandalonePlaylistService(dataSource, mediaCatalogService)
+                val playQueue = StandalonePlayQueueService(dataSource, mediaCatalogService)
                 val mapper = jacksonObjectMapper()
 
                 testApplication {
@@ -74,6 +76,7 @@ class KtorStandalonePlaylistTest {
                             playlistService = playlists,
                             mediaFolderService = runtime.mediaFolderService,
                             mediaCatalogService = mediaCatalogService,
+                            playQueueService = playQueue,
                         )
                     }
 
@@ -97,6 +100,42 @@ class KtorStandalonePlaylistTest {
                         statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
                     }
                 }
+                assertEquals(401, client.get("/api/v1/me/play-queue").status.value)
+                val initialQueue = client.get("/api/v1/me/play-queue") { bearerAuth(ownerToken) }
+                assertEquals(200, initialQueue.status.value)
+                assertEquals(emptyList(), mapper.readTree(initialQueue.bodyAsText()).get("trackIds").map { it.asLong() })
+
+                val savedQueue = client.put("/api/v1/me/play-queue") {
+                    bearerAuth(ownerToken)
+                    header("Content-Type", "application/json")
+                    setBody("""{"trackIds":[$trackId,$trackId],"currentTrackId":$trackId,"positionMillis":4321}""")
+                }
+                assertEquals(200, savedQueue.status.value)
+                val savedQueueBody = mapper.readTree(savedQueue.bodyAsText())
+                assertEquals(listOf(trackId, trackId), savedQueueBody.get("trackIds").map { it.asLong() })
+                assertEquals(trackId, savedQueueBody.get("currentTrackId").asLong())
+                assertEquals(4321, savedQueueBody.get("positionMillis").asLong())
+                assertEquals("track", savedQueueBody.get("tracks")[0].get("title").asText())
+                assertEquals(emptyList(), mapper.readTree(client.get("/api/v1/me/play-queue") {
+                    bearerAuth(otherToken)
+                }.bodyAsText()).get("trackIds").map { it.asLong() })
+
+                val invalidQueue = client.put("/api/v1/me/play-queue") {
+                    bearerAuth(ownerToken)
+                    header("Content-Type", "application/json")
+                    setBody("""{"trackIds":[999999],"currentTrackId":999999,"positionMillis":0}""")
+                }
+                assertEquals(400, invalidQueue.status.value)
+                val unchangedQueue = mapper.readTree(client.get("/api/v1/me/play-queue") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText())
+                assertEquals(listOf(trackId, trackId), unchangedQueue.get("trackIds").map { it.asLong() })
+
+                assertEquals(204, client.delete("/api/v1/me/play-queue") { bearerAuth(ownerToken) }.status.value)
+                assertEquals(emptyList(), mapper.readTree(client.get("/api/v1/me/play-queue") {
+                    bearerAuth(ownerToken)
+                }.bodyAsText()).get("trackIds").map { it.asLong() })
+
                 dataSource.connection.use { connection ->
                     connection.prepareStatement(
                         "SELECT track_id FROM user_playlist_track WHERE playlist_id = ? ORDER BY position",

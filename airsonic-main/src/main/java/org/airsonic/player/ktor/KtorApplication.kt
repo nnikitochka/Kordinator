@@ -44,6 +44,8 @@ import org.airsonic.player.security.LoginRateLimiter
 import org.airsonic.player.security.LegacyCredentialEncoderRegistry
 import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlaylistService
+import org.airsonic.player.service.StandalonePlayQueueService
+import org.airsonic.player.service.StandalonePlayQueue
 import org.airsonic.player.service.StandaloneAlbum
 import org.airsonic.player.service.StandaloneArtist
 import org.airsonic.player.service.StandaloneTrack
@@ -77,6 +79,7 @@ fun Application.standaloneModule(
     favoriteService: StandaloneFavoriteService? = null,
     mediaFolderService: MediaFolderService? = null,
     mediaCatalogService: KtorCoreMediaCatalogService? = null,
+    playQueueService: StandalonePlayQueueService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -522,6 +525,60 @@ fun Application.standaloneModule(
                             ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         call.respondJson(CurrentUserResponse(user.id, user.username, user.role))
                     }
+                    get("/me/play-queue") {
+                        val service = playQueueService
+                        val catalog = mediaCatalogService
+                        if (service == null || catalog == null) {
+                            call.respondJson(ApiError("unavailable", "Playback queue storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val queue = withContext(authDispatcher) { service.get(user.id) }
+                        call.respondJson(queue.toResponse(catalog, user.catalogLibraryScope()))
+                    }
+                    put("/me/play-queue") {
+                        val service = playQueueService
+                        val catalog = mediaCatalogService
+                        if (service == null || catalog == null) {
+                            call.respondJson(ApiError("unavailable", "Playback queue storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@put
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), SavePlayQueueRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected trackIds and optional currentTrackId and positionMillis"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val queue = try {
+                            withContext(scanDispatcher) {
+                                service.save(
+                                    user.id,
+                                    request.trackIds,
+                                    request.currentTrackId,
+                                    request.positionMillis,
+                                    user.catalogLibraryScope(),
+                                )
+                            }
+                        } catch (failure: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_queue", failure.message ?: "Queue is invalid"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        call.respondJson(queue.toResponse(catalog, user.catalogLibraryScope()))
+                    }
+                    delete("/me/play-queue") {
+                        val service = playQueueService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Playback queue storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@delete
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                        withContext(authDispatcher) { service.clear(user.id) }
+                        call.respond(HttpStatusCode.NoContent)
+                    }
                     put("/me/password") {
                         val user = call.principal<LocalUserPrincipal>()
                             ?: return@put call.respond(HttpStatusCode.Unauthorized)
@@ -925,6 +982,19 @@ data class CurrentUserResponse(val id: Long, val username: String, val role: Str
 data class AdminUserResponse(val id: Long, val username: String, val role: String, val enabled: Boolean)
 data class ApiError(val code: String, val message: String)
 data class ChangePasswordRequest(val currentPassword: String, val newPassword: String)
+data class SavePlayQueueRequest(
+    val trackIds: List<Long> = emptyList(),
+    val currentTrackId: Long? = null,
+    val positionMillis: Long = 0,
+)
+data class PlayQueueResponse(
+    val trackIds: List<Long>,
+    val currentTrackId: Long?,
+    val positionMillis: Long,
+    val updatedAt: String?,
+    val tracks: List<PlayQueueTrackResponse>,
+)
+data class PlayQueueTrackResponse(val id: Long, val title: String, val artist: String?, val album: String?, val durationSeconds: Int)
 data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
 data class RenameUserRequest(val username: String)
 data class SetUserEnabledRequest(val enabled: Boolean)
@@ -1094,6 +1164,23 @@ private fun org.airsonic.player.service.StandalonePlaylist.toResponse() = Playli
     tracks.map { PlaylistTrackResponse(it.id, it.title, it.artist, it.album, it.durationSeconds) },
 )
 
+private suspend fun StandalonePlayQueue.toResponse(
+    mediaCatalogService: KtorCoreMediaCatalogService,
+    accessibleLibraryIds: Set<Long>?,
+): PlayQueueResponse {
+    val tracksById = withContext(scanDispatcher) {
+        mediaCatalogService.tracksByCoreIds(trackIds.distinct(), accessibleLibraryIds)
+    }.associateBy { it.id }
+    val visibleTracks = trackIds.mapNotNull { tracksById[it] }
+    return PlayQueueResponse(
+        trackIds = visibleTracks.map { it.id },
+        currentTrackId = currentTrackId?.takeIf { it in tracksById },
+        positionMillis = positionMillis,
+        updatedAt = updatedAt?.toString(),
+        tracks = visibleTracks.map { PlayQueueTrackResponse(it.id, it.title, it.artist, it.album, it.durationSeconds) },
+    )
+}
+
 fun main(args: Array<String>) {
     val configuration = RuntimeConfigurationLoader().load(args, System.getProperties(), System.getenv(), null)
     val host = configuration.getProperty("airsonic.http.host", "0.0.0.0") ?: "0.0.0.0"
@@ -1141,6 +1228,7 @@ fun main(args: Array<String>) {
     val mediaCatalogService = KtorCoreMediaCatalogService(runtime.createDataSource(), standaloneDatabase.dataSource)
     val playlistService = StandalonePlaylistService(standaloneDatabase.dataSource, mediaCatalogService)
     val favoriteService = StandaloneFavoriteService(standaloneDatabase.dataSource, mediaCatalogService)
+    val playQueueService = StandalonePlayQueueService(standaloneDatabase.dataSource, mediaCatalogService)
     val securityService = runtime.createSecurityService(
         legacyGraph.userDao,
         settingsService,
@@ -1182,6 +1270,7 @@ fun main(args: Array<String>) {
             favoriteService,
             mediaFolderService,
             mediaCatalogService,
+            playQueueService,
         )
     }
     lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })
