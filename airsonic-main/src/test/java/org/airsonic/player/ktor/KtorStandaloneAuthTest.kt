@@ -26,6 +26,74 @@ import kotlin.test.assertTrue
 
 class KtorStandaloneAuthTest {
     @Test
+    fun administratorsCanRenameUsersWithoutRevokingTheirSessions() {
+        val dataSource = HikariDataSource(HikariConfig().apply {
+            jdbcUrl = "jdbc:hsqldb:mem:standalone_user_rename"
+            driverClassName = "org.hsqldb.jdbc.JDBCDriver"
+            username = "sa"
+            password = ""
+            maximumPoolSize = 2
+        })
+
+        dataSource.use {
+            StandaloneDatabase.migrate(dataSource)
+            val auth = LocalAuthService(dataSource)
+            auth.createInitialAdmin("admin", "a strong password for tests")
+            val userId = auth.createUser("listener", "listener password for tests")
+            val userSession = auth.login("listener", "listener password for tests")!!
+            val adminToken = auth.login("admin", "a strong password for tests")!!.token
+
+            testApplication {
+                application { standaloneModule(auth) }
+
+                assertEquals(HttpStatusCode.Forbidden, client.put("/api/v1/admin/users/$userId") {
+                    bearerAuth(userSession.token)
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"renamed"}""")
+                }.status)
+
+                assertEquals(HttpStatusCode.Conflict, client.put("/api/v1/admin/users/$userId") {
+                    bearerAuth(adminToken)
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"admin"}""")
+                }.status)
+                assertEquals(HttpStatusCode.BadRequest, client.put("/api/v1/admin/users/$userId") {
+                    bearerAuth(adminToken)
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"x"}""")
+                }.status)
+                assertEquals(HttpStatusCode.NotFound, client.put("/api/v1/admin/users/999999") {
+                    bearerAuth(adminToken)
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"renamed"}""")
+                }.status)
+
+                val rename = client.put("/api/v1/admin/users/$userId") {
+                    bearerAuth(adminToken)
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"renamed"}""")
+                }
+                assertEquals(HttpStatusCode.NoContent, rename.status)
+                val currentUser = client.get("/api/v1/me") { bearerAuth(userSession.token) }
+                assertEquals(HttpStatusCode.OK, currentUser.status)
+                assertTrue(currentUser.bodyAsText().contains("\"username\":\"renamed\""))
+
+                val accounts = client.get("/api/v1/admin/users") { bearerAuth(adminToken) }.bodyAsText()
+                assertTrue(accounts.contains("\"username\":\"renamed\""))
+                assertTrue(!accounts.contains("\"username\":\"listener\""))
+                assertEquals(HttpStatusCode.Unauthorized, client.post("/api/v1/auth/login") {
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"listener","password":"listener password for tests"}""")
+                }.status)
+                assertEquals(HttpStatusCode.OK, client.post("/api/v1/auth/login") {
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"renamed","password":"listener password for tests"}""")
+                }.status)
+            }
+        }
+    }
+
+    @Test
     fun administratorsCanListAccountsAndChangeRolesSafely() {
         val dataSource = HikariDataSource(HikariConfig().apply {
             jdbcUrl = "jdbc:hsqldb:mem:standalone_user_administration"

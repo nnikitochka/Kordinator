@@ -148,6 +148,23 @@ class LocalAuthService(
         }
     }
 
+    /** Renames an account without revoking its ID-bound sessions. */
+    fun renameUser(userId: Long, username: String): Boolean {
+        require(username.matches(USERNAME_PATTERN)) { "Username must be 3–64 letters, digits, dots, underscores or hyphens" }
+        dataSource.connection.use { connection ->
+            val currentUsername = connection.prepareStatement("SELECT username FROM local_user WHERE id = ?").use { statement ->
+                statement.setLong(1, userId)
+                statement.executeQuery().use { rows -> if (rows.next()) rows.getString(1) else null }
+            } ?: return false
+            if (currentUsername == username) return true
+            return connection.prepareStatement("UPDATE local_user SET username = ? WHERE id = ?").use { statement ->
+                statement.setString(1, username)
+                statement.setLong(2, userId)
+                statement.executeUpdate() == 1
+            }
+        }
+    }
+
     /** Updates a role and revokes sessions so the new authorization applies immediately. */
     fun setUserRole(userId: Long, role: String): Boolean {
         require(role in ALLOWED_ROLES) { "Unsupported account role" }

@@ -592,6 +592,39 @@ fun Application.standaloneModule(
                             }
                         }
                     }
+                    put("/admin/users/{id}") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@put
+                        }
+                        val targetId = call.parameters["id"]?.toLongOrNull()
+                        if (targetId == null || targetId <= 0) {
+                            call.respondJson(ApiError("invalid_request", "User ID must be a positive number"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), RenameUserRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected username"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        try {
+                            val renamed = withContext(authDispatcher) { authService.renameUser(targetId, request.username) }
+                            if (renamed) call.respond(HttpStatusCode.NoContent) else {
+                                call.respondJson(ApiError("user_not_found", "User does not exist"), HttpStatusCode.NotFound)
+                            }
+                        } catch (_: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_username", "Username must contain 3 to 64 letters, digits, dots, underscores or hyphens"), HttpStatusCode.BadRequest)
+                        } catch (failure: java.sql.SQLException) {
+                            if (failure.sqlState?.startsWith("23") == true) {
+                                call.respondJson(ApiError("username_exists", "An account with that username already exists"), HttpStatusCode.Conflict)
+                            } else {
+                                throw failure
+                            }
+                        }
+                    }
                     put("/admin/users/{id}/role") {
                         val actor = call.principal<LocalUserPrincipal>()
                             ?: return@put call.respond(HttpStatusCode.Unauthorized)
@@ -868,6 +901,7 @@ data class AdminUserResponse(val id: Long, val username: String, val role: Strin
 data class ApiError(val code: String, val message: String)
 data class ChangePasswordRequest(val currentPassword: String, val newPassword: String)
 data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
+data class RenameUserRequest(val username: String)
 data class SetUserEnabledRequest(val enabled: Boolean)
 data class SetUserRoleRequest(val role: String)
 data class SetUserLibrariesRequest(val libraryIds: Set<Long>)
