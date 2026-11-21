@@ -715,6 +715,48 @@ fun Application.standaloneModule(
                         }.orEmpty()
                         call.respondJson(folders)
                     }
+                    put("/admin/libraries/{id}") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@put
+                        }
+                        val folderService = mediaFolderService
+                        if (folderService == null) {
+                            call.respondJson(ApiError("unavailable", "Music folder storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@put
+                        }
+                        val libraryId = call.parameters["id"]?.toIntOrNull()
+                        if (libraryId == null || libraryId <= 0) {
+                            call.respondJson(ApiError("invalid_request", "Library ID must be a positive number"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), UpdateLibraryRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected a name"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val normalizedName = request.name.trim()
+                        if (normalizedName.isEmpty() || normalizedName.length > 120) {
+                            call.respondJson(ApiError("invalid_library", "Library name must contain 1 to 120 characters"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val folders = withContext(authDispatcher) { folderService.getAllMusicFolders(true, true, true) }
+                        val folder = folders.firstOrNull { it.id == libraryId }
+                        if (folder == null) {
+                            call.respondJson(ApiError("library_not_found", "Library does not exist"), HttpStatusCode.NotFound)
+                            return@put
+                        }
+                        if (folders.any { it.id != libraryId && it.name.equals(normalizedName, ignoreCase = true) }) {
+                            call.respondJson(ApiError("library_exists", "A library with that name already exists"), HttpStatusCode.Conflict)
+                            return@put
+                        }
+                        folder.name = normalizedName
+                        withContext(authDispatcher) { folderService.updateMusicFolder(folder) }
+                        call.respondJson(folder.toLibraryResponse())
+                    }
                     post("/admin/libraries") {
                         val actor = call.principal<LocalUserPrincipal>()
                             ?: return@post call.respond(HttpStatusCode.Unauthorized)
@@ -830,11 +872,13 @@ data class SetUserEnabledRequest(val enabled: Boolean)
 data class SetUserRoleRequest(val role: String)
 data class SetUserLibrariesRequest(val libraryIds: Set<Long>)
 data class CreateLibraryRequest(val name: String, val path: String)
-data class LibraryResponse(val id: Long, val name: String, val path: String, val createdAt: String)
+data class UpdateLibraryRequest(val name: String)
+data class LibraryResponse(val id: Long, val name: String, val path: String, val enabled: Boolean, val createdAt: String)
 private fun MusicFolder.toLibraryResponse() = LibraryResponse(
     id = requireNotNull(id) { "Music folder has not been persisted" }.toLong(),
     name = name,
     path = path.toString(),
+    enabled = isEnabled,
     createdAt = changed.toString(),
 )
 data class TrackResponse(

@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
@@ -57,11 +58,43 @@ class KtorStandaloneLibraryTest {
                     assertEquals(HttpStatusCode.Created, created.status)
                     assertTrue(created.bodyAsText().contains("\"name\":\"Other\""))
                     assertTrue(created.bodyAsText().contains(musicRoot.toRealPath().toString()))
+                    assertTrue(created.bodyAsText().contains("\"enabled\":true"))
+                    val createdId = Regex("\\\"id\\\":(\\d+)").find(created.bodyAsText())!!.groupValues[1]
+
+                    val deniedEdit = client.put("/api/v1/admin/libraries/$createdId") {
+                        bearerAuth(userToken)
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"name":"Renamed"}""")
+                    }
+                    assertEquals(HttpStatusCode.Forbidden, deniedEdit.status)
+
+                    val duplicateName = client.put("/api/v1/admin/libraries/$createdId") {
+                        bearerAuth(adminToken)
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"name":"Music"}""")
+                    }
+                    assertEquals(HttpStatusCode.Conflict, duplicateName.status)
+
+                    val renamed = client.put("/api/v1/admin/libraries/$createdId") {
+                        bearerAuth(adminToken)
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"name":"  Renamed  "}""")
+                    }
+                    assertEquals(HttpStatusCode.OK, renamed.status)
+                    assertTrue(renamed.bodyAsText().contains("\"name\":\"Renamed\""))
+
+                    val missingLibrary = client.put("/api/v1/admin/libraries/999999") {
+                        bearerAuth(adminToken)
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"name":"Missing"}""")
+                    }
+                    assertEquals(HttpStatusCode.NotFound, missingLibrary.status)
 
                     val listed = client.get("/api/v1/admin/libraries") { bearerAuth(adminToken) }
                     assertEquals(HttpStatusCode.OK, listed.status)
                     assertTrue(listed.bodyAsText().contains("\"id\""))
                     assertTrue(listed.bodyAsText().contains("\"name\":\"Music\""))
+                    assertTrue(listed.bodyAsText().contains("\"name\":\"Renamed\""))
 
                     val denied = client.get("/api/v1/admin/libraries") { bearerAuth(userToken) }
                     assertEquals(HttpStatusCode.Forbidden, denied.status)
