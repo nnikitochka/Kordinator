@@ -19,6 +19,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondBytesWriter
 import io.ktor.server.response.respondText
+import io.ktor.server.response.respondOutputStream
 import io.ktor.http.content.OutgoingContent
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
@@ -96,6 +97,7 @@ import org.airsonic.player.service.MusicFolderAdministrationService
 import org.airsonic.player.command.MusicFolderSettingsCommand
 import org.airsonic.player.service.PlayerService
 import org.airsonic.player.service.PlayQueueService
+import org.airsonic.player.service.DatabaseService
 import org.airsonic.player.domain.Transcoding
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
@@ -171,6 +173,7 @@ fun Application.standaloneModule(
     musicFolderAdministrationService: MusicFolderAdministrationService? = null,
     playerService: PlayerService? = null,
     playerQueueService: PlayQueueService? = null,
+    databaseService: DatabaseService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -1514,6 +1517,113 @@ fun Application.standaloneModule(
                         players.removePlayerById(id)
                         call.respond(HttpStatusCode.NoContent)
                     }
+                    get("/admin/settings/database") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val settings = settingsService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val db = databaseService
+                        val type = when {
+                            settings.databaseJNDIName != null -> "JNDI"
+                            settings.databaseUrl == SettingsService.getDefaultJDBCUrl() &&
+                                settings.databaseUsername == SettingsService.getDefaultJDBCUsername() &&
+                                settings.databasePassword == SettingsService.getDefaultJDBCPassword() -> "BUILTIN"
+                            else -> "EXTERNAL"
+                        }
+                        call.respondJson(DatabaseSettingsResponse(
+                            type, settings.databaseDriver.orEmpty(), settings.databaseUrl.orEmpty(),
+                            settings.databaseUsername.orEmpty(), settings.databaseJNDIName.orEmpty(),
+                            settings.databaseMysqlVarcharMaxlength, settings.dbBackupInterval,
+                            settings.dbBackupRetentionCount, db?.backuppable() ?: false,
+                            !settings.databasePassword.isNullOrEmpty(),
+                        ))
+                    }
+                    put("/admin/settings/database") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@put
+                        }
+                        val settings = settingsService
+                            ?: return@put call.respondJson(ApiError("unavailable", "Settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), UpdateDatabaseSettingsRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected a JSON database settings object"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        try {
+                            updateDatabaseSettings(settings, request)
+                            call.respondJson(mapOf("saved" to true, "restartRequired" to true), HttpStatusCode.OK)
+                        } catch (failure: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_request", failure.message ?: "Invalid database settings"), HttpStatusCode.BadRequest)
+                        }
+                    }
+                    post("/admin/database/backup") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@post
+                        }
+                        val db = databaseService
+                            ?: return@post call.respondJson(ApiError("unavailable", "Database operations are not configured"), HttpStatusCode.ServiceUnavailable)
+                        if (!db.backuppable()) {
+                            call.respondJson(ApiError("backup_unavailable", "Automatic backup is unavailable for this database"), HttpStatusCode.Conflict)
+                            return@post
+                        }
+                        try {
+                            withContext(Dispatchers.IO) { db.backup() }
+                            call.respondJson(db.backupStatus)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("backup_failed", "Database backup failed; check server logs"), HttpStatusCode.InternalServerError)
+                        }
+                    }
+                    get("/admin/database/operations") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val db = databaseService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Database operations are not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.respondJson(DatabaseOperationsResponse(db.backupStatus, db.exportStatus, db.importStatus))
+                    }
+                    post("/admin/database/export") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@post
+                        }
+                        val db = databaseService
+                            ?: return@post call.respondJson(ApiError("unavailable", "Database operations are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val file = try {
+                            withContext(Dispatchers.IO) { db.exportDB() }
+                        } catch (_: Exception) {
+                            null
+                        }
+                        if (file == null || !Files.isRegularFile(file)) {
+                            call.respondJson(ApiError("export_failed", "Database export failed; check server logs"), HttpStatusCode.InternalServerError)
+                            return@post
+                        }
+                        try {
+                            call.response.headers.append(
+                                HttpHeaders.ContentDisposition,
+                                io.ktor.http.ContentDisposition.Attachment.withParameter(
+                                    io.ktor.http.ContentDisposition.Parameters.FileName,
+                                    file.fileName.toString(),
+                                ).toString(),
+                            )
+                            call.respondOutputStream(ContentType.Application.Zip, contentLength = Files.size(file)) {
+                                val output = this
+                                withContext(Dispatchers.IO) { Files.newInputStream(file).use { it.copyTo(output) } }
+                            }
+                        } finally {
+                            withContext(kotlinx.coroutines.NonCancellable + Dispatchers.IO) { db.cleanup(file) }
+                        }
+                    }
                     get("/me/avatar") {
                         val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         val service = avatarService ?: return@get call.respondJson(ApiError("unavailable", "Avatar storage is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -2588,6 +2698,35 @@ data class UpdatePlayerSettingsRequest(
     val transcodeScheme: String,
     val transcodingIds: List<Int> = emptyList(),
 )
+data class DatabaseSettingsResponse(
+    val configType: String,
+    val driver: String,
+    val url: String,
+    val username: String,
+    val jndiName: String,
+    val mysqlVarcharMaxlength: Int,
+    val backupIntervalHours: Int,
+    val backupRetentionCount: Int,
+    val backuppable: Boolean,
+    val passwordConfigured: Boolean,
+)
+data class UpdateDatabaseSettingsRequest(
+    val configType: String,
+    val driver: String = "",
+    val url: String = "",
+    val username: String = "",
+    val jndiName: String = "",
+    val password: String? = null,
+    val clearPassword: Boolean = false,
+    val mysqlVarcharMaxlength: Int = 0,
+    val backupIntervalHours: Int,
+    val backupRetentionCount: Int,
+)
+data class DatabaseOperationsResponse(
+    val backup: DatabaseService.OperationStatus?,
+    val export: DatabaseService.OperationStatus?,
+    val import: DatabaseService.OperationStatus?,
+)
 data class AdminUserResponse(val id: Long, val username: String, val role: String, val enabled: Boolean)
 data class AdminUserDetailsResponse(val user: AdminUserResponse, val libraryIds: List<Long>)
 data class AdminHealthResponse(val status: String, val components: List<HealthComponentResponse>)
@@ -2914,6 +3053,47 @@ private fun Player.toAdminPlayerResponse(transcoding: TranscodingService) = Admi
     transcodeScheme = transcodeScheme.name,
     transcodingIds = transcoding.getTranscodingsForPlayer(this).map { it.id },
 )
+private fun updateDatabaseSettings(settings: SettingsService, request: UpdateDatabaseSettingsRequest) {
+    require(request.configType in setOf("BUILTIN", "EXTERNAL", "JNDI")) { "Invalid database configuration type" }
+    require(request.backupIntervalHours == -1 || request.backupIntervalHours > 0) { "Backup interval must be -1 or positive" }
+    require(request.backupRetentionCount == -1 || request.backupRetentionCount > 0) { "Backup retention must be -1 or positive" }
+    require(!request.clearPassword || request.password.isNullOrEmpty()) { "Choose password replacement or clearing" }
+    val driver = request.driver.trim()
+    val url = request.url.trim()
+    val username = request.username.trim()
+    val jndiName = request.jndiName.trim()
+    if (request.configType == "EXTERNAL") {
+        require(driver.isNotEmpty()) { "Database driver is required" }
+        require(url.startsWith("jdbc:")) { "Database URL must start with jdbc:" }
+        require(request.mysqlVarcharMaxlength > 0) { "MySQL varchar length must be positive" }
+    }
+    if (request.configType == "JNDI") {
+        require(jndiName.isNotEmpty()) { "JNDI name is required" }
+        require(request.mysqlVarcharMaxlength > 0) { "MySQL varchar length must be positive" }
+    }
+    val password = when {
+        request.clearPassword -> ""
+        !request.password.isNullOrEmpty() -> request.password
+        else -> settings.databasePassword
+    }
+    settings.resetDatabaseToDefault()
+    when (request.configType) {
+        "EXTERNAL" -> {
+            settings.databaseDriver = driver
+            settings.databaseUrl = url
+            settings.databaseUsername = username
+            settings.databasePassword = password
+            settings.databaseMysqlVarcharMaxlength = request.mysqlVarcharMaxlength
+        }
+        "JNDI" -> {
+            settings.databaseJNDIName = jndiName
+            settings.databaseMysqlVarcharMaxlength = request.mysqlVarcharMaxlength
+        }
+    }
+    settings.dbBackupInterval = request.backupIntervalHours
+    settings.dbBackupRetentionCount = request.backupRetentionCount
+    settings.save()
+}
 private fun cacheMetric(meters: MeterRegistry, metric: String, cache: String, vararg tags: String): Double? {
     val found = meters.find(metric).tags("cache", cache).tags(*tags).meters()
     if (found.isEmpty()) return null
@@ -3357,6 +3537,7 @@ fun main(args: Array<String>) {
     val healthStatusAggregator = runtime.createStatusAggregator()
     val pathWatcherService = runtime.createPathWatcherService()
     val taskSchedulingService = runtime.createTaskSchedulingService()
+    val databaseService = runtime.createDatabaseService(settingsService, legacyGraph.databaseDao, taskSchedulingService)
     val cacheManager = runtime.createCacheManager()
     val meterRegistry = runtime.createMeterRegistry()
     val versionService = runtime.createVersionService()
@@ -3503,6 +3684,7 @@ fun main(args: Array<String>) {
             musicFolderAdministrationService,
             playerService,
             playerQueueService,
+            databaseService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
