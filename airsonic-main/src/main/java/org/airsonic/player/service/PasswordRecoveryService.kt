@@ -48,13 +48,14 @@ open class PasswordRecoveryService(
             } else if (user.email == null) {
                 map["error"] = "recover.error.noemail"
             } else {
+                val email = user.email!!
                 val password = buildString(PASSWORD_LENGTH) {
                     repeat(PASSWORD_LENGTH) { append(SYMBOLS[random.nextInt(SYMBOLS.length)]) }
                 }
 
-                if (emailPassword(password, user.username, user.email)) {
-                    map["sentTo"] = user.email
-                    user.setLdapAuthenticated(false)
+                if (emailPassword(password, user.username, email)) {
+                    map["sentTo"] = email
+                    user.isLdapAuthenticated = false
                     securityService.updateUser(user)
                     val credential = UserCredential(
                         user.username,

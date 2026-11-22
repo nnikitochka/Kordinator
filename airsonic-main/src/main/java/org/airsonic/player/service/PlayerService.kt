@@ -58,7 +58,7 @@ open class PlayerService(
         var user: User? = securityService.getUserByName(User.USERNAME_GUEST)
         if (user == null) {
             user = User(User.USERNAME_GUEST, null)
-            user.setRoles(setOf(Role.STREAM))
+            user.roles = setOf(Role.STREAM)
             securityService.createUser(
                 user,
                 RandomStringUtils.randomAlphanumeric(30),
