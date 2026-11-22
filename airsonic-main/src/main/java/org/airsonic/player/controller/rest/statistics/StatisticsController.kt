@@ -60,7 +60,7 @@ class StatisticsController(private val status: StatusService, private val securi
         transferType = type
         playerDescription = value.player?.toString(); playerType = value.player?.type; username = value.player?.username
         path = (value.mediaFile?.relativePath ?: value.externalFile)?.let { FileUtil.getShortPath(it) }
-        bytesTransferred = StringUtil.formatBytes(value.bytesTransferred, locale)
+        bytesTransferred = StringUtil.formatBytes(value.bytesTransferred, locale)!!
         value.history.forEach { entry -> sample.add(TransferStatisticsSample().apply {
             timestamp = entry.timestamp; bytesTransferred = entry.bytesTransferred
         }) }

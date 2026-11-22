@@ -15,7 +15,7 @@ class ParameterDecodingPolicy {
         return Array(values.size) { index ->
             val value = values[index]
             try {
-                StringUtil.utf8HexDecode(value)
+                StringUtil.utf8HexDecode(value) ?: value
             } catch (_: Exception) {
                 malformedValueHandler.accept(value)
                 value
