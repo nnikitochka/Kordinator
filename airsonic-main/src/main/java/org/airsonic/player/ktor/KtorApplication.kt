@@ -764,6 +764,42 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("invalid_playlist", "Playlist name or track IDs are invalid"), HttpStatusCode.BadRequest)
                         }
                     }
+                    get("/playlists/{id}/export") {
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val service = playlistService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val playlistId = call.parameters["id"]?.toLongOrNull()
+                        if (playlistId == null || playlistId < 0) {
+                            call.respondJson(ApiError("invalid_request", "Playlist ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val playlist = withContext(scanDispatcher) {
+                            service.get(user.id, playlistId, user.catalogLibraryScope())
+                        }
+                        if (playlist == null) {
+                            call.respond(HttpStatusCode.NotFound)
+                            return@get
+                        }
+                        val fileName = playlist.name
+                            .map { if (it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' || it == '-' || it == '_') it else '_' }
+                            .joinToString("").trim('_').ifEmpty { "playlist" } + ".m3u8"
+                        val content = buildString {
+                            appendLine("#EXTM3U")
+                            playlist.tracks.forEach { track ->
+                                val label = listOfNotNull(track.artist?.takeIf(String::isNotBlank), track.title)
+                                    .joinToString(" - ").replace('\r', ' ').replace('\n', ' ')
+                                appendLine("#EXTINF:${track.durationSeconds},$label")
+                                appendLine(track.relativePath.replace('\\', '/'))
+                            }
+                        }
+                        call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+                        call.response.headers.append(HttpHeaders.ContentDisposition, "attachment; filename=\"$fileName\"")
+                        call.respondText(content, ContentType.parse("application/vnd.apple.mpegurl"))
+                    }
                     get("/playlists/{id}") {
                         val user = call.principal<LocalUserPrincipal>()
                             ?: return@get call.respond(HttpStatusCode.Unauthorized)

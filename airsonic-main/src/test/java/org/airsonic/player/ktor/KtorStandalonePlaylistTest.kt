@@ -1,6 +1,7 @@
 package org.airsonic.player.ktor
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.ktor.client.HttpClient
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.request.bearerAuth
@@ -333,6 +334,7 @@ class KtorStandalonePlaylistTest {
                 val playlistId = createdBody.get("id").asLong()
                 assertEquals("Road Trip", createdBody.get("name").asText())
                 assertEquals(listOf(trackId, trackId), createdBody.get("trackIds").map { it.asLong() })
+                assertPlaylistExport(client, ownerToken, otherToken, playlistId)
                 val coreTrackId = runtime.coreDataSource.connection.use { connection ->
                     connection.prepareStatement("SELECT id FROM media_file WHERE path = ? AND folder_id = ?").use { statement ->
                         statement.setString(1, "track.mp3")
@@ -430,5 +432,19 @@ class KtorStandalonePlaylistTest {
         } finally {
             runtime.close()
         }
+    }
+
+    private suspend fun assertPlaylistExport(client: HttpClient, ownerToken: String, otherToken: String, playlistId: Long) {
+        val exported = client.get("/api/v1/playlists/$playlistId/export") { bearerAuth(ownerToken) }
+        assertEquals(200, exported.status.value, exported.bodyAsText())
+        assertEquals("no-store", exported.headers[io.ktor.http.HttpHeaders.CacheControl])
+        assertEquals(
+            "application/vnd.apple.mpegurl",
+            exported.headers[io.ktor.http.HttpHeaders.ContentType]?.substringBefore(';'),
+        )
+        assertEquals(true, exported.headers[io.ktor.http.HttpHeaders.ContentDisposition]?.contains("Road_Trip.m3u8"))
+        assertEquals(true, exported.bodyAsText().startsWith("#EXTM3U\n"))
+        assertEquals(2, exported.bodyAsText().lines().count { it == "track.mp3" })
+        assertEquals(404, client.get("/api/v1/playlists/$playlistId/export") { bearerAuth(otherToken) }.status.value)
     }
 }
