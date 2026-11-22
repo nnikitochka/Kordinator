@@ -20,7 +20,10 @@ import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondBytesWriter
 import io.ktor.server.response.respondText
 import io.ktor.http.content.OutgoingContent
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
 import io.ktor.server.request.receiveText
+import io.ktor.server.request.receiveMultipart
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.delete
@@ -29,6 +32,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.head
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.writeFully
+import io.ktor.utils.io.jvm.javaio.toInputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -1378,6 +1382,68 @@ fun Application.standaloneModule(
                             )
                         }
                     }
+                    post("/admin/libraries/{id}/files") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@post
+                        }
+                        val scanService = libraryScanService
+                        if (scanService == null) {
+                            call.respondJson(ApiError("unavailable", "Library storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@post
+                        }
+                        val libraryId = call.parameters["id"]?.toLongOrNull()
+                        if (libraryId == null || libraryId !in 0..Int.MAX_VALUE.toLong()) {
+                            call.respondJson(ApiError("invalid_request", "Library ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@post
+                        }
+                        val requestedPath = call.request.queryParameters["path"]?.trim()
+                        if (requestedPath != null && requestedPath.isBlank()) {
+                            call.respondJson(ApiError("invalid_request", "Upload path must not be blank"), HttpStatusCode.BadRequest)
+                            return@post
+                        }
+                        try {
+                            var uploaded: org.airsonic.player.service.StandaloneUploadedFile? = null
+                            call.receiveMultipart(formFieldLimit = 1024L).forEachPart { part ->
+                                try {
+                                    if (part is PartData.FileItem) {
+                                        require(uploaded == null && part.name == "file") { "Exactly one file field is required" }
+                                        val filename = part.originalFileName?.replace('\\', '/')?.substringAfterLast('/')
+                                        require(!filename.isNullOrBlank() && filename != "." && filename != ".." && filename.none(Char::isISOControl)) {
+                                            "Invalid upload filename"
+                                        }
+                                        val destination = requestedPath ?: filename
+                                        uploaded = withContext(Dispatchers.IO) {
+                                            scanService.uploadFile(libraryId, destination, part.provider().toInputStream())
+                                        }
+                                    }
+                                } finally {
+                                    part.dispose()
+                                }
+                            }
+                            val result = uploaded
+                            if (result == null) {
+                                call.respondJson(ApiError("invalid_request", "A single file field is required"), HttpStatusCode.BadRequest)
+                            } else {
+                                call.respondJson(
+                                    UploadedLibraryFileResponse(libraryId, result.relativePath, result.sizeBytes),
+                                    HttpStatusCode.Created,
+                                )
+                            }
+                        } catch (failure: java.nio.file.FileAlreadyExistsException) {
+                            call.respondJson(ApiError("file_exists", "The destination file already exists"), HttpStatusCode.Conflict)
+                        } catch (failure: java.nio.file.AccessDeniedException) {
+                            call.respondJson(ApiError("upload_denied", failure.message ?: "Upload path is not allowed"), HttpStatusCode.Forbidden)
+                        } catch (failure: IllegalArgumentException) {
+                            val tooLarge = failure.message?.contains("2 GiB") == true
+                            call.respondJson(
+                                ApiError(if (tooLarge) "upload_too_large" else "invalid_upload", failure.message ?: "Upload is invalid"),
+                                if (tooLarge) HttpStatusCode.PayloadTooLarge else HttpStatusCode.BadRequest,
+                            )
+                        }
+                    }
                     post("/admin/libraries/{id}/scan") {
                         val actor = call.principal<LocalUserPrincipal>()
                             ?: return@post call.respond(HttpStatusCode.Unauthorized)
@@ -1487,6 +1553,7 @@ data class SetUserLibrariesRequest(val libraryIds: Set<Long>)
 data class CreateLibraryRequest(val name: String, val path: String)
 data class UpdateLibraryRequest(val name: String)
 data class LibraryResponse(val id: Long, val name: String, val path: String, val enabled: Boolean, val createdAt: String)
+data class UploadedLibraryFileResponse(val libraryId: Long, val path: String, val sizeBytes: Long)
 private fun MusicFolder.toLibraryResponse() = LibraryResponse(
     id = requireNotNull(id) { "Music folder has not been persisted" }.toLong(),
     name = name,

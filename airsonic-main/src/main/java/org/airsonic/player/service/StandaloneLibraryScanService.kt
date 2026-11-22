@@ -9,6 +9,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.io.ByteArrayInputStream
+import java.io.InputStream
 import javax.imageio.ImageIO
 import java.sql.Timestamp
 import java.time.Instant
@@ -43,6 +44,7 @@ data class StandaloneTrack(
 )
 
 data class StandaloneTrackFile(val path: Path, val sizeBytes: Long, val contentType: String)
+data class StandaloneUploadedFile(val relativePath: String, val sizeBytes: Long)
 data class StandaloneArtwork(val bytes: ByteArray, val contentType: String)
 data class StandaloneAlbum(
     val libraryId: Long,
@@ -190,6 +192,63 @@ class StandaloneLibraryScanService(
         }
     }
 
+    fun uploadFile(libraryId: Long, relativePath: String, input: InputStream): StandaloneUploadedFile {
+        require(libraryId in 0..Int.MAX_VALUE.toLong()) { "Library ID is invalid" }
+        val rawPath = Paths.get(relativePath.replace('\\', '/'))
+        require(!rawPath.isAbsolute && !Regex("^[A-Za-z]:").containsMatchIn(relativePath) && rawPath.nameCount > 0 &&
+            rawPath.none { it.toString() == ".." || it.toString().isBlank() }
+        ) { "Upload path must be relative to the library" }
+        val requestedPath = rawPath.normalize()
+        require(requestedPath.nameCount > 0 && requestedPath.none { it.toString() == "." || it.toString().isBlank() }) {
+            "Upload path must name a file inside the library"
+        }
+        val folder = requireNotNull(mediaFolderService.getMusicFolderById(libraryId.toInt(), true, true)) {
+            "Library does not exist"
+        }
+        val root = folder.path.toRealPath()
+        var parent = root
+        val parentSegments = requestedPath.parent?.toList().orEmpty()
+        parentSegments.forEach { segment ->
+            parent = parent.resolve(segment.toString())
+            if (Files.exists(parent, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                require(!Files.isSymbolicLink(parent) && Files.isDirectory(parent, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                    "Upload path contains a non-directory or symbolic link"
+                }
+            } else {
+                Files.createDirectory(parent)
+            }
+            require(parent.toRealPath().startsWith(root)) { "Upload path is outside the library" }
+        }
+        val target = parent.resolve(requestedPath.fileName.toString()).normalize()
+        require(target.startsWith(root) && !Files.isSymbolicLink(target)) { "Upload path is outside the library" }
+        if (Files.exists(target, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+            throw java.nio.file.FileAlreadyExistsException(target.toString())
+        }
+        val temporary = Files.createTempFile(parent, ".kordinator-upload-", ".tmp")
+        try {
+            var total = 0L
+            input.use { source ->
+                Files.newOutputStream(temporary).use { output ->
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        val count = source.read(buffer)
+                        if (count < 0) break
+                        total += count
+                        require(total <= MAX_UPLOAD_BYTES) { "Upload exceeds the 2 GiB limit" }
+                        output.write(buffer, 0, count)
+                    }
+                }
+            }
+            require(parent.toRealPath().startsWith(root) && !Files.isSymbolicLink(target)) {
+                "Upload path changed while writing"
+            }
+            Files.move(temporary, target)
+            return StandaloneUploadedFile(root.relativize(target).toString().replace('\\', '/'), total)
+        } finally {
+            Files.deleteIfExists(temporary)
+        }
+    }
+
     fun artwork(libraryId: Long, relativePath: String): StandaloneArtwork? {
         val track = streamFile(libraryId, relativePath) ?: return null
         val directory = track.path.parent
@@ -289,6 +348,7 @@ class StandaloneLibraryScanService(
     )
 
     private companion object {
+        const val MAX_UPLOAD_BYTES = 2L * 1024 * 1024 * 1024
         val LOG = LoggerFactory.getLogger(StandaloneLibraryScanService::class.java)
         const val CORE_SCAN_TIMEOUT_NANOS = 21_600_000_000_000L
         const val CORE_SCAN_POLL_MILLIS = 100L

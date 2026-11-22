@@ -8,10 +8,14 @@ import io.ktor.client.request.get
 import io.ktor.client.request.head
 import io.ktor.client.request.post
 import io.ktor.client.request.header
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
@@ -56,7 +60,9 @@ class KtorStandaloneLibraryCreationTest {
                 StandaloneDatabase.migrate(dataSource)
                 val auth = LocalAuthService(dataSource)
                 auth.createInitialAdmin("admin", "a strong password for tests")
+                auth.createUser("listener", "listener password for tests")
                 val token = auth.login("admin", "a strong password for tests")!!.token
+                val listenerToken = auth.login("listener", "listener password for tests")!!.token
                 val mediaFiles = Mockito.mock(MediaFileService::class.java)
                 val mediaScanner = Mockito.mock(MediaScannerService::class.java)
                 val scanService = StandaloneLibraryScanService(
@@ -129,6 +135,32 @@ class KtorStandaloneLibraryCreationTest {
                     val head = client.head("/api/v1/tracks/$trackId/download") { bearerAuth(token) }
                     assertEquals(HttpStatusCode.OK, head.status)
                     assertEquals(trackBytes.size.toString(), head.headers[io.ktor.http.HttpHeaders.ContentLength])
+
+                    val uploadHeaders = Headers.build {
+                        append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"uploaded.mp3\"")
+                        append(HttpHeaders.ContentType, "audio/mpeg")
+                    }
+                    val uploadBytes = "new upload bytes".toByteArray()
+                    val uploaded = client.post("/api/v1/admin/libraries/$libraryId/files?path=uploads/added.mp3") {
+                        bearerAuth(token)
+                        setBody(MultiPartFormDataContent(formData { append("file", uploadBytes, uploadHeaders) }))
+                    }
+                    assertEquals(HttpStatusCode.Created, uploaded.status, uploaded.bodyAsText())
+                    assertTrue(uploadBytes.contentEquals(Files.readAllBytes(createdRoot.resolve("uploads/added.mp3"))))
+                    val traversalUpload = client.post("/api/v1/admin/libraries/$libraryId/files?path=../outside.mp3") {
+                        bearerAuth(token)
+                        setBody(MultiPartFormDataContent(formData { append("file", uploadBytes, uploadHeaders) }))
+                    }
+                    assertEquals(HttpStatusCode.BadRequest, traversalUpload.status)
+                    val duplicateUpload = client.post("/api/v1/admin/libraries/$libraryId/files?path=uploads/added.mp3") {
+                        bearerAuth(token)
+                        setBody(MultiPartFormDataContent(formData { append("file", uploadBytes, uploadHeaders) }))
+                    }
+                    assertEquals(HttpStatusCode.Conflict, duplicateUpload.status)
+                    val deniedUpload = client.post("/api/v1/admin/libraries/$libraryId/files?path=denied.mp3") {
+                        bearerAuth(listenerToken)
+                    }
+                    assertEquals(HttpStatusCode.Forbidden, deniedUpload.status)
                 }
             }
         } finally {
