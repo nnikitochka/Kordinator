@@ -1,7 +1,6 @@
 package org.airsonic.player.controller.rest.artists
 
 import io.ktor.http.ContentType
-import io.ktor.http.Parameters
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route

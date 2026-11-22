@@ -215,6 +215,7 @@ public class DownloadService {
                 }, "DownloadDatafeed").start();
 
                 // wait for src data thread to connect
+                //noinspection StatementWithEmptyBody
                 while (pin.source == null) {
                     // sit and wait and ponder life
                 }

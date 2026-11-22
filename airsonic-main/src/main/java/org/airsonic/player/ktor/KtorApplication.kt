@@ -1811,12 +1811,12 @@ fun main(args: Array<String>) {
             scrobbleService,
             lyricsService,
             randomSearchService,
-            settingsService.getGenreSeparators(),
+            settingsService.genreSeparators,
             topSongsService,
             mediaFileService,
             legacyGraph.artistDao,
         )
     }
-    lifecycle.registerShutdown("ktor-server", AutoCloseable { server.stop(1_000, 5_000) })
+    lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
     server.start(wait = true)
 }
