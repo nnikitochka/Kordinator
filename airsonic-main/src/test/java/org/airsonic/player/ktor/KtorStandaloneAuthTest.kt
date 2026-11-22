@@ -380,12 +380,32 @@ class KtorStandaloneAuthTest {
                     setBody("""{"username":"other","password":"another strong password"}""")
                 }
                 assertEquals(HttpStatusCode.Forbidden, deniedAdminOperation.status)
+                assertEquals(HttpStatusCode.Forbidden, client.put("/api/v1/admin/users/$userId/password") {
+                    bearerAuth(userSession.token)
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"password":"replacement password for tests"}""")
+                }.status)
                 val created = client.post("/api/v1/admin/users") {
                     bearerAuth(adminToken)
                     contentType(ContentType.Application.Json)
                     setBody("""{"username":"newuser","password":"another strong password"}""")
                 }
                 assertEquals(HttpStatusCode.Created, created.status)
+                val newUserId = auth.users().single { it.username == "newuser" }.id
+                val newUserToken = extractToken(client.post("/api/v1/auth/login") {
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"newuser","password":"another strong password"}""")
+                }.bodyAsText())
+                assertEquals(HttpStatusCode.NoContent, client.put("/api/v1/admin/users/$newUserId/password") {
+                    bearerAuth(adminToken)
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"password":"replacement password for tests"}""")
+                }.status)
+                assertEquals(HttpStatusCode.Unauthorized, client.get("/api/v1/me") { bearerAuth(newUserToken) }.status)
+                assertEquals(HttpStatusCode.OK, client.post("/api/v1/auth/login") {
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"newuser","password":"replacement password for tests"}""")
+                }.status)
 
                 assertEquals(HttpStatusCode.OK, client.get("/api/v1/me") { bearerAuth(userSession.token) }.status)
                 val disabled = client.put("/api/v1/admin/users/$userId/enabled") {

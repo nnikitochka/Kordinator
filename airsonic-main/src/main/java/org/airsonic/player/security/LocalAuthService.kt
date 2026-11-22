@@ -101,6 +101,38 @@ class LocalAuthService(
         }
     }
 
+    /** Resets a user's password administratively and revokes every existing session. */
+    fun resetPassword(userId: Long, newPassword: String): Boolean {
+        require(newPassword.length in MIN_PASSWORD_LENGTH..MAX_PASSWORD_LENGTH) {
+            "Password must contain between $MIN_PASSWORD_LENGTH and $MAX_PASSWORD_LENGTH characters"
+        }
+        dataSource.connection.use { connection ->
+            connection.autoCommit = false
+            try {
+                val updated = connection.prepareStatement(
+                    "UPDATE local_user SET password_hash = ? WHERE id = ?",
+                ).use { statement ->
+                    statement.setString(1, hashPassword(newPassword))
+                    statement.setLong(2, userId)
+                    statement.executeUpdate()
+                }
+                if (updated == 0) {
+                    connection.rollback()
+                    return false
+                }
+                connection.prepareStatement("DELETE FROM user_session WHERE user_id = ?").use { statement ->
+                    statement.setLong(1, userId)
+                    statement.executeUpdate()
+                }
+                connection.commit()
+                return true
+            } catch (failure: Throwable) {
+                connection.rollback()
+                throw failure
+            }
+        }
+    }
+
     fun setUserEnabled(userId: Long, enabled: Boolean): Boolean {
         dataSource.connection.use { connection ->
             connection.autoCommit = false

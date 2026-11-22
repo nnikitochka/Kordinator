@@ -1225,6 +1225,33 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("user_not_found", "User does not exist"), HttpStatusCode.NotFound)
                         }
                     }
+                    put("/admin/users/{id}/password") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@put
+                        }
+                        val targetId = call.parameters["id"]?.toLongOrNull()
+                        if (targetId == null || targetId < 0) {
+                            call.respondJson(ApiError("invalid_request", "User ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), ResetUserPasswordRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected password"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        try {
+                            val reset = withContext(authDispatcher) { authService.resetPassword(targetId, request.password) }
+                            if (reset) call.respond(HttpStatusCode.NoContent) else {
+                                call.respondJson(ApiError("user_not_found", "User does not exist"), HttpStatusCode.NotFound)
+                            }
+                        } catch (_: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_password", "Password must contain 12 to 1024 characters"), HttpStatusCode.BadRequest)
+                        }
+                    }
                     get("/admin/users/{id}/libraries") {
                         val actor = call.principal<LocalUserPrincipal>()
                             ?: return@get call.respond(HttpStatusCode.Unauthorized)
@@ -1546,6 +1573,7 @@ data class VideoResponse(
 data class TopTrackPage(val artist: String, val items: List<TrackResponse>, val count: Int)
 data class SimilarTrackPage(val artist: String?, val items: List<TrackResponse>, val count: Int)
 data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
+data class ResetUserPasswordRequest(val password: String)
 data class RenameUserRequest(val username: String)
 data class SetUserEnabledRequest(val enabled: Boolean)
 data class SetUserRoleRequest(val role: String)
