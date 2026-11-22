@@ -1,6 +1,7 @@
 package org.airsonic.player.service
 
 import org.airsonic.player.util.StringUtil
+import org.airsonic.player.util.XMLUtil
 import org.apache.commons.lang.StringUtils
 import org.apache.http.client.HttpResponseException
 import org.apache.http.client.ResponseHandler
@@ -16,7 +17,6 @@ import java.io.IOException
 import java.io.StringReader
 import java.net.SocketException
 import java.net.SocketTimeoutException
-import org.airsonic.player.util.XMLUtil.createSAXBuilder
 
 /** Retrieves song lyrics from the legacy chartlyrics.com endpoint. */
 class LyricsService(private val fetcher: Fetcher) {
@@ -49,7 +49,7 @@ class LyricsService(private val fetcher: Fetcher) {
     }
 
     private fun parseSearchResult(xml: String): Result {
-        val document = createSAXBuilder().build(StringReader(xml))
+        val document = XMLUtil.createSAXBuilder().build(StringReader(xml))
         val root = document.rootElement
         val namespace = root.namespace
         val lyric = StringUtils.trimToNull(root.getChildText("Lyric", namespace))
