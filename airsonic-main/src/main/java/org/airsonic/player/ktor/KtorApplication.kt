@@ -1290,6 +1290,43 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("invalid_request", failure.message ?: "Invalid transcoding settings"), HttpStatusCode.BadRequest)
                         }
                     }
+                    get("/admin/settings/advanced") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val settings = settingsService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.respondJson(AdvancedSettingsResponse(
+                            settings.downloadBitrateLimit, settings.uploadBitrateLimit,
+                            settings.ldapUrl.orEmpty(), settings.ldapSearchFilter.orEmpty(), settings.ldapManagerDn.orEmpty(),
+                            settings.smtpServer.orEmpty(), settings.smtpEncryption.orEmpty(), settings.smtpPort.orEmpty(),
+                            settings.smtpUser.orEmpty(), settings.smtpFrom.orEmpty(), settings.recaptchaSiteKey.orEmpty(),
+                            settings.brand, settings.isLdapEnabled, settings.isLdapAutoShadowing, settings.isCaptchaEnabled,
+                        ))
+                    }
+                    put("/admin/settings/advanced") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@put
+                        }
+                        val settings = settingsService
+                            ?: return@put call.respondJson(ApiError("unavailable", "Settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), UpdateAdvancedSettingsRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected a JSON advanced settings object"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        try {
+                            updateAdvancedSettings(settings, request)
+                            call.respond(HttpStatusCode.NoContent)
+                        } catch (failure: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_request", failure.message ?: "Invalid advanced settings"), HttpStatusCode.BadRequest)
+                        }
+                    }
                     get("/me/avatar") {
                         val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         val service = avatarService ?: return@get call.respondJson(ApiError("unavailable", "Avatar storage is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -2189,6 +2226,21 @@ data class UpdateTranscodingSettingsRequest(
     val estimateTimePadding: Long? = null,
     val estimateBytePadding: Long? = null,
 )
+data class AdvancedSettingsResponse(
+    val downloadLimit: Long, val uploadLimit: Long,
+    val ldapUrl: String, val ldapSearchFilter: String, val ldapManagerDn: String,
+    val smtpServer: String, val smtpEncryption: String, val smtpPort: String,
+    val smtpUser: String, val smtpFrom: String, val recaptchaSiteKey: String,
+    val brand: String, val ldapEnabled: Boolean, val ldapAutoShadowing: Boolean, val captchaEnabled: Boolean,
+)
+data class UpdateAdvancedSettingsRequest(
+    val downloadLimit: Long, val uploadLimit: Long,
+    val ldapUrl: String, val ldapSearchFilter: String, val ldapManagerDn: String,
+    val smtpServer: String, val smtpEncryption: String, val smtpPort: String,
+    val smtpUser: String, val smtpFrom: String, val recaptchaSiteKey: String,
+    val ldapEnabled: Boolean, val ldapAutoShadowing: Boolean, val captchaEnabled: Boolean,
+    val ldapManagerPassword: String? = null, val smtpPassword: String? = null, val recaptchaSecretKey: String? = null,
+)
 data class AdminUserResponse(val id: Long, val username: String, val role: String, val enabled: Boolean)
 data class AdminUserDetailsResponse(val user: AdminUserResponse, val libraryIds: List<Long>)
 data class AdminHealthResponse(val status: String, val components: List<HealthComponentResponse>)
@@ -2405,6 +2457,30 @@ private fun saveTranscodingSettings(
     settings.subtitlesExtractionCommand = request.subtitlesExtractionCommand
     settings.setTranscodeEstimateTimePadding(request.estimateTimePadding)
     settings.setTranscodeEstimateBytePadding(request.estimateBytePadding)
+    settings.save()
+}
+private fun updateAdvancedSettings(settings: SettingsService, request: UpdateAdvancedSettingsRequest) {
+    require(request.downloadLimit >= 0) { "Download limit must be non-negative" }
+    require(request.uploadLimit >= 0) { "Upload limit must be non-negative" }
+    require(request.smtpPort.toIntOrNull()?.let { it in 1..65535 } == true) { "SMTP port must be between 1 and 65535" }
+    require(request.smtpEncryption in setOf("None", "STARTTLS", "SSL/TLS")) { "Invalid SMTP encryption" }
+    settings.downloadBitrateLimit = request.downloadLimit
+    settings.uploadBitrateLimit = request.uploadLimit
+    settings.ldapUrl = request.ldapUrl
+    settings.ldapSearchFilter = request.ldapSearchFilter
+    settings.ldapManagerDn = request.ldapManagerDn
+    settings.smtpServer = request.smtpServer
+    settings.smtpEncryption = request.smtpEncryption
+    settings.smtpPort = request.smtpPort
+    settings.smtpUser = request.smtpUser
+    settings.smtpFrom = request.smtpFrom
+    settings.recaptchaSiteKey = request.recaptchaSiteKey
+    settings.isLdapEnabled = request.ldapEnabled
+    settings.isLdapAutoShadowing = request.ldapAutoShadowing
+    settings.isCaptchaEnabled = request.captchaEnabled
+    request.ldapManagerPassword?.takeIf { it.isNotEmpty() }?.let { settings.ldapManagerPassword = it }
+    request.smtpPassword?.takeIf { it.isNotEmpty() }?.let { settings.smtpPassword = it }
+    request.recaptchaSecretKey?.takeIf { it.isNotEmpty() }?.let { settings.recaptchaSecretKey = it }
     settings.save()
 }
 private fun cacheMetric(meters: MeterRegistry, metric: String, cache: String, vararg tags: String): Double? {
