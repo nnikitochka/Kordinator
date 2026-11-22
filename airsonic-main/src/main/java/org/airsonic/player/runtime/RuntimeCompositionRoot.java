@@ -117,7 +117,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.statistics.StatisticsController statisticsController;
     private org.airsonic.player.controller.rest.statistics.ScheduledTasksController scheduledTasksController;
     private org.airsonic.player.controller.rest.statistics.PathWatchersController pathWatchersController;
-    private org.airsonic.player.controller.rest.statistics.ServerHealthController serverHealthController;
     private org.airsonic.player.controller.rest.statistics.CacheStatisticsController cacheStatisticsController;
     private org.airsonic.player.controller.rest.upload.UploadStatusController uploadStatusController;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
@@ -528,17 +527,6 @@ public final class RuntimeCompositionRoot {
             statusAggregator = RuntimeHealthFactory.createStatusAggregator(configuration);
         }
         return statusAggregator;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.statistics.ServerHealthController
-            createServerHealthController(
-                    org.airsonic.player.health.HealthContributorRegistry contributors,
-                    com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
-        if (serverHealthController == null) {
-            serverHealthController = new org.airsonic.player.controller.rest.statistics.ServerHealthController(
-                    contributors, createStatusAggregator(), objectMapper, createSubsonicJaxbWriter());
-        }
-        return serverHealthController;
     }
 
     public synchronized org.airsonic.player.controller.rest.statistics.CacheStatisticsController

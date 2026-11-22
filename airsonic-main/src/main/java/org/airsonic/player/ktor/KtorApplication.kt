@@ -1077,6 +1077,7 @@ fun Application.standaloneModule(
                         }
                     }
                     get("/admin/health") {
+                        call.response.headers.append(HttpHeaders.CacheControl, "no-store")
                         val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         if (actor.role != "ADMIN") {
                             call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)

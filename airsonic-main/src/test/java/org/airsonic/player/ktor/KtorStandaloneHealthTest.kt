@@ -51,10 +51,15 @@ class KtorStandaloneHealthTest {
                     )
                 }
 
+                val publicHealth = client.get("/api/v1/health")
+                assertEquals(HttpStatusCode.OK, publicHealth.status)
+                assertTrue(!publicHealth.bodyAsText().contains("connection"))
+                assertEquals(HttpStatusCode.NotFound, client.get("/rest/getServerHealth") { bearerAuth(adminToken) }.status)
                 assertEquals(HttpStatusCode.Unauthorized, client.get("/api/v1/admin/health").status)
                 assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/admin/health") { bearerAuth(userToken) }.status)
                 val result = client.get("/api/v1/admin/health") { bearerAuth(adminToken) }
                 assertEquals(HttpStatusCode.OK, result.status)
+                assertEquals("no-store", result.headers["Cache-Control"])
                 val body = result.bodyAsText()
                 assertTrue(body.contains("\"status\":\"DOWN\""))
                 assertTrue(body.contains("\"name\":\"database\""))
