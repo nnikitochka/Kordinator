@@ -85,6 +85,8 @@ import org.airsonic.player.domain.TranscodeScheme
 import java.net.URI
 import java.util.Locale
 import org.airsonic.player.service.ServerInfoService
+import org.airsonic.player.service.GeneralSettingsAdministrationService
+import org.airsonic.player.command.GeneralSettingsCommand
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
 import org.airsonic.player.service.LyricsService
@@ -153,6 +155,7 @@ fun Application.standaloneModule(
     securityService: SecurityService? = null,
     serverInfoService: ServerInfoService? = null,
     settingsService: SettingsService? = null,
+    generalSettingsService: GeneralSettingsAdministrationService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -1207,6 +1210,38 @@ fun Application.standaloneModule(
                         call.response.headers.append(HttpHeaders.CacheControl, "no-store")
                         call.respond(HttpStatusCode.NoContent)
                     }
+                    get("/admin/settings/general") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val service = generalSettingsService
+                            ?: return@get call.respondJson(ApiError("unavailable", "General settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.respondJson(withContext(Dispatchers.IO) { service.settings })
+                    }
+                    put("/admin/settings/general") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@put
+                        }
+                        val service = generalSettingsService
+                            ?: return@put call.respondJson(ApiError("unavailable", "General settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val command = try {
+                            jsonMapper.readValue(call.receiveText(), GeneralSettingsCommand::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected a JSON general settings object"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        try {
+                            validateGeneralSettings(command, service)
+                            withContext(Dispatchers.IO) { service.save(command) }
+                            call.respond(HttpStatusCode.NoContent)
+                        } catch (failure: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_request", failure.message ?: "Invalid general settings"), HttpStatusCode.BadRequest)
+                        }
+                    }
                     get("/me/avatar") {
                         val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         val service = avatarService ?: return@get call.respondJson(ApiError("unavailable", "Avatar storage is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -2228,6 +2263,36 @@ private fun UserSettings.toUserSettingsResponse() = UserSettingsResponse(
     audioBookmarkFrequency, videoBookmarkFrequency, searchCount, mainVisibility, playlistVisibility,
     playqueueVisibility, changed.toString(),
 )
+private fun validateGeneralSettings(command: GeneralSettingsCommand, service: GeneralSettingsAdministrationService) {
+    require(!command.playlistFolder.isNullOrBlank()) { "Playlist folder is required" }
+    require(!command.musicFileTypes.isNullOrBlank()) { "Music file types are required" }
+    require(command.videoFileTypes != null && command.coverArtFileTypes != null) { "Media file types are required" }
+    require(command.coverArtSource != null) { "Cover art source is required" }
+    require(command.coverArtQuality in 0..100) { "Cover art quality must be between 0 and 100" }
+    require(command.coverArtConcurrency > 0) { "Cover art concurrency must be positive" }
+    require(command.index != null && command.ignoredArticles != null && command.genreSeparators != null && command.shortcuts != null) {
+        "Index, ignored articles, genre separators and shortcuts are required"
+    }
+    require(command.welcomeTitle != null && command.welcomeSubtitle != null && command.welcomeMessage != null && command.loginMessage != null) {
+        "Welcome and login messages are required"
+    }
+    val themes = service.settings.themes ?: emptyArray()
+    val themeIndex = command.themeIndex?.toIntOrNull() ?: throw IllegalArgumentException("Invalid theme index")
+    require(themeIndex in themes.indices) { "Unknown theme index" }
+    val localeIndex = command.localeIndex?.toIntOrNull() ?: throw IllegalArgumentException("Invalid locale index")
+    require(localeIndex in service.availableLocales.indices) { "Unknown locale index" }
+    java.nio.file.Paths.get(command.playlistFolder)
+    val duration = command.sessionDuration?.trim().orEmpty()
+    require(duration.isNotEmpty()) { "Session duration is required" }
+    if (duration.startsWith("P", true) || duration.startsWith("-P", true) || duration.startsWith("+P", true)) {
+        val parsed = java.time.Duration.parse(duration.uppercase())
+        require(!parsed.isNegative && !parsed.isZero) { "Session duration must be positive" }
+    } else {
+        val match = Regex("([+-]?\\d+)(ns|us|ms|s|m|h|d)?", RegexOption.IGNORE_CASE).matchEntire(duration)
+            ?: throw IllegalArgumentException("Invalid session duration")
+        require(match.groupValues[1].toLongOrNull()?.let { it > 0 } == true) { "Session duration must be positive" }
+    }
+}
 private fun cacheMetric(meters: MeterRegistry, metric: String, cache: String, vararg tags: String): Double? {
     val found = meters.find(metric).tags("cache", cache).tags(*tags).meters()
     if (found.isEmpty()) return null
@@ -2716,6 +2781,7 @@ fun main(args: Array<String>) {
         runtime.createJwtSecurityService(settingsService),
     )
     val corePlaylistService = runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService)
+    val generalSettingsService = runtime.createGeneralSettingsAdministrationService(settingsService, corePlaylistService)
     val mediaScannerService = runtime.createMediaScannerService(
         corePlaylistService,
         settingsService,
@@ -2762,6 +2828,7 @@ fun main(args: Array<String>) {
             securityService,
             serverInfoService,
             settingsService,
+            generalSettingsService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
