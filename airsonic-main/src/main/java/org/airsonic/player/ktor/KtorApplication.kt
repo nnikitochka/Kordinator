@@ -89,6 +89,8 @@ import org.airsonic.player.service.GeneralSettingsAdministrationService
 import org.airsonic.player.command.GeneralSettingsCommand
 import org.airsonic.player.service.TranscodingService
 import org.airsonic.player.service.UPnPService
+import org.airsonic.player.service.MusicFolderAdministrationService
+import org.airsonic.player.command.MusicFolderSettingsCommand
 import org.airsonic.player.domain.Transcoding
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
@@ -161,6 +163,7 @@ fun Application.standaloneModule(
     generalSettingsService: GeneralSettingsAdministrationService? = null,
     transcodingService: TranscodingService? = null,
     upnpService: UPnPService? = null,
+    musicFolderAdministrationService: MusicFolderAdministrationService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -1363,6 +1366,48 @@ fun Application.standaloneModule(
                         service.setMediaServerEnabled(request.enabled)
                         call.respond(HttpStatusCode.NoContent)
                     }
+                    get("/admin/settings/music-folders") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val service = musicFolderAdministrationService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Library settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.respondJson(service.settings.toMusicFolderSettingsResponse())
+                    }
+                    put("/admin/settings/music-folders") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@put
+                        }
+                        val service = musicFolderAdministrationService
+                            ?: return@put call.respondJson(ApiError("unavailable", "Library settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), UpdateMusicFolderSettingsRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected a JSON music folder settings object"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        try {
+                            service.save(request.toCommand(service.settings))
+                            call.respond(HttpStatusCode.NoContent)
+                        } catch (failure: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_request", failure.message ?: "Invalid library settings"), HttpStatusCode.BadRequest)
+                        }
+                    }
+                    post("/admin/settings/music-folders/expunge") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@post
+                        }
+                        val service = musicFolderAdministrationService
+                            ?: return@post call.respondJson(ApiError("unavailable", "Library settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        service.expunge()
+                        call.respond(HttpStatusCode.NoContent)
+                    }
                     get("/me/avatar") {
                         val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         val service = avatarService ?: return@get call.respondJson(ApiError("unavailable", "Avatar storage is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -2312,6 +2357,52 @@ data class UpdateAdvancedSettingsRequest(
 )
 data class DlnaSettingsResponse(val enabled: Boolean, val serverName: String, val baseLanUrl: String)
 data class UpdateDlnaSettingsRequest(val enabled: Boolean, val serverName: String, val baseLanUrl: String = "")
+data class MusicFolderSettingsResponse(
+    val interval: Int,
+    val hour: Int,
+    val scanning: Boolean,
+    val fastCache: Boolean,
+    val organizeByFolderStructure: Boolean,
+    val folders: List<MusicFolderSettingsEntry>,
+    val deletedFolders: List<MusicFolderSettingsEntry>,
+    val folderTypes: List<String>,
+    val uploadsFolder: String,
+    val excludePattern: String,
+    val ignoreSymbolicLinks: Boolean,
+    val fullScan: Boolean,
+    val clearFullScanAfterScan: Boolean,
+)
+data class MusicFolderSettingsEntry(
+    val id: Int,
+    val name: String,
+    val path: String,
+    val type: String,
+    val enabled: Boolean,
+    val exists: Boolean,
+    val overlap: Boolean,
+    val overlapDescription: String,
+)
+data class UpdateMusicFolderSettingsRequest(
+    val interval: Int,
+    val hour: Int,
+    val fastCache: Boolean,
+    val organizeByFolderStructure: Boolean,
+    val uploadsFolder: String,
+    val excludePattern: String,
+    val ignoreSymbolicLinks: Boolean,
+    val fullScan: Boolean,
+    val clearFullScanAfterScan: Boolean,
+    val folders: List<UpdateMusicFolderEntry>,
+    val newFolder: UpdateMusicFolderEntry? = null,
+)
+data class UpdateMusicFolderEntry(
+    val id: Int? = null,
+    val name: String,
+    val path: String,
+    val type: String = "MEDIA",
+    val enabled: Boolean = true,
+    val delete: Boolean = false,
+)
 data class AdminUserResponse(val id: Long, val username: String, val role: String, val enabled: Boolean)
 data class AdminUserDetailsResponse(val user: AdminUserResponse, val libraryIds: List<Long>)
 data class AdminHealthResponse(val status: String, val components: List<HealthComponentResponse>)
@@ -2553,6 +2644,76 @@ private fun updateAdvancedSettings(settings: SettingsService, request: UpdateAdv
     request.smtpPassword?.takeIf { it.isNotEmpty() }?.let { settings.smtpPassword = it }
     request.recaptchaSecretKey?.takeIf { it.isNotEmpty() }?.let { settings.recaptchaSecretKey = it }
     settings.save()
+}
+private fun MusicFolderSettingsCommand.toMusicFolderSettingsResponse() = MusicFolderSettingsResponse(
+    interval = interval.toInt(),
+    hour = hour.toInt(),
+    scanning = isScanning,
+    fastCache = isFastCache,
+    organizeByFolderStructure = isOrganizeByFolderStructure,
+    folders = musicFolders.map { it.toSettingsEntry() },
+    deletedFolders = deletedMusicFolders.map { it.toSettingsEntry() },
+    folderTypes = musicFolderTypes.map { it.name }.sorted(),
+    uploadsFolder = uploadsFolder.orEmpty(),
+    excludePattern = excludePatternString.orEmpty(),
+    ignoreSymbolicLinks = ignoreSymLinks,
+    fullScan = fullScan == true,
+    clearFullScanAfterScan = clearFullScanSettingAfterScan == true,
+)
+private fun MusicFolderSettingsCommand.MusicFolderInfo.toSettingsEntry() = MusicFolderSettingsEntry(
+    id = requireNotNull(id),
+    name = name.orEmpty(),
+    path = path.orEmpty(),
+    type = type,
+    enabled = enabled == true,
+    exists = existing,
+    overlap = overlap,
+    overlapDescription = overlapStatus.orEmpty(),
+)
+private fun UpdateMusicFolderSettingsRequest.toCommand(current: MusicFolderSettingsCommand): MusicFolderSettingsCommand {
+    require(interval == -1 || interval > 0) { "Invalid scan interval" }
+    require(hour in 0..23) { "Invalid scan hour" }
+    require(excludePattern.length <= 4096) { "Exclude pattern is too long" }
+    if (excludePattern.isNotBlank()) java.util.regex.Pattern.compile(excludePattern)
+    val existingIds = current.musicFolders.mapNotNull { it.id }.toSet()
+    val suppliedIds = folders.mapNotNull { it.id }
+    require(suppliedIds.size == folders.size && suppliedIds.distinct().size == suppliedIds.size) { "Each existing folder must have one unique ID" }
+    require(suppliedIds.toSet() == existingIds) { "The folder list must include every current folder exactly once" }
+    val command = current
+    command.interval = interval.toString()
+    command.hour = hour.toString()
+    command.isFastCache = fastCache
+    command.isOrganizeByFolderStructure = organizeByFolderStructure
+    command.uploadsFolder = uploadsFolder
+    command.excludePatternString = excludePattern
+    command.ignoreSymLinks = ignoreSymbolicLinks
+    command.fullScan = fullScan
+    command.clearFullScanSettingAfterScan = clearFullScanAfterScan && fullScan
+    command.musicFolders = folders.map { input -> input.toMusicFolderInfo(requireNotNull(input.id)) }
+    command.newMusicFolder = MusicFolderSettingsCommand.MusicFolderInfo()
+    newFolder?.let { input ->
+        require(input.id == null && !input.delete) { "New folder cannot have an ID or be marked for deletion" }
+        require(input.path.isNotBlank()) { "New folder path is required" }
+        command.newMusicFolder = input.toMusicFolderInfo(null)
+    }
+    return command
+}
+private fun UpdateMusicFolderEntry.toMusicFolderInfo(folderId: Int?): MusicFolderSettingsCommand.MusicFolderInfo {
+    require(path.isNotBlank()) { "Folder path is required" }
+    require(type in org.airsonic.player.domain.MusicFolder.Type.entries.map { it.name }) { "Invalid folder type" }
+    val pathValue = java.nio.file.Paths.get(path.trim())
+    val normalizedName = name.trim().ifEmpty { pathValue.fileName?.toString() ?: path.trim() }
+    require(normalizedName.isNotBlank()) { "Folder name is required" }
+    val info = MusicFolderSettingsCommand.MusicFolderInfo().apply {
+        id = folderId
+        this.path = path.trim()
+        this.name = normalizedName
+        this.type = this@toMusicFolderInfo.type
+        enabled = this@toMusicFolderInfo.enabled
+        delete = this@toMusicFolderInfo.delete
+    }
+    if (!delete) info.toMusicFolder()
+    return info
 }
 private fun cacheMetric(meters: MeterRegistry, metric: String, cache: String, vararg tags: String): Double? {
     val found = meters.find(metric).tags("cache", cache).tags(*tags).meters()
@@ -3064,6 +3225,17 @@ fun main(args: Array<String>) {
         mediaFolderService,
         coverArtService,
     )
+    val musicFolderAdministrationService = runtime.createMusicFolderAdministrationService(
+        settingsService,
+        mediaScannerService,
+        mediaFolderService,
+        legacyGraph.artistDao,
+        legacyGraph.albumDao,
+        legacyGraph.mediaFileDao,
+        searchIndex,
+        corePlaylistService,
+        coverArtService,
+    )
     libraryScanService = StandaloneLibraryScanService(
         standaloneDatabase.dataSource,
         mediaFolderService,
@@ -3105,6 +3277,7 @@ fun main(args: Array<String>) {
             generalSettingsService,
             transcodingService,
             upnpService,
+            musicFolderAdministrationService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
