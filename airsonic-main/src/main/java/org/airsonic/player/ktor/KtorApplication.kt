@@ -78,6 +78,7 @@ import org.airsonic.player.service.StatusService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.domain.TransferStatus
 import org.airsonic.player.ajax.playing.NowPlayingInfo
+import org.airsonic.player.service.ServerInfoService
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
 import org.airsonic.player.service.LyricsService
@@ -144,6 +145,8 @@ fun Application.standaloneModule(
     meterRegistry: MeterRegistry? = null,
     statusService: StatusService? = null,
     securityService: SecurityService? = null,
+    serverInfoService: ServerInfoService? = null,
+    settingsService: SettingsService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -1055,6 +1058,57 @@ fun Application.standaloneModule(
                             (status.getActivePlays() + status.getInactivePlays()).mapNotNull { it.toNowPlayingResponse() }
                         }
                         call.respondJson(playing)
+                    }
+                    get("/admin/server-info") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val info = serverInfoService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Server information service is not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+                        call.respondJson(withContext(Dispatchers.IO) { info.snapshot("Kordinator") })
+                    }
+                    get("/admin/server-log") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val info = serverInfoService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Server information service is not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+                        call.respondJson(withContext(Dispatchers.IO) { info.log() })
+                    }
+                    get("/admin/getting-started") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val settings = settingsService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Settings service is not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+                        call.respondJson(mapOf(
+                            "runningAsRoot" to (System.getProperty("user.name") == "root"),
+                            "enabled" to settings.isGettingStartedEnabled,
+                        ))
+                    }
+                    delete("/admin/getting-started") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@delete
+                        }
+                        val settings = settingsService
+                            ?: return@delete call.respondJson(ApiError("unavailable", "Settings service is not configured"), HttpStatusCode.ServiceUnavailable)
+                        withContext(Dispatchers.IO) {
+                            settings.isGettingStartedEnabled = false
+                            settings.save()
+                        }
+                        call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+                        call.respond(HttpStatusCode.NoContent)
                     }
                     get("/me/avatar") {
                         val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
@@ -2431,6 +2485,8 @@ fun main(args: Array<String>) {
     val taskSchedulingService = runtime.createTaskSchedulingService()
     val cacheManager = runtime.createCacheManager()
     val meterRegistry = runtime.createMeterRegistry()
+    val versionService = runtime.createVersionService()
+    val serverInfoService = runtime.createServerInfoService(versionService, settingsService)
     val ratingService = StandaloneRatingService(standaloneDatabase.dataSource, mediaCatalogService)
     val securityService = runtime.createSecurityService(
         legacyGraph.userDao,
@@ -2516,6 +2572,8 @@ fun main(args: Array<String>) {
             meterRegistry,
             statusService,
             securityService,
+            serverInfoService,
+            settingsService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
