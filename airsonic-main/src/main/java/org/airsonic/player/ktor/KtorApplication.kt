@@ -88,6 +88,7 @@ import org.airsonic.player.service.ServerInfoService
 import org.airsonic.player.service.GeneralSettingsAdministrationService
 import org.airsonic.player.command.GeneralSettingsCommand
 import org.airsonic.player.service.TranscodingService
+import org.airsonic.player.service.UPnPService
 import org.airsonic.player.domain.Transcoding
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
@@ -159,6 +160,7 @@ fun Application.standaloneModule(
     settingsService: SettingsService? = null,
     generalSettingsService: GeneralSettingsAdministrationService? = null,
     transcodingService: TranscodingService? = null,
+    upnpService: UPnPService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -1327,6 +1329,40 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("invalid_request", failure.message ?: "Invalid advanced settings"), HttpStatusCode.BadRequest)
                         }
                     }
+                    get("/admin/settings/dlna") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val settings = settingsService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.respondJson(DlnaSettingsResponse(settings.isDlnaEnabled, settings.dlnaServerName, settings.dlnaBaseLANURL.orEmpty()))
+                    }
+                    put("/admin/settings/dlna") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@put
+                        }
+                        val settings = settingsService
+                            ?: return@put call.respondJson(ApiError("unavailable", "Settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val service = upnpService
+                            ?: return@put call.respondJson(ApiError("unavailable", "DLNA service is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), UpdateDlnaSettingsRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected a JSON DLNA settings object"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        service.setMediaServerEnabled(false)
+                        settings.isDlnaEnabled = request.enabled
+                        settings.dlnaServerName = request.serverName.trim().ifEmpty { "Kordinator" }
+                        settings.dlnaBaseLANURL = request.baseLanUrl.trim().ifEmpty { null }
+                        settings.save()
+                        service.setMediaServerEnabled(request.enabled)
+                        call.respond(HttpStatusCode.NoContent)
+                    }
                     get("/me/avatar") {
                         val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         val service = avatarService ?: return@get call.respondJson(ApiError("unavailable", "Avatar storage is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -2241,6 +2277,8 @@ data class UpdateAdvancedSettingsRequest(
     val ldapEnabled: Boolean, val ldapAutoShadowing: Boolean, val captchaEnabled: Boolean,
     val ldapManagerPassword: String? = null, val smtpPassword: String? = null, val recaptchaSecretKey: String? = null,
 )
+data class DlnaSettingsResponse(val enabled: Boolean, val serverName: String, val baseLanUrl: String)
+data class UpdateDlnaSettingsRequest(val enabled: Boolean, val serverName: String, val baseLanUrl: String = "")
 data class AdminUserResponse(val id: Long, val username: String, val role: String, val enabled: Boolean)
 data class AdminUserDetailsResponse(val user: AdminUserResponse, val libraryIds: List<Long>)
 data class AdminHealthResponse(val status: String, val components: List<HealthComponentResponse>)
@@ -2955,7 +2993,7 @@ fun main(args: Array<String>) {
         runtime.createTaskSchedulingService(),
     )
     val transcodingService = runtime.createTranscodingService(legacyGraph.transcodingDao, settingsService, mediaFolderService)
-    runtime.createPlayerService(runtime.createPlayerDao(), statusService, securityService, transcodingService)
+    val playerService = runtime.createPlayerService(runtime.createPlayerDao(), statusService, securityService, transcodingService)
     val scrobbleService = StandaloneScrobbleService(
         mediaFileService,
         statusService,
@@ -2973,6 +3011,17 @@ fun main(args: Array<String>) {
         runtime.createJwtSecurityService(settingsService),
     )
     val corePlaylistService = runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService)
+    val upnpContentDirectory = runtime.createFolderBasedContentDirectory(
+        mediaFileService,
+        mediaFolderService,
+        corePlaylistService,
+        searchIndex,
+        settingsService,
+        playerService,
+        transcodingService,
+        runtime.createJwtSecurityService(settingsService),
+    )
+    val upnpService = runtime.createUpnpService(settingsService, upnpContentDirectory)
     val generalSettingsService = runtime.createGeneralSettingsAdministrationService(settingsService, corePlaylistService)
     val mediaScannerService = runtime.createMediaScannerService(
         corePlaylistService,
@@ -3022,6 +3071,7 @@ fun main(args: Array<String>) {
             settingsService,
             generalSettingsService,
             transcodingService,
+            upnpService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
