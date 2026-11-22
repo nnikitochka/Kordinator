@@ -30,7 +30,7 @@ class UploadStatusController(private val status: StatusService, private val writ
             if (!request.allowed) writer.createErrorResponse(ErrorCode.NOT_AUTHORIZED, "Upload access denied")
             else writer.createResponse(true).apply {
                 uploadStatuses = UploadStatuses().apply {
-                    this@UploadStatusController.status.allUploadStatuses.filter { it.player.username == request.username }.forEach { transfer ->
+                    this@UploadStatusController.status.getAllUploadStatuses().filter { it.player.username == request.username }.forEach { transfer ->
                         upload.add(UploadStatus().apply {
                             transferId = transfer.id.toString()
                             bytesUploaded = transfer.bytesTransferred

@@ -40,10 +40,10 @@ class StatisticsController(private val status: StatusService, private val securi
                             downloaded = value.bytesDownloaded; uploaded = value.bytesUploaded
                         }) }
                     } else transferStatistics = TransferStatistics().apply {
-                        this@StatisticsController.status.allStreamStatuses.filter { it.millisSinceLastUpdate < 3_600_000L }
+                        this@StatisticsController.status.getAllStreamStatuses().filter { it.millisSinceLastUpdate < 3_600_000L }
                             .forEach { transfer.add(snapshot(it, "stream", request.locale)) }
-                        this@StatisticsController.status.allDownloadStatuses.forEach { transfer.add(snapshot(it, "download", request.locale)) }
-                        this@StatisticsController.status.allUploadStatuses.forEach { transfer.add(snapshot(it, "upload", request.locale)) }
+                        this@StatisticsController.status.getAllDownloadStatuses().forEach { transfer.add(snapshot(it, "download", request.locale)) }
+                        this@StatisticsController.status.getAllUploadStatuses().forEach { transfer.add(snapshot(it, "upload", request.locale)) }
                     }
                 }
             }

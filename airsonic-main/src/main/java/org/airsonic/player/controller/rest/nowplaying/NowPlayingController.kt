@@ -33,7 +33,7 @@ class NowPlayingController(
     private suspend fun respond(call: ApplicationCall, parameters: Parameters) {
         val result = try {
             val nowPlaying = NowPlaying()
-            val plays = status.activePlays.asSequence() + status.inactivePlays.asSequence()
+            val plays = status.getActivePlays().asSequence() + status.getInactivePlays().asSequence()
             plays.forEach { info ->
                 val play = requireNotNull(info.fromPlayStatus())
                 val player = play.player
