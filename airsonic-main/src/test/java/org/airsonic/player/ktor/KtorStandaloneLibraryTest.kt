@@ -3,6 +3,7 @@ package org.airsonic.player.ktor
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.put
@@ -122,6 +123,14 @@ class KtorStandaloneLibraryTest {
                     setBody("""{"name":"Other","path":"$musicRoot"}""")
                 }
                     assertEquals(HttpStatusCode.Conflict, duplicate.status)
+                    assertEquals(setOf(createdId.toLong()), auth.allowedLibraries(listenerId))
+
+                    val deletedAsListener = client.delete("/api/v1/admin/libraries/$createdId") { bearerAuth(userToken) }
+                    assertEquals(HttpStatusCode.Forbidden, deletedAsListener.status)
+                    val deleted = client.delete("/api/v1/admin/libraries/$createdId") { bearerAuth(adminToken) }
+                    assertEquals(HttpStatusCode.NoContent, deleted.status)
+                    assertTrue(auth.allowedLibraries(listenerId).orEmpty().isEmpty())
+                    assertTrue(runtime.mediaFolderService.getMusicFolderById(createdId.toInt(), true, true) == null)
                     assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/admin/music-folders") { bearerAuth(adminToken) }.status)
                 }
             }

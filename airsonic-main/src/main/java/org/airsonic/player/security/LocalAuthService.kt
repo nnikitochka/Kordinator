@@ -411,6 +411,16 @@ class LocalAuthService(
         }
     }
 
+    fun removeLibraryAccess(libraryId: Long): Int {
+        require(libraryId >= 0) { "Library ID must be non-negative" }
+        return dataSource.connection.use { connection ->
+            connection.prepareStatement("DELETE FROM local_user_library WHERE library_id = ?").use { statement ->
+                statement.setLong(1, libraryId)
+                statement.executeUpdate()
+            }
+        }
+    }
+
     fun logout(token: String) {
         if (token.isBlank() || token.length > MAX_TOKEN_LENGTH) return
         dataSource.connection.use { connection ->

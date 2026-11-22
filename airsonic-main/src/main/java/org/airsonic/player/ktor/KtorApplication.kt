@@ -1987,6 +1987,39 @@ fun Application.standaloneModule(
                         withContext(authDispatcher) { folderService.updateMusicFolder(folder) }
                         call.respondJson(folder.toLibraryResponse())
                     }
+                    delete("/admin/libraries/{id}") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@delete
+                        }
+                        val auth = authService
+                        if (auth == null) {
+                            call.respondJson(ApiError("unavailable", "Account storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@delete
+                        }
+                        val folderService = mediaFolderService
+                        if (folderService == null) {
+                            call.respondJson(ApiError("unavailable", "Music folder storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@delete
+                        }
+                        val libraryId = call.parameters["id"]?.toIntOrNull()
+                        if (libraryId == null || libraryId <= 0) {
+                            call.respondJson(ApiError("invalid_request", "Library ID must be a positive number"), HttpStatusCode.BadRequest)
+                            return@delete
+                        }
+                        val exists = withContext(authDispatcher) {
+                            folderService.getAllMusicFolders(true, true, true).any { it.id == libraryId }
+                        }
+                        if (!exists) {
+                            call.respondJson(ApiError("library_not_found", "Library does not exist"), HttpStatusCode.NotFound)
+                            return@delete
+                        }
+                        withContext(authDispatcher) { folderService.deleteMusicFolder(libraryId) }
+                        withContext(authDispatcher) { auth.removeLibraryAccess(libraryId.toLong()) }
+                        call.respond(HttpStatusCode.NoContent)
+                    }
                     post("/admin/libraries") {
                         val actor = call.principal<LocalUserPrincipal>()
                             ?: return@post call.respond(HttpStatusCode.Unauthorized)
