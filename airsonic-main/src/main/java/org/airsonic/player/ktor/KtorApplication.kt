@@ -87,6 +87,8 @@ import java.util.Locale
 import org.airsonic.player.service.ServerInfoService
 import org.airsonic.player.service.GeneralSettingsAdministrationService
 import org.airsonic.player.command.GeneralSettingsCommand
+import org.airsonic.player.service.TranscodingService
+import org.airsonic.player.domain.Transcoding
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
 import org.airsonic.player.service.LyricsService
@@ -156,6 +158,7 @@ fun Application.standaloneModule(
     serverInfoService: ServerInfoService? = null,
     settingsService: SettingsService? = null,
     generalSettingsService: GeneralSettingsAdministrationService? = null,
+    transcodingService: TranscodingService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -1242,6 +1245,51 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("invalid_request", failure.message ?: "Invalid general settings"), HttpStatusCode.BadRequest)
                         }
                     }
+                    get("/admin/settings/transcoding") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val service = transcodingService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Transcoding settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val settings = settingsService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.respondJson(withContext(Dispatchers.IO) {
+                            TranscodingSettingsResponse(
+                                settings.brand,
+                                SettingsService.getTranscodeDirectory().toString(),
+                                settings.downsamplingCommand.orEmpty(), settings.hlsCommand.orEmpty(),
+                                settings.jukeboxCommand.orEmpty(), settings.videoImageCommand.orEmpty(),
+                                settings.subtitlesExtractionCommand.orEmpty(), settings.transcodeEstimateTimePadding,
+                                settings.transcodeEstimateBytePadding,
+                                service.allTranscodings.sortedBy { it.id }.map { it.toResponse() },
+                            )
+                        })
+                    }
+                    put("/admin/settings/transcoding") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@put
+                        }
+                        val service = transcodingService
+                            ?: return@put call.respondJson(ApiError("unavailable", "Transcoding settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val settings = settingsService
+                            ?: return@put call.respondJson(ApiError("unavailable", "Settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), UpdateTranscodingSettingsRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected a JSON transcoding settings object"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        try {
+                            saveTranscodingSettings(service, settings, request)
+                            call.respond(HttpStatusCode.NoContent)
+                        } catch (failure: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_request", failure.message ?: "Invalid transcoding settings"), HttpStatusCode.BadRequest)
+                        }
+                    }
                     get("/me/avatar") {
                         val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         val service = avatarService ?: return@get call.respondJson(ApiError("unavailable", "Avatar storage is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -2116,6 +2164,31 @@ data class UserSettingsResponse(
     val playqueueVisibility: UserSettings.Visibility,
     val changedAt: String,
 )
+data class TranscodingProfileResponse(
+    val id: Int, val name: String, val sourceFormats: String, val targetFormat: String,
+    val step1: String, val step2: String?, val step3: String?, val defaultActive: Boolean,
+)
+data class TranscodingSettingsResponse(
+    val brand: String, val transcodeDirectory: String, val downsampleCommand: String,
+    val hlsCommand: String, val jukeboxCommand: String, val videoImageCommand: String,
+    val subtitlesExtractionCommand: String, val estimateTimePadding: Long, val estimateBytePadding: Long,
+    val profiles: List<TranscodingProfileResponse>,
+)
+data class TranscodingProfileRequest(
+    val id: Int? = null, val name: String, val sourceFormats: String, val targetFormat: String,
+    val step1: String, val step2: String? = null, val step3: String? = null, val defaultActive: Boolean = false,
+)
+data class UpdateTranscodingSettingsRequest(
+    val profiles: List<TranscodingProfileRequest> = emptyList(),
+    val deleteIds: Set<Int> = emptySet(),
+    val downsampleCommand: String,
+    val hlsCommand: String,
+    val jukeboxCommand: String,
+    val videoImageCommand: String,
+    val subtitlesExtractionCommand: String,
+    val estimateTimePadding: Long? = null,
+    val estimateBytePadding: Long? = null,
+)
 data class AdminUserResponse(val id: Long, val username: String, val role: String, val enabled: Boolean)
 data class AdminUserDetailsResponse(val user: AdminUserResponse, val libraryIds: List<Long>)
 data class AdminHealthResponse(val status: String, val components: List<HealthComponentResponse>)
@@ -2292,6 +2365,47 @@ private fun validateGeneralSettings(command: GeneralSettingsCommand, service: Ge
             ?: throw IllegalArgumentException("Invalid session duration")
         require(match.groupValues[1].toLongOrNull()?.let { it > 0 } == true) { "Session duration must be positive" }
     }
+}
+private fun Transcoding.toResponse() = TranscodingProfileResponse(
+    requireNotNull(id), name, sourceFormats, targetFormat, step1, step2, step3, isDefaultActive,
+)
+private fun saveTranscodingSettings(
+    service: TranscodingService,
+    settings: SettingsService,
+    request: UpdateTranscodingSettingsRequest,
+) {
+    require(request.estimateTimePadding == null || request.estimateTimePadding >= 0) { "Time padding must be non-negative" }
+    require(request.estimateBytePadding == null || request.estimateBytePadding >= 0) { "Byte padding must be non-negative" }
+    val current = service.allTranscodings.associateBy { requireNotNull(it.id) }
+    val requestedIds = request.profiles.mapNotNull { it.id }
+    require(requestedIds.distinct().size == requestedIds.size) { "Duplicate transcoding profile ID" }
+    require(request.deleteIds.size == request.deleteIds.distinct().size) { "Duplicate transcoding delete ID" }
+    require(requestedIds.none { it in request.deleteIds }) { "A profile cannot be updated and deleted" }
+    require(requestedIds.all { it in current }) { "Unknown transcoding profile ID" }
+    require(request.deleteIds.all { it in current }) { "Unknown transcoding profile ID" }
+    require((requestedIds + request.deleteIds).toSet() == current.keys) { "Every existing profile must be updated or deleted" }
+    request.profiles.forEach {
+        require(it.name.isNotBlank() && it.sourceFormats.isNotBlank() && it.targetFormat.isNotBlank() && it.step1.isNotBlank()) {
+            "Profile name, formats, target and first command are required"
+        }
+    }
+    val profiles = request.profiles.map { input ->
+        Transcoding(
+            input.id, input.name.trim(), input.sourceFormats.trim(), input.targetFormat.trim(),
+            input.step1.trim(), input.step2?.trim()?.ifEmpty { null }, input.step3?.trim()?.ifEmpty { null }, input.defaultActive,
+        )
+    }
+    profiles.filter { it.id != null }.forEach(service::updateTranscoding)
+    request.deleteIds.forEach(service::deleteTranscoding)
+    profiles.filter { it.id == null }.forEach(service::createTranscoding)
+    settings.downsamplingCommand = request.downsampleCommand
+    settings.hlsCommand = request.hlsCommand
+    settings.jukeboxCommand = request.jukeboxCommand
+    settings.videoImageCommand = request.videoImageCommand
+    settings.subtitlesExtractionCommand = request.subtitlesExtractionCommand
+    settings.setTranscodeEstimateTimePadding(request.estimateTimePadding)
+    settings.setTranscodeEstimateBytePadding(request.estimateBytePadding)
+    settings.save()
 }
 private fun cacheMetric(meters: MeterRegistry, metric: String, cache: String, vararg tags: String): Double? {
     val found = meters.find(metric).tags("cache", cache).tags(*tags).meters()
@@ -2764,6 +2878,8 @@ fun main(args: Array<String>) {
         settingsService,
         runtime.createTaskSchedulingService(),
     )
+    val transcodingService = runtime.createTranscodingService(legacyGraph.transcodingDao, settingsService, mediaFolderService)
+    runtime.createPlayerService(runtime.createPlayerDao(), statusService, securityService, transcodingService)
     val scrobbleService = StandaloneScrobbleService(
         mediaFileService,
         statusService,
@@ -2829,6 +2945,7 @@ fun main(args: Array<String>) {
             serverInfoService,
             settingsService,
             generalSettingsService,
+            transcodingService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
