@@ -74,6 +74,9 @@ import org.airsonic.player.health.Status
 import org.airsonic.player.health.StatusAggregator
 import io.micrometer.core.instrument.MeterRegistry
 import javax.cache.CacheManager
+import org.airsonic.player.service.StatusService
+import org.airsonic.player.service.SecurityService
+import org.airsonic.player.domain.TransferStatus
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
 import org.airsonic.player.service.LyricsService
@@ -138,6 +141,8 @@ fun Application.standaloneModule(
     taskSchedulingService: TaskSchedulingService? = null,
     cacheManager: CacheManager? = null,
     meterRegistry: MeterRegistry? = null,
+    statusService: StatusService? = null,
+    securityService: SecurityService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -1006,6 +1011,41 @@ fun Application.standaloneModule(
                         call.response.headers.append(HttpHeaders.CacheControl, "no-store")
                         call.respond(HttpStatusCode.NoContent)
                     }
+                    get("/admin/transfer-statistics") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val status = statusService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Transfer status service is not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+                        val transfers = withContext(Dispatchers.IO) {
+                            buildList {
+                                status.getAllStreamStatuses().filter { it.millisSinceLastUpdate < 3_600_000L }
+                                    .forEach { add(it.toTransferResponse("stream")) }
+                                status.getAllDownloadStatuses().forEach { add(it.toTransferResponse("download")) }
+                                status.getAllUploadStatuses().forEach { add(it.toTransferResponse("upload")) }
+                            }
+                        }
+                        call.respondJson(transfers)
+                    }
+                    get("/admin/user-transfer-statistics") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val security = securityService
+                            ?: return@get call.respondJson(ApiError("unavailable", "User statistics service is not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+                        val users = withContext(Dispatchers.IO) {
+                            security.allUsers.sortedBy { it.username }.map { user ->
+                                UserTransferStatisticsResponse(user.username, user.bytesStreamed, user.bytesDownloaded, user.bytesUploaded)
+                            }
+                        }
+                        call.respondJson(users)
+                    }
                     get("/me/avatar") {
                         val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         val service = avatarService ?: return@get call.respondJson(ApiError("unavailable", "Avatar storage is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -1819,6 +1859,17 @@ data class ScheduledTaskResponse(
     val nextRun: String?,
 )
 data class CacheStatisticsResponse(val name: String, val hits: Double?, val misses: Double?, val puts: Double?, val removals: Double?)
+data class TransferSampleResponse(val timestamp: Long, val bytesTransferred: Long)
+data class TransferStatisticsResponse(
+    val type: String,
+    val username: String?,
+    val playerType: String?,
+    val playerName: String?,
+    val path: String?,
+    val bytesTransferred: Long,
+    val history: List<TransferSampleResponse>,
+)
+data class UserTransferStatisticsResponse(val username: String, val streamed: Long, val downloaded: Long, val uploaded: Long)
 data class ApiError(val code: String, val message: String)
 data class ChangePasswordRequest(val currentPassword: String, val newPassword: String)
 data class SavePlayQueueRequest(
@@ -1922,6 +1973,15 @@ private fun cacheMetric(meters: MeterRegistry, metric: String, cache: String, va
     val value = found.sumOf { meter -> meter.measure().sumOf { it.value } }
     return value.takeIf { it.isFinite() }
 }
+private fun TransferStatus.toTransferResponse(type: String) = TransferStatisticsResponse(
+    type = type,
+    username = player.username,
+    playerType = player.type,
+    playerName = player.name,
+    path = mediaFile?.relativePath?.toString() ?: externalFile?.fileName?.toString(),
+    bytesTransferred = bytesTransferred,
+    history = history.map { TransferSampleResponse(it.timestamp, it.bytesTransferred) },
+)
 private fun StandaloneShare.toResponse(token: String?, tracks: List<TrackResponse>) = ShareResponse(
     id, trackIds, description, createdAt.toString(), expiresAt?.toString(), visitCount, lastVisitedAt?.toString(), token, tracks,
 )
@@ -2421,6 +2481,8 @@ fun main(args: Array<String>) {
             taskSchedulingService,
             cacheManager,
             meterRegistry,
+            statusService,
+            securityService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
