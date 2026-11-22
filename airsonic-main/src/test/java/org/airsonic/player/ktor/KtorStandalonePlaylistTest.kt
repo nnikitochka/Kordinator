@@ -58,6 +58,7 @@ class KtorStandalonePlaylistTest {
                 auth.createUser("other", "another strong password")
                 val ownerToken = auth.login("owner", "a strong password for tests")!!.token
                 val otherToken = auth.login("other", "another strong password")!!.token
+                val otherId = requireNotNull(auth.authenticate(otherToken)).id
                 val library = runtime.mediaFolderService.getAllMusicFolders(true, true).single()
                 val coreCatalog = mockCoreCatalog(
                     runtime,
@@ -281,6 +282,9 @@ class KtorStandalonePlaylistTest {
                 assertEquals(404, client.put("/api/v1/albums/$albumId/favorite") {
                     bearerAuth(otherToken)
                 }.status.value)
+                assertEquals(404, client.put("/api/v1/artists/$artistId/favorite") {
+                    bearerAuth(otherToken)
+                }.status.value)
                 assertEquals(404, client.put("/api/v1/albums/${library.id}.bm9uZXhpc3RlbnQ/favorite") {
                     bearerAuth(ownerToken)
                 }.status.value)
@@ -289,6 +293,34 @@ class KtorStandalonePlaylistTest {
                 assertEquals(204, client.delete("/api/v1/artists/$artistId/favorite") { bearerAuth(ownerToken) }.status.value)
                 assertEquals(0, mapper.readTree(client.get("/api/v1/favorites/artists") {
                     bearerAuth(ownerToken)
+                }.bodyAsText()).get("total").asInt())
+
+                assertEquals(true, auth.setAllowedLibraries(otherId, setOf(library.id.toLong())))
+                assertEquals(204, client.put("/api/v1/albums/$albumId/favorite") { bearerAuth(otherToken) }.status.value)
+                assertEquals(204, client.put("/api/v1/artists/$artistId/favorite") { bearerAuth(otherToken) }.status.value)
+                val rescan = scans.enqueue(library.id.toLong())
+                scans.run(rescan.id)
+                assertEquals("COMPLETED", scans.latestScan(library.id.toLong())?.state)
+                assertEquals(1, mapper.readTree(client.get("/api/v1/favorites/albums") {
+                    bearerAuth(otherToken)
+                }.bodyAsText()).get("total").asInt())
+                assertEquals(1, mapper.readTree(client.get("/api/v1/favorites/artists") {
+                    bearerAuth(otherToken)
+                }.bodyAsText()).get("total").asInt())
+
+                assertEquals(true, auth.setAllowedLibraries(otherId, emptySet()))
+                assertEquals(0, mapper.readTree(client.get("/api/v1/favorites/albums") {
+                    bearerAuth(otherToken)
+                }.bodyAsText()).get("total").asInt())
+                assertEquals(0, mapper.readTree(client.get("/api/v1/favorites/artists") {
+                    bearerAuth(otherToken)
+                }.bodyAsText()).get("total").asInt())
+                assertEquals(true, auth.setAllowedLibraries(otherId, setOf(library.id.toLong())))
+                assertEquals(1, mapper.readTree(client.get("/api/v1/favorites/albums") {
+                    bearerAuth(otherToken)
+                }.bodyAsText()).get("total").asInt())
+                assertEquals(1, mapper.readTree(client.get("/api/v1/favorites/artists") {
+                    bearerAuth(otherToken)
                 }.bodyAsText()).get("total").asInt())
 
                 val created = client.post("/api/v1/playlists") {
