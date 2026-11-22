@@ -58,6 +58,8 @@ import org.airsonic.player.service.StandaloneArtist
 import org.airsonic.player.service.StandaloneTrack
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.StandaloneBookmarkService
+import org.airsonic.player.service.StandaloneShareService
+import org.airsonic.player.service.StandaloneShare
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
 import org.airsonic.player.service.LyricsService
@@ -113,6 +115,7 @@ fun Application.standaloneModule(
     artistDao: ArtistDao? = null,
     mediaFileDao: MediaFileDao? = null,
     captionService: CaptionService? = null,
+    shareService: StandaloneShareService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -127,6 +130,25 @@ fun Application.standaloneModule(
     routing {
         get("/api/v1/health") {
             call.respondJson(HealthResponse("UP"))
+        }
+        get("/api/v1/public/shares/{token}") {
+            val service = shareService ?: return@get call.respondJson(ApiError("unavailable", "Share storage is not configured"), HttpStatusCode.ServiceUnavailable)
+            val token = call.parameters["token"] ?: return@get call.respond(HttpStatusCode.NotFound)
+            val share = withContext(authDispatcher) { service.publicShare(token) }
+                ?: return@get call.respond(HttpStatusCode.NotFound)
+            val tracks = mediaCatalogService?.let { catalog ->
+                withContext(scanDispatcher) { catalog.tracksByCoreIds(share.trackIds) }
+            }.orEmpty()
+            if (tracks.size != share.trackIds.size) return@get call.respond(HttpStatusCode.NotFound)
+            call.respondJson(PublicShareResponse(share.description, share.expiresAt?.toString(), tracks.map {
+                PublicShareTrackResponse(it.toTrackResponse(), "/api/v1/public/shares/$token/tracks/${it.id}/stream")
+            }))
+        }
+        get("/api/v1/public/shares/{token}/tracks/{trackId}/stream") {
+            respondPublicShareTrack(call, shareService, libraryScanService, mediaCatalogService, head = false)
+        }
+        head("/api/v1/public/shares/{token}/tracks/{trackId}/stream") {
+            respondPublicShareTrack(call, shareService, libraryScanService, mediaCatalogService, head = true)
         }
         if (authService != null) {
             route("/api/v1") {
@@ -682,6 +704,71 @@ fun Application.standaloneModule(
                     }
                     if (playlistService != null && mediaCatalogService != null) {
                         KordinatorPlaylistImportRoutes(playlistService, mediaCatalogService).routes(this)
+                    }
+                    get("/shares") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val service = shareService ?: return@get call.respondJson(ApiError("unavailable", "Share storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val shares = withContext(authDispatcher) { service.list(actor.id) }
+                        call.respondJson(shares.map { it.toResponse(null, emptyList()) })
+                    }
+                    post("/shares") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                        val service = shareService ?: return@post call.respondJson(ApiError("unavailable", "Share storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val catalog = mediaCatalogService ?: return@post call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), CreateShareRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected trackIds, optional description and expiresAt"), HttpStatusCode.BadRequest)
+                            return@post
+                        }
+                        val expiresAt = try {
+                            request.expiresAt?.let(java.time.Instant::parse)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_expiration", "expiresAt must be an ISO-8601 timestamp"), HttpStatusCode.BadRequest)
+                            return@post
+                        }
+                        try {
+                            val share = withContext(scanDispatcher) {
+                                service.create(actor.id, request.trackIds, request.description, expiresAt, actor.catalogLibraryScope())
+                            }
+                            val tracks = withContext(scanDispatcher) { catalog.tracksByCoreIds(share.trackIds, actor.catalogLibraryScope()) }
+                            call.respondJson(share.toResponse(share.token, tracks.map { it.toTrackResponse() }), HttpStatusCode.Created)
+                        } catch (failure: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_share", failure.message ?: "Share request is invalid"), HttpStatusCode.BadRequest)
+                        }
+                    }
+                    put("/shares/{id}") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        val service = shareService ?: return@put call.respondJson(ApiError("unavailable", "Share storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val id = call.parameters["id"]?.toLongOrNull()?.takeIf { it >= 0 }
+                            ?: return@put call.respondJson(ApiError("invalid_request", "Share ID must be non-negative"), HttpStatusCode.BadRequest)
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), UpdateShareRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected description and expiresAt"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val expiresAt = try {
+                            request.expiresAt?.let(java.time.Instant::parse)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_expiration", "expiresAt must be an ISO-8601 timestamp"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        try {
+                            val updated = withContext(authDispatcher) { service.update(actor.id, id, request.description, expiresAt) }
+                            if (!updated) call.respond(HttpStatusCode.NotFound)
+                            else call.respondJson(requireNotNull(withContext(authDispatcher) { service.get(actor.id, id) }).toResponse(null, emptyList()))
+                        } catch (failure: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_share", failure.message ?: "Share request is invalid"), HttpStatusCode.BadRequest)
+                        }
+                    }
+                    delete("/shares/{id}") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                        val service = shareService ?: return@delete call.respondJson(ApiError("unavailable", "Share storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val id = call.parameters["id"]?.toLongOrNull()?.takeIf { it >= 0 }
+                            ?: return@delete call.respondJson(ApiError("invalid_request", "Share ID must be non-negative"), HttpStatusCode.BadRequest)
+                        val deleted = withContext(authDispatcher) { service.delete(actor.id, id) }
+                        if (deleted) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
                     }
                     get("/playlists") {
                         val user = call.principal<LocalUserPrincipal>()
@@ -1582,12 +1669,34 @@ data class CreateLibraryRequest(val name: String, val path: String)
 data class UpdateLibraryRequest(val name: String)
 data class LibraryResponse(val id: Long, val name: String, val path: String, val enabled: Boolean, val createdAt: String)
 data class UploadedLibraryFileResponse(val libraryId: Long, val path: String, val sizeBytes: Long)
+data class CreateShareRequest(val trackIds: List<Long> = emptyList(), val description: String? = null, val expiresAt: String? = null)
+data class UpdateShareRequest(val description: String? = null, val expiresAt: String? = null)
+data class ShareResponse(
+    val id: Long,
+    val trackIds: List<Long>,
+    val description: String?,
+    val createdAt: String,
+    val expiresAt: String?,
+    val visitCount: Long,
+    val lastVisitedAt: String?,
+    val token: String?,
+    val tracks: List<TrackResponse>,
+)
+data class PublicShareResponse(val description: String?, val expiresAt: String?, val tracks: List<PublicShareTrackResponse>)
+data class PublicShareTrackResponse(val track: TrackResponse, val streamUrl: String)
 private fun MusicFolder.toLibraryResponse() = LibraryResponse(
     id = requireNotNull(id) { "Music folder has not been persisted" }.toLong(),
     name = name,
     path = path.toString(),
     enabled = isEnabled,
     createdAt = changed.toString(),
+)
+private fun StandaloneShare.toResponse(token: String?, tracks: List<TrackResponse>) = ShareResponse(
+    id, trackIds, description, createdAt.toString(), expiresAt?.toString(), visitCount, lastVisitedAt?.toString(), token, tracks,
+)
+private fun org.airsonic.player.service.StandaloneTrack.toTrackResponse() = TrackResponse(
+    id, libraryId, relativePath, title, artist, album, albumArtist, durationSeconds, sizeBytes, modifiedAt?.toString(),
+    discNumber, trackNumber, year, genre,
 )
 data class TrackResponse(
     val id: Long,
@@ -1758,23 +1867,44 @@ data class PlaylistResponse(
 
 private data class ByteRange(val start: Long, val end: Long)
 
+private suspend fun respondPublicShareTrack(
+    call: ApplicationCall,
+    shareService: StandaloneShareService?,
+    scanService: StandaloneLibraryScanService?,
+    catalogService: KtorCoreMediaCatalogService?,
+    head: Boolean,
+) {
+    val service = shareService ?: return call.respondJson(ApiError("unavailable", "Share storage is not configured"), HttpStatusCode.ServiceUnavailable)
+    val token = call.parameters["token"] ?: return call.respond(HttpStatusCode.NotFound)
+    val trackId = call.parameters["trackId"]?.toLongOrNull()?.takeIf { it >= 0 }
+        ?: return call.respondJson(ApiError("invalid_request", "Track ID must be non-negative"), HttpStatusCode.BadRequest)
+    val share = withContext(authDispatcher) { service.publicShare(token) }
+        ?: return call.respond(HttpStatusCode.NotFound)
+    if (trackId !in share.trackIds) return call.respond(HttpStatusCode.NotFound)
+    respondTrackFile(call, scanService, catalogService, false, head, trackId, publicAccess = true)
+}
+
 private suspend fun respondTrackFile(
     call: ApplicationCall,
     scanService: StandaloneLibraryScanService?,
     catalogService: KtorCoreMediaCatalogService?,
     download: Boolean,
     head: Boolean,
+    trackIdOverride: Long? = null,
+    publicAccess: Boolean = false,
 ) {
     if (scanService == null || catalogService == null) {
         call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
         return
     }
-    val trackId = call.parameters["id"]?.toLongOrNull()
+    val trackId = trackIdOverride ?: call.parameters["id"]?.toLongOrNull()
     if (trackId == null || trackId < 0) {
         call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
         return
     }
-    val catalogTrack = withContext(scanDispatcher) { catalogService.track(trackId, call.catalogLibraryScope()) }
+    val catalogTrack = withContext(scanDispatcher) {
+        catalogService.track(trackId, if (publicAccess) null else call.catalogLibraryScope())
+    }
     if (catalogTrack == null) {
         call.respond(HttpStatusCode.NotFound)
         return
@@ -1969,6 +2099,7 @@ fun main(args: Array<String>) {
     val favoriteService = StandaloneFavoriteService(standaloneDatabase.dataSource, mediaCatalogService)
     val playQueueService = StandalonePlayQueueService(standaloneDatabase.dataSource, mediaCatalogService)
     val bookmarkService = StandaloneBookmarkService(standaloneDatabase.dataSource, mediaCatalogService)
+    val shareService = StandaloneShareService(standaloneDatabase.dataSource, mediaCatalogService)
     val ratingService = StandaloneRatingService(standaloneDatabase.dataSource, mediaCatalogService)
     val securityService = runtime.createSecurityService(
         legacyGraph.userDao,
@@ -2044,6 +2175,7 @@ fun main(args: Array<String>) {
             legacyGraph.artistDao,
             legacyGraph.mediaFileDao,
             captionService,
+            shareService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }

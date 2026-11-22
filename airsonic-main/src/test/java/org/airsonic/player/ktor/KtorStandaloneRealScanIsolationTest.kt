@@ -7,6 +7,7 @@ import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.HttpClient
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
+import io.ktor.client.request.delete
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsBytes
@@ -20,6 +21,7 @@ import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.service.StandaloneLibraryScanService
+import org.airsonic.player.service.StandaloneShareService
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
@@ -97,6 +99,7 @@ class KtorStandaloneRealScanIsolationTest {
                 assertEquals("FAILED", scanService.latestScan(firstLibrary.id!!.toLong())?.state)
                 assertTrue(scanService.latestScan(firstLibrary.id!!.toLong())?.finishedAt != null)
                 val mediaCatalog = KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
+                val shareService = StandaloneShareService(dataSource, mediaCatalog)
                 val mapper = jacksonObjectMapper()
 
                 testApplication {
@@ -106,6 +109,7 @@ class KtorStandaloneRealScanIsolationTest {
                             libraryScanService = scanService,
                             mediaFolderService = runtime.mediaFolderService,
                             mediaCatalogService = mediaCatalog,
+                            shareService = shareService,
                         )
                     }
 
@@ -160,6 +164,45 @@ class KtorStandaloneRealScanIsolationTest {
                     val firstTrack = mapper.readTree(firstCatalog.bodyAsText()).get("items").single()
                     assertTrue(firstTrack.get("relativePath").asText().endsWith("first.mp3"))
                     val firstTrackId = firstTrack.get("id").asLong()
+                    val createdShare = client.post("/api/v1/shares") {
+                        bearerAuth(firstToken)
+                        contentType(ContentType.Application.Json)
+                        setBody(mapper.writeValueAsString(mapOf("trackIds" to listOf(firstTrackId), "description" to "One track")))
+                    }
+                    assertEquals(HttpStatusCode.Created, createdShare.status, createdShare.bodyAsText())
+                    val shareJson = mapper.readTree(createdShare.bodyAsText())
+                    val shareId = shareJson.get("id").asLong()
+                    val shareToken = shareJson.get("token").asText()
+                    dataSource.connection.use { connection ->
+                        connection.prepareStatement("SELECT token_hash FROM shared_link WHERE id = ?").use { statement ->
+                            statement.setLong(1, shareId)
+                            statement.executeQuery().use { rows ->
+                                assertTrue(rows.next())
+                                assertTrue(rows.getString(1) != shareToken)
+                            }
+                        }
+                    }
+                    assertEquals(0, mapper.readTree(client.get("/api/v1/shares") { bearerAuth(secondToken) }.bodyAsText()).size())
+                    val publicShare = client.get("/api/v1/public/shares/$shareToken")
+                    assertEquals(HttpStatusCode.OK, publicShare.status, publicShare.bodyAsText())
+                    assertEquals(1, mapper.readTree(publicShare.bodyAsText()).get("tracks").size())
+                    val publicStream = client.get("/api/v1/public/shares/$shareToken/tracks/$firstTrackId/stream")
+                    assertEquals(HttpStatusCode.OK, publicStream.status, publicStream.bodyAsText())
+                    assertTrue(firstBytes.contentEquals(publicStream.bodyAsBytes()))
+                    assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/public/shares/$shareToken/tracks/${firstTrackId + 1}/stream").status)
+                    val ownerShares = mapper.readTree(client.get("/api/v1/shares") { bearerAuth(firstToken) }.bodyAsText())
+                    assertEquals(firstTrackId, ownerShares[0].get("trackIds")[0].asLong())
+                    val foreignDelete = client.delete("/api/v1/shares/$shareId") { bearerAuth(secondToken) }
+                    assertEquals(HttpStatusCode.NotFound, foreignDelete.status, foreignDelete.bodyAsText())
+                    dataSource.connection.use { connection ->
+                        connection.prepareStatement("UPDATE shared_link SET expires_at = TIMESTAMP '2000-01-01 00:00:00' WHERE id = ?").use { statement ->
+                            statement.setLong(1, shareId)
+                            assertEquals(1, statement.executeUpdate())
+                        }
+                    }
+                    assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/public/shares/$shareToken").status)
+                    assertEquals(HttpStatusCode.NoContent, client.delete("/api/v1/shares/$shareId") { bearerAuth(firstToken) }.status)
+                    assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/public/shares/$shareToken").status)
                     assertEquals(HttpStatusCode.OK, client.get("/api/v1/tracks/$firstTrackId") {
                         bearerAuth(firstToken)
                     }.status)

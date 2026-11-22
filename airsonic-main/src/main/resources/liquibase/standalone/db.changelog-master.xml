@@ -370,4 +370,50 @@
                                  constraintName="fk_track_rating_user" referencedTableName="local_user"
                                  referencedColumnNames="id" onDelete="CASCADE"/>
     </changeSet>
+    <changeSet id="standalone-shares-1" author="kordinator">
+        <createTable tableName="shared_link">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_shared_link"/>
+            </column>
+            <column name="owner_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="token_hash" type="CHAR(64)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_shared_link_token"/>
+            </column>
+            <column name="description" type="VARCHAR(1024)"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="TIMESTAMP"/>
+            <column name="visit_count" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_visited_at" type="TIMESTAMP"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="shared_link" baseColumnNames="owner_id"
+                                 constraintName="fk_shared_link_owner" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="shared_link" indexName="ix_shared_link_owner">
+            <column name="owner_id"/>
+            <column name="created_at"/>
+        </createIndex>
+        <createTable tableName="shared_link_track">
+            <column name="share_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_shared_link_track"/>
+            </column>
+            <column name="position" type="INT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_shared_link_track"/>
+            </column>
+            <column name="track_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="shared_link_track" baseColumnNames="share_id"
+                                 constraintName="fk_shared_link_track_share" referencedTableName="shared_link"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="shared_link_track" indexName="ix_shared_link_track_track">
+            <column name="track_id"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>
