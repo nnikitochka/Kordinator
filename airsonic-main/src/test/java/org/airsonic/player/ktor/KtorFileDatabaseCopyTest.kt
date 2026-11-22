@@ -68,6 +68,13 @@ class KtorFileDatabaseCopyTest {
             val favorites = StandaloneFavoriteService(database.dataSource, catalog)
             assertTrue(favorites.set(userId, trackId, true, setOf(libraryId)))
 
+            folder.name = "Renamed library"
+            source.mediaFolderService.updateMusicFolder(folder)
+            val rescan = scanService.enqueue(libraryId)
+            scanService.run(rescan.id)
+            assertEquals("COMPLETED", scanService.latestScan(libraryId)?.state)
+            assertEquals(trackId, catalog.tracks(libraryId, null, 10, 0, setOf(libraryId)).single().id)
+
             database.close()
             sourceDatabase = null
             source.close()
@@ -90,6 +97,9 @@ class KtorFileDatabaseCopyTest {
                 assertEquals(userId, principal.id)
                 assertEquals("listener", principal.username)
                 assertEquals(setOf(libraryId), principal.allowedLibraryIds)
+                val restoredFolder = requireNotNull(restored.mediaFolderService.getMusicFolderById(libraryId.toInt(), true, true))
+                assertEquals("Renamed library", restoredFolder.name)
+                assertEquals(musicRoot.toRealPath(), restoredFolder.path)
 
                 val catalog = KtorCoreMediaCatalogService(restored.coreDataSource, database.dataSource)
                 val track = assertNotNull(catalog.track(trackId, setOf(libraryId)))
@@ -106,7 +116,7 @@ class KtorFileDatabaseCopyTest {
                             statement.executeQuery().use { rows -> rows.next(); rows.getInt(1) }
                         }
                 }
-                assertEquals(1, scanJobs)
+                assertEquals(2, scanJobs)
             } finally {
                 database.close()
             }

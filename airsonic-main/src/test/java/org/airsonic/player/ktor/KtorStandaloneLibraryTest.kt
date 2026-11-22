@@ -29,6 +29,8 @@ class KtorStandaloneLibraryTest {
     fun administratorCanRegisterAndListReadableLibraryRoots() {
         val defaultRoot = musicRoot.resolveSibling("${musicRoot.fileName}-default")
         Files.createDirectories(defaultRoot)
+        val marker = musicRoot.resolve("keep-after-library-rename.txt")
+        Files.writeString(marker, "library data stays in place")
         val runtime = KtorRuntimeFixture(musicRoot.resolveSibling("runtime"), defaultRoot, "standalone_library_core_${musicRoot.fileName}")
         val dataSource = HikariDataSource(HikariConfig().apply {
             jdbcUrl = "jdbc:hsqldb:mem:standalone_library_api_${musicRoot.fileName}"
@@ -46,6 +48,7 @@ class KtorStandaloneLibraryTest {
                 auth.createUser("listener", "listener password for tests")
                 val adminToken = auth.login("admin", "a strong password for tests")!!.token
                 val userToken = auth.login("listener", "listener password for tests")!!.token
+                val listenerId = requireNotNull(auth.authenticate(userToken)).id
 
                 testApplication {
                     application { standaloneModule(authService = auth, mediaFolderService = runtime.mediaFolderService) }
@@ -75,6 +78,9 @@ class KtorStandaloneLibraryTest {
                     }
                     assertEquals(HttpStatusCode.Conflict, duplicateName.status)
 
+                    auth.setAllowedLibraries(listenerId, setOf(createdId.toLong()))
+                    assertEquals(setOf(createdId.toLong()), auth.allowedLibraries(listenerId))
+
                     val renamed = client.put("/api/v1/admin/libraries/$createdId") {
                         bearerAuth(adminToken)
                         contentType(ContentType.Application.Json)
@@ -82,6 +88,17 @@ class KtorStandaloneLibraryTest {
                     }
                     assertEquals(HttpStatusCode.OK, renamed.status)
                     assertTrue(renamed.bodyAsText().contains("\"name\":\"Renamed\""))
+                    assertTrue(renamed.bodyAsText().contains("\"id\":$createdId"))
+                    assertTrue(renamed.bodyAsText().contains(musicRoot.toRealPath().toString()))
+                    assertEquals("library data stays in place", Files.readString(marker))
+
+                    val renamedAgain = client.put("/api/v1/admin/libraries/$createdId") {
+                        bearerAuth(adminToken)
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"name":"Renamed again"}""")
+                    }
+                    assertEquals(HttpStatusCode.OK, renamedAgain.status)
+                    assertEquals(setOf(createdId.toLong()), auth.allowedLibraries(listenerId))
 
                     val missingLibrary = client.put("/api/v1/admin/libraries/999999") {
                         bearerAuth(adminToken)
@@ -94,7 +111,7 @@ class KtorStandaloneLibraryTest {
                     assertEquals(HttpStatusCode.OK, listed.status)
                     assertTrue(listed.bodyAsText().contains("\"id\""))
                     assertTrue(listed.bodyAsText().contains("\"name\":\"Music\""))
-                    assertTrue(listed.bodyAsText().contains("\"name\":\"Renamed\""))
+                    assertTrue(listed.bodyAsText().contains("\"name\":\"Renamed again\""))
 
                     val denied = client.get("/api/v1/admin/libraries") { bearerAuth(userToken) }
                     assertEquals(HttpStatusCode.Forbidden, denied.status)
