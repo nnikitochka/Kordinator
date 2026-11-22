@@ -61,6 +61,8 @@ import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.dao.ArtistDao
+import org.airsonic.player.dao.MediaFileDao
+import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
 import java.nio.file.Path
 import java.nio.file.Files
@@ -102,6 +104,7 @@ fun Application.standaloneModule(
     topSongsService: LastFmService? = null,
     mediaFileService: MediaFileService? = null,
     artistDao: ArtistDao? = null,
+    mediaFileDao: MediaFileDao? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -437,6 +440,37 @@ fun Application.standaloneModule(
                         call.respondJson(GenreListResponse(genres.map {
                             GenreResponse(it.name, it.trackCount, it.albumCount)
                         }, genres.size))
+                    }
+                    get("/videos") {
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val dao = mediaFileDao
+                        val foldersService = mediaFolderService
+                        if (dao == null || foldersService == null) {
+                            call.respondJson(ApiError("unavailable", "Video catalog is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val rawLimit = call.request.queryParameters["limit"]
+                        val limit = rawLimit?.toIntOrNull() ?: if (rawLimit == null) 50 else null
+                        val rawOffset = call.request.queryParameters["offset"]
+                        val offset = rawOffset?.toIntOrNull() ?: if (rawOffset == null) 0 else null
+                        if (limit == null || limit !in 1..100 || offset == null || offset < 0) {
+                            call.respondJson(
+                                ApiError("invalid_request", "Limit must be between 1 and 100 and offset must be non-negative"),
+                                HttpStatusCode.BadRequest,
+                            )
+                            return@get
+                        }
+                        val scope = user.catalogLibraryScope()
+                        val folders = withContext(authDispatcher) {
+                            foldersService.getAllMusicFolders(false, false).filter { folder ->
+                                val id = folder.id?.toLong()
+                                id != null && (scope == null || id in scope)
+                            }
+                        }
+                        val page = withContext(scanDispatcher) { dao.getVideos(limit + 1, offset, folders) }
+                        val hasMore = page.size > limit
+                        call.respondJson(VideoPage(page.take(limit).map { it.toVideoResponse() }, limit, offset, hasMore))
                     }
                     get("/tracks") {
                     if (mediaCatalogService == null) {
@@ -1441,6 +1475,18 @@ data class LyricsResponse(val artist: String?, val title: String?, val lyrics: S
 data class RandomTrackResponse(val items: List<TrackResponse>, val count: Int)
 data class GenreListResponse(val items: List<GenreResponse>, val count: Int)
 data class GenreResponse(val name: String, val trackCount: Int, val albumCount: Int)
+data class VideoPage(val items: List<VideoResponse>, val limit: Int, val offset: Int, val hasMore: Boolean)
+data class VideoResponse(
+    val id: Int,
+    val title: String,
+    val artist: String?,
+    val album: String?,
+    val durationSeconds: Int?,
+    val sizeBytes: Long?,
+    val width: Int?,
+    val height: Int?,
+    val format: String?,
+)
 data class TopTrackPage(val artist: String, val items: List<TrackResponse>, val count: Int)
 data class SimilarTrackPage(val artist: String?, val items: List<TrackResponse>, val count: Int)
 data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
@@ -1513,6 +1559,18 @@ private fun StandaloneArtist.toResponse() = ArtistSummaryResponse(
 private fun StandaloneTrack.toResponse() = TrackResponse(
     id, libraryId, relativePath, title, artist, album, albumArtist, durationSeconds, sizeBytes, modifiedAt?.toString(),
     discNumber, trackNumber, year, genre,
+)
+
+private fun MediaFile.toVideoResponse() = VideoResponse(
+    id = requireNotNull(id),
+    title = name,
+    artist = artist,
+    album = albumName,
+    durationSeconds = duration?.toInt(),
+    sizeBytes = fileSize,
+    width = width,
+    height = height,
+    format = format,
 )
 
 private fun catalogId(libraryId: Long, name: String): String =
@@ -1815,6 +1873,7 @@ fun main(args: Array<String>) {
             topSongsService,
             mediaFileService,
             legacyGraph.artistDao,
+            legacyGraph.mediaFileDao,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
