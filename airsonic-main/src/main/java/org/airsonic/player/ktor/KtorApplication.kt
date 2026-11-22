@@ -77,6 +77,7 @@ import javax.cache.CacheManager
 import org.airsonic.player.service.StatusService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.domain.TransferStatus
+import org.airsonic.player.ajax.playing.NowPlayingInfo
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
 import org.airsonic.player.service.LyricsService
@@ -1046,6 +1047,15 @@ fun Application.standaloneModule(
                         }
                         call.respondJson(users)
                     }
+                    get("/now-playing") {
+                        call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val status = statusService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Playback status service is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val playing = withContext(Dispatchers.IO) {
+                            (status.getActivePlays() + status.getInactivePlays()).mapNotNull { it.toNowPlayingResponse() }
+                        }
+                        call.respondJson(playing)
+                    }
                     get("/me/avatar") {
                         val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         val service = avatarService ?: return@get call.respondJson(ApiError("unavailable", "Avatar storage is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -1870,6 +1880,15 @@ data class TransferStatisticsResponse(
     val history: List<TransferSampleResponse>,
 )
 data class UserTransferStatisticsResponse(val username: String, val streamed: Long, val downloaded: Long, val uploaded: Long)
+data class NowPlayingResponse(
+    val transferId: String?,
+    val playerId: Int?,
+    val trackId: Int?,
+    val username: String?,
+    val artist: String?,
+    val title: String?,
+    val minutesAgo: Long,
+)
 data class ApiError(val code: String, val message: String)
 data class ChangePasswordRequest(val currentPassword: String, val newPassword: String)
 data class SavePlayQueueRequest(
@@ -1982,6 +2001,20 @@ private fun TransferStatus.toTransferResponse(type: String) = TransferStatistics
     bytesTransferred = bytesTransferred,
     history = history.map { TransferSampleResponse(it.timestamp, it.bytesTransferred) },
 )
+private fun NowPlayingInfo.toNowPlayingResponse(): NowPlayingResponse? {
+    val play = fromPlayStatus() ?: return null
+    val mediaFile = play.mediaFile ?: return null
+    val player = play.player ?: return null
+    return NowPlayingResponse(
+        transferId = transferId?.toString(),
+        playerId = player.id,
+        trackId = mediaFile.id,
+        username = player.username,
+        artist = mediaFile.artist,
+        title = mediaFile.title,
+        minutesAgo = minutesAgo,
+    )
+}
 private fun StandaloneShare.toResponse(token: String?, tracks: List<TrackResponse>) = ShareResponse(
     id, trackIds, description, createdAt.toString(), expiresAt?.toString(), visitCount, lastVisitedAt?.toString(), token, tracks,
 )

@@ -44,6 +44,8 @@ class KtorStandaloneTransferStatisticsTest {
             Mockito.`when`(statuses.getAllStreamStatuses()).thenReturn(listOf(transfer))
             Mockito.`when`(statuses.getAllDownloadStatuses()).thenReturn(emptyList())
             Mockito.`when`(statuses.getAllUploadStatuses()).thenReturn(emptyList())
+            Mockito.`when`(statuses.getActivePlays()).thenReturn(emptyList())
+            Mockito.`when`(statuses.getInactivePlays()).thenReturn(emptyList())
             val security = Mockito.mock(SecurityService::class.java)
             Mockito.`when`(security.allUsers).thenReturn(listOf(User("admin", null).apply {
                 bytesStreamed = 1234
@@ -65,6 +67,10 @@ class KtorStandaloneTransferStatisticsTest {
                 val users = client.get("/api/v1/admin/user-transfer-statistics") { bearerAuth(token) }
                 assertEquals(HttpStatusCode.OK, users.status)
                 assertTrue(users.bodyAsText().contains("\"streamed\":1234"))
+
+                val nowPlaying = client.get("/api/v1/now-playing") { bearerAuth(token) }
+                assertEquals(HttpStatusCode.OK, nowPlaying.status)
+                assertEquals("[]", nowPlaying.bodyAsText())
             }
         }
     }
