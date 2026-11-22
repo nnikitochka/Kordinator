@@ -36,14 +36,15 @@ class NowPlayingController(
             val plays = status.getActivePlays().asSequence() + status.getInactivePlays().asSequence()
             plays.forEach { info ->
                 val play = requireNotNull(info.fromPlayStatus())
-                val player = play.player
+                val player = play.player ?: return@forEach
+                val mediaFile = play.mediaFile ?: return@forEach
                 val entry = NowPlayingEntry().apply {
                     username = player.username
                     playerId = player.id
                     playerName = player.name
                     minutesAgo = play.minutesAgo.toInt()
                 }
-                nowPlaying.entry.add(mapper.child(entry, player, play.mediaFile, requireNotNull(entry.username)))
+                nowPlaying.entry.add(mapper.child(entry, player, mediaFile, requireNotNull(entry.username)))
             }
             writer.createResponse(true).apply { this.nowPlaying = nowPlaying }
         } catch (e: CancellationException) {

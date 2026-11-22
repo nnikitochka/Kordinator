@@ -54,7 +54,7 @@ data class NowPlayingInfo(
 
             val mediaFile = status.mediaFile ?: return null
 
-            val player = status.player
+            val player = status.player ?: return null
             var username = player.username ?: return null
 
             val minutesAgo = status.minutesAgo
