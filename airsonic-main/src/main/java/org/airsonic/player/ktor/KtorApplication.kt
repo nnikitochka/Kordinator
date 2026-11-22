@@ -30,6 +30,7 @@ import io.ktor.server.routing.delete
 import io.ktor.server.routing.route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.head
+import io.ktor.server.routing.patch
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.writeFully
 import io.ktor.utils.io.jvm.javaio.toInputStream
@@ -78,6 +79,11 @@ import org.airsonic.player.service.StatusService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.domain.TransferStatus
 import org.airsonic.player.ajax.playing.NowPlayingInfo
+import org.airsonic.player.domain.UserSettings
+import org.airsonic.player.domain.AlbumListType
+import org.airsonic.player.domain.TranscodeScheme
+import java.net.URI
+import java.util.Locale
 import org.airsonic.player.service.ServerInfoService
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
@@ -937,6 +943,97 @@ fun Application.standaloneModule(
                         val user = call.principal<LocalUserPrincipal>()
                             ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         call.respondJson(CurrentUserResponse(user.id, user.username, user.role))
+                    }
+                    get("/me/settings") {
+                        val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val service = settingsService
+                            ?: return@get call.respondJson(ApiError("unavailable", "User settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.respondJson(withContext(Dispatchers.IO) { service.getUserSettings(user.username).toUserSettingsResponse() })
+                    }
+                    patch("/me/settings") {
+                        val user = call.principal<LocalUserPrincipal>() ?: return@patch call.respond(HttpStatusCode.Unauthorized)
+                        val service = settingsService
+                            ?: return@patch call.respondJson(ApiError("unavailable", "User settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), UpdateUserSettingsRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected a JSON object with user setting fields"), HttpStatusCode.BadRequest)
+                            return@patch
+                        }
+                        try {
+                            val availableFields = request.hasChanges()
+                            require(availableFields) { "At least one setting must be provided" }
+                            request.themeId?.let { value ->
+                                require(value.isEmpty() || service.availableThemes.any { it.id == value }) { "Unknown theme" }
+                            }
+                            val parsedLocale = request.locale?.let { value ->
+                                if (value.isEmpty()) null else Locale.forLanguageTag(value).also {
+                                    require(it.language.isNotEmpty() && it.toLanguageTag().equals(value, true)) { "Unknown locale" }
+                                    require(service.availableLocales.any { option -> option.toLanguageTag().equals(value, true) }) { "Unknown locale" }
+                                }
+                            }
+                            val albumList = request.defaultAlbumList?.let {
+                                AlbumListType.fromId(it) ?: throw IllegalArgumentException("Unknown album list")
+                            }
+                            val transcode = request.transcodeScheme?.let {
+                                TranscodeScheme.entries.firstOrNull { option -> option.name == it }
+                                    ?: throw IllegalArgumentException("Unknown transcode scheme")
+                            }
+                            request.listenBrainzUrl?.takeIf { it.isNotBlank() }?.let {
+                                val uri = URI.create(it)
+                                require(uri.scheme in setOf("http", "https") && uri.host != null) { "Invalid ListenBrainz URL" }
+                            }
+                            request.paginationSizeFiles?.let { require(it == -1 || it > 0) { "Invalid files page size" } }
+                            request.paginationSizeFolders?.let { require(it == -1 || it > 0) { "Invalid folders page size" } }
+                            request.paginationSizePlaylist?.let { require(it == -1 || it > 0) { "Invalid playlist page size" } }
+                            request.paginationSizePlayqueue?.let { require(it == -1 || it > 0) { "Invalid play queue page size" } }
+                            request.paginationSizeBookmarks?.let { require(it == -1 || it > 0) { "Invalid bookmarks page size" } }
+                            request.audioBookmarkFrequency?.let { require(it > 0) { "Invalid audio bookmark frequency" } }
+                            request.videoBookmarkFrequency?.let { require(it > 0) { "Invalid video bookmark frequency" } }
+                            request.searchCount?.let { require(it > 0) { "Invalid search count" } }
+                            request.listenBrainzUrl?.let { require(it.isBlank() || it == it.trim()) { "ListenBrainz URL cannot have surrounding whitespace" } }
+
+                            val updated = withContext(Dispatchers.IO) {
+                                val value = service.getUserSettings(user.username)
+                                request.themeId?.let { value.themeId = it.ifEmpty { null } }
+                                if (request.locale != null) value.locale = parsedLocale
+                                if (albumList != null) value.defaultAlbumList = albumList
+                                if (transcode != null) value.transcodeScheme = transcode
+                                request.showNowPlayingEnabled?.let { value.showNowPlayingEnabled = it }
+                                request.showArtistInfoEnabled?.let { value.showArtistInfoEnabled = it }
+                                request.finalVersionNotificationEnabled?.let { value.finalVersionNotificationEnabled = it }
+                                request.betaVersionNotificationEnabled?.let { value.betaVersionNotificationEnabled = it }
+                                request.songNotificationEnabled?.let { value.songNotificationEnabled = it }
+                                request.keyboardShortcutsEnabled?.let { value.keyboardShortcutsEnabled = it }
+                                request.autoHidePlayQueue?.let { value.autoHidePlayQueue = it }
+                                request.showSideBar?.let { value.showSideBar = it }
+                                request.viewAsList?.let { value.viewAsList = it }
+                                request.queueFollowingSongs?.let { value.queueFollowingSongs = it }
+                                request.lastFmEnabled?.let { value.lastFmEnabled = it }
+                                request.listenBrainzEnabled?.let { value.listenBrainzEnabled = it }
+                                request.listenBrainzUrl?.let { value.listenBrainzUrl = it.ifBlank { null } }
+                                request.partyModeEnabled?.let { value.partyModeEnabled = it }
+                                request.nowPlayingAllowed?.let { value.nowPlayingAllowed = it }
+                                request.paginationSizeFiles?.let { value.paginationSizeFiles = it }
+                                request.paginationSizeFolders?.let { value.paginationSizeFolders = it }
+                                request.paginationSizePlaylist?.let { value.paginationSizePlaylist = it }
+                                request.paginationSizePlayqueue?.let { value.paginationSizePlayqueue = it }
+                                request.paginationSizeBookmarks?.let { value.paginationSizeBookmarks = it }
+                                request.autoBookmark?.let { value.autoBookmark = it }
+                                request.audioBookmarkFrequency?.let { value.audioBookmarkFrequency = it }
+                                request.videoBookmarkFrequency?.let { value.videoBookmarkFrequency = it }
+                                request.searchCount?.let { value.searchCount = it }
+                                request.mainVisibility?.let { value.mainVisibility = it }
+                                request.playlistVisibility?.let { value.playlistVisibility = it }
+                                request.playqueueVisibility?.let { value.playqueueVisibility = it }
+                                value.changed = java.time.Instant.now()
+                                service.updateUserSettings(value)
+                                value.toUserSettingsResponse()
+                            }
+                            call.respondJson(updated)
+                        } catch (failure: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_request", failure.message ?: "Invalid user settings"), HttpStatusCode.BadRequest)
+                        }
                     }
                     get("/admin/health") {
                         val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
@@ -1903,6 +2000,87 @@ data class HealthResponse(val status: String)
 data class LoginRequest(val username: String, val password: String)
 data class LoginResponse(val accessToken: String, val tokenType: String = "Bearer", val expiresAt: String)
 data class CurrentUserResponse(val id: Long, val username: String, val role: String)
+data class UpdateUserSettingsRequest(
+    val themeId: String? = null,
+    val locale: String? = null,
+    val defaultAlbumList: String? = null,
+    val transcodeScheme: String? = null,
+    val showNowPlayingEnabled: Boolean? = null,
+    val showArtistInfoEnabled: Boolean? = null,
+    val finalVersionNotificationEnabled: Boolean? = null,
+    val betaVersionNotificationEnabled: Boolean? = null,
+    val songNotificationEnabled: Boolean? = null,
+    val keyboardShortcutsEnabled: Boolean? = null,
+    val autoHidePlayQueue: Boolean? = null,
+    val showSideBar: Boolean? = null,
+    val viewAsList: Boolean? = null,
+    val queueFollowingSongs: Boolean? = null,
+    val lastFmEnabled: Boolean? = null,
+    val listenBrainzEnabled: Boolean? = null,
+    val listenBrainzUrl: String? = null,
+    val partyModeEnabled: Boolean? = null,
+    val nowPlayingAllowed: Boolean? = null,
+    val paginationSizeFiles: Int? = null,
+    val paginationSizeFolders: Int? = null,
+    val paginationSizePlaylist: Int? = null,
+    val paginationSizePlayqueue: Int? = null,
+    val paginationSizeBookmarks: Int? = null,
+    val autoBookmark: Boolean? = null,
+    val audioBookmarkFrequency: Int? = null,
+    val videoBookmarkFrequency: Int? = null,
+    val searchCount: Int? = null,
+    val mainVisibility: UserSettings.Visibility? = null,
+    val playlistVisibility: UserSettings.Visibility? = null,
+    val playqueueVisibility: UserSettings.Visibility? = null,
+) {
+    fun hasChanges() = listOf(
+        themeId, locale, defaultAlbumList, transcodeScheme, showNowPlayingEnabled, showArtistInfoEnabled,
+        finalVersionNotificationEnabled, betaVersionNotificationEnabled, songNotificationEnabled,
+        keyboardShortcutsEnabled, autoHidePlayQueue, showSideBar, viewAsList, queueFollowingSongs,
+        lastFmEnabled, listenBrainzEnabled, listenBrainzUrl, partyModeEnabled, nowPlayingAllowed,
+        paginationSizeFiles, paginationSizeFolders, paginationSizePlaylist, paginationSizePlayqueue,
+        paginationSizeBookmarks, autoBookmark, audioBookmarkFrequency, videoBookmarkFrequency,
+        searchCount, mainVisibility, playlistVisibility, playqueueVisibility,
+    ).any { it != null }
+}
+data class UserSettingsResponse(
+    val username: String?,
+    val locale: String?,
+    val themeId: String?,
+    val defaultAlbumList: String,
+    val transcodeScheme: String,
+    val selectedMusicFolderId: Int,
+    val showNowPlayingEnabled: Boolean,
+    val showArtistInfoEnabled: Boolean,
+    val nowPlayingAllowed: Boolean,
+    val partyModeEnabled: Boolean,
+    val queueFollowingSongs: Boolean,
+    val finalVersionNotificationEnabled: Boolean,
+    val betaVersionNotificationEnabled: Boolean,
+    val songNotificationEnabled: Boolean,
+    val keyboardShortcutsEnabled: Boolean,
+    val autoHidePlayQueue: Boolean,
+    val showSideBar: Boolean,
+    val viewAsList: Boolean,
+    val lastFmEnabled: Boolean,
+    val listenBrainzEnabled: Boolean,
+    val listenBrainzUrl: String?,
+    val avatarScheme: String,
+    val systemAvatarId: Int?,
+    val paginationSizeFiles: Int,
+    val paginationSizeFolders: Int,
+    val paginationSizePlaylist: Int,
+    val paginationSizePlayqueue: Int,
+    val paginationSizeBookmarks: Int,
+    val autoBookmark: Boolean,
+    val audioBookmarkFrequency: Int,
+    val videoBookmarkFrequency: Int,
+    val searchCount: Int,
+    val mainVisibility: UserSettings.Visibility,
+    val playlistVisibility: UserSettings.Visibility,
+    val playqueueVisibility: UserSettings.Visibility,
+    val changedAt: String,
+)
 data class AdminUserResponse(val id: Long, val username: String, val role: String, val enabled: Boolean)
 data class AdminUserDetailsResponse(val user: AdminUserResponse, val libraryIds: List<Long>)
 data class AdminHealthResponse(val status: String, val components: List<HealthComponentResponse>)
@@ -2040,6 +2218,16 @@ private fun HealthContributor.toHealthComponent(name: String, aggregator: Status
     }
     else -> HealthComponentResponse(name, Status.UNKNOWN.code)
 }
+private fun UserSettings.toUserSettingsResponse() = UserSettingsResponse(
+    username, locale?.toLanguageTag(), themeId, defaultAlbumList.id, transcodeScheme.name, selectedMusicFolderId,
+    showNowPlayingEnabled, showArtistInfoEnabled, nowPlayingAllowed, partyModeEnabled, queueFollowingSongs,
+    finalVersionNotificationEnabled, betaVersionNotificationEnabled, songNotificationEnabled,
+    keyboardShortcutsEnabled, autoHidePlayQueue, showSideBar, viewAsList, lastFmEnabled, listenBrainzEnabled,
+    listenBrainzUrl, avatarScheme.name, systemAvatarId, paginationSizeFiles, paginationSizeFolders,
+    paginationSizePlaylist, paginationSizePlayqueue, paginationSizeBookmarks, autoBookmark,
+    audioBookmarkFrequency, videoBookmarkFrequency, searchCount, mainVisibility, playlistVisibility,
+    playqueueVisibility, changed.toString(),
+)
 private fun cacheMetric(meters: MeterRegistry, metric: String, cache: String, vararg tags: String): Double? {
     val found = meters.find(metric).tags("cache", cache).tags(*tags).meters()
     if (found.isEmpty()) return null
