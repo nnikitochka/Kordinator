@@ -72,6 +72,8 @@ import org.airsonic.player.health.HealthIndicator
 import org.airsonic.player.health.SimpleStatusAggregator
 import org.airsonic.player.health.Status
 import org.airsonic.player.health.StatusAggregator
+import io.micrometer.core.instrument.MeterRegistry
+import javax.cache.CacheManager
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
 import org.airsonic.player.service.LyricsService
@@ -134,6 +136,8 @@ fun Application.standaloneModule(
     healthStatusAggregator: StatusAggregator? = null,
     pathWatcherService: PathWatcherService? = null,
     taskSchedulingService: TaskSchedulingService? = null,
+    cacheManager: CacheManager? = null,
+    meterRegistry: MeterRegistry? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -965,6 +969,43 @@ fun Application.standaloneModule(
                             )
                         })
                     }
+                    get("/admin/cache-statistics") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val caches = cacheManager
+                            ?: return@get call.respondJson(ApiError("unavailable", "Cache manager is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val meters = meterRegistry
+                            ?: return@get call.respondJson(ApiError("unavailable", "Meter registry is not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+                        call.respondJson(caches.cacheNames.sorted().map { name ->
+                            CacheStatisticsResponse(
+                                name,
+                                cacheMetric(meters, "cache.gets", name, "result", "hit"),
+                                cacheMetric(meters, "cache.gets", name, "result", "miss"),
+                                cacheMetric(meters, "cache.puts", name),
+                                cacheMetric(meters, "cache.removals", name),
+                            )
+                        })
+                    }
+                    delete("/admin/cache-statistics/{name}") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@delete
+                        }
+                        val caches = cacheManager
+                            ?: return@delete call.respondJson(ApiError("unavailable", "Cache manager is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val name = call.parameters["name"]
+                            ?: return@delete call.respondJson(ApiError("missing_parameter", "Missing cache name"), HttpStatusCode.BadRequest)
+                        val cache = caches.getCache<Any, Any>(name)
+                            ?: return@delete call.respondJson(ApiError("not_found", "Cache not found"), HttpStatusCode.NotFound)
+                        withContext(Dispatchers.IO) { cache.removeAll() }
+                        call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+                        call.respond(HttpStatusCode.NoContent)
+                    }
                     get("/me/avatar") {
                         val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         val service = avatarService ?: return@get call.respondJson(ApiError("unavailable", "Avatar storage is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -1777,6 +1818,7 @@ data class ScheduledTaskResponse(
     val lastRun: String?,
     val nextRun: String?,
 )
+data class CacheStatisticsResponse(val name: String, val hits: Double?, val misses: Double?, val puts: Double?, val removals: Double?)
 data class ApiError(val code: String, val message: String)
 data class ChangePasswordRequest(val currentPassword: String, val newPassword: String)
 data class SavePlayQueueRequest(
@@ -1873,6 +1915,12 @@ private fun HealthContributor.toHealthComponent(name: String, aggregator: Status
         HealthComponentResponse(name, aggregator.getAggregateStatus(children.map { Status(it.status) }.toSet()).code, components = children)
     }
     else -> HealthComponentResponse(name, Status.UNKNOWN.code)
+}
+private fun cacheMetric(meters: MeterRegistry, metric: String, cache: String, vararg tags: String): Double? {
+    val found = meters.find(metric).tags("cache", cache).tags(*tags).meters()
+    if (found.isEmpty()) return null
+    val value = found.sumOf { meter -> meter.measure().sumOf { it.value } }
+    return value.takeIf { it.isFinite() }
 }
 private fun StandaloneShare.toResponse(token: String?, tracks: List<TrackResponse>) = ShareResponse(
     id, trackIds, description, createdAt.toString(), expiresAt?.toString(), visitCount, lastVisitedAt?.toString(), token, tracks,
@@ -2288,6 +2336,8 @@ fun main(args: Array<String>) {
     val healthStatusAggregator = runtime.createStatusAggregator()
     val pathWatcherService = runtime.createPathWatcherService()
     val taskSchedulingService = runtime.createTaskSchedulingService()
+    val cacheManager = runtime.createCacheManager()
+    val meterRegistry = runtime.createMeterRegistry()
     val ratingService = StandaloneRatingService(standaloneDatabase.dataSource, mediaCatalogService)
     val securityService = runtime.createSecurityService(
         legacyGraph.userDao,
@@ -2369,6 +2419,8 @@ fun main(args: Array<String>) {
             healthStatusAggregator,
             pathWatcherService,
             taskSchedulingService,
+            cacheManager,
+            meterRegistry,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
