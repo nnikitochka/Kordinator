@@ -91,12 +91,12 @@ class CredentialsManagementController(
         preferredDecodableEncoder = security.getPreferredPasswordEncoder(false)
         credential = security.getCredentials(user.username, *App.entries.toTypedArray()).sortedBy { it.created }.map { value ->
             ManagedCredential().apply {
-                id = this@CredentialsManagementController.id(value); app = value.app.name; username = value.appUsername; encoder = value.encoder
+                id = this@CredentialsManagementController.id(value); app = value.app!!.name; username = value.appUsername.orEmpty(); encoder = value.encoder.orEmpty()
                 comment = value.comment.orEmpty(); created = value.created.toString(); updated = value.updated.toString()
                 expires = value.expiration?.toString().orEmpty()
                 decodable = value.encoder in Encoders.DECODABLE_ENCODERS
                 openText = value.encoder in Encoders.OPENTEXT_ENCODERS
-                legacy = value.encoder.startsWith("legacy")
+                legacy = value.encoder.orEmpty().startsWith("legacy")
             }
         }.toMutableList()
         app = App.entries.map { value -> CredentialApplication().apply {
@@ -153,9 +153,10 @@ class CredentialsManagementController(
                 val delete = bool(p, "delete[$key]")
                 val value = UserCredential(old)
                 if (!delete) {
-                    value.encoder = text(p, "encoder[$key]")
-                    if (value.encoder != old.encoder) {
-                        encoder(value.encoder, old.app)
+                    val newEncoder = text(p, "encoder[$key]")
+                    value.encoder = newEncoder
+                    if (newEncoder != old.encoder) {
+                        encoder(newEncoder, old.app!!)
                         require(old.encoder in Encoders.DECODABLE_ENCODERS) { "A non-decodable credential cannot be re-encoded" }
                     }
                     value.expiration = expiration(text(p, "expires[$key]"))

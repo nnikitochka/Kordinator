@@ -46,9 +46,9 @@ class SubsonicAuthenticator internal constructor(private val clock: Clock) {
 
         for (credential in credentials) {
             val specialization = if (mode == Mode.SALTED_TOKEN) "salttoken" else ""
-            val encoderName = credential.encoder + specialization
+            val encoderName = credential.encoder!! + specialization
             val matched = try {
-                encoders.matches(encoderName, presented, credential.credential)
+                encoders.matches(encoderName, presented, credential.credential!!)
             } catch (_: IllegalArgumentException) {
                 false
             }
@@ -60,7 +60,7 @@ class SubsonicAuthenticator internal constructor(private val clock: Clock) {
             }
             val upgrade = if (mode == Mode.PASSWORD) {
                 try {
-                    encoders.upgradeEncoding(encoderName, credential.credential)
+                    encoders.upgradeEncoding(encoderName, credential.credential!!)
                 } catch (_: IllegalArgumentException) {
                     false
                 }

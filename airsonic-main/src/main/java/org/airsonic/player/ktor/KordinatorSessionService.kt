@@ -43,7 +43,7 @@ class KordinatorSessionService @JvmOverloads constructor(
 
         val credential = identity.credentials.firstOrNull { candidate ->
             val matches = try {
-                credentialEncoders.matches(candidate.encoder, password, candidate.credential)
+                credentialEncoders.matches(candidate.encoder!!, password, candidate.credential!!)
             } catch (_: IllegalArgumentException) {
                 false
             }
@@ -55,16 +55,16 @@ class KordinatorSessionService @JvmOverloads constructor(
         }
         if (credential.expiration?.let { !it.isAfter(clock.instant()) } == true) return null
 
-        var credentialVersion = identity.credentials.mapNotNull(UserCredential::getUpdated).maxOrNull()
+        var credentialVersion = identity.credentials.mapNotNull { it.updated }.maxOrNull()
         val preferredEncoder = nonDecodablePasswordEncoder
-        if (credential.encoder != preferredEncoder || credentialEncoders.isOpenText(credential.encoder)) {
+        if (credential.encoder != preferredEncoder || credentialEncoders.isOpenText(credential.encoder!!)) {
             val upgraded = UserCredential(credential).apply {
                 encoder = preferredEncoder
                 this.credential = password
             }
             if (!securityService.updateCredentials(credential, upgraded, credential.comment, true)) return null
             credentialVersion = securityService.findUserIdentity(identity.username, true)
-                ?.credentials?.mapNotNull(UserCredential::getUpdated)?.maxOrNull()
+                ?.credentials?.mapNotNull { it.updated }?.maxOrNull()
         }
 
         val tokenBytes = ByteArray(TOKEN_BYTES).also(secureRandom::nextBytes)
@@ -87,7 +87,7 @@ class KordinatorSessionService @JvmOverloads constructor(
             return null
         }
 
-        val currentVersion = identity.credentials.mapNotNull(UserCredential::getUpdated).maxOrNull()
+        val currentVersion = identity.credentials.mapNotNull { it.updated }.maxOrNull()
         if (session.credentialVersion != currentVersion) {
             sessions.revoke(hash)
             return null
