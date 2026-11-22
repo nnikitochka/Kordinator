@@ -52,6 +52,31 @@ public class JukeboxLegacySubsonicService implements AudioPlayer.Listener {
             return;
         }
 
+        updatePlayback(player, offset);
+    }
+
+    /** Entry point for calls already authenticated and library-checked by the standalone Ktor API. */
+    public synchronized void updateStandaloneJukebox(Player player, int offset) {
+        updatePlayback(player, offset);
+    }
+
+    /** Releases the local audio device for an authenticated standalone Ktor jukebox owner. */
+    public synchronized void releaseStandaloneJukebox(Player player) {
+        if (this.player != player) {
+            return;
+        }
+        if (audioPlayer != null) {
+            audioPlayer.close();
+            audioPlayer = null;
+        }
+        if (currentPlayingFile != null) {
+            onSongEnd(currentPlayingFile);
+            currentPlayingFile = null;
+        }
+        this.player = null;
+    }
+
+    private void updatePlayback(Player player, int offset) {
         if (player.getPlayQueue().getStatus() == PlayQueue.Status.PLAYING) {
             this.player = player;
             MediaFile result;

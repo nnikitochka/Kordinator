@@ -56,6 +56,7 @@ import org.airsonic.player.service.CaptionService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandalonePlayQueueService
 import org.airsonic.player.service.StandaloneVideoPlaybackService
+import org.airsonic.player.service.StandaloneJukeboxService
 import org.airsonic.player.service.StandalonePlayQueue
 import org.airsonic.player.service.StandaloneAlbum
 import org.airsonic.player.service.StandaloneArtist
@@ -184,6 +185,7 @@ fun Application.standaloneModule(
     playerQueueService: PlayQueueService? = null,
     databaseService: DatabaseService? = null,
     videoPlaybackService: StandaloneVideoPlaybackService? = null,
+    standaloneJukeboxService: StandaloneJukeboxService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -224,6 +226,10 @@ fun Application.standaloneModule(
                     if (videoPlaybackService != null && mediaFileService != null) {
                         StandaloneVideoPlaybackRoutes(mediaFileService, videoPlaybackService).routes(this)
                         monitor.subscribe(ApplicationStopped) { videoPlaybackService.close() }
+                    }
+                    if (standaloneJukeboxService != null && mediaCatalogService != null && mediaFileService != null) {
+                        StandaloneJukeboxRoutes(mediaCatalogService, mediaFileService, standaloneJukeboxService).routes(this)
+                        monitor.subscribe(ApplicationStopped) { standaloneJukeboxService.close() }
                     }
                     get("/search") {
                         if (mediaCatalogService == null) {
@@ -3724,16 +3730,16 @@ fun main(args: Array<String>) {
         runtime.createJwtSecurityService(settingsService),
     )
     val corePlaylistService = runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService)
-    val legacyJukeboxService = runtime.createJukeboxService(
-        runtime.createJukeboxLegacySubsonicService(
-            transcodingService,
-            audioScrobblerService,
-            statusService,
-            settingsService,
-            securityService,
-            mediaFileService,
-        ),
+    val legacyJukeboxEngine = runtime.createJukeboxLegacySubsonicService(
+        transcodingService,
+        audioScrobblerService,
+        statusService,
+        settingsService,
+        securityService,
+        mediaFileService,
     )
+    val legacyJukeboxService = runtime.createJukeboxService(legacyJukeboxEngine)
+    val standaloneJukeboxService = StandaloneJukeboxService(mediaFolderService, legacyJukeboxEngine)
     val playerQueueService = runtime.createPlayQueueService(
         randomSearchService,
         legacyJukeboxService,
@@ -3824,6 +3830,7 @@ fun main(args: Array<String>) {
             playerQueueService,
             databaseService,
             videoPlaybackService,
+            standaloneJukeboxService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
