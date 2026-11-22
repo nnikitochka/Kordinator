@@ -65,7 +65,7 @@ class PlayQueueController(
             position = queue.positionMillis
             changed = writer.convertDate(queue.changed)
             changedBy = queue.changedBy
-            queue.mediaFileIds.forEach { id ->
+            queue.mediaFileIds!!.forEach { id ->
                 val mediaFile = mediaFiles.getMediaFile(id)
                 if (mediaFile != null) entry.add(mapper.child(player, mediaFile, request.username))
             }
