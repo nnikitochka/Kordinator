@@ -15,6 +15,9 @@ import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
+import org.airsonic.player.service.LibraryScan
+import org.airsonic.player.service.StandaloneLibraryScanService
+import org.mockito.Mockito
 import java.nio.file.Files
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
@@ -50,9 +53,11 @@ class KtorStandaloneLibraryTest {
                 val adminToken = auth.login("admin", "a strong password for tests")!!.token
                 val userToken = auth.login("listener", "listener password for tests")!!.token
                 val listenerId = requireNotNull(auth.authenticate(userToken)).id
+                val scans = Mockito.mock(StandaloneLibraryScanService::class.java)
+                val movedRoot = Files.createDirectories(musicRoot.resolveSibling("moved-${musicRoot.fileName}"))
 
                 testApplication {
-                    application { standaloneModule(authService = auth, mediaFolderService = runtime.mediaFolderService) }
+                    application { standaloneModule(authService = auth, mediaFolderService = runtime.mediaFolderService, libraryScanService = scans) }
 
                     val created = client.post("/api/v1/admin/libraries") {
                     bearerAuth(adminToken)
@@ -101,6 +106,18 @@ class KtorStandaloneLibraryTest {
                     assertEquals(HttpStatusCode.OK, renamedAgain.status)
                     assertEquals(setOf(createdId.toLong()), auth.allowedLibraries(listenerId))
 
+                    Mockito.`when`(scans.enqueue(createdId.toLong())).thenReturn(
+                        LibraryScan("path-change-scan", createdId.toLong(), "QUEUED", 0, 0, java.time.Instant.now(), null),
+                    )
+                    val moved = client.put("/api/v1/admin/libraries/$createdId") {
+                        bearerAuth(adminToken)
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"name":"Renamed again","path":"$movedRoot"}""")
+                    }
+                    assertEquals(HttpStatusCode.Accepted, moved.status, moved.bodyAsText())
+                    assertTrue(moved.bodyAsText().contains("\"scanId\":\"path-change-scan\""))
+                    assertEquals(movedRoot.toRealPath(), runtime.mediaFolderService.getMusicFolderById(createdId.toInt(), true, true)!!.path)
+
                     val missingLibrary = client.put("/api/v1/admin/libraries/999999") {
                         bearerAuth(adminToken)
                         contentType(ContentType.Application.Json)
@@ -120,7 +137,7 @@ class KtorStandaloneLibraryTest {
                     val duplicate = client.post("/api/v1/admin/libraries") {
                     bearerAuth(adminToken)
                     contentType(ContentType.Application.Json)
-                    setBody("""{"name":"Other","path":"$musicRoot"}""")
+                    setBody("""{"name":"Other","path":"$movedRoot"}""")
                 }
                     assertEquals(HttpStatusCode.Conflict, duplicate.status)
                     assertEquals(setOf(createdId.toLong()), auth.allowedLibraries(listenerId))

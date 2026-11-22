@@ -50,6 +50,7 @@ import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.security.LoginRateLimiter
 import org.airsonic.player.security.LegacyCredentialEncoderRegistry
 import org.airsonic.player.service.StandaloneLibraryScanService
+import org.airsonic.player.service.LibraryScan
 import org.airsonic.player.service.CaptionService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandalonePlayQueueService
@@ -2028,9 +2029,59 @@ fun Application.standaloneModule(
                             call.respondJson(ApiError("library_exists", "A library with that name already exists"), HttpStatusCode.Conflict)
                             return@put
                         }
+                        val updatedPath = request.path?.let { suppliedPath ->
+                            if (suppliedPath.isBlank()) {
+                                call.respondJson(ApiError("invalid_library", "Library path must not be blank"), HttpStatusCode.BadRequest)
+                                return@put
+                            }
+                            try {
+                                Path.of(suppliedPath).toRealPath().also { path ->
+                                    if (!Files.isDirectory(path) || !Files.isReadable(path)) {
+                                        throw IllegalArgumentException("Library path must be a readable directory")
+                                    }
+                                }
+                            } catch (_: Exception) {
+                                call.respondJson(ApiError("invalid_library", "Library path is not an accessible directory"), HttpStatusCode.BadRequest)
+                                return@put
+                            }
+                        }
+                        val pathChanged = updatedPath != null && updatedPath != folder.path
+                        if (pathChanged && (libraryScanService == null || scanScope == null)) {
+                            call.respondJson(ApiError("unavailable", "Library scanning is required to change a library path"), HttpStatusCode.ServiceUnavailable)
+                            return@put
+                        }
+                        if (pathChanged && libraryScanService?.latestScan(libraryId.toLong())?.state in setOf("QUEUED", "RUNNING")) {
+                            call.respondJson(ApiError("scan_in_progress", "Cannot change the library path while a scan is running"), HttpStatusCode.Conflict)
+                            return@put
+                        }
+                        val oldPath = folder.path
                         folder.name = normalizedName
-                        withContext(authDispatcher) { folderService.updateMusicFolder(folder) }
-                        call.respondJson(folder.toLibraryResponse())
+                        if (updatedPath != null) folder.path = updatedPath
+                        try {
+                            withContext(authDispatcher) { folderService.updateMusicFolder(folder) }
+                        } catch (failure: IllegalArgumentException) {
+                            val overlap = failure.message?.contains("overlap", ignoreCase = true) == true
+                            call.respondJson(
+                                ApiError(if (overlap) "library_exists" else "invalid_library", failure.message ?: "Library update is invalid"),
+                                if (overlap) HttpStatusCode.Conflict else HttpStatusCode.BadRequest,
+                            )
+                            return@put
+                        }
+                        var scan: LibraryScan? = null
+                        if (pathChanged) {
+                            try {
+                                scan = withContext(scanDispatcher) { requireNotNull(libraryScanService).enqueue(libraryId.toLong()) }
+                            } catch (failure: IllegalArgumentException) {
+                                folder.path = oldPath
+                                withContext(authDispatcher) { folderService.updateMusicFolder(folder) }
+                                call.respondJson(ApiError("scan_unavailable", failure.message ?: "Unable to start library scan"), HttpStatusCode.Conflict)
+                                return@put
+                            }
+                            requireNotNull(scanScope).launch {
+                                withContext(scanDispatcher) { requireNotNull(libraryScanService).run(requireNotNull(scan).id) }
+                            }
+                        }
+                        call.respondJson(folder.toLibraryResponse(scan?.id), if (pathChanged) HttpStatusCode.Accepted else HttpStatusCode.OK)
                     }
                     delete("/admin/libraries/{id}") {
                         val actor = call.principal<LocalUserPrincipal>()
@@ -2495,8 +2546,8 @@ data class SetUserEnabledRequest(val enabled: Boolean)
 data class SetUserRoleRequest(val role: String)
 data class SetUserLibrariesRequest(val libraryIds: Set<Long>)
 data class CreateLibraryRequest(val name: String, val path: String)
-data class UpdateLibraryRequest(val name: String)
-data class LibraryResponse(val id: Long, val name: String, val path: String, val enabled: Boolean, val createdAt: String)
+data class UpdateLibraryRequest(val name: String, val path: String? = null)
+data class LibraryResponse(val id: Long, val name: String, val path: String, val enabled: Boolean, val createdAt: String, val scanId: String? = null)
 data class UploadedLibraryFileResponse(val libraryId: Long, val path: String, val sizeBytes: Long)
 data class AvatarResponse(val width: Int, val height: Int, val sizeBytes: Int)
 data class CreateShareRequest(val trackIds: List<Long> = emptyList(), val description: String? = null, val expiresAt: String? = null)
@@ -2514,12 +2565,13 @@ data class ShareResponse(
 )
 data class PublicShareResponse(val description: String?, val expiresAt: String?, val tracks: List<PublicShareTrackResponse>)
 data class PublicShareTrackResponse(val track: TrackResponse, val streamUrl: String)
-private fun MusicFolder.toLibraryResponse() = LibraryResponse(
+private fun MusicFolder.toLibraryResponse(scanId: String? = null) = LibraryResponse(
     id = requireNotNull(id) { "Music folder has not been persisted" }.toLong(),
     name = name,
     path = path.toString(),
     enabled = isEnabled,
     createdAt = changed.toString(),
+    scanId = scanId,
 )
 private fun org.airsonic.player.health.NamedContributor<HealthContributor>.toHealthComponent(
     aggregator: StatusAggregator,
