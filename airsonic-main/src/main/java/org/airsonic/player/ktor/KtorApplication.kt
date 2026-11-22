@@ -19,12 +19,14 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondBytesWriter
 import io.ktor.server.response.respondText
+import io.ktor.http.content.OutgoingContent
 import io.ktor.server.request.receiveText
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.head
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.writeFully
 import kotlinx.coroutines.Dispatchers
@@ -530,70 +532,14 @@ fun Application.standaloneModule(
                             track.artist, track.album, track.albumArtist, track.durationSeconds, track.sizeBytes,
                             track.modifiedAt?.toString()))
                     }
-                    get("/tracks/{id}/stream") {
-                    val scanService = libraryScanService
-                    val catalogService = mediaCatalogService
-                    if (scanService == null || catalogService == null) {
-                        call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
-                        return@get
+                    get("/tracks/{id}/stream") { respondTrackFile(call, libraryScanService, mediaCatalogService, false, false) }
+                    head("/tracks/{id}/stream") {
+                        respondTrackFile(call, libraryScanService, mediaCatalogService, false, true)
                     }
-                    val trackId = call.parameters["id"]?.toLongOrNull()
-                    if (trackId == null || trackId < 0) {
-                        call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
-                        return@get
+                    get("/tracks/{id}/download") { respondTrackFile(call, libraryScanService, mediaCatalogService, true, false) }
+                    head("/tracks/{id}/download") {
+                        respondTrackFile(call, libraryScanService, mediaCatalogService, true, true)
                     }
-                    val catalogTrack = withContext(scanDispatcher) {
-                        catalogService.track(trackId, call.catalogLibraryScope())
-                    }
-                    if (catalogTrack == null) {
-                        call.respond(HttpStatusCode.NotFound)
-                        return@get
-                    }
-                    val track = withContext(scanDispatcher) {
-                        scanService.streamFile(catalogTrack.libraryId, catalogTrack.relativePath)
-                    }
-                    if (track == null) {
-                        call.respond(HttpStatusCode.NotFound)
-                        return@get
-                    }
-                    val modifiedAt = runCatching { Files.getLastModifiedTime(track.path).toInstant() }.getOrNull()
-                    val etag = "W/\"$trackId-${track.sizeBytes}-${modifiedAt?.toEpochMilli() ?: 0}\""
-                    call.setRepresentationValidators(etag, modifiedAt)
-                    if (call.isNotModified(etag, modifiedAt)) {
-                        call.respond(HttpStatusCode.NotModified)
-                        return@get
-                    }
-                    call.response.headers.append(HttpHeaders.AcceptRanges, "bytes")
-                    val rangeHeader = call.request.headers[HttpHeaders.Range]
-                    val range = if (rangeHeader == null) ByteRange(0, track.sizeBytes - 1) else parseByteRange(rangeHeader, track.sizeBytes)
-                    if (range == null) {
-                        call.response.headers.append(HttpHeaders.ContentRange, "bytes */${track.sizeBytes}")
-                        call.respond(HttpStatusCode.RequestedRangeNotSatisfiable)
-                        return@get
-                    }
-                    val partial = rangeHeader != null
-                    if (partial) call.response.headers.append(HttpHeaders.ContentRange, "bytes ${range.start}-${range.end}/${track.sizeBytes}")
-                    val length = if (track.sizeBytes == 0L && !partial) 0L else range.end - range.start + 1
-                    call.respondBytesWriter(
-                        contentType = ContentType.parse(track.contentType),
-                        status = if (partial) HttpStatusCode.PartialContent else HttpStatusCode.OK,
-                        contentLength = length,
-                    ) {
-                        FileChannel.open(track.path, StandardOpenOption.READ).use { file ->
-                            file.position(range.start)
-                            val buffer = ByteBuffer.allocate(64 * 1024)
-                            var remaining = length
-                            while (remaining > 0) {
-                                buffer.clear()
-                                buffer.limit(minOf(buffer.capacity().toLong(), remaining).toInt())
-                                val read = withContext(Dispatchers.IO) { file.read(buffer) }
-                                if (read <= 0) break
-                                writeFully(buffer.array(), 0, read)
-                                remaining -= read
-                            }
-                        }
-                    }
-                }
                     get("/tracks/{id}/artwork") {
                     val scanService = libraryScanService
                     val catalogService = mediaCatalogService
@@ -1716,6 +1662,83 @@ data class PlaylistResponse(
 )
 
 private data class ByteRange(val start: Long, val end: Long)
+
+private suspend fun respondTrackFile(
+    call: ApplicationCall,
+    scanService: StandaloneLibraryScanService?,
+    catalogService: KtorCoreMediaCatalogService?,
+    download: Boolean,
+    head: Boolean,
+) {
+    if (scanService == null || catalogService == null) {
+        call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
+        return
+    }
+    val trackId = call.parameters["id"]?.toLongOrNull()
+    if (trackId == null || trackId < 0) {
+        call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
+        return
+    }
+    val catalogTrack = withContext(scanDispatcher) { catalogService.track(trackId, call.catalogLibraryScope()) }
+    if (catalogTrack == null) {
+        call.respond(HttpStatusCode.NotFound)
+        return
+    }
+    val track = withContext(scanDispatcher) { scanService.streamFile(catalogTrack.libraryId, catalogTrack.relativePath) }
+    if (track == null) {
+        call.respond(HttpStatusCode.NotFound)
+        return
+    }
+    if (download) {
+        val fileName = track.path.fileName.toString()
+            .map { if (it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' || it == '.' || it == '-' || it == '_') it else '_' }
+            .joinToString("").ifBlank { "track" }
+        call.response.headers.append(HttpHeaders.ContentDisposition, "attachment; filename=\"$fileName\"")
+    }
+    val modifiedAt = runCatching { Files.getLastModifiedTime(track.path).toInstant() }.getOrNull()
+    val etag = "W/\"$trackId-${track.sizeBytes}-${modifiedAt?.toEpochMilli() ?: 0}\""
+    call.setRepresentationValidators(etag, modifiedAt)
+    if (call.isNotModified(etag, modifiedAt)) {
+        call.respond(HttpStatusCode.NotModified)
+        return
+    }
+    call.response.headers.append(HttpHeaders.AcceptRanges, "bytes")
+    val rangeHeader = call.request.headers[HttpHeaders.Range]
+    val range = if (rangeHeader == null) ByteRange(0, track.sizeBytes - 1) else parseByteRange(rangeHeader, track.sizeBytes)
+    if (range == null) {
+        call.response.headers.append(HttpHeaders.ContentRange, "bytes */${track.sizeBytes}")
+        call.respond(HttpStatusCode.RequestedRangeNotSatisfiable)
+        return
+    }
+    val partial = rangeHeader != null
+    if (partial) call.response.headers.append(HttpHeaders.ContentRange, "bytes ${range.start}-${range.end}/${track.sizeBytes}")
+    val length = if (track.sizeBytes == 0L && !partial) 0L else range.end - range.start + 1
+    val contentType = ContentType.parse(track.contentType)
+    val status = if (partial) HttpStatusCode.PartialContent else HttpStatusCode.OK
+    if (head) {
+        call.respond(object : OutgoingContent.NoContent() {
+            override val status = status
+            override val contentType = contentType
+            override val contentLength = length
+        })
+        return
+    }
+    call.respondBytesWriter(contentType = contentType, status = status, contentLength = length) {
+        FileChannel.open(track.path, StandardOpenOption.READ).use { file ->
+            file.position(range.start)
+            val buffer = ByteBuffer.allocate(64 * 1024)
+            var remaining = length
+            while (remaining > 0) {
+                buffer.clear()
+                buffer.limit(minOf(buffer.capacity().toLong(), remaining).toInt())
+                val read = withContext(Dispatchers.IO) { file.read(buffer) }
+                if (read <= 0) break
+                writeFully(buffer.array(), 0, read)
+                remaining -= read
+            }
+        }
+    }
+}
 
 private fun ApplicationCall.setRepresentationValidators(etag: String, modifiedAt: Instant?) {
     response.headers.append(HttpHeaders.ETag, etag)

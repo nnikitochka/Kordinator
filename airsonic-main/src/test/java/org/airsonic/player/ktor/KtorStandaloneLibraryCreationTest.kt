@@ -5,7 +5,9 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
+import io.ktor.client.request.head
 import io.ktor.client.request.post
+import io.ktor.client.request.header
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsText
@@ -113,6 +115,20 @@ class KtorStandaloneLibraryCreationTest {
                     val stream = client.get("/api/v1/tracks/$trackId/stream") { bearerAuth(token) }
                     assertEquals(HttpStatusCode.OK, stream.status)
                     assertTrue(trackBytes.contentEquals(stream.bodyAsBytes()))
+                    val download = client.get("/api/v1/tracks/$trackId/download") { bearerAuth(token) }
+                    assertEquals(HttpStatusCode.OK, download.status)
+                    assertTrue(download.headers[io.ktor.http.HttpHeaders.ContentDisposition]!!.contains("new-track.mp3"))
+                    assertTrue(trackBytes.contentEquals(download.bodyAsBytes()))
+                    val partial = client.get("/api/v1/tracks/$trackId/download") {
+                        bearerAuth(token)
+                        header(io.ktor.http.HttpHeaders.Range, "bytes=0-6")
+                    }
+                    assertEquals(HttpStatusCode.PartialContent, partial.status)
+                    assertEquals("bytes 0-6/${trackBytes.size}", partial.headers[io.ktor.http.HttpHeaders.ContentRange])
+                    assertTrue("created".toByteArray().contentEquals(partial.bodyAsBytes()))
+                    val head = client.head("/api/v1/tracks/$trackId/download") { bearerAuth(token) }
+                    assertEquals(HttpStatusCode.OK, head.status)
+                    assertEquals(trackBytes.size.toString(), head.headers[io.ktor.http.HttpHeaders.ContentLength])
                 }
             }
         } finally {
