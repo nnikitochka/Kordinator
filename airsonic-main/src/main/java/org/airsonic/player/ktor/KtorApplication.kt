@@ -1168,6 +1168,26 @@ fun Application.standaloneModule(
                         }
                         call.respondJson(users)
                     }
+                    get("/admin/users/{id}") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val targetId = call.parameters["id"]?.toLongOrNull()
+                        if (targetId == null || targetId < 0) {
+                            call.respondJson(ApiError("invalid_request", "User ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val user = withContext(authDispatcher) { authService.users().firstOrNull { it.id == targetId } }
+                        val libraries = withContext(authDispatcher) { authService.allowedLibraries(targetId) }
+                        if (user == null || libraries == null) call.respond(HttpStatusCode.NotFound)
+                        else call.respondJson(AdminUserDetailsResponse(
+                            AdminUserResponse(user.id, user.username, user.role, user.enabled),
+                            libraries.sorted(),
+                        ))
+                    }
                     post("/admin/users") {
                         val actor = call.principal<LocalUserPrincipal>()
                             ?: return@post call.respond(HttpStatusCode.Unauthorized)
@@ -1614,6 +1634,7 @@ data class LoginRequest(val username: String, val password: String)
 data class LoginResponse(val accessToken: String, val tokenType: String = "Bearer", val expiresAt: String)
 data class CurrentUserResponse(val id: Long, val username: String, val role: String)
 data class AdminUserResponse(val id: Long, val username: String, val role: String, val enabled: Boolean)
+data class AdminUserDetailsResponse(val user: AdminUserResponse, val libraryIds: List<Long>)
 data class ApiError(val code: String, val message: String)
 data class ChangePasswordRequest(val currentPassword: String, val newPassword: String)
 data class SavePlayQueueRequest(

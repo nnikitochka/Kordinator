@@ -240,6 +240,7 @@ class KtorStandaloneAuthTest {
                 val adminToken = extractToken(adminLogin.bodyAsText())
 
                 assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/admin/users") { bearerAuth(userSession.token) }.status)
+                assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/admin/users/$userId") { bearerAuth(userSession.token) }.status)
                 assertEquals(HttpStatusCode.Forbidden, client.put("/api/v1/admin/users/$userId/role") {
                     bearerAuth(userSession.token)
                     contentType(ContentType.Application.Json)
@@ -250,6 +251,12 @@ class KtorStandaloneAuthTest {
                 assertEquals(HttpStatusCode.OK, accounts.status)
                 assertTrue(accounts.bodyAsText().contains("\"username\":\"listener\",\"role\":\"USER\",\"enabled\":true"))
                 assertTrue(!accounts.bodyAsText().contains("password"))
+                val details = client.get("/api/v1/admin/users/$userId") { bearerAuth(adminToken) }
+                assertEquals(HttpStatusCode.OK, details.status)
+                assertTrue(details.bodyAsText().contains("\"username\":\"listener\""))
+                assertTrue(details.bodyAsText().contains("\"libraryIds\":[]"))
+                assertTrue(!details.bodyAsText().contains("password"))
+                assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/admin/users/999999") { bearerAuth(adminToken) }.status)
 
                 assertEquals(HttpStatusCode.Conflict, client.put("/api/v1/admin/users/$adminId/role") {
                     bearerAuth(adminToken)
