@@ -6,6 +6,10 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.put
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.bodyAsBytes
@@ -58,6 +62,7 @@ class KtorStandaloneDatabaseSettingsTest {
             val database = Mockito.mock(DatabaseService::class.java)
             Mockito.`when`(database.backuppable()).thenReturn(true)
             Mockito.`when`(database.backupStatus).thenReturn(DatabaseService.OperationStatus(1, false, false, "Backup complete"))
+            Mockito.`when`(database.importStatus).thenReturn(DatabaseService.OperationStatus(1, false, false, "Import complete"))
 
             Files.createDirectories(home)
             val exportFile = home.resolve("kordinator-export.zip")
@@ -98,6 +103,29 @@ class KtorStandaloneDatabaseSettingsTest {
                 assertEquals(HttpStatusCode.OK, exported.status)
                 assertContentEquals(exportBytes, exported.bodyAsBytes())
                 Mockito.verify(database).cleanup(exportFile)
+                assertEquals(HttpStatusCode.Forbidden, client.post("/api/v1/admin/database/import") { bearerAuth(listenerToken) }.status)
+                val changelogHeaders = Headers.build {
+                    append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"import.xml\"")
+                }
+                val imported = client.post("/api/v1/admin/database/import") {
+                    bearerAuth(adminToken)
+                    setBody(MultiPartFormDataContent(formData {
+                        append("file", "<databaseChangeLog/>".toByteArray(), changelogHeaders)
+                    }))
+                }
+                assertEquals(HttpStatusCode.Accepted, imported.status, imported.bodyAsText())
+                Mockito.verify(database).importDB(org.mockito.ArgumentMatchers.any(Path::class.java))
+                val unsafeHeaders = Headers.build {
+                    append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"../outside.xml\"")
+                }
+                val traversal = client.post("/api/v1/admin/database/import") {
+                    bearerAuth(adminToken)
+                    setBody(MultiPartFormDataContent(formData {
+                        append("file", "<databaseChangeLog/>".toByteArray(), unsafeHeaders)
+                    }))
+                }
+                assertEquals(HttpStatusCode.BadRequest, traversal.status)
+                Mockito.verify(database, Mockito.times(1)).importDB(org.mockito.ArgumentMatchers.any(Path::class.java))
                 }
             } finally {
                 if (previousHome == null) System.clearProperty("airsonic.home") else System.setProperty("airsonic.home", previousHome)

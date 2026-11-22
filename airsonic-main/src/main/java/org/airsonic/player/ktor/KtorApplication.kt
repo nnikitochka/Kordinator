@@ -122,10 +122,18 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.security.MessageDigest
+import java.io.InputStream
+import java.util.zip.ZipFile
+import javax.xml.XMLConstants
+import javax.xml.parsers.SAXParserFactory
+import org.xml.sax.Attributes
+import org.xml.sax.helpers.DefaultHandler
 
 private val authDispatcher = Dispatchers.IO.limitedParallelism(4)
 private val scanDispatcher = Dispatchers.IO.limitedParallelism(2)
 private const val MAX_AVATAR_BYTES = 5 * 1024 * 1024
+private const val MAX_DATABASE_IMPORT_BYTES = 256L * 1024 * 1024
+private const val MAX_DATABASE_IMPORT_EXPANDED_BYTES = 1024L * 1024 * 1024
 
 fun Application.module() {
     routing {
@@ -1624,6 +1632,27 @@ fun Application.standaloneModule(
                             withContext(kotlinx.coroutines.NonCancellable + Dispatchers.IO) { db.cleanup(file) }
                         }
                     }
+                    post("/admin/database/import") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@post
+                        }
+                        val db = databaseService
+                            ?: return@post call.respondJson(ApiError("unavailable", "Database operations are not configured"), HttpStatusCode.ServiceUnavailable)
+                        try {
+                            importDatabaseUpload(call, db)
+                            call.respondJson(db.importStatus, HttpStatusCode.Accepted)
+                        } catch (failure: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_import", failure.message ?: "Invalid database import"), HttpStatusCode.BadRequest)
+                        } catch (failure: org.xml.sax.SAXException) {
+                            call.respondJson(ApiError("invalid_import", "Invalid Liquibase changelog XML"), HttpStatusCode.BadRequest)
+                        } catch (failure: java.util.zip.ZipException) {
+                            call.respondJson(ApiError("invalid_import", "Invalid database import archive"), HttpStatusCode.BadRequest)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("import_failed", "Database import failed; check server logs"), HttpStatusCode.InternalServerError)
+                        }
+                    }
                     get("/me/avatar") {
                         val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         val service = avatarService ?: return@get call.respondJson(ApiError("unavailable", "Avatar storage is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -3094,6 +3123,108 @@ private fun updateDatabaseSettings(settings: SettingsService, request: UpdateDat
     settings.dbBackupRetentionCount = request.backupRetentionCount
     settings.save()
 }
+
+private suspend fun importDatabaseUpload(call: ApplicationCall, database: DatabaseService) {
+    require(call.request.headers[HttpHeaders.ContentType]?.startsWith("multipart/form-data", true) == true) {
+        "Multipart upload required"
+    }
+    require((call.request.headers[HttpHeaders.ContentLength]?.toLongOrNull() ?: 0L) <= MAX_DATABASE_IMPORT_BYTES + 65_536L) {
+        "Import exceeds 256 MiB"
+    }
+    val parent = SettingsService.getAirsonicHome().resolve("backups")
+    Files.createDirectories(parent)
+    val staging = Files.createTempDirectory(parent, "kordinator.import.")
+    try {
+        val files = mutableListOf<Pair<String, Path>>()
+        var total = 0L
+        var invalidPart = false
+        call.receiveMultipart(formFieldLimit = Long.MAX_VALUE).forEachPart { part ->
+            try {
+                if (part is PartData.FileItem) {
+                    val name = part.originalFileName.orEmpty()
+                    val accepted = part.name == "file" && name.matches(Regex("[A-Za-z0-9_.-]+\\.(xml|zip)", RegexOption.IGNORE_CASE)) && files.size < 100
+                    if (!accepted) invalidPart = true
+                    val target = if (accepted) Files.createTempFile(staging, "upload-", ".part") else null
+                    if (target != null) files.add(name to target)
+                    withContext(Dispatchers.IO) {
+                        part.provider().toInputStream().use { input ->
+                            (target?.let(Files::newOutputStream) ?: java.io.OutputStream.nullOutputStream()).use { output ->
+                                val buffer = ByteArray(8192)
+                                while (true) {
+                                    val count = input.read(buffer)
+                                    if (count < 0) break
+                                    total += count
+                                    require(total <= MAX_DATABASE_IMPORT_BYTES) { "Import exceeds 256 MiB" }
+                                    output.write(buffer, 0, count)
+                                }
+                            }
+                        }
+                    }
+                }
+            } finally {
+                part.dispose()
+            }
+        }
+        require(!invalidPart && files.isNotEmpty()) { "Upload XML files or one exported ZIP" }
+        withContext(Dispatchers.IO) {
+            val content = Files.createDirectory(staging.resolve("content"))
+            var expanded = 0L
+            fun extract(name: String, input: InputStream) {
+                require(name.matches(Regex("[A-Za-z0-9_.-]+\\.xml", RegexOption.IGNORE_CASE))) {
+                    "Only flat XML changelogs are accepted"
+                }
+                Files.newOutputStream(content.resolve(name), StandardOpenOption.CREATE_NEW).use { output ->
+                    val buffer = ByteArray(8192)
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        expanded += count
+                        require(expanded <= MAX_DATABASE_IMPORT_EXPANDED_BYTES) { "Expanded import exceeds 1 GiB" }
+                        output.write(buffer, 0, count)
+                    }
+                }
+            }
+            if (files.size == 1 && files.single().first.endsWith(".zip", true)) {
+                ZipFile(files.single().second.toFile()).use { zip ->
+                    val entries = zip.entries().asSequence().take(101).toList()
+                    require(entries.size in 1..100) { "Invalid archive entry count" }
+                    entries.forEach { entry -> zip.getInputStream(entry).use { extract(entry.name, it) } }
+                }
+            } else {
+                files.forEach { (name, file) -> Files.newInputStream(file).use { extract(name, it) } }
+            }
+            val factory = SAXParserFactory.newInstance().apply {
+                isNamespaceAware = true
+                setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
+                setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+            }
+            Files.list(content).use { paths ->
+                paths.forEach { file ->
+                    val parser = factory.newSAXParser().apply {
+                        setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "")
+                        setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "")
+                    }
+                    var rootSeen = false
+                    Files.newInputStream(file).use { input ->
+                        parser.parse(input, object : DefaultHandler() {
+                            override fun startElement(uri: String, localName: String, qName: String, attributes: Attributes) {
+                                if (!rootSeen) require(localName == "databaseChangeLog") { "Expected Liquibase changelog" }
+                                rootSeen = true
+                            }
+                        })
+                    }
+                    require(rootSeen) { "Empty changelog" }
+                }
+            }
+            database.importDB(content)
+        }
+    } finally {
+        withContext(kotlinx.coroutines.NonCancellable + Dispatchers.IO) {
+            Files.walk(staging).use { paths -> paths.sorted(Comparator.reverseOrder()).forEach(Files::deleteIfExists) }
+        }
+    }
+}
+
 private fun cacheMetric(meters: MeterRegistry, metric: String, cache: String, vararg tags: String): Double? {
     val found = meters.find(metric).tags("cache", cache).tags(*tags).meters()
     if (found.isEmpty()) return null
