@@ -46,7 +46,8 @@ open class CoverArtService {
     }
 
     open fun upsert(art: CoverArt) {
-        if (art.entityType != null) coverArtCache?.remove(cacheKey(art.entityType, art.entityId))
+        val entityType = art.entityType
+        if (entityType != null) coverArtCache?.remove(cacheKey(entityType, art.entityId))
         if (art.accentColor == null) {
             val existing = coverArtDao.get(art.entityType, art.entityId)
             if (existing != null && art.path == existing.path && existing.accentColor != null) {
