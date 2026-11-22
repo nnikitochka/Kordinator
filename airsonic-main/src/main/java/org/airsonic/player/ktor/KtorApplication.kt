@@ -60,6 +60,8 @@ import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.StandaloneBookmarkService
 import org.airsonic.player.service.StandaloneShareService
 import org.airsonic.player.service.StandaloneShare
+import org.airsonic.player.service.StandaloneAvatarService
+import org.airsonic.player.service.SettingsService
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
 import org.airsonic.player.service.LyricsService
@@ -86,6 +88,7 @@ import java.security.MessageDigest
 
 private val authDispatcher = Dispatchers.IO.limitedParallelism(4)
 private val scanDispatcher = Dispatchers.IO.limitedParallelism(2)
+private const val MAX_AVATAR_BYTES = 5 * 1024 * 1024
 
 fun Application.module() {
     routing {
@@ -116,6 +119,7 @@ fun Application.standaloneModule(
     mediaFileDao: MediaFileDao? = null,
     captionService: CaptionService? = null,
     shareService: StandaloneShareService? = null,
+    avatarService: StandaloneAvatarService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -907,6 +911,73 @@ fun Application.standaloneModule(
                             ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         call.respondJson(CurrentUserResponse(user.id, user.username, user.role))
                     }
+                    get("/me/avatar") {
+                        val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val service = avatarService ?: return@get call.respondJson(ApiError("unavailable", "Avatar storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val avatar = withContext(authDispatcher) { service.get(user.id) }
+                            ?: return@get call.respond(HttpStatusCode.NotFound)
+                        call.response.headers.append(HttpHeaders.CacheControl, "private, max-age=300")
+                        call.respondBytes(avatar.bytes, ContentType.Image.PNG)
+                    }
+                    put("/me/avatar") {
+                        val user = call.principal<LocalUserPrincipal>() ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        val service = avatarService ?: return@put call.respondJson(ApiError("unavailable", "Avatar storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val contentLength = call.request.headers[HttpHeaders.ContentLength]?.toLongOrNull()
+                        if (contentLength != null && contentLength > MAX_AVATAR_BYTES + 65536L) {
+                            call.respondJson(ApiError("avatar_too_large", "Avatar exceeds 5 MiB"), HttpStatusCode.PayloadTooLarge)
+                            return@put
+                        }
+                        var uploaded: ByteArray? = null
+                        var uploadFailure: String? = null
+                        try {
+                            if (call.request.headers[HttpHeaders.ContentType]?.startsWith("multipart/form-data", true) != true) {
+                                throw IllegalArgumentException("Multipart upload required")
+                            }
+                            call.receiveMultipart(formFieldLimit = 1024L).forEachPart { part ->
+                                try {
+                                    when (part) {
+                                        is PartData.FileItem -> {
+                                            if (uploaded != null || part.name != "file") {
+                                                uploadFailure = "Exactly one file field named file is required"
+                                            } else {
+                                                val bytes = withContext(Dispatchers.IO) {
+                                                    part.provider().toInputStream().use { it.readNBytes(MAX_AVATAR_BYTES + 1) }
+                                                }
+                                                if (bytes.size > MAX_AVATAR_BYTES) uploadFailure = "Avatar exceeds 5 MiB"
+                                                else uploaded = bytes
+                                            }
+                                        }
+                                        else -> uploadFailure = "Avatar upload must contain a single file field"
+                                    }
+                                } finally {
+                                    part.dispose()
+                                }
+                            }
+                            if (uploadFailure != null) {
+                                val tooLarge = uploadFailure!!.contains("5 MiB")
+                                call.respondJson(
+                                    ApiError(if (tooLarge) "avatar_too_large" else "invalid_upload", uploadFailure!!),
+                                    if (tooLarge) HttpStatusCode.PayloadTooLarge else HttpStatusCode.BadRequest,
+                                )
+                                return@put
+                            }
+                            val bytes = uploaded ?: throw IllegalArgumentException("A single file field is required")
+                            val avatar = withContext(Dispatchers.IO) { service.set(user.id, bytes) }
+                            call.respondJson(AvatarResponse(avatar.width, avatar.height, avatar.bytes.size), HttpStatusCode.Created)
+                        } catch (failure: IllegalArgumentException) {
+                            val tooLarge = failure.message?.contains("5 MiB") == true
+                            call.respondJson(
+                                ApiError(if (tooLarge) "avatar_too_large" else "invalid_avatar", failure.message ?: "Avatar is invalid"),
+                                if (tooLarge) HttpStatusCode.PayloadTooLarge else HttpStatusCode.BadRequest,
+                            )
+                        }
+                    }
+                    delete("/me/avatar") {
+                        val user = call.principal<LocalUserPrincipal>() ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                        val service = avatarService ?: return@delete call.respondJson(ApiError("unavailable", "Avatar storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val deleted = withContext(authDispatcher) { service.delete(user.id) }
+                        if (deleted) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
+                    }
                     get("/me/play-queue") {
                         val service = playQueueService
                         val catalog = mediaCatalogService
@@ -1690,6 +1761,7 @@ data class CreateLibraryRequest(val name: String, val path: String)
 data class UpdateLibraryRequest(val name: String)
 data class LibraryResponse(val id: Long, val name: String, val path: String, val enabled: Boolean, val createdAt: String)
 data class UploadedLibraryFileResponse(val libraryId: Long, val path: String, val sizeBytes: Long)
+data class AvatarResponse(val width: Int, val height: Int, val sizeBytes: Int)
 data class CreateShareRequest(val trackIds: List<Long> = emptyList(), val description: String? = null, val expiresAt: String? = null)
 data class UpdateShareRequest(val description: String? = null, val expiresAt: String? = null)
 data class ShareResponse(
@@ -2121,6 +2193,7 @@ fun main(args: Array<String>) {
     val playQueueService = StandalonePlayQueueService(standaloneDatabase.dataSource, mediaCatalogService)
     val bookmarkService = StandaloneBookmarkService(standaloneDatabase.dataSource, mediaCatalogService)
     val shareService = StandaloneShareService(standaloneDatabase.dataSource, mediaCatalogService)
+    val avatarService = StandaloneAvatarService(SettingsService.getAirsonicHome().resolve("avatars").resolve("accounts"))
     val ratingService = StandaloneRatingService(standaloneDatabase.dataSource, mediaCatalogService)
     val securityService = runtime.createSecurityService(
         legacyGraph.userDao,
@@ -2197,6 +2270,7 @@ fun main(args: Array<String>) {
             legacyGraph.mediaFileDao,
             captionService,
             shareService,
+            avatarService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
