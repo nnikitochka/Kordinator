@@ -41,7 +41,7 @@ class PlaylistExportController(private val playlists: PlaylistService, private v
                         playlists.exportPlaylist(id, output)
                         output.toByteArray()
                     }
-                    val name = StringUtil.fileSystemSafe(playlist.name).filter { !it.isISOControl() } + ".m3u8"
+                    val name = StringUtil.fileSystemSafe(playlist.name!!).filter { !it.isISOControl() } + ".m3u8"
                     call.response.headers.append(HttpHeaders.ContentDisposition,
                         ContentDisposition.Attachment
                             .withParameter(ContentDisposition.Parameters.FileName, name.map { if (it.code in 32..126) it else '_' }.joinToString(""))

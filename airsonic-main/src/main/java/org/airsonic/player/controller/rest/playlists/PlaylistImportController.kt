@@ -37,7 +37,7 @@ class PlaylistImportController(private val playlists: PlaylistService, private v
                 writer.createResponse(true).apply {
                     playlistImport = PlaylistImport().apply {
                         id = imported.id.toString()
-                        this.name = imported.name
+                        this.name = imported.name!!
                     }
                 }
             } catch (e: CancellationException) { throw e

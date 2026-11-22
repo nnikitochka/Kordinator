@@ -48,7 +48,7 @@ class KordinatorPlaylistRoutes(
             val visiblePlaylists = playlists.getReadablePlaylistsForUser(username).map {
                 KordinatorPlaylistSummary(
                     id = it.id,
-                    name = it.name,
+                    name = it.name!!,
                     trackCount = it.fileCount,
                     durationSeconds = it.duration.toInt(),
                     createdAt = it.created?.toString(),
@@ -87,7 +87,7 @@ class KordinatorPlaylistRoutes(
             }
             val details = KordinatorPlaylistDetails(
                 id = playlist.id,
-                name = playlist.name,
+                name = playlist.name!!,
                 comment = playlist.comment,
                 trackCount = tracks.size,
                 durationSeconds = tracks.sumOf { it.durationSeconds },
@@ -296,7 +296,7 @@ data class KordinatorPlaylistDetails(
 
 private fun Playlist.toSummary() = KordinatorPlaylistSummary(
     id = id,
-    name = name,
+    name = name!!,
     trackCount = fileCount,
     durationSeconds = duration.toInt(),
     createdAt = created?.toString(),
