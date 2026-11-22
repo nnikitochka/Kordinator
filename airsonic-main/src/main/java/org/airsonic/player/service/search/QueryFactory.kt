@@ -42,7 +42,7 @@ class QueryFactory(private val analyzerFactory: AnalyzerFactory) {
     private fun createMultiFieldWildQuery(fieldNames: Array<String>, queryString: String, indexType: IndexType): Query {
         val mainQuery = BooleanQuery.Builder()
         val fieldsQueries = ArrayList<List<Query>>()
-        val analyzer: Analyzer = analyzerFactory.queryAnalyzer
+        val analyzer: Analyzer = analyzerFactory.getQueryAnalyzer()
 
         for (fieldName in fieldNames) {
             analyzer.tokenStream(fieldName, queryString).use { stream ->
@@ -87,7 +87,7 @@ class QueryFactory(private val analyzerFactory: AnalyzerFactory) {
     @Throws(IOException::class)
     fun getRandomSongs(criteria: RandomSearchCriteria): Query {
         val query = BooleanQuery.Builder()
-        val analyzer = analyzerFactory.queryAnalyzer
+        val analyzer = analyzerFactory.getQueryAnalyzer()
         query.add(TermQuery(Term(FieldNames.MEDIA_TYPE, MediaType.MUSIC.name)), Occur.MUST)
 
         if (!isEmpty(criteria.genre)) {
@@ -109,7 +109,7 @@ class QueryFactory(private val analyzerFactory: AnalyzerFactory) {
     @Throws(IOException::class)
     fun searchByName(fieldName: String, name: String): Query {
         val mainQuery = BooleanQuery.Builder()
-        val analyzer = analyzerFactory.queryAnalyzer
+        val analyzer = analyzerFactory.getQueryAnalyzer()
         analyzer.tokenStream(fieldName, name).use { stream ->
             stream.reset()
             stream.incrementToken()

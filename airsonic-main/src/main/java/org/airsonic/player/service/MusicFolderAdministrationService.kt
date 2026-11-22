@@ -44,7 +44,7 @@ class MusicFolderAdministrationService(
         }
 
     fun expunge() {
-        val statistics: MediaLibraryStatistics? = indexManager.statistics
+        val statistics: MediaLibraryStatistics? = indexManager.getStatistics()
         if (statistics != null) {
             LOG.debug("Cleaning search index...")
             indexManager.startIndexing()
