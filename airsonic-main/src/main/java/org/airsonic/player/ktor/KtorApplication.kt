@@ -83,6 +83,8 @@ import org.airsonic.player.ajax.playing.NowPlayingInfo
 import org.airsonic.player.domain.UserSettings
 import org.airsonic.player.domain.AlbumListType
 import org.airsonic.player.domain.TranscodeScheme
+import org.airsonic.player.domain.Player
+import org.airsonic.player.domain.PlayerTechnology
 import java.net.URI
 import java.util.Locale
 import org.airsonic.player.service.ServerInfoService
@@ -92,6 +94,8 @@ import org.airsonic.player.service.TranscodingService
 import org.airsonic.player.service.UPnPService
 import org.airsonic.player.service.MusicFolderAdministrationService
 import org.airsonic.player.command.MusicFolderSettingsCommand
+import org.airsonic.player.service.PlayerService
+import org.airsonic.player.service.PlayQueueService
 import org.airsonic.player.domain.Transcoding
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
@@ -165,6 +169,8 @@ fun Application.standaloneModule(
     transcodingService: TranscodingService? = null,
     upnpService: UPnPService? = null,
     musicFolderAdministrationService: MusicFolderAdministrationService? = null,
+    playerService: PlayerService? = null,
+    playerQueueService: PlayQueueService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -1409,6 +1415,105 @@ fun Application.standaloneModule(
                         service.expunge()
                         call.respond(HttpStatusCode.NoContent)
                     }
+                    get("/admin/players") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val players = playerService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Player settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val transcoding = transcodingService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Transcoding settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.respondJson(AdminPlayersResponse(
+                            items = players.getAllPlayers().map { it.toAdminPlayerResponse(transcoding) },
+                            transcoding = transcoding.allTranscodings.map { AdminTranscodingOption(it.id, it.name) },
+                            schemes = TranscodeScheme.entries.map { it.name },
+                            technologies = PlayerTechnology.entries.map { it.name },
+                        ))
+                    }
+                    put("/admin/players/{id}") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@put
+                        }
+                        val players = playerService
+                            ?: return@put call.respondJson(ApiError("unavailable", "Player settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val queues = playerQueueService
+                            ?: return@put call.respondJson(ApiError("unavailable", "Player queue control is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val transcoding = transcodingService
+                            ?: return@put call.respondJson(ApiError("unavailable", "Transcoding settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val id = call.parameters["id"]?.toIntOrNull()?.takeIf { it > 0 }
+                            ?: return@put call.respondJson(ApiError("invalid_request", "Player ID must be a positive number"), HttpStatusCode.BadRequest)
+                        val player = players.getPlayerById(id)
+                            ?: return@put call.respondJson(ApiError("player_not_found", "Player does not exist"), HttpStatusCode.NotFound)
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), UpdatePlayerSettingsRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected a complete player settings object"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val technology = try { PlayerTechnology.valueOf(request.technology) } catch (_: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_player", "Unknown player technology"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val scheme = try { TranscodeScheme.valueOf(request.transcodeScheme) } catch (_: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_player", "Unknown transcoding scheme"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val availableIds = transcoding.allTranscodings.map { it.id }.toSet()
+                        if (request.transcodingIds.distinct().size != request.transcodingIds.size || !availableIds.containsAll(request.transcodingIds)) {
+                            call.respondJson(ApiError("invalid_player", "Transcoding profile IDs must be unique and exist"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val normalizedName = request.name.trim().ifEmpty { null }
+                        if (player.technology != technology || player.transcodeScheme != scheme) queues.stop(player)
+                        player.name = normalizedName
+                        player.dynamicIp = request.dynamicIp
+                        player.autoControlEnabled = request.autoControlEnabled
+                        player.m3uBomEnabled = request.m3uBomEnabled
+                        player.technology = technology
+                        player.transcodeScheme = scheme
+                        players.updatePlayer(player)
+                        transcoding.setTranscodingsForPlayer(player, request.transcodingIds.toIntArray())
+                        call.respondJson(player.toAdminPlayerResponse(transcoding))
+                    }
+                    post("/admin/players/{id}/clone") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@post
+                        }
+                        val players = playerService
+                            ?: return@post call.respondJson(ApiError("unavailable", "Player settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val transcoding = transcodingService
+                            ?: return@post call.respondJson(ApiError("unavailable", "Transcoding settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val id = call.parameters["id"]?.toIntOrNull()?.takeIf { it > 0 }
+                            ?: return@post call.respondJson(ApiError("invalid_request", "Player ID must be a positive number"), HttpStatusCode.BadRequest)
+                        if (players.getPlayerById(id) == null) {
+                            call.respondJson(ApiError("player_not_found", "Player does not exist"), HttpStatusCode.NotFound)
+                            return@post
+                        }
+                        call.respondJson(players.clonePlayer(id).toAdminPlayerResponse(transcoding), HttpStatusCode.Created)
+                    }
+                    delete("/admin/players/{id}") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@delete
+                        }
+                        val players = playerService
+                            ?: return@delete call.respondJson(ApiError("unavailable", "Player settings are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val id = call.parameters["id"]?.toIntOrNull()?.takeIf { it > 0 }
+                            ?: return@delete call.respondJson(ApiError("invalid_request", "Player ID must be a positive number"), HttpStatusCode.BadRequest)
+                        if (players.getPlayerById(id) == null) {
+                            call.respondJson(ApiError("player_not_found", "Player does not exist"), HttpStatusCode.NotFound)
+                            return@delete
+                        }
+                        players.removePlayerById(id)
+                        call.respond(HttpStatusCode.NoContent)
+                    }
                     get("/me/avatar") {
                         val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         val service = avatarService ?: return@get call.respondJson(ApiError("unavailable", "Avatar storage is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -2454,6 +2559,35 @@ data class UpdateMusicFolderEntry(
     val enabled: Boolean = true,
     val delete: Boolean = false,
 )
+data class AdminPlayersResponse(
+    val items: List<AdminPlayerResponse>,
+    val transcoding: List<AdminTranscodingOption>,
+    val schemes: List<String>,
+    val technologies: List<String>,
+)
+data class AdminPlayerResponse(
+    val id: Int,
+    val name: String?,
+    val description: String,
+    val type: String?,
+    val lastSeen: String?,
+    val dynamicIp: Boolean,
+    val autoControlEnabled: Boolean,
+    val m3uBomEnabled: Boolean,
+    val technology: String,
+    val transcodeScheme: String,
+    val transcodingIds: List<Int>,
+)
+data class AdminTranscodingOption(val id: Int, val name: String)
+data class UpdatePlayerSettingsRequest(
+    val name: String = "",
+    val dynamicIp: Boolean,
+    val autoControlEnabled: Boolean,
+    val m3uBomEnabled: Boolean,
+    val technology: String,
+    val transcodeScheme: String,
+    val transcodingIds: List<Int> = emptyList(),
+)
 data class AdminUserResponse(val id: Long, val username: String, val role: String, val enabled: Boolean)
 data class AdminUserDetailsResponse(val user: AdminUserResponse, val libraryIds: List<Long>)
 data class AdminHealthResponse(val status: String, val components: List<HealthComponentResponse>)
@@ -2767,6 +2901,19 @@ private fun UpdateMusicFolderEntry.toMusicFolderInfo(folderId: Int?): MusicFolde
     if (!delete) info.toMusicFolder()
     return info
 }
+private fun Player.toAdminPlayerResponse(transcoding: TranscodingService) = AdminPlayerResponse(
+    id = requireNotNull(id),
+    name = name,
+    description = description,
+    type = type,
+    lastSeen = lastSeen?.toString(),
+    dynamicIp = dynamicIp,
+    autoControlEnabled = autoControlEnabled,
+    m3uBomEnabled = m3uBomEnabled,
+    technology = technology.name,
+    transcodeScheme = transcodeScheme.name,
+    transcodingIds = transcoding.getTranscodingsForPlayer(this).map { it.id },
+)
 private fun cacheMetric(meters: MeterRegistry, metric: String, cache: String, vararg tags: String): Double? {
     val found = meters.find(metric).tags("cache", cache).tags(*tags).meters()
     if (found.isEmpty()) return null
@@ -3240,10 +3387,11 @@ fun main(args: Array<String>) {
     )
     val transcodingService = runtime.createTranscodingService(legacyGraph.transcodingDao, settingsService, mediaFolderService)
     val playerService = runtime.createPlayerService(runtime.createPlayerDao(), statusService, securityService, transcodingService)
+    val audioScrobblerService = runtime.createAudioScrobblerService(settingsService, securityService)
     val scrobbleService = StandaloneScrobbleService(
         mediaFileService,
         statusService,
-        runtime.createAudioScrobblerService(settingsService, securityService),
+        audioScrobblerService,
     )
     val lyricsService = runtime.createLyricsService()
     val searchIndex = runtime.createIndexManager()
@@ -3257,6 +3405,29 @@ fun main(args: Array<String>) {
         runtime.createJwtSecurityService(settingsService),
     )
     val corePlaylistService = runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService)
+    val legacyJukeboxService = runtime.createJukeboxService(
+        runtime.createJukeboxLegacySubsonicService(
+            transcodingService,
+            audioScrobblerService,
+            statusService,
+            settingsService,
+            securityService,
+            mediaFileService,
+        ),
+    )
+    val playerQueueService = runtime.createPlayQueueService(
+        randomSearchService,
+        legacyJukeboxService,
+        settingsService,
+        mediaFileService,
+        topSongsService,
+        runtime.createRatingService(legacyGraph.ratingDao, securityService, mediaFileService),
+        corePlaylistService,
+        legacyGraph.mediaFileDao,
+        mediaFolderService,
+        legacyGraph.playQueueDao,
+        runtime.createJwtSecurityService(settingsService),
+    )
     val upnpContentDirectory = runtime.createFolderBasedContentDirectory(
         mediaFileService,
         mediaFolderService,
@@ -3330,6 +3501,8 @@ fun main(args: Array<String>) {
             transcodingService,
             upnpService,
             musicFolderAdministrationService,
+            playerService,
+            playerQueueService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
