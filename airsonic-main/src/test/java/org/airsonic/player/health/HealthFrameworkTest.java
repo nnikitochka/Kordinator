@@ -59,6 +59,7 @@ class HealthFrameworkTest {
         assertEquals(Status.OUT_OF_SERVICE, aggregator.getAggregateStatus(Set.of(Status.UP, Status.OUT_OF_SERVICE)));
         assertEquals(Status.UP, aggregator.getAggregateStatus(Set.of(Status.UP)));
         assertEquals(Status.UNKNOWN, aggregator.getAggregateStatus(Set.of()));
+        assertEquals(Status.UNKNOWN, aggregator.getAggregateStatus(null));
     }
 
     @Test
