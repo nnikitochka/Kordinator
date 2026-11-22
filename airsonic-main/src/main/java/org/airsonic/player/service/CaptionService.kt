@@ -110,7 +110,7 @@ open class CaptionService(
     ): String {
         val external = !StringUtils.isBlank(externalUser)
         var url = (if (external) "ext/" else "") + "rest/captions?id=$mediaId&captionId=$captionId"
-        if (external) url = jwtSecurityService.addJWTToken(externalUser, url, externalExpiration)
+        if (external) url = jwtSecurityService.addJWTToken(externalUser!!, url, externalExpiration)
         return basePath + url
     }
 
