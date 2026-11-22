@@ -244,6 +244,17 @@ public class TranscodingService {
         return new BufferedInputStream(Files.newInputStream(parameters.getMediaFile().getFullPath(mediaFolderService.getMusicFolderById(parameters.getMediaFile().getFolderId()).getPath()).toAbsolutePath()));
     }
 
+    /** Opens an explicit profile without silently returning the original file on failure. */
+    public InputStream openTranscodedInputStream(Parameters parameters) throws IOException {
+        if (parameters.getTranscoding() != null) {
+            return createTranscodedInputStream(parameters);
+        }
+        if (parameters.isDownsample()) {
+            return createDownsampledInputStream(parameters);
+        }
+        throw new IllegalArgumentException("An explicit transcoding profile or downsampling request is required");
+    }
+
     /**
      * Returns the strictest transcoding scheme defined for the player and the user.
      */
@@ -277,12 +288,16 @@ public class TranscodingService {
 
         TranscodeInputStream in = createTranscodeInputStream(transcoding.getStep1(), maxBitRate, videoTranscodingSettings, mediaFile, null);
 
-        if (transcoding.getStep2() != null) {
-            in = createTranscodeInputStream(transcoding.getStep2(), maxBitRate, videoTranscodingSettings, mediaFile, in);
-        }
-
-        if (transcoding.getStep3() != null) {
-            in = createTranscodeInputStream(transcoding.getStep3(), maxBitRate, videoTranscodingSettings, mediaFile, in);
+        try {
+            if (transcoding.getStep2() != null) {
+                in = createTranscodeInputStream(transcoding.getStep2(), maxBitRate, videoTranscodingSettings, mediaFile, in);
+            }
+            if (transcoding.getStep3() != null) {
+                in = createTranscodeInputStream(transcoding.getStep3(), maxBitRate, videoTranscodingSettings, mediaFile, in);
+            }
+        } catch (IOException | RuntimeException failure) {
+            in.close();
+            throw failure;
         }
 
         return in;

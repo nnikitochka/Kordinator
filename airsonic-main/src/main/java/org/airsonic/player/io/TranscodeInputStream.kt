@@ -10,6 +10,7 @@ import java.io.OutputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.stream.Collectors
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Subclass of [InputStream] which provides on-the-fly transcoding.
@@ -22,7 +23,7 @@ import java.util.stream.Collectors
  */
 class TranscodeInputStream(
     processBuilder: ProcessBuilder,
-    input: InputStream?,
+    private val input: InputStream?,
     private val tmpFile: Path?
 ) : InputStream() {
     init {
@@ -32,6 +33,7 @@ class TranscodeInputStream(
         )
     }
     val process: Process? = processBuilder.start()
+    private val closed = AtomicBoolean(false)
     private val processInputStream: InputStream = process!!.inputStream
     private val processOutputStream: OutputStream = process!!.outputStream
 
@@ -91,10 +93,11 @@ class TranscodeInputStream(
      * @see InputStream.close
      */
     override fun close() {
+        if (!closed.compareAndSet(false, true)) return
+        process?.destroy()
+        FileUtil.closeQuietly(input)
         FileUtil.closeQuietly(processInputStream)
         FileUtil.closeQuietly(processOutputStream)
-
-        process?.destroy()
 
         if (tmpFile != null) {
             try {

@@ -35,11 +35,15 @@ import io.ktor.server.routing.patch
 import io.ktor.server.routing.routing
 import io.ktor.utils.io.writeFully
 import io.ktor.utils.io.jvm.javaio.toInputStream
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.airsonic.player.runtime.LifecycleRegistry
 import org.airsonic.player.runtime.RuntimeCompositionRoot
@@ -56,6 +60,7 @@ import org.airsonic.player.service.CaptionService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandalonePlayQueueService
 import org.airsonic.player.service.StandaloneVideoPlaybackService
+import org.airsonic.player.service.StandaloneAudioTranscodingService
 import org.airsonic.player.service.StandaloneJukeboxService
 import org.airsonic.player.service.StandalonePlayQueue
 import org.airsonic.player.service.StandaloneAlbum
@@ -187,6 +192,7 @@ fun Application.standaloneModule(
     videoPlaybackService: StandaloneVideoPlaybackService? = null,
     standaloneJukeboxService: StandaloneJukeboxService? = null,
 ) {
+    val audioTranscoding = transcodingService?.let(::StandaloneAudioTranscodingService)
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
     if (scanScope != null) monitor.subscribe(ApplicationStopped) { scanScope.cancel() }
@@ -636,9 +642,13 @@ fun Application.standaloneModule(
                             track.artist, track.album, track.albumArtist, track.durationSeconds, track.sizeBytes,
                             track.modifiedAt?.toString()))
                     }
-                    get("/tracks/{id}/stream") { respondTrackFile(call, libraryScanService, mediaCatalogService, false, false) }
+                    get("/tracks/{id}/stream") {
+                        respondTrackFile(call, libraryScanService, mediaCatalogService, false, false,
+                            audioTranscoding = audioTranscoding, mediaFiles = mediaFileService)
+                    }
                     head("/tracks/{id}/stream") {
-                        respondTrackFile(call, libraryScanService, mediaCatalogService, false, true)
+                        respondTrackFile(call, libraryScanService, mediaCatalogService, false, true,
+                            audioTranscoding = audioTranscoding, mediaFiles = mediaFileService)
                     }
                     get("/tracks/{id}/download") { respondTrackFile(call, libraryScanService, mediaCatalogService, true, false) }
                     head("/tracks/{id}/download") {
@@ -3468,6 +3478,8 @@ private suspend fun respondTrackFile(
     head: Boolean,
     trackIdOverride: Long? = null,
     publicAccess: Boolean = false,
+    audioTranscoding: StandaloneAudioTranscodingService? = null,
+    mediaFiles: MediaFileService? = null,
 ) {
     if (scanService == null || catalogService == null) {
         call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -3488,6 +3500,12 @@ private suspend fun respondTrackFile(
     val track = withContext(scanDispatcher) { scanService.streamFile(catalogTrack.libraryId, catalogTrack.relativePath) }
     if (track == null) {
         call.respond(HttpStatusCode.NotFound)
+        return
+    }
+    if (!download && !publicAccess &&
+        (call.request.queryParameters.contains("format") || call.request.queryParameters.contains("bitrateKbps"))) {
+        respondTranscodedAudio(call, trackId, catalogTrack.libraryId, catalogTrack.relativePath,
+            head, audioTranscoding, mediaFiles)
         return
     }
     if (download) {
@@ -3538,6 +3556,90 @@ private suspend fun respondTrackFile(
                 remaining -= read
             }
         }
+    }
+}
+
+private suspend fun respondTranscodedAudio(
+    call: ApplicationCall,
+    trackId: Long,
+    libraryId: Long,
+    relativePath: String,
+    head: Boolean,
+    service: StandaloneAudioTranscodingService?,
+    mediaFiles: MediaFileService?,
+) {
+    val query = call.request.queryParameters
+    val format = query["format"] ?: "mp3"
+    val rawBitrate = query["bitrateKbps"]
+    val bitrate = if (rawBitrate == null) 192 else rawBitrate.toIntOrNull()
+    if (format.isBlank() || bitrate == null || bitrate !in 32..320) {
+        call.respondJson(ApiError("invalid_request", "Expected an audio format and bitrateKbps between 32 and 320"), HttpStatusCode.BadRequest)
+        return
+    }
+    if (call.request.headers[HttpHeaders.Range] != null) {
+        call.respondJson(ApiError("invalid_request", "Byte ranges are unavailable for transcoded audio"), HttpStatusCode.BadRequest)
+        return
+    }
+    if (service == null || mediaFiles == null) {
+        call.respondJson(ApiError("unavailable", "Audio transcoding is not configured"), HttpStatusCode.ServiceUnavailable)
+        return
+    }
+    val file = withContext(Dispatchers.IO) { trackId.toInt().let(mediaFiles::getMediaFile) }
+    if (file == null || !file.isPresent || file.folderId.toLong() != libraryId || file.path != relativePath) {
+        call.respond(HttpStatusCode.NotFound)
+        return
+    }
+    val plan = withContext(Dispatchers.IO) { service.prepare(file, format, bitrate) }
+    if (plan == null) {
+        call.respondJson(ApiError("unsupported_format", "No configured audio profile supports this conversion"), HttpStatusCode.NotAcceptable)
+        return
+    }
+    call.response.headers.append(HttpHeaders.CacheControl, "private, no-store")
+    call.response.headers.append(HttpHeaders.AcceptRanges, "none")
+    val contentType = ContentType.parse(plan.contentType)
+    if (head) {
+        call.respond(object : OutgoingContent.NoContent() {
+            override val contentType = contentType
+            override val status = HttpStatusCode.OK
+        })
+        return
+    }
+    var opened: java.io.InputStream? = null
+    val input = try {
+        withContext(Dispatchers.IO) { service.open(plan).also { opened = it } }
+    } catch (failure: java.io.IOException) {
+        opened?.close()
+        call.respondJson(ApiError("unavailable", "Unable to start audio transcoder"), HttpStatusCode.ServiceUnavailable)
+        return
+    } catch (failure: Throwable) {
+        opened?.close()
+        throw failure
+    }
+    try {
+        call.respondBytesWriter(contentType = contentType) {
+            coroutineScope {
+                // Closing the process stream unblocks a read when the HTTP request is cancelled.
+                val closer = launch(start = CoroutineStart.UNDISPATCHED) {
+                    try { awaitCancellation() } finally { input.close() }
+                }
+                try {
+                    input.use {
+                        val buffer = ByteArray(64 * 1024)
+                        while (true) {
+                            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                            val count = withContext(Dispatchers.IO) { it.read(buffer) }
+                            if (count < 0) break
+                            writeFully(buffer, 0, count)
+                        }
+                    }
+                } finally {
+                    closer.cancel()
+                }
+            }
+        }
+    } catch (failure: Throwable) {
+        input.close()
+        throw failure
     }
 }
 

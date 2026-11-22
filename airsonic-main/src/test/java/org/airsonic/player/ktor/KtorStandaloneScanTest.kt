@@ -4,6 +4,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.head
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -135,8 +136,24 @@ class KtorStandaloneScanTest {
                         statement.executeQuery().use { rows -> rows.next(); assertEquals(coreTrackId, rows.getLong(1)) }
                     }
                 }
+                org.mockito.Mockito.`when`(coreCatalog.mediaFileService.getMediaFile(coreTrackId.toInt())).thenAnswer {
+                    runtime.runtime.createPersistenceGraph().daos.mediaFileDao.getMediaFile(coreTrackId.toInt())
+                }
                 val favoriteService = StandaloneFavoriteService(dataSource, mediaCatalogService)
                 val mapper = jacksonObjectMapper()
+                val transcoding = org.mockito.Mockito.mock(org.airsonic.player.service.TranscodingService::class.java)
+                val profile = org.airsonic.player.domain.Transcoding(1, "test audio", "mp3", "opus", "unused", null, null, true)
+                org.mockito.Mockito.`when`(transcoding.allTranscodings).thenReturn(listOf(profile))
+                val closedTranscodes = java.util.concurrent.atomic.AtomicInteger()
+                org.mockito.Mockito.`when`(transcoding.openTranscodedInputStream(org.mockito.ArgumentMatchers.any())).thenAnswer { invocation ->
+                    val parameters = invocation.getArgument<org.airsonic.player.service.TranscodingService.Parameters>(0)
+                    assertEquals(128, parameters.maxBitRate)
+                    assertEquals(profile, parameters.transcoding)
+                    object : java.io.ByteArrayInputStream("encoded audio".toByteArray()) {
+                        override fun close() { closedTranscodes.incrementAndGet(); super.close() }
+                    }
+                }
+
 
                 testApplication {
                     application {
@@ -146,6 +163,8 @@ class KtorStandaloneScanTest {
                             favoriteService = favoriteService,
                             mediaFolderService = runtime.mediaFolderService,
                             mediaCatalogService = mediaCatalogService,
+                            mediaFileService = coreCatalog.mediaFileService,
+                            transcodingService = transcoding,
                         )
                     }
 
@@ -298,6 +317,27 @@ class KtorStandaloneScanTest {
                 assertEquals(401, client.get("/api/v1/tracks/$trackId/stream").status.value)
                 assertEquals("bytes", fullStream.headers["Accept-Ranges"])
                 assertTrue("not a decodable audio file".toByteArray().contentEquals(fullStream.bodyAsBytes()))
+                val encodedUrl = "/api/v1/tracks/$trackId/stream?format=opus&bitrateKbps=128"
+                assertEquals(HttpStatusCode.Unauthorized, client.get(encodedUrl).status)
+                assertEquals(HttpStatusCode.NotFound, client.get(encodedUrl) { bearerAuth(listenerToken) }.status)
+                assertEquals(HttpStatusCode.OK, client.head(encodedUrl) { bearerAuth(token) }.status)
+                org.mockito.Mockito.verify(transcoding, org.mockito.Mockito.never()).openTranscodedInputStream(org.mockito.ArgumentMatchers.any())
+                val encoded = client.get(encodedUrl) { bearerAuth(token); header("If-None-Match", fullStream.headers["ETag"]!!) }
+                assertEquals(HttpStatusCode.OK, encoded.status)
+                assertEquals("audio/ogg", encoded.headers["Content-Type"]?.substringBefore(';'))
+                assertEquals("private, no-store", encoded.headers["Cache-Control"])
+                assertEquals("none", encoded.headers["Accept-Ranges"])
+                assertEquals(null, encoded.headers["ETag"])
+                assertEquals("encoded audio", encoded.bodyAsText())
+                assertTrue(closedTranscodes.get() > 0)
+                for (suffix in listOf("format=opus&bitrateKbps=bad", "format=opus&bitrateKbps=0", "format=opus&bitrateKbps=321", "format=")) {
+                    assertEquals(HttpStatusCode.BadRequest, client.get("/api/v1/tracks/$trackId/stream?$suffix") { bearerAuth(token) }.status)
+                }
+                assertEquals(HttpStatusCode.NotAcceptable, client.get("/api/v1/tracks/$trackId/stream?format=flac") { bearerAuth(token) }.status)
+                assertEquals(HttpStatusCode.BadRequest, client.get(encodedUrl) { bearerAuth(token); header("Range", "bytes=0-9") }.status)
+                org.mockito.Mockito.doThrow(java.io.IOException("missing executable")).`when`(transcoding)
+                    .openTranscodedInputStream(org.mockito.ArgumentMatchers.any())
+                assertEquals(HttpStatusCode.ServiceUnavailable, client.get(encodedUrl) { bearerAuth(token) }.status)
                 val streamEtag = requireNotNull(fullStream.headers["ETag"])
                 val streamModified = requireNotNull(fullStream.headers["Last-Modified"])
                 assertEquals(304, client.get("/api/v1/tracks/$trackId/stream") {
