@@ -8,6 +8,7 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
+import org.airsonic.player.ktor.album.AlbumRoutes
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.SecurityService
@@ -16,7 +17,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import java.nio.file.Path
 
-class KordinatorAlbumRoutesTest {
+class AlbumRoutesTest {
     @Test
     fun listsAlbumsFromUserFoldersAndFiltersInaccessibleFolders() = testApplication {
         val mediaFileService = Mockito.mock(MediaFileService::class.java)
@@ -50,7 +51,7 @@ class KordinatorAlbumRoutesTest {
         val mapper = jacksonObjectMapper()
         application {
             routing {
-                KordinatorAlbumRoutes(mediaFileService, mediaFolderService, securityService).routes(
+                AlbumRoutes(mediaFileService, mediaFolderService, securityService).routes(
                     this,
                     currentUsername = { call -> call.request.headers["X-Test-User"] },
                     objectMapper = mapper,
@@ -76,7 +77,7 @@ class KordinatorAlbumRoutesTest {
         val securityService = Mockito.mock(SecurityService::class.java)
         application {
             routing {
-                KordinatorAlbumRoutes(mediaFileService, mediaFolderService, securityService).routes(
+                AlbumRoutes(mediaFileService, mediaFolderService, securityService).routes(
                     this,
                     currentUsername = { call -> call.request.headers["X-Test-User"] },
                     objectMapper = jacksonObjectMapper(),
@@ -125,7 +126,7 @@ class KordinatorAlbumRoutesTest {
         val mapper = jacksonObjectMapper()
         application {
             routing {
-                KordinatorAlbumRoutes(mediaFileService, mediaFolderService, securityService).routes(
+                AlbumRoutes(mediaFileService, mediaFolderService, securityService).routes(
                     this,
                     currentUsername = { call -> call.request.headers["X-Test-User"] },
                     objectMapper = mapper,
@@ -153,7 +154,7 @@ class KordinatorAlbumRoutesTest {
         Mockito.`when`(securityService.isFolderAccessAllowed(album, "alice")).thenReturn(false)
         application {
             routing {
-                KordinatorAlbumRoutes(mediaFileService, mediaFolderService, securityService).routes(
+                AlbumRoutes(mediaFileService, mediaFolderService, securityService).routes(
                     this,
                     currentUsername = { call -> call.request.headers["X-Test-User"] },
                     objectMapper = jacksonObjectMapper(),

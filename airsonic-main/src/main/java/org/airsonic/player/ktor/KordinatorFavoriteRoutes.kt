@@ -16,6 +16,7 @@ import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.domain.Album
 import org.airsonic.player.domain.Artist
 import org.airsonic.player.domain.MediaFile
+import org.airsonic.player.ktor.album.AlbumSummary
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.SecurityService
@@ -29,7 +30,7 @@ data class KordinatorFavoriteTracksResponse(
 data class KordinatorFavoriteAlbumsResponse(
     val offset: Int,
     val limit: Int,
-    val albums: List<KordinatorAlbumSummary>,
+    val albums: List<AlbumSummary>,
 )
 
 data class KordinatorFavoriteArtistsResponse(
@@ -252,7 +253,7 @@ class KordinatorFavoriteRoutes(
         format = format,
     )
 
-    private fun Album.toKordinatorAlbum() = KordinatorAlbumSummary(
+    private fun Album.toKordinatorAlbum() = AlbumSummary(
         id = id,
         name = name,
         artist = artist,

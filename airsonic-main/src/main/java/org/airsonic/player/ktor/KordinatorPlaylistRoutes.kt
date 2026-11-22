@@ -83,7 +83,7 @@ class KordinatorPlaylistRoutes(
 
             val tracks = playlists.getFilesInPlaylist(id).mapNotNull { file ->
                 if (!securityService.isFolderAccessAllowed(file, username)) return@mapNotNull null
-                file.toKordinatorTrack()
+                file.toTrack()
             }
             val details = KordinatorPlaylistDetails(
                 id = playlist.id,
@@ -303,7 +303,7 @@ private fun Playlist.toSummary() = KordinatorPlaylistSummary(
     updatedAt = changed?.toString(),
 )
 
-private fun MediaFile.toKordinatorTrack() = KordinatorTrackResponse(
+private fun MediaFile.toTrack() = KordinatorTrackResponse(
     id = requireNotNull(id),
     title = title,
     artist = artist,

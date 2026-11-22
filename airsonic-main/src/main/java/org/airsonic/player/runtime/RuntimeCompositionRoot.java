@@ -1,5 +1,7 @@
 package org.airsonic.player.runtime;
 
+import org.airsonic.player.ktor.album.AlbumRoutes;
+
 import java.util.Objects;
 import javax.sql.DataSource;
 
@@ -156,7 +158,7 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.ktor.KordinatorSessionService kordinatorSessionService;
     private org.airsonic.player.ktor.KordinatorAuthRoutes kordinatorAuthRoutes;
     private org.airsonic.player.ktor.KordinatorPlaylistRoutes kordinatorPlaylistRoutes;
-    private org.airsonic.player.ktor.KordinatorAlbumRoutes kordinatorAlbumRoutes;
+    private AlbumRoutes albumRoutes;
     private org.airsonic.player.ktor.KordinatorArtistRoutes kordinatorArtistRoutes;
     private org.airsonic.player.ktor.KordinatorSearchRoutes kordinatorSearchRoutes;
     private org.airsonic.player.ktor.KordinatorFavoriteRoutes kordinatorFavoriteRoutes;
@@ -986,15 +988,15 @@ public final class RuntimeCompositionRoot {
         return kordinatorPlaylistRoutes;
     }
 
-    public synchronized org.airsonic.player.ktor.KordinatorAlbumRoutes createKordinatorAlbumRoutes(
+    public synchronized AlbumRoutes createKordinatorAlbumRoutes(
             org.airsonic.player.service.MediaFileService mediaFileService,
             org.airsonic.player.service.MediaFolderService mediaFolderService,
             org.airsonic.player.service.SecurityService securityService) {
-        if (kordinatorAlbumRoutes == null) {
-            kordinatorAlbumRoutes = new org.airsonic.player.ktor.KordinatorAlbumRoutes(
+        if (albumRoutes == null) {
+            albumRoutes = new AlbumRoutes(
                     mediaFileService, mediaFolderService, securityService);
         }
-        return kordinatorAlbumRoutes;
+        return albumRoutes;
     }
 
     public synchronized org.airsonic.player.ktor.KordinatorArtistRoutes createKordinatorArtistRoutes(
