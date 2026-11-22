@@ -55,6 +55,7 @@ import org.airsonic.player.service.LibraryScan
 import org.airsonic.player.service.CaptionService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandalonePlayQueueService
+import org.airsonic.player.service.StandaloneVideoPlaybackService
 import org.airsonic.player.service.StandalonePlayQueue
 import org.airsonic.player.service.StandaloneAlbum
 import org.airsonic.player.service.StandaloneArtist
@@ -182,6 +183,7 @@ fun Application.standaloneModule(
     playerService: PlayerService? = null,
     playerQueueService: PlayQueueService? = null,
     databaseService: DatabaseService? = null,
+    videoPlaybackService: StandaloneVideoPlaybackService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -219,6 +221,10 @@ fun Application.standaloneModule(
         if (authService != null) {
             route("/api/v1") {
                 authenticate("server-session") {
+                    if (videoPlaybackService != null && mediaFileService != null) {
+                        StandaloneVideoPlaybackRoutes(mediaFileService, videoPlaybackService).routes(this)
+                        monitor.subscribe(ApplicationStopped) { videoPlaybackService.close() }
+                    }
                     get("/search") {
                         if (mediaCatalogService == null) {
                             call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -3579,7 +3585,7 @@ private const val MAX_PASSWORD_LENGTH = 1_024
 
 private val jsonMapper = jacksonObjectMapper()
 
-private suspend fun ApplicationCall.respondJson(value: Any, status: HttpStatusCode = HttpStatusCode.OK) {
+internal suspend fun ApplicationCall.respondJson(value: Any, status: HttpStatusCode = HttpStatusCode.OK) {
     respondText(jsonMapper.writeValueAsString(value), ContentType.Application.Json, status)
 }
 
@@ -3698,6 +3704,7 @@ fun main(args: Array<String>) {
         runtime.createTaskSchedulingService(),
     )
     val transcodingService = runtime.createTranscodingService(legacyGraph.transcodingDao, settingsService, mediaFolderService)
+    val videoPlaybackService = StandaloneVideoPlaybackService(mediaFileService, transcodingService)
     val playerService = runtime.createPlayerService(runtime.createPlayerDao(), statusService, securityService, transcodingService)
     val audioScrobblerService = runtime.createAudioScrobblerService(settingsService, securityService)
     val scrobbleService = StandaloneScrobbleService(
@@ -3816,6 +3823,7 @@ fun main(args: Array<String>) {
             playerService,
             playerQueueService,
             databaseService,
+            videoPlaybackService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
