@@ -144,7 +144,7 @@ open class CoverArtService {
         val key = cacheKey(type, id)
         return CacheHelper.getOrCompute(coverArtCache, key) {
             Optional.ofNullable(coverArtDao.get(type, id)).orElse(CoverArt.NULL_ART)
-        }
+        }!!
     }
 
     open fun getFullPath(type: EntityType, id: Int): Path? = getFullPath(get(type, id))
