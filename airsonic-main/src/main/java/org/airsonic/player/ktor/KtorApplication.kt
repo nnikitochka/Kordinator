@@ -62,6 +62,16 @@ import org.airsonic.player.service.StandaloneShareService
 import org.airsonic.player.service.StandaloneShare
 import org.airsonic.player.service.StandaloneAvatarService
 import org.airsonic.player.service.SettingsService
+import org.airsonic.player.service.PathWatcherService
+import org.airsonic.player.service.TaskSchedulingService
+import org.airsonic.player.health.CompositeHealthContributor
+import org.airsonic.player.health.Health
+import org.airsonic.player.health.HealthContributor
+import org.airsonic.player.health.HealthContributorRegistry
+import org.airsonic.player.health.HealthIndicator
+import org.airsonic.player.health.SimpleStatusAggregator
+import org.airsonic.player.health.Status
+import org.airsonic.player.health.StatusAggregator
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneScrobbleService
 import org.airsonic.player.service.LyricsService
@@ -120,6 +130,10 @@ fun Application.standaloneModule(
     captionService: CaptionService? = null,
     shareService: StandaloneShareService? = null,
     avatarService: StandaloneAvatarService? = null,
+    healthContributors: HealthContributorRegistry? = null,
+    healthStatusAggregator: StatusAggregator? = null,
+    pathWatcherService: PathWatcherService? = null,
+    taskSchedulingService: TaskSchedulingService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -910,6 +924,46 @@ fun Application.standaloneModule(
                         val user = call.principal<LocalUserPrincipal>()
                             ?: return@get call.respond(HttpStatusCode.Unauthorized)
                         call.respondJson(CurrentUserResponse(user.id, user.username, user.role))
+                    }
+                    get("/admin/health") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val contributors = healthContributors
+                            ?: return@get call.respondJson(ApiError("unavailable", "Health contributors are not configured"), HttpStatusCode.ServiceUnavailable)
+                        val aggregator = healthStatusAggregator ?: SimpleStatusAggregator()
+                        val components = withContext(Dispatchers.IO) {
+                            contributors.toList().sortedBy { it.name }.map { it.toHealthComponent(aggregator) }
+                        }
+                        call.respondJson(AdminHealthResponse(aggregator.getAggregateStatus(components.map { Status(it.status) }.toSet()).code, components))
+                    }
+                    get("/admin/path-watchers") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val watchers = pathWatcherService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Path watcher service is not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.respondJson(watchers.watchers.toSortedMap().map { (name, path) -> PathWatcherResponse(name, path) })
+                    }
+                    get("/admin/scheduled-tasks") {
+                        val actor = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@get
+                        }
+                        val tasks = taskSchedulingService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Task scheduler is not configured"), HttpStatusCode.ServiceUnavailable)
+                        call.respondJson(tasks.taskInfos.sortedBy { it.name }.map { task ->
+                            val metadata = task.runMetadata
+                            ScheduledTaskResponse(
+                                task.name, task.created.toString(), task.scheduledBy,
+                                metadata?.type?.name, metadata?.firstRun?.toString(), metadata?.lastRun?.toString(), metadata?.nextRun?.toString(),
+                            )
+                        })
                     }
                     get("/me/avatar") {
                         val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
@@ -1706,6 +1760,23 @@ data class LoginResponse(val accessToken: String, val tokenType: String = "Beare
 data class CurrentUserResponse(val id: Long, val username: String, val role: String)
 data class AdminUserResponse(val id: Long, val username: String, val role: String, val enabled: Boolean)
 data class AdminUserDetailsResponse(val user: AdminUserResponse, val libraryIds: List<Long>)
+data class AdminHealthResponse(val status: String, val components: List<HealthComponentResponse>)
+data class HealthComponentResponse(
+    val name: String,
+    val status: String,
+    val details: Map<String, Any?> = emptyMap(),
+    val components: List<HealthComponentResponse> = emptyList(),
+)
+data class PathWatcherResponse(val name: String, val path: String)
+data class ScheduledTaskResponse(
+    val name: String,
+    val createdAt: String,
+    val scheduledBy: String,
+    val type: String?,
+    val firstRun: String?,
+    val lastRun: String?,
+    val nextRun: String?,
+)
 data class ApiError(val code: String, val message: String)
 data class ChangePasswordRequest(val currentPassword: String, val newPassword: String)
 data class SavePlayQueueRequest(
@@ -1784,6 +1855,25 @@ private fun MusicFolder.toLibraryResponse() = LibraryResponse(
     enabled = isEnabled,
     createdAt = changed.toString(),
 )
+private fun org.airsonic.player.health.NamedContributor<HealthContributor>.toHealthComponent(
+    aggregator: StatusAggregator,
+): HealthComponentResponse = contributor.toHealthComponent(name, aggregator)
+
+private fun HealthContributor.toHealthComponent(name: String, aggregator: StatusAggregator): HealthComponentResponse = when (this) {
+    is HealthIndicator -> {
+        val health = try {
+            health()
+        } catch (failure: Exception) {
+            Health.down(failure).build()
+        }
+        HealthComponentResponse(name, health.status.code, health.details)
+    }
+    is CompositeHealthContributor -> {
+        val children = toList().sortedBy { it.name }.map { it.toHealthComponent(aggregator) }
+        HealthComponentResponse(name, aggregator.getAggregateStatus(children.map { Status(it.status) }.toSet()).code, components = children)
+    }
+    else -> HealthComponentResponse(name, Status.UNKNOWN.code)
+}
 private fun StandaloneShare.toResponse(token: String?, tracks: List<TrackResponse>) = ShareResponse(
     id, trackIds, description, createdAt.toString(), expiresAt?.toString(), visitCount, lastVisitedAt?.toString(), token, tracks,
 )
@@ -2194,6 +2284,10 @@ fun main(args: Array<String>) {
     val bookmarkService = StandaloneBookmarkService(standaloneDatabase.dataSource, mediaCatalogService)
     val shareService = StandaloneShareService(standaloneDatabase.dataSource, mediaCatalogService)
     val avatarService = StandaloneAvatarService(SettingsService.getAirsonicHome().resolve("avatars").resolve("accounts"))
+    val healthContributors = runtime.createHealthContributorRegistry(runtime.createDataSource())
+    val healthStatusAggregator = runtime.createStatusAggregator()
+    val pathWatcherService = runtime.createPathWatcherService()
+    val taskSchedulingService = runtime.createTaskSchedulingService()
     val ratingService = StandaloneRatingService(standaloneDatabase.dataSource, mediaCatalogService)
     val securityService = runtime.createSecurityService(
         legacyGraph.userDao,
@@ -2271,6 +2365,10 @@ fun main(args: Array<String>) {
             captionService,
             shareService,
             avatarService,
+            healthContributors,
+            healthStatusAggregator,
+            pathWatcherService,
+            taskSchedulingService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
