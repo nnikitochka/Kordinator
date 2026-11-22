@@ -82,7 +82,7 @@ class KordinatorArtistRoutes(
                     durationSeconds = it.duration.toInt(),
                 )
             }
-            val details = KordinatorArtistDetails(artist.id, artist.name, albums.size, albums)
+            val details = KordinatorArtistDetails(artist.id, artist.name!!, albums.size, albums)
             call.respondText(objectMapper.writeValueAsString(details), ContentType.Application.Json)
         }
 
@@ -108,7 +108,7 @@ class KordinatorArtistRoutes(
 
             val folders = mediaFolderService.getMusicFoldersForUser(username)
             val artists = artistDao.getAlphabetialArtists(offset, limit, folders).map {
-                KordinatorArtistSummary(it.id, it.name, it.albumCount)
+                KordinatorArtistSummary(it.id, it.name!!, it.albumCount)
             }
             call.respondText(objectMapper.writeValueAsString(artists), ContentType.Application.Json)
         }

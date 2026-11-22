@@ -118,8 +118,8 @@ open class MusicIndexService(
         val ignoredArticles = settingsService.ignoredArticlesAsArray
         val collator = createCollator()
         for (artist in artists) {
-            val sortableName = createSortableName(artist.name, ignoredArticles)
-            result.add(MusicIndex.SortableArtistWithArtist(artist.name, sortableName, artist, collator))
+            val sortableName = createSortableName(artist.name!!, ignoredArticles)
+            result.add(MusicIndex.SortableArtistWithArtist(artist.name!!, sortableName, artist, collator))
         }
         return result
     }

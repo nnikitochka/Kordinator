@@ -255,7 +255,7 @@ class KordinatorFavoriteRoutes(
 
     private fun Album.toKordinatorAlbum() = AlbumSummary(
         id = id,
-        name = name,
+        name = name!!,
         artist = artist,
         year = year,
         genre = genre,
@@ -264,7 +264,7 @@ class KordinatorFavoriteRoutes(
 
     private fun Artist.toKordinatorArtist() = KordinatorArtistSummary(
         id = id,
-        name = name,
+        name = name!!,
         albumCount = albumCount,
     )
 }
