@@ -3702,7 +3702,6 @@ fun main(args: Array<String>) {
         runtime.createJaudiotaggerParser(),
         runtime.createMetaDataParserFactory(),
         coverArtService,
-        runtime.createLocaleService(settingsService),
     )
     val statusService = runtime.createStatusService(
         mediaFileService,

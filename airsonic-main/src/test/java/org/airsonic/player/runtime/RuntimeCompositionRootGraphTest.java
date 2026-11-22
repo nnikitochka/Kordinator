@@ -148,8 +148,6 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createSubsonicCredentialAuthenticationService(securityService, credentialEncoders);
         assertSame(credentialAuthenticationService,
                 runtimeRoot.createSubsonicCredentialAuthenticationService(securityService, credentialEncoders));
-        org.airsonic.player.i18n.LocaleService localeService = runtimeRoot.createLocaleService(settingsService);
-        assertSame(localeService, runtimeRoot.createLocaleService(settingsService));
         assertNotNull(runtimeRoot.createDefaultMetaDataParser());
         assertSame(runtimeRoot.createDefaultMetaDataParser(), runtimeRoot.createDefaultMetaDataParser());
         assertNotNull(runtimeRoot.createFFmpegParser());
@@ -166,9 +164,9 @@ class RuntimeCompositionRootGraphTest {
         assertEquals(1, lifecycleRegistry.getStartupItems().stream()
                 .filter(item -> item.name().equals("coverArtAccentColorBackfill")).count());
         MediaFileService mediaFileService = runtimeRoot.createMediaFileService(securityService, settingsService,
-                mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeService);
+                mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService);
         assertSame(mediaFileService, runtimeRoot.createMediaFileService(securityService, settingsService,
-                mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService, localeService));
+                mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService));
         assertSame(runtimeRoot.createSubsonicGenresService(), runtimeRoot.createSubsonicGenresService());
         assertSame(runtimeRoot.createSubsonicGenresController(), runtimeRoot.createSubsonicGenresController());
         assertSame(runtimeRoot.createSubsonicMusicFoldersService(mediaFolderService),
@@ -472,10 +470,6 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createKordinatorFavoriteRoutes(mediaFileService, mediaFolderService, securityService));
         assertSame(runtimeRoot.createKordinatorLibraryRoutes(mediaFileService, mediaFolderService, securityService),
                 runtimeRoot.createKordinatorLibraryRoutes(mediaFileService, mediaFolderService, securityService));
-        assertSame(runtimeRoot.createPlaylistsController(playlistService, mediaFileService, securityService,
-                        responseMapper, mediaFolderService, playerService, localeService),
-                runtimeRoot.createPlaylistsController(playlistService, mediaFileService, securityService,
-                        responseMapper, mediaFolderService, playerService, localeService));
         assertSame(runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService),
                 runtimeRoot.createGeneralSettingsController(generalSettingsAdministrationService));
         assertSame(runtimeRoot.createMusicFolderSettingsController(musicFolderAdministrationService),

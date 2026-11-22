@@ -24,7 +24,6 @@ class MediaRuntimeFixture(database: RuntimeDatabaseRule) {
         runtime.createJaudiotaggerParser(),
         runtime.createMetaDataParserFactory(),
         coverArt,
-        runtime.createLocaleService(settings),
     )
     val index = runtime.createIndexManager()
     private val playlists = runtime.createPlaylistService(security, settings, mediaFiles, coverArt)

@@ -39,7 +39,7 @@ open class MediaFileEntry(
     companion object {
         @JvmStatic
         fun fromMediaFile(
-            file: MediaFile, locale: Locale?, starred: Boolean,
+            file: MediaFile, starred: Boolean,
             folderAccess: Boolean, streamUrl: String?, remoteStreamUrl: String?,
             remoteCoverArtUrl: String?, accentColor: String?
         ): MediaFileEntry {
@@ -59,7 +59,7 @@ open class MediaFileEntry(
                 file.format,
                 StringUtil.getMimeType(file.format),
                 file.mediaType.toString(),
-                StringUtil.formatBytes(file.fileSize, locale ?: Locale.ENGLISH),
+                StringUtil.formatBytes(file.fileSize, Locale.ENGLISH),
                 file.playCount,
                 file.lastPlayed,
                 file.created,

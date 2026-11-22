@@ -4,7 +4,6 @@ import org.airsonic.player.dao.AlbumDao
 import org.airsonic.player.dao.CoverArtDao
 import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.dao.MusicFolderDao
-import org.airsonic.player.i18n.LocaleService
 import org.airsonic.player.service.CoverArtService
 import org.airsonic.player.service.CoverArtImageService
 import org.airsonic.player.service.DownloadService
@@ -47,11 +46,10 @@ object RuntimeMediaServiceFactory {
         parser: JaudiotaggerParser,
         metaDataParserFactory: MetaDataParserFactory,
         coverArtService: CoverArtService,
-        localeService: LocaleService,
         cacheManager: CacheManager,
     ): MediaFileService = MediaFileService(
         securityService, settingsService, mediaFileDao, mediaFolderService, albumDao,
-        parser, metaDataParserFactory, coverArtService, localeService, cacheManager,
+        parser, metaDataParserFactory, coverArtService, cacheManager,
     )
 
     @JvmStatic

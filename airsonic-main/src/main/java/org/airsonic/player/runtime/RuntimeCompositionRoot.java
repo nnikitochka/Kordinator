@@ -71,7 +71,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.MusicFolderAdministrationService musicFolderAdministrationService;
     private org.airsonic.player.service.CoverArtAccentColorBackfill coverArtAccentColorBackfill;
     private org.airsonic.player.service.UPnPService upnpService;
-    private org.airsonic.player.i18n.LocaleService localeService;
     private org.airsonic.player.service.upnp.AlbumUpnpProcessor albumUpnpProcessor;
     private org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor recentAlbumUpnpProcessor;
     private org.airsonic.player.service.upnp.ArtistUpnpProcessor artistUpnpProcessor;
@@ -162,7 +161,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.ktor.KordinatorSearchRoutes kordinatorSearchRoutes;
     private org.airsonic.player.ktor.KordinatorFavoriteRoutes kordinatorFavoriteRoutes;
     private org.airsonic.player.ktor.KordinatorLibraryRoutes kordinatorLibraryRoutes;
-    private org.airsonic.player.controller.rest.playlists.PlaylistsController playlistsController;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -1038,25 +1036,6 @@ public final class RuntimeCompositionRoot {
         return kordinatorLibraryRoutes;
     }
 
-    public synchronized org.airsonic.player.controller.rest.playlists.PlaylistsController createPlaylistsController(
-            org.airsonic.player.service.PlaylistService playlistService,
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.service.PlayerService playerService,
-            org.airsonic.player.i18n.LocaleService localeService) {
-        if (playlistsController == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException("Persistence graph must be created before PlaylistsController");
-            }
-            playlistsController = new org.airsonic.player.controller.rest.playlists.PlaylistsController(
-                    playlistService, mediaFileService, securityService, responseMapper, createSubsonicJaxbWriter(),
-                    persistenceGraph.getDaos().getMediaFileDao(), mediaFolderService, playerService, localeService);
-        }
-        return playlistsController;
-    }
-
     public synchronized DataSource createDataSource() {
         if (dataSource == null) {
             ownDataSource(RuntimePersistenceFactory.createDataSource(configuration));
@@ -1206,14 +1185,6 @@ public final class RuntimeCompositionRoot {
             configurationPropertiesService = org.airsonic.player.service.ConfigurationPropertiesService.getInstance();
         }
         return configurationPropertiesService;
-    }
-
-    public synchronized org.airsonic.player.i18n.LocaleService createLocaleService(
-            org.airsonic.player.service.SettingsService settingsService) {
-        if (localeService == null) {
-            localeService = RuntimeSettingsServiceFactory.createLocaleService(settingsService);
-        }
-        return localeService;
     }
 
     public synchronized org.airsonic.player.service.SettingsService createSettingsService() {
@@ -1437,12 +1408,11 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.dao.AlbumDao albumDao,
             org.airsonic.player.service.metadata.JaudiotaggerParser parser,
             org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory,
-            org.airsonic.player.service.CoverArtService coverArtService,
-            org.airsonic.player.i18n.LocaleService localeService) {
+            org.airsonic.player.service.CoverArtService coverArtService) {
         if (mediaFileService == null) {
             mediaFileService = RuntimeMediaServiceFactory.createMediaFileService(
                     securityService, settingsService, mediaFileDao, albumDao, createMediaFolderService(),
-                    parser, metaDataParserFactory, coverArtService, localeService, createCacheManager());
+                    parser, metaDataParserFactory, coverArtService, createCacheManager());
         }
         return mediaFileService;
     }

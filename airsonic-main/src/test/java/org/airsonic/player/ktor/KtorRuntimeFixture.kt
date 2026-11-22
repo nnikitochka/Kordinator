@@ -85,7 +85,6 @@ internal fun createRealMediaServices(
         root.createJaudiotaggerParser(),
         root.createMetaDataParserFactory(),
         coverArt,
-        root.createLocaleService(settings),
     )
     val index = root.createIndexManager()
     val playlists: PlaylistService = root.createPlaylistService(security, settings, mediaFiles, coverArt)

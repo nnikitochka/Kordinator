@@ -7,7 +7,6 @@ import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.domain.CoverArt.EntityType;
 import org.airsonic.player.domain.MusicFolder;
-import org.airsonic.player.i18n.LocaleService;
 import org.airsonic.player.service.metadata.JaudiotaggerParser;
 import org.airsonic.player.service.metadata.MetaData;
 import org.airsonic.player.service.metadata.MetaDataParser;
@@ -47,16 +46,15 @@ public class MediaFileService {
     private JaudiotaggerParser parser;
     private MetaDataParserFactory metaDataParserFactory;
     private final CoverArtService coverArtService;
-    private final LocaleService localeService;
     private final Cache<String, MediaFile> mediaFilePathCache;
     private final Cache<Integer, MediaFile> mediaFileIdCache;
     private boolean memoryCacheEnabled = true;
 
-    public MediaFileService(SecurityService securityService, SettingsService settingsService, MediaFileDao mediaFileDao, MediaFolderService mediaFolderService, AlbumDao albumDao, JaudiotaggerParser parser, MetaDataParserFactory metaDataParserFactory, CoverArtService coverArtService, LocaleService localeService) {
-        this(securityService, settingsService, mediaFileDao, mediaFolderService, albumDao, parser, metaDataParserFactory, coverArtService, localeService, null);
+    public MediaFileService(SecurityService securityService, SettingsService settingsService, MediaFileDao mediaFileDao, MediaFolderService mediaFolderService, AlbumDao albumDao, JaudiotaggerParser parser, MetaDataParserFactory metaDataParserFactory, CoverArtService coverArtService) {
+        this(securityService, settingsService, mediaFileDao, mediaFolderService, albumDao, parser, metaDataParserFactory, coverArtService, null);
     }
 
-    public MediaFileService(SecurityService securityService, SettingsService settingsService, MediaFileDao mediaFileDao, MediaFolderService mediaFolderService, AlbumDao albumDao, JaudiotaggerParser parser, MetaDataParserFactory metaDataParserFactory, CoverArtService coverArtService, LocaleService localeService,
+    public MediaFileService(SecurityService securityService, SettingsService settingsService, MediaFileDao mediaFileDao, MediaFolderService mediaFolderService, AlbumDao albumDao, JaudiotaggerParser parser, MetaDataParserFactory metaDataParserFactory, CoverArtService coverArtService,
                             CacheManager cacheManager) {
         this.securityService = securityService;
         this.settingsService = settingsService;
@@ -66,7 +64,6 @@ public class MediaFileService {
         this.parser = parser;
         this.metaDataParserFactory = metaDataParserFactory;
         this.coverArtService = coverArtService;
-        this.localeService = localeService;
         this.mediaFilePathCache = cacheManager != null ? cacheManager.getCache("mediaFilePathCache", String.class, MediaFile.class) : null;
         this.mediaFileIdCache = cacheManager != null ? cacheManager.getCache("mediaFileIdCache", Integer.class, MediaFile.class) : null;
     }
@@ -790,7 +787,6 @@ public class MediaFileService {
     public List<MediaFileEntry> toMediaFileEntryList(List<MediaFile> files, String username, boolean calculateStarred, boolean calculateFolderAccess,
             Function<MediaFile, String> streamUrlGenerator, Function<MediaFile, String> remoteStreamUrlGenerator,
             Function<MediaFile, String> remoteCoverArtUrlGenerator) {
-        Locale locale = Optional.ofNullable(username).map(localeService::resolveLocale).orElse(null);
         List<MediaFileEntry> entries = new ArrayList<>(files.size());
         for (MediaFile file : files) {
             String streamUrl = Optional.ofNullable(streamUrlGenerator).map(g -> g.apply(file)).orElse(null);
@@ -799,7 +795,7 @@ public class MediaFileService {
 
             boolean starred = calculateStarred && username != null && getMediaFileStarredDate(file.getId(), username) != null;
             boolean folderAccess = !calculateFolderAccess || username == null || securityService.isFolderAccessAllowed(file, username);
-            entries.add(MediaFileEntry.fromMediaFile(file, locale, starred, folderAccess, streamUrl, remoteStreamUrl, remoteCoverArtUrl,
+            entries.add(MediaFileEntry.fromMediaFile(file, starred, folderAccess, streamUrl, remoteStreamUrl, remoteCoverArtUrl,
                     getAccentColor(file)));
         }
 

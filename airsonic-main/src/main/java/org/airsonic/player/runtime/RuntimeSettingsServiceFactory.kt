@@ -5,7 +5,6 @@ import org.airsonic.player.dao.ArtistDao
 import org.airsonic.player.dao.AvatarDao
 import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.dao.UserDao
-import org.airsonic.player.i18n.LocaleService
 import org.airsonic.player.service.ConfigurationPropertiesService
 import org.airsonic.player.service.CoverArtAccentColorBackfill
 import org.airsonic.player.service.CoverArtService
@@ -18,7 +17,7 @@ import org.airsonic.player.service.SettingsService
 import org.airsonic.player.service.search.IndexManager
 import javax.cache.CacheManager
 
-/** Constructors for user settings, localization and settings administration services. */
+/** Constructors for user settings and settings administration services. */
 object RuntimeSettingsServiceFactory {
     @JvmStatic
     fun createSettingsService(
@@ -28,9 +27,6 @@ object RuntimeSettingsServiceFactory {
         cacheManager: CacheManager,
         propertiesService: ConfigurationPropertiesService,
     ) = SettingsService(userDao, avatarDao, configuration, cacheManager, propertiesService)
-
-    @JvmStatic
-    fun createLocaleService(settingsService: SettingsService) = LocaleService(settingsService)
 
     @JvmStatic
     fun createGeneralSettingsAdministrationService(
