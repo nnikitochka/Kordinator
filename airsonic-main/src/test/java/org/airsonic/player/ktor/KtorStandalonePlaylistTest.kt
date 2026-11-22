@@ -11,7 +11,11 @@ import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
 import io.ktor.server.testing.testApplication
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
@@ -335,6 +339,7 @@ class KtorStandalonePlaylistTest {
                 assertEquals("Road Trip", createdBody.get("name").asText())
                 assertEquals(listOf(trackId, trackId), createdBody.get("trackIds").map { it.asLong() })
                 assertPlaylistExport(client, ownerToken, otherToken, playlistId)
+                assertPlaylistImport(client, ownerToken, otherToken, mapper)
                 val coreTrackId = runtime.coreDataSource.connection.use { connection ->
                     connection.prepareStatement("SELECT id FROM media_file WHERE path = ? AND folder_id = ?").use { statement ->
                         statement.setString(1, "track.mp3")
@@ -390,7 +395,7 @@ class KtorStandalonePlaylistTest {
                 }
 
                 val list = client.get("/api/v1/playlists") { bearerAuth(ownerToken) }
-                assertEquals(1, mapper.readTree(list.bodyAsText()).size())
+                assertEquals(2, mapper.readTree(list.bodyAsText()).size())
                 val privateList = client.get("/api/v1/playlists") { bearerAuth(otherToken) }
                 assertEquals(0, mapper.readTree(privateList.bodyAsText()).size())
                 assertEquals(404, client.get("/api/v1/playlists/$playlistId") { bearerAuth(otherToken) }.status.value)
@@ -446,5 +451,36 @@ class KtorStandalonePlaylistTest {
         assertEquals(true, exported.bodyAsText().startsWith("#EXTM3U\n"))
         assertEquals(2, exported.bodyAsText().lines().count { it == "track.mp3" })
         assertEquals(404, client.get("/api/v1/playlists/$playlistId/export") { bearerAuth(otherToken) }.status.value)
+    }
+
+    private suspend fun assertPlaylistImport(
+        client: HttpClient,
+        ownerToken: String,
+        otherToken: String,
+        mapper: com.fasterxml.jackson.databind.ObjectMapper,
+    ) {
+        val fileHeaders = Headers.build {
+            append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"Imported.m3u\"")
+            append(HttpHeaders.ContentType, "audio/x-mpegurl")
+        }
+        val imported = client.post("/api/v1/playlists/import") {
+            bearerAuth(ownerToken)
+            setBody(MultiPartFormDataContent(formData {
+                append("file", "#EXTM3U\n#EXTINF:120,Track Artist - track\ntrack.mp3\n".toByteArray(), fileHeaders)
+            }))
+        }
+        assertEquals(201, imported.status.value, imported.bodyAsText())
+        val body = mapper.readTree(imported.bodyAsText())
+        assertEquals("Imported", body.get("name").asText())
+        assertEquals(1, body.get("trackIds").size())
+        val importedId = body.get("id").asLong()
+        assertEquals(404, client.get("/api/v1/playlists/$importedId") { bearerAuth(otherToken) }.status.value)
+        val traversal = client.post("/api/v1/playlists/import") {
+            bearerAuth(ownerToken)
+            setBody(MultiPartFormDataContent(formData {
+                append("file", "#EXTM3U\n../outside.mp3\n".toByteArray(), fileHeaders)
+            }))
+        }
+        assertEquals(400, traversal.status.value)
     }
 }

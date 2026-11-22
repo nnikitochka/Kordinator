@@ -139,6 +139,29 @@ class KtorCoreMediaCatalogService(
         return coreTrackIds.mapNotNull { id -> coreTracks[id]?.toStandalone(id) }
     }
 
+    fun tracksByRelativePaths(paths: Set<String>, accessibleLibraryIds: Set<Long>? = null): Map<String, List<StandaloneTrack>> {
+        if (paths.isEmpty()) return emptyMap()
+        return paths.toList().chunked(400).flatMap { chunk ->
+            val placeholders = chunk.joinToString(",") { "?" }
+            val sql = "SELECT $TRACK_COLUMNS FROM media_file WHERE present AND type IN ('MUSIC', 'AUDIOBOOK') " +
+                "AND path IN ($placeholders)" + libraryScope(accessibleLibraryIds)
+            coreDataSource.connection.use { connection ->
+                connection.prepareStatement(sql).use { statement ->
+                    chunk.forEachIndexed { index, path -> statement.setString(index + 1, path) }
+                    bindLibraryScope(statement, chunk.size + 1, accessibleLibraryIds)
+                    statement.executeQuery().use { rows ->
+                        buildList {
+                            while (rows.next()) {
+                                val track = rows.toCoreTrack()
+                                add(track.toStandalone(track.coreId))
+                            }
+                        }
+                    }
+                }
+            }
+        }.groupBy { it.relativePath }
+    }
+
     /** Convert persisted references created before the core catalog became authoritative. */
     private fun migrateStoredTrackReferences() {
         ktorDataSource.connection.use { connection ->

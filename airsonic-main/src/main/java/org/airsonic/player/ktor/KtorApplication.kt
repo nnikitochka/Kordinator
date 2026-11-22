@@ -730,6 +730,9 @@ fun Application.standaloneModule(
                     delete("/artists/{id}/favorite") {
                         setCatalogFavorite(call, favoriteService, favorite = false, artist = true)
                     }
+                    if (playlistService != null && mediaCatalogService != null) {
+                        KordinatorPlaylistImportRoutes(playlistService, mediaCatalogService).routes(this)
+                    }
                     get("/playlists") {
                         val user = call.principal<LocalUserPrincipal>()
                             ?: return@get call.respond(HttpStatusCode.Unauthorized)
