@@ -43,6 +43,7 @@ import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.security.LoginRateLimiter
 import org.airsonic.player.security.LegacyCredentialEncoderRegistry
 import org.airsonic.player.service.StandaloneLibraryScanService
+import org.airsonic.player.service.CaptionService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandalonePlayQueueService
 import org.airsonic.player.service.StandalonePlayQueue
@@ -105,6 +106,7 @@ fun Application.standaloneModule(
     mediaFileService: MediaFileService? = null,
     artistDao: ArtistDao? = null,
     mediaFileDao: MediaFileDao? = null,
+    captionService: CaptionService? = null,
 ) {
     val loginRateLimiter = LoginRateLimiter()
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
@@ -471,6 +473,9 @@ fun Application.standaloneModule(
                         val page = withContext(scanDispatcher) { dao.getVideos(limit + 1, offset, folders) }
                         val hasMore = page.size > limit
                         call.respondJson(VideoPage(page.take(limit).map { it.toVideoResponse() }, limit, offset, hasMore))
+                    }
+                    if (captionService != null && mediaFileService != null && mediaFolderService != null) {
+                        KordinatorVideoCaptionRoutes(captionService, mediaFileService, mediaFolderService).routes(this)
                     }
                     get("/tracks") {
                     if (mediaCatalogService == null) {
@@ -1840,6 +1845,13 @@ fun main(args: Array<String>) {
     val searchIndex = runtime.createIndexManager()
     val randomSearchService = runtime.createSearchService(mediaFileService)
     val topSongsService = runtime.createLastFmService(legacyGraph.mediaFileDao, mediaFileService, legacyGraph.artistDao)
+    val captionService = runtime.createCaptionService(
+        mediaFileService,
+        mediaFolderService,
+        settingsService,
+        runtime.createMetaDataParserFactory(),
+        runtime.createJwtSecurityService(settingsService),
+    )
     val corePlaylistService = runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService)
     val mediaScannerService = runtime.createMediaScannerService(
         corePlaylistService,
@@ -1874,6 +1886,7 @@ fun main(args: Array<String>) {
             mediaFileService,
             legacyGraph.artistDao,
             legacyGraph.mediaFileDao,
+            captionService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
