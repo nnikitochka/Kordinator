@@ -49,7 +49,7 @@ class PlayerSettingsController(
                     "delete" -> { players.removePlayerById(player.id); selected = null }
                 }
             }
-            val visible = players.allPlayers.filter { request.user.isAdminRole || it.username == request.user.username }
+            val visible = players.getAllPlayers().filter { request.user.isAdminRole || it.username == request.user.username }
             val current = selected ?: visible.firstOrNull()
             writer.createResponse(true).apply {
                 playerSettings = PlayerSettings().apply {
