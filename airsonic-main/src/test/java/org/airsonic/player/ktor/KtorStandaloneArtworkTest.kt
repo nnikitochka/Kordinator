@@ -45,6 +45,7 @@ class KtorStandaloneArtworkTest {
             val adminToken = auth.login("admin", "a strong password for tests")!!.token
             val listenerToken = auth.login("listener", "listener password for tests")!!.token
             val bytes = byteArrayOf(1, 2, 3, 4)
+            val searchQueries = mutableListOf<String>()
             var savedDirectoryId: Int? = null
             var savedBytes: ByteArray? = null
             val management = object : ArtworkManagementService {
@@ -56,7 +57,7 @@ class KtorStandaloneArtworkTest {
             }
             val search = StandaloneArtworkSearchService(
                 searchProvider = { query ->
-                    assertEquals("Artist Album", query)
+                    searchQueries += query
                     listOf(ArtworkSearchResult("https://lastfm.freetls.fastly.net/cover.png", "Artist", "Album"))
                 },
                 imageDownloader = { bytes },
@@ -75,6 +76,10 @@ class KtorStandaloneArtworkTest {
                 val matches = client.get("/api/v1/artwork/search?artist=Artist&album=Album") { bearerAuth(listenerToken) }
                 assertEquals(HttpStatusCode.OK, matches.status)
                 assertTrue(matches.bodyAsText().contains("https://lastfm.freetls.fastly.net/cover.png"))
+                assertEquals(HttpStatusCode.OK, client.get("/api/v1/artwork/search?artist=Artist") {
+                    bearerAuth(listenerToken)
+                }.status)
+                assertEquals(listOf("Artist Album", "Artist"), searchQueries)
 
                 val denied = client.put("/api/v1/library/directories/12/artwork") {
                     bearerAuth(listenerToken)

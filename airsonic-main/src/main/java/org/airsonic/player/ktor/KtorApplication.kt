@@ -256,10 +256,10 @@ fun Application.standaloneModule(
                         if (call.principal<LocalUserPrincipal>() == null) return@get call.respond(HttpStatusCode.Unauthorized)
                         val service = artworkSearchService
                             ?: return@get call.respondJson(ApiError("unavailable", "Artwork search is not configured"), HttpStatusCode.ServiceUnavailable)
-                        val artist = call.request.queryParameters["artist"]
-                        val album = call.request.queryParameters["album"]
-                        if (artist.isNullOrBlank() || album.isNullOrBlank() || artist.length > 200 || album.length > 200) {
-                            return@get call.respondJson(ApiError("invalid_request", "Artist and album are required and must be at most 200 characters"), HttpStatusCode.BadRequest)
+                        val artist = call.request.queryParameters["artist"]?.takeIf(String::isNotBlank)
+                        val album = call.request.queryParameters["album"]?.takeIf(String::isNotBlank)
+                        if ((artist == null && album == null) || (artist?.length ?: 0) > 200 || (album?.length ?: 0) > 200) {
+                            return@get call.respondJson(ApiError("invalid_request", "Artist or album is required; each must be at most 200 characters"), HttpStatusCode.BadRequest)
                         }
                         val matches = withContext(Dispatchers.IO) { service.search(artist, album) }
                         call.respondJson(matches)
@@ -3644,7 +3644,7 @@ data class TrackExternalMetadataResponse(
     val album: AlbumExternalMetadataResponse?,
 )
 data class DirectoryArtworkResponse(val directoryId: Int, val path: String, val contentType: String, val sizeBytes: Int)
-data class ArtworkSelectionRequest(val artist: String, val album: String, val imageUrl: String)
+data class ArtworkSelectionRequest(val artist: String?, val album: String?, val imageUrl: String)
 data class ArtistExternalMetadataResponse(
     val biography: String?,
     val musicBrainzId: String?,

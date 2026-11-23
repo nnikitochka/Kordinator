@@ -80,7 +80,19 @@ class StandaloneArtworkServiceTest {
 
         assertEquals(expected, service.search(" Artist ", " Album "))
         assertEquals("Artist Album", receivedQuery)
-        assertFailsWith<IllegalArgumentException> { service.search(" ", "Album") }
+        assertFailsWith<IllegalArgumentException> { service.search(" ", " ") }
+    }
+
+    @Test
+    fun searchesByArtistOrAlbumIndependently() {
+        val queries = mutableListOf<String>()
+        val service = StandaloneArtworkSearchService(searchProvider = { query -> queries += query; emptyList() })
+
+        service.search(" Artist ", null)
+        service.search(null, " Album ")
+
+        assertEquals(listOf("Artist", "Album"), queries)
+        assertFailsWith<IllegalArgumentException> { service.search(null, " ") }
     }
 
     @Test

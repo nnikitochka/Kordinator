@@ -28,15 +28,18 @@ class StandaloneArtworkSearchService(
     private val imageDownloader: (URI) -> ByteArray = ::downloadLastFmArtwork,
     private val searchProvider: (String) -> List<ArtworkSearchResult> = ::searchLastFm,
 ) {
-    fun search(artist: String, album: String): List<ArtworkSearchResult> {
-        val cleanArtist = artist.trim()
-        val cleanAlbum = album.trim()
-        require(cleanArtist.isNotEmpty() && cleanAlbum.isNotEmpty()) { "Artist and album are required" }
-        require(cleanArtist.length <= MAX_QUERY_LENGTH && cleanAlbum.length <= MAX_QUERY_LENGTH) { "Artist or album is too long" }
-        return runCatching { searchProvider("$cleanArtist $cleanAlbum").take(MAX_RESULTS) }.getOrDefault(emptyList())
+    fun search(artist: String?, album: String?): List<ArtworkSearchResult> {
+        val cleanArtist = artist?.trim()?.takeIf(String::isNotEmpty)
+        val cleanAlbum = album?.trim()?.takeIf(String::isNotEmpty)
+        require(cleanArtist != null || cleanAlbum != null) { "Artist or album is required" }
+        require((cleanArtist?.length ?: 0) <= MAX_QUERY_LENGTH && (cleanAlbum?.length ?: 0) <= MAX_QUERY_LENGTH) {
+            "Artist or album is too long"
+        }
+        val query = listOfNotNull(cleanArtist, cleanAlbum).joinToString(" ")
+        return runCatching { searchProvider(query).take(MAX_RESULTS) }.getOrDefault(emptyList())
     }
 
-    fun downloadSelectedArtwork(artist: String, album: String, imageUrl: String): ByteArray {
+    fun downloadSelectedArtwork(artist: String?, album: String?, imageUrl: String): ByteArray {
         val uri = runCatching { URI(imageUrl) }.getOrElse { throw IllegalArgumentException("Artwork URL is invalid", it) }
         require(uri.scheme.equals("https", ignoreCase = true) && uri.userInfo == null && uri.port in listOf(-1, 443)) {
             "Artwork URL must use HTTPS"
