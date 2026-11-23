@@ -190,8 +190,6 @@ class RuntimeCompositionRootGraphTest {
         AudioScrobblerService audioScrobblerService =
                 runtimeRoot.createAudioScrobblerService(settingsService, securityService);
         assertSame(audioScrobblerService, runtimeRoot.createAudioScrobblerService(settingsService, securityService));
-        UploadFileService uploadFileService = runtimeRoot.createUploadFileService(securityService);
-        assertSame(uploadFileService, runtimeRoot.createUploadFileService(securityService));
         RatingService ratingService = runtimeRoot.createRatingService(daoGraph.getRatingDao(), securityService,
                 mediaFileService);
         assertSame(ratingService, runtimeRoot.createRatingService(daoGraph.getRatingDao(), securityService,
@@ -395,10 +393,6 @@ class RuntimeCompositionRootGraphTest {
                         userAdministrationService),
                 runtimeRoot.createUsersController(securityService, settingsService, mediaFolderService,
                         userAdministrationService));
-        assertSame(runtimeRoot.createUploadController(uploadFileService, statusService,
-                        securityService, settingsService),
-                runtimeRoot.createUploadController(uploadFileService, statusService,
-                        securityService, settingsService));
         assertSame(runtimeRoot.createPlaylistExportController(playlistService),
                 runtimeRoot.createPlaylistExportController(playlistService));
         assertSame(runtimeRoot.createPlaylistImportController(playlistService),

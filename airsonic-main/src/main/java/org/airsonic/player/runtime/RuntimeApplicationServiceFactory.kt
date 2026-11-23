@@ -70,10 +70,6 @@ object RuntimeApplicationServiceFactory {
         ShareService(shareDao, mediaFileService)
 
     @JvmStatic
-    fun createUploadFileService(securityService: SecurityService) =
-        org.airsonic.player.service.UploadFileService(securityService)
-
-    @JvmStatic
     fun createAudioScrobblerService(settingsService: SettingsService, securityService: SecurityService) =
         AudioScrobblerService(settingsService, securityService)
 

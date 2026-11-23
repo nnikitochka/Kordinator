@@ -35,7 +35,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.PlayQueueService playQueueService;
     private org.airsonic.player.service.LastFmService lastFmService;
     private org.airsonic.player.service.ShareService shareService;
-    private org.airsonic.player.service.UploadFileService uploadFileService;
     private org.airsonic.player.service.AudioScrobblerService audioScrobblerService;
     private org.airsonic.player.service.CaptionService captionService;
     private org.airsonic.player.service.VideoPlaybackService videoPlaybackService;
@@ -130,7 +129,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.starred.StarredController starredController;
     private org.airsonic.player.controller.rest.jukebox.JukeboxController jukeboxController;
     private org.airsonic.player.controller.rest.users.UsersController usersController;
-    private org.airsonic.player.controller.rest.upload.UploadController uploadController;
     private org.airsonic.player.controller.rest.playlists.PlaylistExportController playlistExportController;
     private org.airsonic.player.controller.rest.playlists.PlaylistImportController playlistImportController;
     private org.airsonic.player.controller.rest.scrobble.ScrobbleController scrobbleController;
@@ -712,18 +710,6 @@ public final class RuntimeCompositionRoot {
                     userAdministrationService, createSubsonicJaxbWriter());
         }
         return usersController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.upload.UploadController createUploadController(
-            org.airsonic.player.service.UploadFileService uploadFileService,
-            org.airsonic.player.service.StatusService statusService,
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.service.SettingsService settingsService) {
-        if (uploadController == null) {
-            uploadController = new org.airsonic.player.controller.rest.upload.UploadController(
-                    uploadFileService, statusService, securityService, settingsService, createSubsonicJaxbWriter());
-        }
-        return uploadController;
     }
 
     public synchronized org.airsonic.player.controller.rest.playlists.PlaylistExportController
@@ -1682,14 +1668,6 @@ public final class RuntimeCompositionRoot {
             shareService = RuntimeApplicationServiceFactory.createShareService(shareDao, mediaFileService);
         }
         return shareService;
-    }
-
-    public synchronized org.airsonic.player.service.UploadFileService createUploadFileService(
-            org.airsonic.player.service.SecurityService securityService) {
-        if (uploadFileService == null) {
-            uploadFileService = RuntimeApplicationServiceFactory.createUploadFileService(securityService);
-        }
-        return uploadFileService;
     }
 
     public synchronized org.airsonic.player.service.AudioScrobblerService createAudioScrobblerService(

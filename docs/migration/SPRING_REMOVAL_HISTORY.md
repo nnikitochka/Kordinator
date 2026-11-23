@@ -550,6 +550,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалён legacy `UploadStatusController` с Subsonic XML-маршрутами `/rest/getUploadStatus` и `/rest/getDatabaseStatus` и его runtime-root factory. Операции БД доступны через Ktor `/api/v1/admin/database/operations`; загрузка файла выполняется синхронным Ktor endpoint и сразу возвращает созданный путь и размер, поэтому отдельный polling endpoint для временного счётчика байтов не вводился. Runtime graph test проверяет оставшуюся сборку.
 
+**Срез 23 ноября 2026:** старый пользовательский `/rest/upload`, произвольная запись по пути и распаковка ZIP удалены. Функция загрузки в медиатеку доступна администраторам через проверяющий путь и перезапись `POST /api/v1/admin/libraries/{id}/files`. Удалены старый `UploadController`, `UploadFileService`, его runtime factory и graph assertions; пользовательская роль Upload не является частью новой модели библиотек.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
