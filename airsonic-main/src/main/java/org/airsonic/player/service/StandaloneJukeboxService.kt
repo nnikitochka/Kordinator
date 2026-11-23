@@ -75,7 +75,7 @@ class StandaloneJukeboxService(
                 require(target in queue.files.indices) { "Track index is outside the jukebox queue" }
                 val offset = offsetSeconds ?: 0
                 validateOffset(queue.getFile(target), offset)
-                queue.setIndex(target)
+                    queue.index = target
                 queue.status = PlayQueue.Status.PLAYING
                 audio.updateStandaloneJukebox(active.player, offset)
             }
@@ -88,14 +88,14 @@ class StandaloneJukeboxService(
                     queue.status = PlayQueue.Status.STOPPED
                     audio.updateStandaloneJukebox(active.player, 0)
                 } else {
-                    queue.setIndex(queue.index + 1)
+                    queue.index = queue.index + 1
                     queue.status = PlayQueue.Status.PLAYING
                     audio.updateStandaloneJukebox(active.player, 0)
                 }
             }
             "previous" -> {
                 val target = if (audio.position > 3) queue.index else (queue.index - 1).coerceAtLeast(0)
-                queue.setIndex(target)
+                queue.index = target
                 queue.status = PlayQueue.Status.PLAYING
                 audio.updateStandaloneJukebox(active.player, 0)
             }

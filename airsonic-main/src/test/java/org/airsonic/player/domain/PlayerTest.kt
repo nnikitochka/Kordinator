@@ -33,7 +33,7 @@ class PlayerTest {
     @Test
     fun beanPropertiesAndTechnologyHelpersRemainAvailableToJava() {
         val player = Player()
-        val queue = PlayQueue { null }
+        val queue = PlayQueue { MusicFolder(java.nio.file.Path.of("."), "test", MusicFolder.Type.MEDIA, true, null) }
         val seen = Instant.parse("2026-11-24T00:00:00Z")
 
         player.name = "  "
