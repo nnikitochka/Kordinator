@@ -51,6 +51,7 @@ import org.airsonic.player.runtime.RuntimeCompositionRoot
 import org.airsonic.player.runtime.RuntimeConfigurationLoader
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
+import org.airsonic.player.security.StandalonePasswordRecoveryService
 import org.airsonic.player.security.LastEnabledAdministratorException
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.security.LoginRateLimiter
@@ -194,11 +195,14 @@ fun Application.standaloneModule(
     videoPlaybackService: StandaloneVideoPlaybackService? = null,
     standaloneJukeboxService: StandaloneJukeboxService? = null,
     trackNoteService: StandaloneTrackNoteService? = null,
+    passwordRecoveryService: StandalonePasswordRecoveryService? = null,
 ) {
     val audioTranscoding = transcodingService?.let(::StandaloneAudioTranscodingService)
     val loginRateLimiter = LoginRateLimiter()
+    val recoveryRateLimiter = LoginRateLimiter(maxFailures = 5)
     val scanScope = libraryScanService?.let { CoroutineScope(SupervisorJob() + scanDispatcher) }
     if (scanScope != null) monitor.subscribe(ApplicationStopped) { scanScope.cancel() }
+    if (passwordRecoveryService != null) monitor.subscribe(ApplicationStopped) { passwordRecoveryService.close() }
     install(Authentication) {
         bearer("server-session") {
             authenticate { credentials ->
@@ -719,6 +723,43 @@ fun Application.standaloneModule(
                     } else {
                         loginRateLimiter.clear(source)
                         call.respondJson(LoginResponse(session.token, expiresAt = session.expiresAt.toString()))
+                    }
+                }
+                post("/auth/password-recovery") {
+                    call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+                    val request = try {
+                        jsonMapper.readValue(call.receiveText(), PasswordRecoveryRequest::class.java)
+                    } catch (_: Exception) {
+                        call.respondJson(ApiError("invalid_request", "Expected an email address"), HttpStatusCode.BadRequest)
+                        return@post
+                    }
+                    val source = call.request.local.remoteHost
+                    if (!recoveryRateLimiter.isLimited(source)) {
+                        recoveryRateLimiter.recordFailure(source)
+                        withContext(Dispatchers.IO) { passwordRecoveryService?.request(request.email) }
+                    }
+                    call.respondJson(PasswordRecoveryAcceptedResponse(), HttpStatusCode.Accepted)
+                }
+                post("/auth/password-recovery/reset") {
+                    val service = passwordRecoveryService
+                    if (service == null) {
+                        call.respondJson(ApiError("unavailable", "Password recovery is not configured"), HttpStatusCode.ServiceUnavailable)
+                        return@post
+                    }
+                    val request = try {
+                        jsonMapper.readValue(call.receiveText(), CompletePasswordRecoveryRequest::class.java)
+                    } catch (_: Exception) {
+                        call.respondJson(ApiError("invalid_request", "Expected a recovery token and new password"), HttpStatusCode.BadRequest)
+                        return@post
+                    }
+                    val changed = try {
+                        withContext(authDispatcher) { service.reset(request.token, request.newPassword) }
+                    } catch (_: IllegalArgumentException) {
+                        call.respondJson(ApiError("invalid_password", "Password must contain 12 to 1024 characters"), HttpStatusCode.BadRequest)
+                        return@post
+                    }
+                    if (changed) call.respond(HttpStatusCode.NoContent) else {
+                        call.respondJson(ApiError("invalid_recovery_token", "Recovery token is invalid or expired"), HttpStatusCode.BadRequest)
                     }
                 }
                 authenticate("server-session") {
@@ -2074,7 +2115,7 @@ fun Application.standaloneModule(
                             return@get
                         }
                         val users = withContext(authDispatcher) {
-                            authService.users().map { AdminUserResponse(it.id, it.username, it.role, it.enabled) }
+                            authService.users().map { AdminUserResponse(it.id, it.username, it.role, it.enabled, it.email) }
                         }
                         call.respondJson(users)
                     }
@@ -2094,7 +2135,7 @@ fun Application.standaloneModule(
                         val libraries = withContext(authDispatcher) { authService.allowedLibraries(targetId) }
                         if (user == null || libraries == null) call.respond(HttpStatusCode.NotFound)
                         else call.respondJson(AdminUserDetailsResponse(
-                            AdminUserResponse(user.id, user.username, user.role, user.enabled),
+                            AdminUserResponse(user.id, user.username, user.role, user.enabled, user.email),
                             libraries.sorted(),
                         ))
                     }
@@ -2112,13 +2153,18 @@ fun Application.standaloneModule(
                             return@post
                         }
                         try {
-                            val id = withContext(authDispatcher) { authService.createUser(request.username, request.password, request.role) }
-                            call.respondJson(CurrentUserResponse(id, request.username, request.role), HttpStatusCode.Created)
+                            val id = withContext(authDispatcher) {
+                                authService.createUser(request.username, request.password, request.role, request.email)
+                            }
+                            call.respondJson(
+                                AdminUserResponse(id, request.username, request.role, true, request.email?.trim()?.lowercase()),
+                                HttpStatusCode.Created,
+                            )
                         } catch (_: IllegalArgumentException) {
                             call.respondJson(ApiError("invalid_account", "Username, password or role is invalid"), HttpStatusCode.BadRequest)
                         } catch (failure: java.sql.SQLException) {
                             if (failure.sqlState?.startsWith("23") == true) {
-                                call.respondJson(ApiError("account_exists", "An account with that username already exists"), HttpStatusCode.Conflict)
+                                call.respondJson(ApiError("account_exists", "That username or email address is already in use"), HttpStatusCode.Conflict)
                             } else {
                                 throw failure
                             }
@@ -2267,6 +2313,39 @@ fun Application.standaloneModule(
                             }
                         } catch (_: IllegalArgumentException) {
                             call.respondJson(ApiError("invalid_password", "Password must contain 12 to 1024 characters"), HttpStatusCode.BadRequest)
+                        }
+                    }
+                    put("/admin/users/{id}/email") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                            return@put
+                        }
+                        val targetId = call.parameters["id"]?.toLongOrNull()
+                        if (targetId == null || targetId < 0) {
+                            call.respondJson(ApiError("invalid_request", "User ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), SetUserEmailRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected email or null"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        try {
+                            val updated = withContext(authDispatcher) { authService.setUserEmail(targetId, request.email) }
+                            if (updated) call.respond(HttpStatusCode.NoContent) else {
+                                call.respondJson(ApiError("user_not_found", "User does not exist"), HttpStatusCode.NotFound)
+                            }
+                        } catch (_: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_email", "Email address is invalid"), HttpStatusCode.BadRequest)
+                        } catch (failure: java.sql.SQLException) {
+                            if (failure.sqlState?.startsWith("23") == true) {
+                                call.respondJson(ApiError("email_exists", "An account already uses that email address"), HttpStatusCode.Conflict)
+                            } else {
+                                throw failure
+                            }
                         }
                     }
                     get("/admin/users/{id}/libraries") {
@@ -2853,7 +2932,7 @@ data class DatabaseOperationsResponse(
     val export: DatabaseService.OperationStatus?,
     val import: DatabaseService.OperationStatus?,
 )
-data class AdminUserResponse(val id: Long, val username: String, val role: String, val enabled: Boolean)
+data class AdminUserResponse(val id: Long, val username: String, val role: String, val enabled: Boolean, val email: String? = null)
 data class AdminUserDetailsResponse(val user: AdminUserResponse, val libraryIds: List<Long>)
 data class AdminHealthResponse(val status: String, val components: List<HealthComponentResponse>)
 data class HealthComponentResponse(
@@ -2940,7 +3019,13 @@ data class VideoResponse(
 )
 data class TopTrackPage(val artist: String, val items: List<TrackResponse>, val count: Int)
 data class SimilarTrackPage(val artist: String?, val items: List<TrackResponse>, val count: Int)
-data class CreateUserRequest(val username: String, val password: String, val role: String = "USER")
+data class CreateUserRequest(val username: String, val password: String, val role: String = "USER", val email: String? = null)
+data class SetUserEmailRequest(val email: String? = null)
+data class PasswordRecoveryRequest(val email: String)
+data class CompletePasswordRecoveryRequest(val token: String, val newPassword: String)
+data class PasswordRecoveryAcceptedResponse(
+    val message: String = "If an enabled account uses that email, password reset instructions will be sent.",
+)
 data class ResetUserPasswordRequest(val password: String)
 data class RenameUserRequest(val username: String)
 data class SetUserEnabledRequest(val enabled: Boolean)
@@ -3903,6 +3988,7 @@ fun main(args: Array<String>) {
     val playQueueService = StandalonePlayQueueService(standaloneDatabase.dataSource, mediaCatalogService)
     val bookmarkService = StandaloneBookmarkService(standaloneDatabase.dataSource, mediaCatalogService)
     val trackNoteService = StandaloneTrackNoteService(standaloneDatabase.dataSource, mediaCatalogService)
+    val passwordRecoveryService = StandalonePasswordRecoveryService(authService, StandalonePasswordRecoveryService.smtp(settingsService))
     val shareService = StandaloneShareService(standaloneDatabase.dataSource, mediaCatalogService)
     val avatarService = StandaloneAvatarService(SettingsService.getAirsonicHome().resolve("avatars").resolve("accounts"))
     val healthContributors = runtime.createHealthContributorRegistry(runtime.createDataSource())
@@ -4060,6 +4146,7 @@ fun main(args: Array<String>) {
             videoPlaybackService,
             standaloneJukeboxService,
             trackNoteService,
+            passwordRecoveryService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }

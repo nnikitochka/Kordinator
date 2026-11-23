@@ -65,6 +65,32 @@
             </column>
         </createTable>
     </changeSet>
+    <changeSet id="standalone-account-recovery-1" author="kordinator">
+        <addColumn tableName="local_user">
+            <column name="email" type="VARCHAR(320)"/>
+        </addColumn>
+        <addUniqueConstraint tableName="local_user" columnNames="email" constraintName="uq_local_user_email"/>
+        <createTable tableName="password_recovery_token">
+            <column name="token_hash" type="CHAR(64)">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_password_recovery_token"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_password_recovery_user"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="password_recovery_token" baseColumnNames="user_id"
+                                 constraintName="fk_password_recovery_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="password_recovery_token" indexName="ix_password_recovery_expiry">
+            <column name="expires_at"/>
+        </createIndex>
+    </changeSet>
     <changeSet id="standalone-scan-and-track-tables-1" author="airsonic">
         <createTable tableName="library_scan_job">
             <column name="id" type="VARCHAR(36)">

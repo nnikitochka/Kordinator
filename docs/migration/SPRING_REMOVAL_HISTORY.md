@@ -542,6 +542,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалены неиспользуемый legacy `/rest/setMediaFileComment`, его контроллер и фабрика из runtime root. В production source у контроллера не было вызывающих мест; singleton graph test был обновлён и прошёл 3/3.
 
+**Срез 23 ноября 2026:** восстановление standalone-аккаунта перенесено в публичные Ktor `POST /api/v1/auth/password-recovery` и `/password-recovery/reset`. В local users добавлен нормализованный уникальный email, выдача адреса доступна только администратору; SMTP-письмо содержит случайный одноразовый 30-минутный токен, его SHA-256 хранится в БД, а сброс атомарно меняет пароль и отзывает все сессии. Запрос восстановления rate-limited по IP, отвечает нейтрально и отправляет письмо асинхронно. `KtorStandaloneAuthTest` и `KtorStandalonePasswordRecoveryTest` прошли 6/6.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

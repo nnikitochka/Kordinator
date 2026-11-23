@@ -17,8 +17,9 @@ data class LocalUserPrincipal(
     val role: String,
     val allowedLibraryIds: Set<Long> = emptySet(),
 )
-data class LocalUserAccount(val id: Long, val username: String, val role: String, val enabled: Boolean)
+data class LocalUserAccount(val id: Long, val username: String, val role: String, val enabled: Boolean, val email: String? = null)
 data class LocalSessionToken(val token: String, val expiresAt: Instant)
+data class PasswordRecoveryDelivery(val username: String, val email: String, val token: String)
 class LastEnabledAdministratorException : IllegalStateException("At least one enabled administrator must remain")
 
 /** Owns local password authentication and opaque, revocable bearer sessions. */
@@ -29,22 +30,24 @@ class LocalAuthService(
 ) {
     private val dummyPasswordHash: String by lazy { hashPassword("constant-time-login-dummy-password") }
 
-    fun createUser(username: String, password: String, role: String = "USER"): Long {
+    fun createUser(username: String, password: String, role: String = "USER", email: String? = null): Long {
         require(username.matches(USERNAME_PATTERN)) { "Username must be 3–64 letters, digits, dots, underscores or hyphens" }
         require(password.length in MIN_PASSWORD_LENGTH..MAX_PASSWORD_LENGTH) {
             "Password must contain between $MIN_PASSWORD_LENGTH and $MAX_PASSWORD_LENGTH characters"
         }
         require(role in ALLOWED_ROLES) { "Unsupported account role" }
+        val normalizedEmail = normalizeEmail(email)
 
         dataSource.connection.use { connection ->
             connection.prepareStatement(
-                "INSERT INTO local_user (username, password_hash, role, enabled, created_at) VALUES (?, ?, ?, TRUE, ?)",
+                "INSERT INTO local_user (username, password_hash, role, enabled, created_at, email) VALUES (?, ?, ?, TRUE, ?, ?)",
                 arrayOf("id"),
             ).use { statement ->
                 statement.setString(1, username)
                 statement.setString(2, hashPassword(password))
                 statement.setString(3, role)
                 statement.setTimestamp(4, Timestamp.from(clock.instant()))
+                statement.setString(5, normalizedEmail)
                 statement.executeUpdate()
                 statement.generatedKeys.use { keys ->
                     check(keys.next()) { "Database did not return a user ID" }
@@ -92,6 +95,10 @@ class LocalAuthService(
                     statement.setLong(1, userId)
                     statement.executeUpdate()
                 }
+                connection.prepareStatement("DELETE FROM password_recovery_token WHERE user_id = ?").use { statement ->
+                    statement.setLong(1, userId)
+                    statement.executeUpdate()
+                }
                 connection.commit()
                 return true
             } catch (failure: Throwable) {
@@ -124,11 +131,135 @@ class LocalAuthService(
                     statement.setLong(1, userId)
                     statement.executeUpdate()
                 }
+                connection.prepareStatement("DELETE FROM password_recovery_token WHERE user_id = ?").use { statement ->
+                    statement.setLong(1, userId)
+                    statement.executeUpdate()
+                }
                 connection.commit()
                 return true
             } catch (failure: Throwable) {
                 connection.rollback()
                 throw failure
+            }
+        }
+    }
+
+    fun setUserEmail(userId: Long, email: String?): Boolean {
+        val normalized = normalizeEmail(email)
+        return dataSource.connection.use { connection ->
+            connection.autoCommit = false
+            try {
+                val updated = connection.prepareStatement("UPDATE local_user SET email = ? WHERE id = ?").use { statement ->
+                    statement.setString(1, normalized)
+                    statement.setLong(2, userId)
+                    statement.executeUpdate() == 1
+                }
+                if (updated) {
+                    connection.prepareStatement("DELETE FROM password_recovery_token WHERE user_id = ?").use { statement ->
+                        statement.setLong(1, userId)
+                        statement.executeUpdate()
+                    }
+                }
+                connection.commit()
+                updated
+            } catch (failure: Throwable) {
+                connection.rollback()
+                throw failure
+            } finally {
+                connection.autoCommit = true
+            }
+        }
+    }
+
+    /** Issues a short-lived opaque recovery token. The caller must deliver it out of band. */
+    fun createPasswordRecovery(email: String, lifetime: Duration = Duration.ofMinutes(30)): PasswordRecoveryDelivery? {
+        val normalized = normalizeEmail(email) ?: return null
+        require(!lifetime.isNegative && !lifetime.isZero) { "Recovery token lifetime must be positive" }
+        val tokenBytes = ByteArray(TOKEN_BYTES).also(secureRandom::nextBytes)
+        val token = Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes)
+        val now = clock.instant()
+        return dataSource.connection.use { connection ->
+            connection.autoCommit = false
+            try {
+                val account = connection.prepareStatement(
+                    "SELECT id, username FROM local_user WHERE LOWER(email) = LOWER(?) AND enabled = TRUE",
+                ).use { statement ->
+                    statement.setString(1, normalized)
+                    statement.executeQuery().use { rows ->
+                        if (rows.next()) rows.getLong("id") to rows.getString("username") else null
+                    }
+                }
+                if (account == null) {
+                    connection.rollback()
+                    return null
+                }
+                connection.prepareStatement("DELETE FROM password_recovery_token WHERE user_id = ?").use { statement ->
+                    statement.setLong(1, account.first)
+                    statement.executeUpdate()
+                }
+                connection.prepareStatement(
+                    "INSERT INTO password_recovery_token (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+                ).use { statement ->
+                    statement.setString(1, sha256(token))
+                    statement.setLong(2, account.first)
+                    statement.setTimestamp(3, Timestamp.from(now))
+                    statement.setTimestamp(4, Timestamp.from(now.plus(lifetime)))
+                    statement.executeUpdate()
+                }
+                connection.commit()
+                PasswordRecoveryDelivery(account.second, normalized, token)
+            } catch (failure: Throwable) {
+                connection.rollback()
+                throw failure
+            } finally {
+                connection.autoCommit = true
+            }
+        }
+    }
+
+    /** Consumes a recovery token and changes the password and sessions in one transaction. */
+    fun resetPasswordWithRecoveryToken(token: String, newPassword: String): Boolean {
+        require(newPassword.length in MIN_PASSWORD_LENGTH..MAX_PASSWORD_LENGTH) {
+            "Password must contain between $MIN_PASSWORD_LENGTH and $MAX_PASSWORD_LENGTH characters"
+        }
+        if (token.isBlank() || token.length > MAX_TOKEN_LENGTH) return false
+        dataSource.connection.use { connection ->
+            connection.autoCommit = false
+            try {
+                val userId = connection.prepareStatement(
+                    "SELECT user_id FROM password_recovery_token WHERE token_hash = ? AND expires_at > ? FOR UPDATE",
+                ).use { statement ->
+                    statement.setString(1, sha256(token))
+                    statement.setTimestamp(2, Timestamp.from(clock.instant()))
+                    statement.executeQuery().use { rows -> if (rows.next()) rows.getLong(1) else null }
+                }
+                if (userId == null) {
+                    connection.rollback()
+                    return false
+                }
+                connection.prepareStatement("UPDATE local_user SET password_hash = ? WHERE id = ? AND enabled = TRUE").use { statement ->
+                    statement.setString(1, hashPassword(newPassword))
+                    statement.setLong(2, userId)
+                    if (statement.executeUpdate() != 1) {
+                        connection.rollback()
+                        return false
+                    }
+                }
+                connection.prepareStatement("DELETE FROM password_recovery_token WHERE user_id = ?").use { statement ->
+                    statement.setLong(1, userId)
+                    statement.executeUpdate()
+                }
+                connection.prepareStatement("DELETE FROM user_session WHERE user_id = ?").use { statement ->
+                    statement.setLong(1, userId)
+                    statement.executeUpdate()
+                }
+                connection.commit()
+                return true
+            } catch (failure: Throwable) {
+                connection.rollback()
+                throw failure
+            } finally {
+                connection.autoCommit = true
             }
         }
     }
@@ -151,6 +282,10 @@ class LocalAuthService(
                         statement.setLong(1, userId)
                         statement.executeUpdate()
                     }
+                    connection.prepareStatement("DELETE FROM password_recovery_token WHERE user_id = ?").use { statement ->
+                        statement.setLong(1, userId)
+                        statement.executeUpdate()
+                    }
                 }
                 connection.commit()
                 return true
@@ -162,7 +297,7 @@ class LocalAuthService(
     }
 
     fun users(): List<LocalUserAccount> = dataSource.connection.use { connection ->
-        connection.prepareStatement("SELECT id, username, role, enabled FROM local_user ORDER BY username").use { statement ->
+        connection.prepareStatement("SELECT id, username, role, enabled, email FROM local_user ORDER BY username").use { statement ->
             statement.executeQuery().use { rows ->
                 buildList {
                     while (rows.next()) {
@@ -172,6 +307,7 @@ class LocalAuthService(
                                 rows.getString("username"),
                                 rows.getString("role"),
                                 rows.getBoolean("enabled"),
+                                rows.getString("email"),
                             ),
                         )
                     }
@@ -469,6 +605,12 @@ class LocalAuthService(
         .digest(value.toByteArray(Charsets.UTF_8))
         .joinToString("") { "%02x".format(it) }
 
+    private fun normalizeEmail(email: String?): String? {
+        val normalized = email?.trim()?.lowercase()?.takeIf(String::isNotEmpty) ?: return null
+        require(normalized.length <= 320 && EMAIL_PATTERN.matches(normalized)) { "Email address is invalid" }
+        return normalized
+    }
+
     private data class StoredUser(
         val id: Long,
         val username: String,
@@ -489,6 +631,7 @@ class LocalAuthService(
         const val ITERATIONS = 3
         const val PARALLELISM = 1
         val USERNAME_PATTERN = Regex("[A-Za-z0-9._-]{3,64}")
+        val EMAIL_PATTERN = Regex("[^\\s@]+@[^\\s@]+\\.[^\\s@]+")
         val ALLOWED_ROLES = setOf("ADMIN", "USER")
         val secureRandom = SecureRandom()
     }
