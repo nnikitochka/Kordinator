@@ -21,7 +21,7 @@ class StandaloneAudioTranscodingService(private val transcoding: TranscodingServ
         val contentType = CONTENT_TYPES[target] ?: return null
         val profile = transcoding.allTranscodings.firstOrNull { profile ->
             profile.targetFormat.equals(target, ignoreCase = true) &&
-                profile.sourceFormatsAsArray.any { it.equals(file.format, ignoreCase = true) }
+                profile.getSourceFormatsAsArray().any { it.equals(file.format, ignoreCase = true) }
         }
         val downsample = profile == null && target == "mp3" && file.format.equals("mp3", ignoreCase = true)
         if (profile == null && !downsample) return null

@@ -47,7 +47,7 @@ open class PlayerService(
         val transcodings = transcodingService.allTranscodings
         val defaultActiveTranscodings = ArrayList<Transcoding>(transcodings.size)
         for (transcoding in transcodings) {
-            if (transcoding.isDefaultActive) defaultActiveTranscodings.add(transcoding)
+            if (transcoding.defaultActive) defaultActiveTranscodings.add(transcoding)
         }
         if (player != null) {
             transcodingService.setTranscodingsForPlayer(player, defaultActiveTranscodings)
