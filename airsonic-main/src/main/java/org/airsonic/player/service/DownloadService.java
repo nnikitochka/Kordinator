@@ -54,7 +54,7 @@ public class DownloadService {
         return prepare(user, securityService.createCallerContext(user.getUsername(), true), transferPlayer, id, playlist, player, indices, selection);
     }
 
-    /** Uses the immutable request identity established at the servlet boundary. */
+    /** Uses the immutable caller identity established by the authenticated HTTP request. */
     public DownloadResponse prepare(User user, CallerContext callerContext, Player transferPlayer, Optional<Integer> id,
             Integer playlist, Integer player, List<Integer> indices, List<MediaFile> selection) throws IOException {
         String defaultDownloadName = null;

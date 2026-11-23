@@ -496,8 +496,7 @@ public class SettingsService {
             } catch (Exception e) {
                 LOG.error("Could not create or see home directory {}", home, e);
                 String message = "The directory " + home + " does not exist. Please create it and make it writable. " +
-                        "(You can override the directory location by specifying -Dairsonic.home=... when " +
-                        "starting the servlet container.)";
+                        "(Set -Dairsonic.home=... or --airsonic.home=... when starting the server.)";
                 throw new RuntimeException(message);
             }
         }

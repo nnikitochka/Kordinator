@@ -38,7 +38,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Ktor shares the existing servlet container during migration. -->
+        <!-- Standalone Ktor HTTP server and its Netty engine. -->
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-http-jvm</artifactId>
