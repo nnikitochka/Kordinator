@@ -93,7 +93,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.search.SearchController subsonicSearchController;
     private org.airsonic.player.controller.rest.artists.ArtistsController subsonicArtistsController;
     private org.airsonic.player.controller.rest.albums.AlbumsController subsonicAlbumsController;
-    private org.airsonic.player.controller.rest.music.genre.SongsByGenreController songsByGenreController;
     private org.airsonic.player.controller.rest.music.song.SongController songController;
     private org.airsonic.player.controller.rest.videos.VideosController videosController;
     private org.airsonic.player.controller.rest.lyrics.LyricsController lyricsController;
@@ -289,21 +288,6 @@ public final class RuntimeCompositionRoot {
                     ratingService, searchService, responseMapper, createSubsonicJaxbWriter());
         }
         return subsonicAlbumsController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.music.genre.SongsByGenreController
-            createSongsByGenreController(
-                    org.airsonic.player.service.MediaFolderService mediaFolderService,
-                    org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
-        if (songsByGenreController == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException("Persistence graph must be created before SongsByGenreController");
-            }
-            songsByGenreController = new org.airsonic.player.controller.rest.music.genre.SongsByGenreController(
-                    persistenceGraph.getDaos().getMediaFileDao(), mediaFolderService, responseMapper,
-                    createSubsonicJaxbWriter());
-        }
-        return songsByGenreController;
     }
 
     public synchronized org.airsonic.player.controller.rest.music.song.SongController createSongController(
