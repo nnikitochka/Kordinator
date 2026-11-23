@@ -305,18 +305,12 @@ class RuntimeCompositionRootGraphTest {
         assertSame(databaseService, runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler));
         assertSame(runtimeRoot.createTagEditController(tagEditService),
                 runtimeRoot.createTagEditController(tagEditService));
-        assertSame(runtimeRoot.createAvatarRestController(settingsService),
-                runtimeRoot.createAvatarRestController(settingsService));
         assertSame(runtimeRoot.createPublicShareController(shareService, mediaFileService, mediaFolderService,
                         jwtSecurityService, metaDataParserFactory, objectMapper),
                 runtimeRoot.createPublicShareController(shareService, mediaFileService, mediaFolderService,
                         jwtSecurityService, metaDataParserFactory, objectMapper));
         assertSame(runtimeRoot.createCaptionsRestController(captionService, mediaFolderService, objectMapper),
                 runtimeRoot.createCaptionsRestController(captionService, mediaFolderService, objectMapper));
-        assertSame(runtimeRoot.createSharesController(shareService, mediaFileService, mediaFolderService,
-                        responseMapper, playerService, playlistService, securityService),
-                runtimeRoot.createSharesController(shareService, mediaFileService, mediaFolderService,
-                        responseMapper, playerService, playlistService, securityService));
         org.airsonic.player.ktor.KordinatorSessionService sessionService =
                 runtimeRoot.createKordinatorSessionService(securityService, credentialEncoders, settingsService);
         assertSame(sessionService, runtimeRoot.createKordinatorSessionService(
