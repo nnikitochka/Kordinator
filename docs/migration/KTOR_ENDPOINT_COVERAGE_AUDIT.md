@@ -56,6 +56,8 @@
 ## Проверки источников
 
 - Нет Spring MVC mapping annotations, `HttpServlet` handlers или `@WebServlet` в активном `airsonic-main/src/main/java`.
+- Текущий source scan production source не обнаружил Spring API, Servlet API, Tomcat, Spring application bootstrap или MVC annotations; Maven `dependency:tree` с runtime-фильтрами `org.springframework`, `javax.servlet`, `jakarta.servlet` и `org.apache.tomcat` не нашёл зависимостей.
+- Упакованный `kordinator.jar` не содержит классов `org.springframework`, Servlet API или Tomcat.
 - Production Ktor registration находится в `KtorApplication.kt`; active route classes are called there within `standaloneModule` and its bearer-authenticated route groups.
 - `subsonic-rest-api`, JAXB response mapper и `JAXBWriter` удалены; production API DTO находятся в Ktor пакете.
 - Main class shaded JAR — `org.airsonic.player.ktor.KtorApplicationKt`; он запускает `embeddedServer(Netty)` напрямую. История содержит отдельные срезы `6438f35` (удаление servlet bootstrap), `e623073` (удаление Spring Boot/Tomcat launch path) и `1db2296` (упаковка standalone Ktor JAR).
