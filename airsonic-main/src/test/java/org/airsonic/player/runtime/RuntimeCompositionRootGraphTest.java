@@ -292,11 +292,6 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createSubsonicSearchService(searchService, mediaFolderService, responseMapper));
         assertSame(runtimeRoot.createSubsonicSearchController(subsonicSearchService),
                 runtimeRoot.createSubsonicSearchController(subsonicSearchService));
-        org.airsonic.player.controller.rest.albums.AlbumsController albumsController =
-                runtimeRoot.createSubsonicAlbumsController(mediaFileService, mediaFolderService,
-                        ratingService, searchService, responseMapper);
-        assertSame(albumsController, runtimeRoot.createSubsonicAlbumsController(
-                mediaFileService, mediaFolderService, ratingService, searchService, responseMapper));
 
         org.airsonic.player.service.upnp.DispatchingContentDirectory dispatchingContentDirectory =
                 runtimeRoot.createDispatchingContentDirectory(mediaFileService, mediaFolderService, playlistService,

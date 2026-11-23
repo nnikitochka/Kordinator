@@ -87,7 +87,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
     private org.airsonic.player.controller.rest.search.SearchService subsonicSearchService;
     private org.airsonic.player.controller.rest.search.SearchController subsonicSearchController;
-    private org.airsonic.player.controller.rest.albums.AlbumsController subsonicAlbumsController;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
     private org.airsonic.player.controller.rest.admin.GeneralSettingsController generalSettingsController;
     private org.airsonic.player.controller.rest.admin.MusicFolderSettingsController musicFolderSettingsController;
@@ -201,24 +200,6 @@ public final class RuntimeCompositionRoot {
                     searchService, createSubsonicJaxbWriter());
         }
         return subsonicSearchController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.albums.AlbumsController createSubsonicAlbumsController(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.service.RatingService ratingService,
-            org.airsonic.player.service.SearchService searchService,
-            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
-        if (subsonicAlbumsController == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException("Persistence graph must be created before Subsonic AlbumsController");
-            }
-            DaoGraph daos = persistenceGraph.getDaos();
-            subsonicAlbumsController = new org.airsonic.player.controller.rest.albums.AlbumsController(
-                    daos.getAlbumDao(), daos.getMediaFileDao(), mediaFileService, mediaFolderService,
-                    ratingService, searchService, responseMapper, createSubsonicJaxbWriter());
-        }
-        return subsonicAlbumsController;
     }
 
     public synchronized org.airsonic.player.health.StatusAggregator createStatusAggregator() {
