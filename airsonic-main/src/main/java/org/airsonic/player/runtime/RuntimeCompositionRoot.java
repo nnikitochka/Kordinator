@@ -85,7 +85,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
     private org.airsonic.player.controller.rest.tags.TagEditController tagEditController;
-    private org.airsonic.player.controller.rest.cover.CoverArtRestController coverArtRestController;
     private org.airsonic.player.controller.rest.avatar.AvatarRestController avatarRestController;
     private org.airsonic.player.controller.rest.avatar.AvatarUploadController avatarUploadController;
     private org.airsonic.player.controller.rest.shares.PublicShareController publicShareController;
@@ -178,15 +177,6 @@ public final class RuntimeCompositionRoot {
                     tagEditService, createSubsonicJaxbWriter());
         }
         return tagEditController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.cover.CoverArtRestController createCoverArtRestController(
-            org.airsonic.player.service.CoverArtImageService coverArtImageService) {
-        if (coverArtRestController == null) {
-            coverArtRestController = new org.airsonic.player.controller.rest.cover.CoverArtRestController(
-                    coverArtImageService);
-        }
-        return coverArtRestController;
     }
 
     public synchronized org.airsonic.player.controller.rest.avatar.AvatarRestController createAvatarRestController(
