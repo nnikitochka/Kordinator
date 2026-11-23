@@ -25,6 +25,7 @@ import org.airsonic.player.service.StandalonePlayQueueService
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.StandaloneBookmarkService
 import org.airsonic.player.service.StandaloneRatingService
+import org.airsonic.player.service.StandaloneTrackNoteService
 import org.airsonic.player.service.StandaloneScrobbleService
 import org.airsonic.player.service.StatusService
 import org.airsonic.player.service.AudioScrobblerService
@@ -90,6 +91,7 @@ class KtorStandalonePlaylistTest {
                 val favorites = StandaloneFavoriteService(dataSource, mediaCatalogService)
                 val bookmarks = StandaloneBookmarkService(dataSource, mediaCatalogService)
                 val ratings = StandaloneRatingService(dataSource, mediaCatalogService)
+                val trackNotes = StandaloneTrackNoteService(dataSource, mediaCatalogService)
                 val statusService = Mockito.mock(StatusService::class.java)
                 val scrobblerService = Mockito.mock(AudioScrobblerService::class.java)
                 val scrobbleService = StandaloneScrobbleService(coreCatalog.mediaFileService, statusService, scrobblerService)
@@ -125,6 +127,7 @@ class KtorStandalonePlaylistTest {
                             mediaCatalogService = mediaCatalogService,
                             playQueueService = playQueue,
                             bookmarkService = bookmarks,
+                            trackNoteService = trackNotes,
                             ratingService = ratings,
                             scrobbleService = scrobbleService,
                             lyricsService = lyrics,
@@ -137,6 +140,9 @@ class KtorStandalonePlaylistTest {
 
                 val tracksResponse = client.get("/api/v1/tracks") { bearerAuth(ownerToken) }
                 val trackId = mapper.readTree(tracksResponse.bodyAsText()).get("items")[0].get("id").asLong()
+                assertEquals(true, auth.setAllowedLibraries(otherId, setOf(library.id.toLong())))
+                assertTrackNotes(client, mapper, ownerToken, otherToken, trackId)
+                assertEquals(true, auth.setAllowedLibraries(otherId, emptySet()))
 
                 val randomTracks = mapper.readTree(client.get(
                     "/api/v1/tracks/random?size=1&genre=Rock&fromYear=1990&toYear=2000&libraryId=${library.id}",
@@ -482,5 +488,45 @@ class KtorStandalonePlaylistTest {
             }))
         }
         assertEquals(400, traversal.status.value)
+    }
+
+    private suspend fun assertTrackNotes(
+        client: HttpClient,
+        mapper: com.fasterxml.jackson.databind.ObjectMapper,
+        ownerToken: String,
+        otherToken: String,
+        trackId: Long,
+    ) {
+        val path = "/api/v1/tracks/$trackId/note"
+        val empty = client.get(path) { bearerAuth(ownerToken) }
+        assertEquals(200, empty.status.value)
+        assertEquals(true, mapper.readTree(empty.bodyAsText()).get("note").isNull)
+
+        assertEquals(204, client.put(path) {
+            bearerAuth(ownerToken)
+            header(HttpHeaders.ContentType, "application/json")
+            setBody("""{"note":"  remember the quiet intro  "}""")
+        }.status.value)
+        val saved = mapper.readTree(client.get(path) { bearerAuth(ownerToken) }.bodyAsText())
+        assertEquals("remember the quiet intro", saved.get("note").asText())
+        assertEquals(true, saved.get("createdAt").isTextual)
+        assertEquals(true, saved.get("updatedAt").isTextual)
+
+        val otherUserView = mapper.readTree(client.get(path) { bearerAuth(otherToken) }.bodyAsText())
+        assertEquals(true, otherUserView.get("note").isNull)
+        assertEquals(404, client.get("/api/v1/tracks/${trackId + 1}/note") { bearerAuth(otherToken) }.status.value)
+        assertEquals(404, client.put("/api/v1/tracks/${trackId + 1}/note") {
+            bearerAuth(otherToken)
+            header(HttpHeaders.ContentType, "application/json")
+            setBody("""{"note":"foreign track"}""")
+        }.status.value)
+        assertEquals(400, client.put(path) {
+            bearerAuth(ownerToken)
+            header(HttpHeaders.ContentType, "application/json")
+            setBody("""{"note":"   "}""")
+        }.status.value)
+        assertEquals(204, client.delete(path) { bearerAuth(ownerToken) }.status.value)
+        assertEquals(true, mapper.readTree(client.get(path) { bearerAuth(ownerToken) }.bodyAsText()).get("note").isNull)
+        assertEquals(404, client.delete(path) { bearerAuth(ownerToken) }.status.value)
     }
 }

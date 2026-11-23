@@ -69,6 +69,7 @@ import org.airsonic.player.service.StandaloneArtist
 import org.airsonic.player.service.StandaloneTrack
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.StandaloneBookmarkService
+import org.airsonic.player.service.StandaloneTrackNoteService
 import org.airsonic.player.service.StandaloneShareService
 import org.airsonic.player.service.StandaloneShare
 import org.airsonic.player.service.StandaloneAvatarService
@@ -192,6 +193,7 @@ fun Application.standaloneModule(
     databaseService: DatabaseService? = null,
     videoPlaybackService: StandaloneVideoPlaybackService? = null,
     standaloneJukeboxService: StandaloneJukeboxService? = null,
+    trackNoteService: StandaloneTrackNoteService? = null,
 ) {
     val audioTranscoding = transcodingService?.let(::StandaloneAudioTranscodingService)
     val loginRateLimiter = LoginRateLimiter()
@@ -1862,6 +1864,74 @@ fun Application.standaloneModule(
                         val deleted = withContext(authDispatcher) { service.delete(user.id, trackId) }
                         if (deleted) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
                     }
+                    get("/tracks/{id}/note") {
+                        val service = trackNoteService
+                        val catalog = mediaCatalogService
+                        if (service == null || catalog == null) {
+                            call.respondJson(ApiError("unavailable", "Track note storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val trackId = call.parameters["id"]?.toLongOrNull()
+                        if (trackId == null || trackId < 0) {
+                            call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        if (catalog.track(trackId, user.catalogLibraryScope()) == null) {
+                            call.respond(HttpStatusCode.NotFound)
+                            return@get
+                        }
+                        val note = withContext(authDispatcher) { service.get(user.id, trackId) }
+                        call.respondJson(TrackNoteResponse(trackId, note?.note, note?.createdAt?.toString(), note?.updatedAt?.toString()))
+                    }
+                    put("/tracks/{id}/note") {
+                        val service = trackNoteService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Track note storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@put
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        val trackId = call.parameters["id"]?.toLongOrNull()
+                        if (trackId == null || trackId < 0) {
+                            call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), SetTrackNoteRequest::class.java)
+                        } catch (_: Exception) {
+                            call.respondJson(ApiError("invalid_request", "Expected a non-empty note"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        val saved = try {
+                            withContext(scanDispatcher) {
+                                service.set(user.id, trackId, request.note, user.catalogLibraryScope())
+                            }
+                        } catch (failure: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_request", failure.message ?: "Note is invalid"), HttpStatusCode.BadRequest)
+                            return@put
+                        }
+                        if (saved) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
+                    }
+                    delete("/tracks/{id}/note") {
+                        val service = trackNoteService
+                        if (service == null) {
+                            call.respondJson(ApiError("unavailable", "Track note storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@delete
+                        }
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                        val trackId = call.parameters["id"]?.toLongOrNull()
+                        if (trackId == null || trackId < 0) {
+                            call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@delete
+                        }
+                        val deleted = withContext(scanDispatcher) {
+                            service.delete(user.id, trackId, user.catalogLibraryScope())
+                        }
+                        if (deleted) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
+                    }
                     get("/tracks/{id}/rating") {
                         val service = ratingService
                         val catalog = mediaCatalogService
@@ -2847,6 +2917,8 @@ data class BookmarkResponse(
     val updatedAt: String,
 )
 data class SetBookmarkRequest(val positionMillis: Long, val comment: String? = null)
+data class SetTrackNoteRequest(val note: String)
+data class TrackNoteResponse(val trackId: Long, val note: String?, val createdAt: String?, val updatedAt: String?)
 data class SetTrackRatingRequest(val rating: Int)
 data class TrackRatingResponse(val rating: Int?)
 data class ScrobbleTrackRequest(val time: String? = null, val submission: Boolean = true)
@@ -3830,6 +3902,7 @@ fun main(args: Array<String>) {
     val favoriteService = StandaloneFavoriteService(standaloneDatabase.dataSource, mediaCatalogService)
     val playQueueService = StandalonePlayQueueService(standaloneDatabase.dataSource, mediaCatalogService)
     val bookmarkService = StandaloneBookmarkService(standaloneDatabase.dataSource, mediaCatalogService)
+    val trackNoteService = StandaloneTrackNoteService(standaloneDatabase.dataSource, mediaCatalogService)
     val shareService = StandaloneShareService(standaloneDatabase.dataSource, mediaCatalogService)
     val avatarService = StandaloneAvatarService(SettingsService.getAirsonicHome().resolve("avatars").resolve("accounts"))
     val healthContributors = runtime.createHealthContributorRegistry(runtime.createDataSource())
@@ -3986,6 +4059,7 @@ fun main(args: Array<String>) {
             databaseService,
             videoPlaybackService,
             standaloneJukeboxService,
+            trackNoteService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
