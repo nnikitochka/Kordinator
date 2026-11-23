@@ -57,7 +57,7 @@
 | `/rest/ping` | Есть публичный `GET /api/v1/health` | Заменено health API; старый Subsonic envelope и URL удаляются |
 | `/rest/editTags` | Нет и не планируется | Исключено: серверная запись тегов в файлы противоречит модели read-only библиотеки |
 
-Отдельные `controller/rest/**` Ktor-контроллеры и `Kordinator*Routes` не считаются подключёнными только потому, что у них есть метод `routes()` или тесты. Поиск вызовов `routes()` в production source не обнаружил регистрацию этих обработчиков из `main`. Набор `Kordinator*RoutesTest` проверяет эти классы изолированно; он не подтверждает доступность операций в запущенном приложении. Перед удалением старых обработчиков сначала нужно перенести необходимое поведение в активные `/api/v1` маршруты и проверить через `standaloneModule`.
+Production HTTP routes регистрируются из `KtorApplication.kt` внутри `standaloneModule`; сюда входят как обработчики, объявленные непосредственно в модуле, так и route-классы, явно вызванные из bearer-authenticated группы. Несколько прежних `Kordinator*Routes` (auth, playlist, artist, search, track и album) и их factories/tests не были подключены к production и использовали старые core services/identity callbacks. Они удалены; API-поведение проверяется интеграционными тестами production module (`KtorStandalonePlaylistTest`, `KtorStandaloneRealScanIsolationTest`, `KtorStandaloneAuthTest` и соответствующие admin/media suites). `KordinatorLibraryRoutesTest` и аналогичные изолированные тесты сами по себе не считаются доказательством endpoint-доступности.
 
 | Функциональная область | Старый путь | Standalone Ktor | Что проверить до удаления старого кода |
 |---|---|---|---|

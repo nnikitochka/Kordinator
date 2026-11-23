@@ -294,16 +294,6 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createKordinatorSessionService(securityService, credentialEncoders, settingsService);
         assertSame(sessionService, runtimeRoot.createKordinatorSessionService(
                 securityService, credentialEncoders, settingsService));
-        assertSame(runtimeRoot.createKordinatorAuthRoutes(sessionService),
-                runtimeRoot.createKordinatorAuthRoutes(sessionService));
-        assertSame(runtimeRoot.createKordinatorPlaylistRoutes(playlistService, securityService, mediaFileService),
-                runtimeRoot.createKordinatorPlaylistRoutes(playlistService, securityService, mediaFileService));
-        assertSame(runtimeRoot.createKordinatorAlbumRoutes(mediaFileService, mediaFolderService, securityService),
-                runtimeRoot.createKordinatorAlbumRoutes(mediaFileService, mediaFolderService, securityService));
-        assertSame(runtimeRoot.createKordinatorArtistRoutes(mediaFolderService),
-                runtimeRoot.createKordinatorArtistRoutes(mediaFolderService));
-        assertSame(runtimeRoot.createKordinatorSearchRoutes(searchService, mediaFolderService, securityService),
-                runtimeRoot.createKordinatorSearchRoutes(searchService, mediaFolderService, securityService));
         assertSame(runtimeRoot.createKordinatorLibraryRoutes(mediaFileService, mediaFolderService),
                 runtimeRoot.createKordinatorLibraryRoutes(mediaFileService, mediaFolderService));
         org.airsonic.player.health.HealthContributorRegistry healthContributors =

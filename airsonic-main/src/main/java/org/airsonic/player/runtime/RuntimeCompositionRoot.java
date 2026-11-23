@@ -1,6 +1,5 @@
 package org.airsonic.player.runtime;
 
-import org.airsonic.player.ktor.album.AlbumRoutes;
 
 import java.util.Objects;
 import javax.sql.DataSource;
@@ -81,11 +80,6 @@ public final class RuntimeCompositionRoot {
     private io.micrometer.core.instrument.MeterRegistry meterRegistry;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
     private org.airsonic.player.ktor.KordinatorSessionService kordinatorSessionService;
-    private org.airsonic.player.ktor.KordinatorAuthRoutes kordinatorAuthRoutes;
-    private org.airsonic.player.ktor.KordinatorPlaylistRoutes kordinatorPlaylistRoutes;
-    private AlbumRoutes albumRoutes;
-    private org.airsonic.player.ktor.KordinatorArtistRoutes kordinatorArtistRoutes;
-    private org.airsonic.player.ktor.KordinatorSearchRoutes kordinatorSearchRoutes;
     private org.airsonic.player.ktor.KordinatorLibraryRoutes kordinatorLibraryRoutes;
 
     public RuntimeCompositionRoot() {
@@ -141,61 +135,6 @@ public final class RuntimeCompositionRoot {
                     settingsService.getNonDecodablePasswordEncoder());
         }
         return kordinatorSessionService;
-    }
-
-    public synchronized org.airsonic.player.ktor.KordinatorAuthRoutes createKordinatorAuthRoutes(
-            org.airsonic.player.ktor.KordinatorSessionService sessionService) {
-        if (kordinatorAuthRoutes == null) {
-            kordinatorAuthRoutes = new org.airsonic.player.ktor.KordinatorAuthRoutes(
-                    sessionService, new org.airsonic.player.security.LoginRateLimiter());
-        }
-        return kordinatorAuthRoutes;
-    }
-
-    public synchronized org.airsonic.player.ktor.KordinatorPlaylistRoutes createKordinatorPlaylistRoutes(
-            org.airsonic.player.service.PlaylistService playlistService,
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.service.MediaFileService mediaFileService) {
-        if (kordinatorPlaylistRoutes == null) {
-            kordinatorPlaylistRoutes = new org.airsonic.player.ktor.KordinatorPlaylistRoutes(
-                    playlistService, securityService, mediaFileService);
-        }
-        return kordinatorPlaylistRoutes;
-    }
-
-    public synchronized AlbumRoutes createKordinatorAlbumRoutes(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.service.SecurityService securityService) {
-        if (albumRoutes == null) {
-            albumRoutes = new AlbumRoutes(
-                    mediaFileService, mediaFolderService, securityService);
-        }
-        return albumRoutes;
-    }
-
-    public synchronized org.airsonic.player.ktor.KordinatorArtistRoutes createKordinatorArtistRoutes(
-            org.airsonic.player.service.MediaFolderService mediaFolderService) {
-        if (kordinatorArtistRoutes == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException("Persistence graph must be created before KordinatorArtistRoutes");
-            }
-            DaoGraph daos = persistenceGraph.getDaos();
-            kordinatorArtistRoutes = new org.airsonic.player.ktor.KordinatorArtistRoutes(
-                    daos.getArtistDao(), daos.getAlbumDao(), mediaFolderService);
-        }
-        return kordinatorArtistRoutes;
-    }
-
-    public synchronized org.airsonic.player.ktor.KordinatorSearchRoutes createKordinatorSearchRoutes(
-            org.airsonic.player.service.SearchService searchService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.service.SecurityService securityService) {
-        if (kordinatorSearchRoutes == null) {
-            kordinatorSearchRoutes = new org.airsonic.player.ktor.KordinatorSearchRoutes(
-                    searchService, mediaFolderService, securityService);
-        }
-        return kordinatorSearchRoutes;
     }
 
     public synchronized org.airsonic.player.ktor.KordinatorLibraryRoutes createKordinatorLibraryRoutes(
