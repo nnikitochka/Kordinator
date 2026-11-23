@@ -85,7 +85,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
     private org.airsonic.player.controller.rest.tags.TagEditController tagEditController;
-    private org.airsonic.player.controller.captions.CaptionsRestController captionsRestController;
     private org.airsonic.player.ktor.KordinatorSessionService kordinatorSessionService;
     private org.airsonic.player.ktor.KordinatorAuthRoutes kordinatorAuthRoutes;
     private org.airsonic.player.ktor.KordinatorPlaylistRoutes kordinatorPlaylistRoutes;
@@ -173,17 +172,6 @@ public final class RuntimeCompositionRoot {
                     tagEditService, createSubsonicJaxbWriter());
         }
         return tagEditController;
-    }
-
-    public synchronized org.airsonic.player.controller.captions.CaptionsRestController createCaptionsRestController(
-            org.airsonic.player.service.CaptionService captionService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
-        if (captionsRestController == null) {
-            captionsRestController = new org.airsonic.player.controller.captions.CaptionsRestController(
-                    captionService, mediaFolderService, objectMapper);
-        }
-        return captionsRestController;
     }
 
     public synchronized org.airsonic.player.ktor.KordinatorSessionService createKordinatorSessionService(
