@@ -85,7 +85,7 @@ class DocumentFactory {
     fun createArtistId3Document(artist: Artist, musicFolder: MusicFolder): Document = Document().apply {
         fieldId.accept(this, artist.id)
         fieldWords.accept(this, FieldNames.ARTIST, artist.name)
-        fieldFolderId.accept(this, musicFolder.id)
+        fieldFolderId.accept(this, musicFolder.id!!)
     }
 
     fun createSongDocument(mediaFile: MediaFile, musicFolder: MusicFolder): Document = Document().apply {
