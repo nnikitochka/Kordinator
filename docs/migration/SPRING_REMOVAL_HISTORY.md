@@ -670,6 +670,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** `POST /api/v1/tracks/{id}/scrobble` вынесен из `KtorApplication.kt` в Kotlin `StandaloneScrobbleRoutes` и подключён в активном bearer route tree. Сохранены проверка доступа пользователя к треку, валидация ID/времени и передача события существующему scrobble service. `KtorStandalonePlaylistTest` прошёл через production module (1/1) и проверил HTTP-ответ и регистрацию scrobble.
 
+**Срез 23 ноября 2026:** `GET /api/v1/lyrics` вынесен из `KtorApplication.kt` в Kotlin `StandaloneLyricsRoutes` внутри bearer route tree. Сохранены artist/title query parameters, вызов `LyricsService` через auth dispatcher и опциональный `tryLater` по `includeLookupStatus=true`. Production module проверяется `KtorStandalonePlaylistTest`.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

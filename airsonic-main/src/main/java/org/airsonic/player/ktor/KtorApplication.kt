@@ -2021,22 +2021,7 @@ fun Application.standaloneModule(
                     }
                     StandaloneRatingRoutes(ratingService, mediaCatalogService, jsonMapper, scanDispatcher, authDispatcher).routes(this)
                     StandaloneScrobbleRoutes(scrobbleService, mediaCatalogService, jsonMapper, scanDispatcher).routes(this)
-                    get("/lyrics") {
-                        val service = lyricsService
-                        if (service == null) {
-                            call.respondJson(ApiError("unavailable", "Lyrics lookup is not configured"), HttpStatusCode.ServiceUnavailable)
-                            return@get
-                        }
-                        val artist = call.request.queryParameters["artist"]
-                        val title = call.request.queryParameters["title"]
-                        val result = withContext(authDispatcher) { service.getLyrics(artist, title) }
-                        call.respondJson(
-                            LyricsResponse(
-                                result.artist(), result.title(), result.lyrics(),
-                                if (call.request.queryParameters["includeLookupStatus"] == "true") result.tryLater() else null,
-                            ),
-                        )
-                    }
+                    StandaloneLyricsRoutes(lyricsService, authDispatcher).routes(this)
                     put("/me/password") {
                         val user = call.principal<LocalUserPrincipal>()
                             ?: return@put call.respond(HttpStatusCode.Unauthorized)
@@ -2951,7 +2936,6 @@ data class PlayQueueResponse(
 data class PlayQueueTrackResponse(val id: Long, val title: String, val artist: String?, val album: String?, val durationSeconds: Int)
 data class SetTrackNoteRequest(val note: String)
 data class TrackNoteResponse(val trackId: Long, val note: String?, val createdAt: String?, val updatedAt: String?)
-data class LyricsResponse(val artist: String?, val title: String?, val lyrics: String?, val tryLater: Boolean?)
 data class RandomTrackResponse(val items: List<TrackResponse>, val count: Int)
 data class GenreListResponse(val items: List<GenreResponse>, val count: Int)
 data class GenreResponse(val name: String, val trackCount: Int, val albumCount: Int)
