@@ -303,8 +303,6 @@ class RuntimeCompositionRootGraphTest {
 
         DatabaseService databaseService = runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler);
         assertSame(databaseService, runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler));
-        assertSame(runtimeRoot.createPlaylistExportController(playlistService),
-                runtimeRoot.createPlaylistExportController(playlistService));
         assertSame(runtimeRoot.createPlaylistImportController(playlistService),
                 runtimeRoot.createPlaylistImportController(playlistService));
         assertSame(runtimeRoot.createScrobbleController(mediaFileService, statusService, audioScrobblerService),

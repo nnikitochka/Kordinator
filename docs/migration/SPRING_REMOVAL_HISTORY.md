@@ -630,6 +630,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалён старый Subsonic `JukeboxController` и runtime factory. Самостоятельный jukebox доступен через bearer endpoints `/api/v1/jukebox` (state, queue, commands, export, release); `KtorStandaloneJukeboxTest` проверяет авторизацию, доступность треков, команды и владение серверным аудиовыходом.
 
+**Срез 23 ноября 2026:** удалён `PlaylistExportController` и его runtime wiring. Экспорт собственного playlist-файла реализован в Ktor `/api/v1/playlists/{id}/export`; `KtorStandalonePlaylistTest` проверяет формат, заголовки загрузки и право чтения playlist.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
