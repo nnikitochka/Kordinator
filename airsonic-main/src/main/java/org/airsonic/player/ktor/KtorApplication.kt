@@ -4023,6 +4023,7 @@ private suspend fun StandalonePlayQueue.toResponse(
 
 fun main(args: Array<String>) {
     val configuration = RuntimeConfigurationLoader().load(args, System.getProperties(), System.getenv(), null)
+    System.setProperty("airsonic.home", configuration.airsonicHome.toString())
     val host = configuration.getProperty("airsonic.http.host", "0.0.0.0") ?: "0.0.0.0"
     val port = configuration.getIntProperty("airsonic.http.port", 8080)
     val lifecycle = LifecycleRegistry()
