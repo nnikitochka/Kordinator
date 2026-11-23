@@ -93,7 +93,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.search.SearchController subsonicSearchController;
     private org.airsonic.player.controller.rest.artists.ArtistsController subsonicArtistsController;
     private org.airsonic.player.controller.rest.albums.AlbumsController subsonicAlbumsController;
-    private org.airsonic.player.controller.rest.scan.ScanController scanController;
     private org.airsonic.player.controller.rest.music.similar.SimilarSongsController similarSongsController;
     private org.airsonic.player.controller.rest.music.genre.SongsByGenreController songsByGenreController;
     private org.airsonic.player.controller.rest.music.top.TopSongsController topSongsController;
@@ -293,15 +292,6 @@ public final class RuntimeCompositionRoot {
                     ratingService, searchService, responseMapper, createSubsonicJaxbWriter());
         }
         return subsonicAlbumsController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.scan.ScanController createScanController(
-            org.airsonic.player.service.MediaScannerService mediaScannerService) {
-        if (scanController == null) {
-            scanController = new org.airsonic.player.controller.rest.scan.ScanController(
-                    mediaScannerService, createSubsonicJaxbWriter());
-        }
-        return scanController;
     }
 
     public synchronized org.airsonic.player.controller.rest.music.similar.SimilarSongsController

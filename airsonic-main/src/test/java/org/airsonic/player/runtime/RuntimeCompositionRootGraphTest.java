@@ -264,8 +264,6 @@ class RuntimeCompositionRootGraphTest {
                 playlistService, settingsService, indexManager, mediaFileService, mediaFolderService, coverArtService);
         assertSame(mediaScannerService, runtimeRoot.createMediaScannerService(
                 playlistService, settingsService, indexManager, mediaFileService, mediaFolderService, coverArtService));
-        assertSame(runtimeRoot.createScanController(mediaScannerService),
-                runtimeRoot.createScanController(mediaScannerService));
         GeneralSettingsAdministrationService generalSettingsAdministrationService =
                 runtimeRoot.createGeneralSettingsAdministrationService(settingsService, playlistService);
         assertSame(generalSettingsAdministrationService, runtimeRoot.createGeneralSettingsAdministrationService(

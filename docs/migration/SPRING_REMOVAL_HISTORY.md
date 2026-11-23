@@ -558,6 +558,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** старый `/rest/recover` controller и завязанный на legacy users/settings/security `PasswordRecoveryService` удалены вместе с runtime factories и их graph/service tests. Восстановление реализовано standalone bearer-аккаунтами через новый Ktor API и проверяется `KtorStandalonePasswordRecoveryTest`.
 
+**Срез 23 ноября 2026:** удалён старый XML `ScanController` и root factory. Сканирование и статусы привязаны к библиотеке в `/api/v1/admin/libraries/{id}/scan`; Ktor tests проверяют запуск, статус, доступ и повторное сканирование.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
