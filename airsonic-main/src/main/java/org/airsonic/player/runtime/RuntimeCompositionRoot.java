@@ -84,7 +84,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.SubsonicResponseMapper subsonicResponseMapper;
     private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
-    private org.airsonic.player.controller.rest.admin.PlayerSettingsController playerSettingsController;
     private org.airsonic.player.controller.rest.admin.AdvancedSettingsController advancedSettingsController;
     private org.airsonic.player.controller.rest.admin.TranscodingSettingsController transcodingSettingsController;
     private org.airsonic.player.controller.rest.admin.DatabaseSettingsController databaseSettingsController;
@@ -181,17 +180,6 @@ public final class RuntimeCompositionRoot {
             meterRegistry = RuntimeHealthFactory.createMeterRegistry();
         }
         return meterRegistry;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.admin.PlayerSettingsController createPlayerSettingsController(
-            org.airsonic.player.service.PlayerService playerService,
-            org.airsonic.player.service.TranscodingService transcodingService,
-            org.airsonic.player.service.PlayQueueService playQueueService) {
-        if (playerSettingsController == null) {
-            playerSettingsController = new org.airsonic.player.controller.rest.admin.PlayerSettingsController(
-                    playerService, transcodingService, playQueueService, createSubsonicJaxbWriter());
-        }
-        return playerSettingsController;
     }
 
     public synchronized org.airsonic.player.controller.rest.admin.AdvancedSettingsController

@@ -303,8 +303,6 @@ class RuntimeCompositionRootGraphTest {
 
         DatabaseService databaseService = runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler);
         assertSame(databaseService, runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler));
-        assertSame(runtimeRoot.createPlayerSettingsController(playerService, transcodingService, playQueueService),
-                runtimeRoot.createPlayerSettingsController(playerService, transcodingService, playQueueService));
         assertSame(runtimeRoot.createAdvancedSettingsController(settingsService),
                 runtimeRoot.createAdvancedSettingsController(settingsService));
         assertSame(runtimeRoot.createTranscodingSettingsController(transcodingService, settingsService),
