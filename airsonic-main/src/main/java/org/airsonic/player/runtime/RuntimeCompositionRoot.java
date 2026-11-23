@@ -84,7 +84,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.SubsonicResponseMapper subsonicResponseMapper;
     private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
-    private org.airsonic.player.controller.rest.jukebox.JukeboxController jukeboxController;
     private org.airsonic.player.controller.rest.playlists.PlaylistExportController playlistExportController;
     private org.airsonic.player.controller.rest.playlists.PlaylistImportController playlistImportController;
     private org.airsonic.player.controller.rest.scrobble.ScrobbleController scrobbleController;
@@ -174,17 +173,6 @@ public final class RuntimeCompositionRoot {
             meterRegistry = RuntimeHealthFactory.createMeterRegistry();
         }
         return meterRegistry;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.jukebox.JukeboxController createJukeboxController(
-            org.airsonic.player.service.PlayQueueService playQueueService,
-            org.airsonic.player.service.JukeboxService jukeboxService,
-            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
-        if (jukeboxController == null) {
-            jukeboxController = new org.airsonic.player.controller.rest.jukebox.JukeboxController(
-                    playQueueService, jukeboxService, responseMapper, createSubsonicJaxbWriter());
-        }
-        return jukeboxController;
     }
 
     public synchronized org.airsonic.player.controller.rest.playlists.PlaylistExportController
