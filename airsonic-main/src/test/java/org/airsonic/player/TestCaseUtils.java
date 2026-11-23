@@ -2,7 +2,6 @@ package org.airsonic.player;
 
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
-import org.airsonic.player.controller.JAXBWriter;
 import org.airsonic.player.service.MediaScannerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,13 +35,6 @@ public class TestCaseUtils {
             LOG.info("AIRSONIC_HOME directory will be {}", airsonicHomeDirForTest.toAbsolutePath().toString());
         }
         return airsonicHomeDirForTest.toAbsolutePath().toString();
-    }
-
-    /**
-     * @return current REST api version.
-     */
-    public static String restApiVersion() {
-        return JAXBWriter.getRestProtocolVersion();
     }
 
     /**

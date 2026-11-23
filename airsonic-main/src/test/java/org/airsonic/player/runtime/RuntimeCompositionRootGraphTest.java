@@ -49,8 +49,6 @@ class RuntimeCompositionRootGraphTest {
                 "MediaScannerParallelism", "2",
                 "IndexCreationInterval", "5"));
         RuntimeCompositionRoot runtimeRoot = new RuntimeCompositionRoot(runtimeConfig, lifecycleRegistry);
-        org.airsonic.player.controller.JAXBWriter jaxbWriter = runtimeRoot.createSubsonicJaxbWriter();
-        assertSame(jaxbWriter, runtimeRoot.createSubsonicJaxbWriter());
 
         JDBCDataSource dataSource = new JDBCDataSource();
         dataSource.setUrl("jdbc:hsqldb:mem:graphassembly_" + UUID.randomUUID().toString().replace('-', '_'));
@@ -220,9 +218,6 @@ class RuntimeCompositionRootGraphTest {
                 securityService, transcodingService);
         assertSame(playerService, runtimeRoot.createPlayerService(playerServiceDao, statusService,
                 securityService, transcodingService));
-        org.airsonic.player.controller.rest.RestPlayerResolver playerResolver =
-                runtimeRoot.createRestPlayerResolver(playerService);
-        assertSame(playerResolver, runtimeRoot.createRestPlayerResolver(playerService));
         verify(playerServiceDao).deleteOldPlayers(60);
         JukeboxLegacySubsonicService legacyJukebox = runtimeRoot.createJukeboxLegacySubsonicService(
                 transcodingService, audioScrobblerService, statusService, settingsService, securityService,
@@ -274,10 +269,6 @@ class RuntimeCompositionRootGraphTest {
         org.airsonic.player.dao.PlayerDaoPlayQueueFactory playQueueFactory =
                 runtimeRoot.createPlayerDaoPlayQueueFactory();
         assertSame(playQueueFactory, runtimeRoot.createPlayerDaoPlayQueueFactory());
-        org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper =
-                runtimeRoot.createSubsonicResponseMapper(mediaFileService, ratingService, coverArtService, transcodingService);
-        assertSame(responseMapper, runtimeRoot.createSubsonicResponseMapper(
-                mediaFileService, ratingService, coverArtService, transcodingService));
 
         org.airsonic.player.service.upnp.DispatchingContentDirectory dispatchingContentDirectory =
                 runtimeRoot.createDispatchingContentDirectory(mediaFileService, mediaFolderService, playlistService,
