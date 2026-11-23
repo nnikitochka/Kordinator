@@ -2020,42 +2020,7 @@ fun Application.standaloneModule(
                         if (deleted) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
                     }
                     StandaloneRatingRoutes(ratingService, mediaCatalogService, jsonMapper, scanDispatcher, authDispatcher).routes(this)
-                    post("/tracks/{id}/scrobble") {
-                        val service = scrobbleService
-                        val catalog = mediaCatalogService
-                        if (service == null || catalog == null) {
-                            call.respondJson(ApiError("unavailable", "Scrobble processing is not configured"), HttpStatusCode.ServiceUnavailable)
-                            return@post
-                        }
-                        val user = call.principal<LocalUserPrincipal>()
-                            ?: return@post call.respond(HttpStatusCode.Unauthorized)
-                        val trackId = call.parameters["id"]?.toLongOrNull()
-                        if (trackId == null || trackId < 0) {
-                            call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
-                            return@post
-                        }
-                        val request = try {
-                            jsonMapper.readValue(call.receiveText(), ScrobbleTrackRequest::class.java)
-                        } catch (_: Exception) {
-                            call.respondJson(ApiError("invalid_request", "Expected optional ISO-8601 time and submission flag"), HttpStatusCode.BadRequest)
-                            return@post
-                        }
-                        val time = try {
-                            request.time?.let(java.time.Instant::parse)
-                        } catch (_: Exception) {
-                            call.respondJson(ApiError("invalid_request", "Time must be ISO-8601"), HttpStatusCode.BadRequest)
-                            return@post
-                        }
-                        val accessible = withContext(scanDispatcher) { catalog.track(trackId, user.catalogLibraryScope()) }
-                        if (accessible == null) {
-                            call.respond(HttpStatusCode.NotFound)
-                            return@post
-                        }
-                        val recorded = withContext(scanDispatcher) {
-                            service.scrobble(user.username, trackId, time, request.submission)
-                        }
-                        if (recorded) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
-                    }
+                    StandaloneScrobbleRoutes(scrobbleService, mediaCatalogService, jsonMapper, scanDispatcher).routes(this)
                     get("/lyrics") {
                         val service = lyricsService
                         if (service == null) {
@@ -2986,7 +2951,6 @@ data class PlayQueueResponse(
 data class PlayQueueTrackResponse(val id: Long, val title: String, val artist: String?, val album: String?, val durationSeconds: Int)
 data class SetTrackNoteRequest(val note: String)
 data class TrackNoteResponse(val trackId: Long, val note: String?, val createdAt: String?, val updatedAt: String?)
-data class ScrobbleTrackRequest(val time: String? = null, val submission: Boolean = true)
 data class LyricsResponse(val artist: String?, val title: String?, val lyrics: String?, val tryLater: Boolean?)
 data class RandomTrackResponse(val items: List<TrackResponse>, val count: Int)
 data class GenreListResponse(val items: List<GenreResponse>, val count: Int)
