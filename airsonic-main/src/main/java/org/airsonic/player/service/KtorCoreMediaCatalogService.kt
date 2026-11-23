@@ -40,6 +40,7 @@ class KtorCoreMediaCatalogService(
     init {
         migrateStoredTrackReferences()
         migrateLegacyBookmarks()
+        migrateLegacyRatings()
         dropLegacyTrackProjection()
     }
 
@@ -389,6 +390,135 @@ class KtorCoreMediaCatalogService(
         val createdAt: Instant,
         val updatedAt: Instant,
         val mediaType: String,
+    )
+
+    /** Copy account ratings from the legacy media-file table into Kordinator resources. */
+    private fun migrateLegacyRatings() {
+        ktorDataSource.connection.use { connection ->
+            connection.autoCommit = false
+            try {
+                val migrationId = "legacy-media-ratings-1"
+                val completed = connection.prepareStatement(
+                    "SELECT 1 FROM standalone_data_migration WHERE migration_id = ?",
+                ).use { statement ->
+                    statement.setString(1, migrationId)
+                    statement.executeQuery().use { it.next() }
+                }
+                if (completed) {
+                    connection.commit()
+                    return
+                }
+
+                val hasLegacyRatings = coreDataSource.connection.use { tableExists(it, "user_rating") }
+                var pendingAccountMatch = false
+                if (hasLegacyRatings) {
+                    val userIds = connection.prepareStatement("SELECT id, username FROM local_user").use { statement ->
+                        statement.executeQuery().use { rows ->
+                            buildMap { while (rows.next()) put(rows.getString("username"), rows.getLong("id")) }
+                        }
+                    }
+                    val ratings = coreDataSource.connection.use { coreConnection ->
+                        coreConnection.prepareStatement(
+                            "SELECT r.username, r.media_file_id, r.rating, m.type AS media_type, " +
+                                "m.folder_id, m.album FROM user_rating r JOIN media_file m ON m.id = r.media_file_id " +
+                                "WHERE m.present",
+                        ).use { statement ->
+                            statement.executeQuery().use { rows ->
+                                buildList {
+                                    while (rows.next()) {
+                                        add(
+                                            LegacyRatingRow(
+                                                rows.getString("username"), rows.getLong("media_file_id"),
+                                                rows.getInt("rating"), rows.getString("media_type"),
+                                                rows.getLong("folder_id"), rows.getString("album"),
+                                            ),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    ratings.forEach { rating ->
+                        val userId = userIds[rating.username]
+                        if (userId == null) {
+                            pendingAccountMatch = true
+                            return@forEach
+                        }
+                        if (rating.value !in 1..5) return@forEach
+                        when (rating.mediaType) {
+                            "MUSIC", "AUDIOBOOK" -> migrateTrackRating(connection, userId, rating)
+                            "ALBUM" -> migrateAlbumRating(connection, userId, rating)
+                        }
+                    }
+                }
+                if (!pendingAccountMatch) {
+                    connection.prepareStatement(
+                        "INSERT INTO standalone_data_migration (migration_id, completed_at) VALUES (?, CURRENT_TIMESTAMP)",
+                    ).use { statement ->
+                        statement.setString(1, migrationId)
+                        statement.executeUpdate()
+                    }
+                }
+                connection.commit()
+            } catch (failure: Throwable) {
+                connection.rollback()
+                throw failure
+            }
+        }
+    }
+
+    private fun migrateTrackRating(connection: java.sql.Connection, userId: Long, rating: LegacyRatingRow) {
+        if (ratingExists(connection, "track_rating", userId, rating.mediaFileId)) return
+        connection.prepareStatement(
+            "INSERT INTO track_rating (user_id, track_id, rating, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)",
+        ).use { statement ->
+            statement.setLong(1, userId)
+            statement.setLong(2, rating.mediaFileId)
+            statement.setInt(3, rating.value)
+            statement.executeUpdate()
+        }
+    }
+
+    private fun migrateAlbumRating(connection: java.sql.Connection, userId: Long, rating: LegacyRatingRow) {
+        val albumName = rating.albumName?.trim()?.takeIf(String::isNotEmpty) ?: return
+        if (ratingExists(connection, "album_rating", userId, rating.libraryId, albumName)) return
+        connection.prepareStatement(
+            "INSERT INTO album_rating (user_id, library_id, album_name, rating, updated_at) " +
+                "VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)",
+        ).use { statement ->
+            statement.setLong(1, userId)
+            statement.setLong(2, rating.libraryId)
+            statement.setString(3, albumName)
+            statement.setInt(4, rating.value)
+            statement.executeUpdate()
+        }
+    }
+
+    private fun ratingExists(connection: java.sql.Connection, table: String, userId: Long, resourceId: Long): Boolean =
+        connection.prepareStatement("SELECT 1 FROM $table WHERE user_id = ? AND ${if (table == "track_rating") "track_id" else "library_id"} = ?")
+            .use { statement ->
+                statement.setLong(1, userId)
+                statement.setLong(2, resourceId)
+                statement.executeQuery().use { it.next() }
+            }
+
+    private fun ratingExists(connection: java.sql.Connection, table: String, userId: Long, libraryId: Long, albumName: String): Boolean =
+        connection.prepareStatement(
+            "SELECT 1 FROM $table WHERE user_id = ? AND library_id = ? AND album_name = ?",
+        ).use { statement ->
+            statement.setLong(1, userId)
+            statement.setLong(2, libraryId)
+            statement.setString(3, albumName)
+            statement.executeQuery().use { it.next() }
+        }
+
+    private data class LegacyRatingRow(
+        val username: String,
+        val mediaFileId: Long,
+        val value: Int,
+        val mediaType: String,
+        val libraryId: Long,
+        val albumName: String?,
     )
 
     private fun tableExists(connection: java.sql.Connection, tableName: String): Boolean =

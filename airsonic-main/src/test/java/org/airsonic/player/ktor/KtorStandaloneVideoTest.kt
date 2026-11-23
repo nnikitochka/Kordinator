@@ -97,6 +97,20 @@ class KtorStandaloneVideoTest {
                     childrenLastUpdated = legacyTrackTime
                     setPresent(true)
                 }.also { mediaFileDao.createOrUpdateMediaFile(it) { } }
+                val legacyAlbum = MediaFile().apply {
+                    path = "legacy-rated-album"
+                    folderId = library.id
+                    mediaType = MediaFile.MediaType.ALBUM
+                    title = "Legacy Rated Album"
+                    albumName = "Legacy Rated Album"
+                    artist = "Legacy Artist"
+                    parentPath = ""
+                    created = legacyTrackTime
+                    this.changed = legacyTrackTime
+                    lastScanned = legacyTrackTime
+                    childrenLastUpdated = legacyTrackTime
+                    setPresent(true)
+                }.also { mediaFileDao.createOrUpdateMediaFile(it) { } }
                 runtime.coreDataSource.connection.use { connection ->
                     connection.prepareStatement(
                         "INSERT INTO bookmark (media_file_id, position_millis, username, comment, created, changed) " +
@@ -122,6 +136,16 @@ class KtorStandaloneVideoTest {
                         statement.setTimestamp(6, java.sql.Timestamp.from(Instant.now()))
                         statement.executeUpdate()
                     }
+                    listOf(legacyTrack.id!! to 4, legacyAlbum.id!! to 5).forEach { (mediaId, rating) ->
+                        connection.prepareStatement(
+                            "INSERT INTO user_rating (username, media_file_id, rating) VALUES (?, ?, ?)",
+                        ).use { statement ->
+                            statement.setString(1, "admin")
+                            statement.setInt(2, mediaId)
+                            statement.setInt(3, rating)
+                            statement.executeUpdate()
+                        }
+                    }
                 }
                 KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
                 dataSource.connection.use { connection ->
@@ -134,6 +158,27 @@ class KtorStandaloneVideoTest {
                             assertTrue(rows.next())
                             assertEquals(45_000, rows.getLong("position_ms"))
                             assertEquals("migrated track bookmark", rows.getString("comment"))
+                        }
+                    }
+                    connection.prepareStatement(
+                        "SELECT rating FROM track_rating WHERE user_id = ? AND track_id = ?",
+                    ).use { statement ->
+                        statement.setLong(1, adminId)
+                        statement.setLong(2, legacyTrack.id!!.toLong())
+                        statement.executeQuery().use { rows ->
+                            assertTrue(rows.next())
+                            assertEquals(4, rows.getInt("rating"))
+                        }
+                    }
+                    connection.prepareStatement(
+                        "SELECT rating FROM album_rating WHERE user_id = ? AND library_id = ? AND album_name = ?",
+                    ).use { statement ->
+                        statement.setLong(1, adminId)
+                        statement.setLong(2, library.id!!.toLong())
+                        statement.setString(3, "Legacy Rated Album")
+                        statement.executeQuery().use { rows ->
+                            assertTrue(rows.next())
+                            assertEquals(5, rows.getInt("rating"))
                         }
                     }
                 }
