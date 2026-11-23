@@ -85,10 +85,8 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.JAXBWriter subsonicJaxbWriter;
     private org.airsonic.player.controller.rest.SubsonicResponseMapper subsonicResponseMapper;
     private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
-    private org.airsonic.player.controller.rest.genres.GenresService subsonicGenresService;
     private org.airsonic.player.controller.rest.music.folder.MusicFoldersService subsonicMusicFoldersService;
     private org.airsonic.player.controller.rest.search.SearchService subsonicSearchService;
-    private org.airsonic.player.controller.rest.genres.GenresController subsonicGenresController;
     private org.airsonic.player.controller.rest.music.folder.MusicFoldersController subsonicMusicFoldersController;
     private org.airsonic.player.controller.rest.search.SearchController subsonicSearchController;
     private org.airsonic.player.controller.rest.artists.ArtistsController subsonicArtistsController;
@@ -188,17 +186,6 @@ public final class RuntimeCompositionRoot {
         return restPlayerResolver;
     }
 
-    public synchronized org.airsonic.player.controller.rest.genres.GenresService createSubsonicGenresService() {
-        if (subsonicGenresService == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException("Persistence graph must be created before Subsonic GenresService");
-            }
-            subsonicGenresService = new org.airsonic.player.controller.rest.genres.GenresService(
-                    () -> persistenceGraph.getDaos().getMediaFileDao().getGenres(false));
-        }
-        return subsonicGenresService;
-    }
-
     public synchronized org.airsonic.player.controller.rest.music.folder.MusicFoldersService
             createSubsonicMusicFoldersService(org.airsonic.player.service.MediaFolderService mediaFolderService) {
         if (subsonicMusicFoldersService == null) {
@@ -217,14 +204,6 @@ public final class RuntimeCompositionRoot {
                     searchService, mediaFolderService, responseMapper, createSubsonicJaxbWriter());
         }
         return subsonicSearchService;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.genres.GenresController createSubsonicGenresController() {
-        if (subsonicGenresController == null) {
-            subsonicGenresController = new org.airsonic.player.controller.rest.genres.GenresController(
-                    createSubsonicGenresService(), createSubsonicJaxbWriter());
-        }
-        return subsonicGenresController;
     }
 
     public synchronized org.airsonic.player.controller.rest.music.folder.MusicFoldersController

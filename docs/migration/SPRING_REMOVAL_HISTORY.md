@@ -586,6 +586,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалён legacy `CacheStatisticsController` с XML-маршрутами чтения и очистки и runtime-root factory. Standalone Ktor предоставляет администратору `GET` и `DELETE /api/v1/admin/cache-statistics`; `KtorStandaloneCacheStatisticsTest` проверяет snapshot, очистку и неизвестный кеш.
 
+**Срез 23 ноября 2026:** удалён старый Subsonic `GenresController`, его адаптер и unit-тесты XML-модели. Фильтруемый каталог жанров обслуживает `GET /api/v1/genres`; playlist integration test проверяет жанры и количество треков.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
