@@ -66,7 +66,8 @@ class StandaloneAvatarService(private val directory: Path) {
                         return@forEach
                     }
                     val candidate = avatarRoot.resolve(legacy.username).resolve("${legacy.name}.$extension").normalize()
-                    if (!candidate.startsWith(avatarRoot) || Files.isSymbolicLink(candidate.parent) ||
+                    if (!candidate.startsWith(avatarRoot) || candidate.parent != avatarRoot.resolve(legacy.username) ||
+                        Files.isSymbolicLink(candidate.parent) ||
                         Files.isSymbolicLink(candidate) || !Files.isRegularFile(candidate, LinkOption.NOFOLLOW_LINKS)
                     ) {
                         LOG.warn("Skipping missing or unsafe legacy avatar for account {}", legacy.username)
