@@ -303,7 +303,6 @@ class RuntimeCompositionRootGraphTest {
 
         DatabaseService databaseService = runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler);
         assertSame(databaseService, runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler));
-        assertSame(runtimeRoot.createDownloadRestController(), runtimeRoot.createDownloadRestController());
         assertSame(runtimeRoot.createTagEditController(tagEditService),
                 runtimeRoot.createTagEditController(tagEditService));
         assertSame(runtimeRoot.createCoverArtRestController(coverArtImageService),

@@ -84,7 +84,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.SubsonicResponseMapper subsonicResponseMapper;
     private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
-    private org.airsonic.player.controller.rest.download.DownloadRestController downloadRestController;
     private org.airsonic.player.controller.rest.tags.TagEditController tagEditController;
     private org.airsonic.player.controller.rest.cover.CoverArtRestController coverArtRestController;
     private org.airsonic.player.controller.rest.avatar.AvatarRestController avatarRestController;
@@ -170,14 +169,6 @@ public final class RuntimeCompositionRoot {
             meterRegistry = RuntimeHealthFactory.createMeterRegistry();
         }
         return meterRegistry;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.download.DownloadRestController createDownloadRestController() {
-        if (downloadRestController == null) {
-            downloadRestController = new org.airsonic.player.controller.rest.download.DownloadRestController(
-                    createSubsonicJaxbWriter());
-        }
-        return downloadRestController;
     }
 
     public synchronized org.airsonic.player.controller.rest.tags.TagEditController createTagEditController(
