@@ -36,7 +36,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.ShareService shareService;
     private org.airsonic.player.service.AudioScrobblerService audioScrobblerService;
     private org.airsonic.player.service.CaptionService captionService;
-    private org.airsonic.player.service.VideoPlaybackService videoPlaybackService;
     private org.airsonic.player.service.TranscodingService transcodingService;
     private org.airsonic.player.service.PlayerService playerService;
     private org.airsonic.player.service.metadata.DefaultMetaDataParser defaultMetaDataParser;
@@ -964,19 +963,6 @@ public final class RuntimeCompositionRoot {
                     mediaFileService, mediaFolderService, settingsService, metaDataParserFactory, jwtSecurityService);
         }
         return captionService;
-    }
-
-    public synchronized org.airsonic.player.service.VideoPlaybackService createVideoPlaybackService(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.CaptionService captionService,
-            org.airsonic.player.service.JWTSecurityService jwtSecurityService,
-            org.airsonic.player.service.BookmarkService bookmarkService,
-            org.airsonic.player.service.SettingsService settingsService) {
-        if (videoPlaybackService == null) {
-            videoPlaybackService = RuntimeApplicationServiceFactory.createVideoPlaybackService(
-                    mediaFileService, captionService, jwtSecurityService, bookmarkService, settingsService);
-        }
-        return videoPlaybackService;
     }
 
     public synchronized org.airsonic.player.service.TranscodingService createTranscodingService(

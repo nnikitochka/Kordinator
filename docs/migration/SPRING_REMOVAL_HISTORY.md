@@ -652,6 +652,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** очищены оставшиеся неиспользуемые REST request DTO, `APIException`, `ErrorCode`/`RestErrorPolicy` и старый `Song` response model с их тестом. Поиск usages подтвердил, что активные Ktor маршруты используют собственные JSON DTO и ошибки.
 
+**Срез 23 ноября 2026:** удалён неиспользуемый `VideoPlaybackService`, который формировал старые Subsonic/JWT remote URLs, вместе с runtime factory. HLS и captions теперь обслуживают standalone Ktor services; общая default video bitrate константа перенесена в `TranscodingService`.
+
 **Срез 23 ноября 2026:** удалён `SharesController` и связанный `SharesRequest` XML adapter. Старые подписанные share URLs заменены bearer CRUD `GET`/`POST /api/v1/shares`, `DELETE /api/v1/shares/{id}` и новым public token API; `KtorStandaloneRealScanIsolationTest` проверяет владение, публичное чтение, scope и отзыв ссылки.
 
 **Срез 23 ноября 2026:** удалён старый `PublicShareController` со ссылками на основе legacy JWT и XML/внешних stream URLs. Публичный share теперь использует отдельный одноразово выдаваемый share token в `/api/v1/public/shares/{token}`; Ktor isolation test проверяет stream по token и его недоступность после удаления share.

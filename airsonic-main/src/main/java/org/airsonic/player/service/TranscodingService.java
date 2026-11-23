@@ -41,6 +41,7 @@ public class TranscodingService {
 
     private static final Logger LOG = LoggerFactory.getLogger(TranscodingService.class);
     public static final String FORMAT_RAW = "raw";
+    public static final int DEFAULT_VIDEO_BIT_RATE = 1500;
 
     private TranscodingDao transcodingDao;
     private SettingsService settingsService;
@@ -193,7 +194,7 @@ public class TranscodingService {
         if (transcoding != null) {
             parameters.setTranscoding(transcoding);
             if (maxBitRate == null) {
-                maxBitRate = mediaFile.isVideo() ? VideoPlaybackService.DEFAULT_BIT_RATE : TranscodeScheme.MAX_192.getMaxBitRate();
+                maxBitRate = mediaFile.isVideo() ? DEFAULT_VIDEO_BIT_RATE : TranscodeScheme.MAX_192.getMaxBitRate();
             }
         } else if (maxBitRate != null) {
             boolean supported = isDownsamplingSupported(mediaFile);

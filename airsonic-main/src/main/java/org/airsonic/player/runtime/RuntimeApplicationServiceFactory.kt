@@ -22,7 +22,6 @@ import org.airsonic.player.service.ShareService
 import org.airsonic.player.service.StatusService
 import org.airsonic.player.service.TaskSchedulingService
 import org.airsonic.player.service.TranscodingService
-import org.airsonic.player.service.VideoPlaybackService
 import org.airsonic.player.service.JWTSecurityService
 
 /** Constructors for application services outside the persistence, media and playback factories. */
@@ -75,9 +74,4 @@ object RuntimeApplicationServiceFactory {
                              jwtSecurityService: JWTSecurityService) =
         CaptionService(mediaFileService, mediaFolderService, settingsService, parserFactory, jwtSecurityService)
 
-    @JvmStatic
-    fun createVideoPlaybackService(mediaFileService: MediaFileService, captionService: CaptionService,
-                                   jwtSecurityService: JWTSecurityService,
-                                   bookmarkService: BookmarkService, settingsService: SettingsService) =
-        VideoPlaybackService(mediaFileService, captionService, jwtSecurityService, bookmarkService, settingsService)
 }

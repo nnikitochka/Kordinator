@@ -194,10 +194,6 @@ class RuntimeCompositionRootGraphTest {
                 settingsService, metaDataParserFactory, jwtSecurityService);
         assertSame(captionService, runtimeRoot.createCaptionService(mediaFileService, mediaFolderService,
                 settingsService, metaDataParserFactory, jwtSecurityService));
-        VideoPlaybackService videoPlaybackService = runtimeRoot.createVideoPlaybackService(mediaFileService,
-                captionService, jwtSecurityService, bookmarkService, settingsService);
-        assertSame(videoPlaybackService, runtimeRoot.createVideoPlaybackService(mediaFileService,
-                captionService, jwtSecurityService, bookmarkService, settingsService));
 
         TaskSchedulingService scheduler = runtimeRoot.createTaskSchedulingService();
         assertSame(scheduler, runtimeRoot.createTaskSchedulingService());
