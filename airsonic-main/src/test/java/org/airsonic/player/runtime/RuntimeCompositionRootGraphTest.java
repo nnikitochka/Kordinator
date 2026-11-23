@@ -267,10 +267,6 @@ class RuntimeCompositionRootGraphTest {
         assertSame(musicFolderAdministrationService, runtimeRoot.createMusicFolderAdministrationService(
                 settingsService, mediaScannerService, mediaFolderService, artistDao, albumDao, mediaFileDao,
                 indexManager, playlistService, coverArtService));
-        MusicIndexStateService musicIndexStateService = runtimeRoot.createMusicIndexStateService(
-                mediaScannerService, settingsService);
-        assertSame(musicIndexStateService,
-                runtimeRoot.createMusicIndexStateService(mediaScannerService, settingsService));
         PlayQueueService playQueueService = runtimeRoot.createPlayQueueService(
                 searchService, jukeboxService, settingsService, mediaFileService,
                 lastFmService, ratingService, playlistService, mediaFileDao, mediaFolderService,
@@ -388,10 +384,6 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createPasswordController(securityService));
         assertSame(runtimeRoot.createPlayQueueController(mediaFileService, responseMapper),
                 runtimeRoot.createPlayQueueController(mediaFileService, responseMapper));
-        assertSame(runtimeRoot.createIndexesController(settingsService, mediaFolderService, musicIndexService,
-                        musicIndexStateService, ratingService, responseMapper, playerService),
-                runtimeRoot.createIndexesController(settingsService, mediaFolderService, musicIndexService,
-                        musicIndexStateService, ratingService, responseMapper, playerService));
         assertSame(runtimeRoot.createMusicDirectoryController(mediaFileService, securityService,
                         ratingService, responseMapper),
                 runtimeRoot.createMusicDirectoryController(mediaFileService, securityService,

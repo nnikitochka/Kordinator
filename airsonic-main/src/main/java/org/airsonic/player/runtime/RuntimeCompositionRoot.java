@@ -47,7 +47,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.TagEditService tagEditService;
     private org.airsonic.player.service.DownloadService downloadService;
     private org.airsonic.player.service.UserAdministrationService userAdministrationService;
-    private org.airsonic.player.service.MusicIndexStateService musicIndexStateService;
     private org.airsonic.player.service.CoverArtImageService coverArtImageService;
     private org.airsonic.player.dao.PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory;
     private org.airsonic.player.service.PlaylistService playlistService;
@@ -90,7 +89,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.admin.MusicFolderSettingsController musicFolderSettingsController;
     private org.airsonic.player.controller.rest.users.PasswordController passwordController;
     private org.airsonic.player.controller.rest.playqueue.PlayQueueController playQueueController;
-    private org.airsonic.player.controller.rest.indexes.IndexesController indexesController;
     private org.airsonic.player.controller.rest.music.directory.MusicDirectoryController musicDirectoryController;
     private org.airsonic.player.controller.rest.admin.DLNASettingsController dlnaSettingsController;
     private org.airsonic.player.controller.rest.settings.PersonalSettingsController personalSettingsController;
@@ -235,26 +233,6 @@ public final class RuntimeCompositionRoot {
                     responseMapper, createSubsonicJaxbWriter());
         }
         return playQueueController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.indexes.IndexesController createIndexesController(
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.service.MusicIndexService musicIndexService,
-            org.airsonic.player.service.MusicIndexStateService musicIndexStateService,
-            org.airsonic.player.service.RatingService ratingService,
-            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper,
-            org.airsonic.player.service.PlayerService playerService) {
-        if (indexesController == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException("Persistence graph must be created before IndexesController");
-            }
-            indexesController = new org.airsonic.player.controller.rest.indexes.IndexesController(
-                    settingsService, mediaFolderService, musicIndexService, musicIndexStateService,
-                    persistenceGraph.getDaos().getMediaFileDao(), ratingService, responseMapper,
-                    createSubsonicJaxbWriter(), playerService);
-        }
-        return indexesController;
     }
 
     public synchronized org.airsonic.player.controller.rest.music.directory.MusicDirectoryController
@@ -1070,16 +1048,6 @@ public final class RuntimeCompositionRoot {
                     securityService, settingsService, createMediaFolderService());
         }
         return userAdministrationService;
-    }
-
-    public synchronized org.airsonic.player.service.MusicIndexStateService createMusicIndexStateService(
-            org.airsonic.player.service.MediaScannerService scanner,
-            org.airsonic.player.service.SettingsService settingsService) {
-        if (musicIndexStateService == null) {
-            musicIndexStateService = RuntimeMediaServiceFactory.createMusicIndexStateService(
-                    scanner, settingsService, createMediaFolderService());
-        }
-        return musicIndexStateService;
     }
 
     public synchronized org.airsonic.player.service.CoverArtImageService createCoverArtImageService(

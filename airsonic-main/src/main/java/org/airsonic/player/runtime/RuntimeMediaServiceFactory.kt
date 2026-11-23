@@ -10,7 +10,6 @@ import org.airsonic.player.service.DownloadService
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.MediaScannerService
-import org.airsonic.player.service.MusicIndexStateService
 import org.airsonic.player.service.PlaylistService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.SettingsService
@@ -106,13 +105,6 @@ object RuntimeMediaServiceFactory {
         settingsService: SettingsService,
         mediaFolderService: MediaFolderService,
     ): UserAdministrationService = UserAdministrationService(securityService, settingsService, mediaFolderService)
-
-    @JvmStatic
-    fun createMusicIndexStateService(
-        scanner: MediaScannerService,
-        settingsService: SettingsService,
-        mediaFolderService: MediaFolderService,
-    ): MusicIndexStateService = MusicIndexStateService(scanner, settingsService, mediaFolderService)
 
     @JvmStatic
     fun createCoverArtImageService(

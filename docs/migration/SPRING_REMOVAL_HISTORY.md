@@ -596,6 +596,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалены Subsonic `SearchController` и адаптер `SearchService` вместе с runtime wiring. Поиск с bearer-аутентификацией, пагинацией и библиотечными ограничениями обслуживает `GET /api/v1/search`; catalog scan integration tests проверяют выдачу и доступ.
 
+**Срез 23 ноября 2026:** browse по Subsonic indexes заменён каталоговыми страницами Ktor `/api/v1/artists`, `/api/v1/albums` и `/api/v1/tracks`. Удалены legacy `IndexesController`, request DTO, старый `MusicIndexStateService` (он обслуживал conditional XML index refresh), runtime factories и graph assertions; catalog integration test проверяет доступ к сущностям в библиотеке.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
