@@ -576,6 +576,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалён старый XML `NowPlayingController` вместе с runtime-root factory. Текущий статус воспроизведения доступен по bearer-маршруту `GET /api/v1/now-playing`; тест transfer/statistics API проверяет его ответ.
 
+**Срез 23 ноября 2026:** удалён legacy XML `RatingController` и request DTO с runtime-root factory. Чтение и запись пользовательского рейтинга идут через Ktor `GET`/`PUT /api/v1/tracks/{id}/rating`; playlist integration test проверяет сохранение, удаление рейтинга, валидацию и доступ к треку.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
