@@ -25,6 +25,7 @@ import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlaylistService
+import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneShareService
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
@@ -115,6 +116,7 @@ class KtorStandaloneRealScanIsolationTest {
                             mediaCatalogService = mediaCatalog,
                             playlistService = StandalonePlaylistService(dataSource, mediaCatalog),
                             favoriteService = StandaloneFavoriteService(dataSource, mediaCatalog),
+                            ratingService = StandaloneRatingService(dataSource, mediaCatalog),
                             shareService = shareService,
                         )
                     }
@@ -573,6 +575,48 @@ class KtorStandaloneRealScanIsolationTest {
         }.bodyAsText())
         assertEquals(2, randomAlbums.get("total").asInt())
         assertEquals(2, randomAlbums.get("items").size())
+        val firstAlbumId = allAlbums.get("items").first { it.get("libraryId").asLong() == firstLibraryId }
+            .get("id").asText()
+        val secondAlbumId = allAlbums.get("items").first { it.get("libraryId").asLong() == secondLibraryId }
+            .get("id").asText()
+        assertEquals(HttpStatusCode.NoContent, client.put("/api/v1/albums/$firstAlbumId/rating") {
+            bearerAuth(firstToken)
+            contentType(ContentType.Application.Json)
+            setBody(mapper.writeValueAsString(mapOf("rating" to 5)))
+        }.status)
+        assertEquals(HttpStatusCode.NoContent, client.put("/api/v1/albums/$secondAlbumId/rating") {
+            bearerAuth(secondToken)
+            contentType(ContentType.Application.Json)
+            setBody(mapper.writeValueAsString(mapOf("rating" to 1)))
+        }.status)
+        assertEquals(5, mapper.readTree(client.get("/api/v1/albums/$firstAlbumId/rating") {
+            bearerAuth(firstToken)
+        }.bodyAsText()).get("rating").asInt())
+        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/albums/$firstAlbumId/rating") {
+            bearerAuth(secondToken)
+        }.status)
+        assertEquals(HttpStatusCode.NotFound, client.put("/api/v1/albums/$firstAlbumId/rating") {
+            bearerAuth(secondToken)
+            contentType(ContentType.Application.Json)
+            setBody(mapper.writeValueAsString(mapOf("rating" to 1)))
+        }.status)
+        assertEquals(HttpStatusCode.BadRequest, client.put("/api/v1/albums/$firstAlbumId/rating") {
+            bearerAuth(firstToken)
+            contentType(ContentType.Application.Json)
+            setBody(mapper.writeValueAsString(mapOf("rating" to 6)))
+        }.status)
+        val highestRated = mapper.readTree(client.get("/api/v1/albums?sort=highest-rated") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        assertEquals(firstLibraryId, highestRated.get("items")[0].get("libraryId").asLong())
+        assertEquals(HttpStatusCode.NoContent, client.put("/api/v1/albums/$firstAlbumId/rating") {
+            bearerAuth(firstToken)
+            contentType(ContentType.Application.Json)
+            setBody(mapper.writeValueAsString(mapOf("rating" to 0)))
+        }.status)
+        assertTrue(mapper.readTree(client.get("/api/v1/albums/$firstAlbumId/rating") {
+            bearerAuth(firstToken)
+        }.bodyAsText()).get("rating").isNull)
         assertEquals(400, client.get("/api/v1/albums?sort=unknown") { bearerAuth(adminToken) }.status.value)
         assertEquals(400, client.get("/api/v1/albums?fromYear=2000") { bearerAuth(adminToken) }.status.value)
         assertEquals(400, client.get("/api/v1/albums?fromYear=2025&toYear=2000") { bearerAuth(adminToken) }.status.value)

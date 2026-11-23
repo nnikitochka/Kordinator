@@ -418,7 +418,9 @@ fun Application.standaloneModule(
                         val offset = offsetValue?.toIntOrNull() ?: if (offsetValue == null) 0 else null
                         if ((requestedLibraryId != null && (libraryId == null || libraryId !in 0..Int.MAX_VALUE.toLong())) ||
                             limit == null || limit !in 1..100 || offset == null || offset < 0 ||
-                            sort !in setOf("name", "artist", "year", "newest", "most-played", "recently-played", "random") ||
+                            sort !in setOf(
+                                "name", "artist", "year", "newest", "most-played", "recently-played", "random", "highest-rated",
+                            ) ||
                             genre?.length?.let { it > 128 } == true ||
                             rawFromYear != null && fromYear == null || rawToYear != null && toYear == null ||
                             (rawFromYear == null) != (rawToYear == null) ||

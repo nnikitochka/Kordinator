@@ -324,6 +324,9 @@ class KtorCoreMediaCatalogService(
         require(sort in ALBUM_SORTS) { "Unsupported album sort" }
         require((fromYear == null) == (toYear == null)) { "Both year bounds must be provided" }
         require(fromYear == null || fromYear <= requireNotNull(toYear)) { "Year range is reversed" }
+        if (sort == "highest-rated") {
+            return albumsByRating(libraryId, limit, offset, accessibleLibraryIds, genre, fromYear, toYear)
+        }
         val sql = "SELECT folder_id, album, MAX(COALESCE(NULLIF(TRIM(album_artist), ''), TRIM(artist))) AS album_artist, " +
             "MAX(year) AS year, MAX(genre) AS genre, COUNT(*) AS track_count, " +
             "CAST(SUM(COALESCE(duration, 0)) AS BIGINT) AS duration_seconds FROM media_file " +
@@ -404,7 +407,57 @@ class KtorCoreMediaCatalogService(
             "mysql", "mariadb" -> "RAND()"
             else -> throw IllegalArgumentException("Random album ordering is not supported by this database")
         }
+        "highest-rated" -> error("Highest-rated albums use user rating data")
         else -> error("Unsupported album sort")
+    }
+
+    private fun albumsByRating(
+        libraryId: Long?,
+        limit: Int,
+        offset: Int,
+        accessibleLibraryIds: Set<Long>?,
+        genre: String?,
+        fromYear: Int?,
+        toYear: Int?,
+    ): List<StandaloneAlbum> {
+        val total = countAlbums(libraryId, accessibleLibraryIds, genre, fromYear, toYear)
+        val candidates = buildList {
+            var currentOffset = 0
+            while (currentOffset < total) {
+                val pageSize = minOf(ALBUM_PAGE_SIZE, (total - currentOffset).toInt())
+                addAll(albums(
+                    libraryId, pageSize, currentOffset, accessibleLibraryIds,
+                    "name", genre, fromYear, toYear,
+                ))
+                currentOffset += pageSize
+            }
+        }
+        if (candidates.isEmpty()) return emptyList()
+
+        val libraryFilter = when {
+            accessibleLibraryIds == null -> ""
+            accessibleLibraryIds.isEmpty() -> " WHERE 1 = 0"
+            else -> " WHERE library_id IN (${accessibleLibraryIds.joinToString(",") { "?" }})"
+        }
+        val ratings = ktorDataSource.connection.use { connection ->
+            connection.prepareStatement(
+                "SELECT library_id, album_name, AVG(rating) AS average_rating FROM album_rating" +
+                    libraryFilter + " GROUP BY library_id, album_name",
+            ).use { statement ->
+                accessibleLibraryIds?.sorted()?.forEachIndexed { index, id -> statement.setLong(index + 1, id) }
+                statement.executeQuery().use { rows ->
+                    buildMap {
+                        while (rows.next()) {
+                            put(rows.getLong("library_id") to rows.getString("album_name"), rows.getDouble("average_rating"))
+                        }
+                    }
+                }
+            }
+        }
+        return candidates.sortedWith(
+            compareByDescending<StandaloneAlbum> { ratings[it.libraryId to it.name] ?: -1.0 }
+                .thenBy { it.name.lowercase() }.thenBy { it.libraryId },
+        ).drop(offset.coerceAtLeast(0)).take(limit.coerceIn(1, 100))
     }
 
     fun artists(
@@ -559,7 +612,10 @@ class KtorCoreMediaCatalogService(
     }
 
     private companion object {
-        val ALBUM_SORTS = setOf("name", "artist", "year", "newest", "most-played", "recently-played", "random")
+        val ALBUM_SORTS = setOf(
+            "name", "artist", "year", "newest", "most-played", "recently-played", "random", "highest-rated",
+        )
+        const val ALBUM_PAGE_SIZE = 100
         const val TRACK_REFERENCE_MIGRATION = "core-media-track-references-v1"
         const val TRACK_COLUMNS = "id, folder_id, path, title, artist, album, album_artist, disc_number, " +
             "track_number, year, genre, duration, file_size, changed"
