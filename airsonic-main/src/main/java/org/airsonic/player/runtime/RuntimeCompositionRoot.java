@@ -86,7 +86,6 @@ public final class RuntimeCompositionRoot {
     private AlbumRoutes albumRoutes;
     private org.airsonic.player.ktor.KordinatorArtistRoutes kordinatorArtistRoutes;
     private org.airsonic.player.ktor.KordinatorSearchRoutes kordinatorSearchRoutes;
-    private org.airsonic.player.ktor.KordinatorFavoriteRoutes kordinatorFavoriteRoutes;
     private org.airsonic.player.ktor.KordinatorLibraryRoutes kordinatorLibraryRoutes;
 
     public RuntimeCompositionRoot() {
@@ -197,22 +196,6 @@ public final class RuntimeCompositionRoot {
                     searchService, mediaFolderService, securityService);
         }
         return kordinatorSearchRoutes;
-    }
-
-    public synchronized org.airsonic.player.ktor.KordinatorFavoriteRoutes createKordinatorFavoriteRoutes(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.service.SecurityService securityService) {
-        if (kordinatorFavoriteRoutes == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException("Persistence graph must be created before KordinatorFavoriteRoutes");
-            }
-            DaoGraph daos = persistenceGraph.getDaos();
-            kordinatorFavoriteRoutes = new org.airsonic.player.ktor.KordinatorFavoriteRoutes(
-                    daos.getMediaFileDao(), daos.getAlbumDao(), daos.getArtistDao(),
-                    mediaFileService, mediaFolderService, securityService);
-        }
-        return kordinatorFavoriteRoutes;
     }
 
     public synchronized org.airsonic.player.ktor.KordinatorLibraryRoutes createKordinatorLibraryRoutes(
