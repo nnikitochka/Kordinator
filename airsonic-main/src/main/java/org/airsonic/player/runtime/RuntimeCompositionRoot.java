@@ -136,7 +136,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.upload.UploadController uploadController;
     private org.airsonic.player.controller.rest.playlists.PlaylistExportController playlistExportController;
     private org.airsonic.player.controller.rest.playlists.PlaylistImportController playlistImportController;
-    private org.airsonic.player.controller.rest.livequeue.LiveQueueExportController liveQueueExportController;
     private org.airsonic.player.controller.rest.scrobble.ScrobbleController scrobbleController;
     private org.airsonic.player.controller.rest.download.DownloadRestController downloadRestController;
     private org.airsonic.player.controller.rest.tags.TagEditController tagEditController;
@@ -786,18 +785,6 @@ public final class RuntimeCompositionRoot {
                     playlistService, createSubsonicJaxbWriter());
         }
         return playlistImportController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.livequeue.LiveQueueExportController
-            createLiveQueueExportController(
-                    org.airsonic.player.service.TranscodingService transcodingService,
-                    org.airsonic.player.service.JWTSecurityService jwtSecurityService,
-                    org.airsonic.player.service.SecurityService securityService) {
-        if (liveQueueExportController == null) {
-            liveQueueExportController = new org.airsonic.player.controller.rest.livequeue.LiveQueueExportController(
-                    transcodingService, jwtSecurityService, securityService, createSubsonicJaxbWriter());
-        }
-        return liveQueueExportController;
     }
 
     public synchronized org.airsonic.player.controller.rest.scrobble.ScrobbleController createScrobbleController(

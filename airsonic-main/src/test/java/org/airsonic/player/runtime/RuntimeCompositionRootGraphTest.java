@@ -409,8 +409,6 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createPlaylistExportController(playlistService));
         assertSame(runtimeRoot.createPlaylistImportController(playlistService),
                 runtimeRoot.createPlaylistImportController(playlistService));
-        assertSame(runtimeRoot.createLiveQueueExportController(transcodingService, jwtSecurityService, securityService),
-                runtimeRoot.createLiveQueueExportController(transcodingService, jwtSecurityService, securityService));
         assertSame(runtimeRoot.createScrobbleController(mediaFileService, statusService, audioScrobblerService),
                 runtimeRoot.createScrobbleController(mediaFileService, statusService, audioScrobblerService));
         assertSame(runtimeRoot.createDownloadRestController(), runtimeRoot.createDownloadRestController());

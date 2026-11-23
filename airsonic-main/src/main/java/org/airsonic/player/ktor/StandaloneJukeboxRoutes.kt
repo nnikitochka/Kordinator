@@ -1,11 +1,15 @@
 package org.airsonic.player.ktor
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.ktor.http.ContentDisposition
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.principal
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
@@ -37,6 +41,31 @@ class StandaloneJukeboxRoutes(
                     } catch (_: IllegalStateException) {
                         call.respondJson(ApiError("jukebox_in_use", "Server audio output is in use by another user"), HttpStatusCode.Conflict)
                     }
+                }
+                get("/queue/export") {
+                    val user = call.principal<LocalUserPrincipal>() ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                    val state = try {
+                        jukebox.state(user.id)
+                    } catch (_: IllegalStateException) {
+                        call.respondJson(ApiError("jukebox_in_use", "Server audio output is in use by another user"), HttpStatusCode.Conflict)
+                        return@get
+                    }
+                    val playlist = buildString {
+                        append("#EXTM3U\n")
+                        state.tracks.forEach { track ->
+                            val artist = track.artist.orEmpty().replace('\r', ' ').replace('\n', ' ')
+                            val title = track.title.replace('\r', ' ').replace('\n', ' ')
+                            append("#EXTINF:").append(track.durationSeconds ?: -1).append(',')
+                                .append(artist).append(" - ").append(title).append('\n')
+                            append("/api/v1/tracks/").append(track.trackId).append("/stream\n")
+                        }
+                    }
+                    call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+                    call.response.headers.append(
+                        HttpHeaders.ContentDisposition,
+                        ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, "jukebox.m3u").toString(),
+                    )
+                    call.respondText(playlist, ContentType.parse("audio/x-mpegurl").withParameter("charset", "UTF-8"))
                 }
                 put("/queue") {
                     val user = call.principal<LocalUserPrincipal>() ?: return@put call.respond(HttpStatusCode.Unauthorized)

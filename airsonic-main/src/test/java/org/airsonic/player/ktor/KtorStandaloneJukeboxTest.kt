@@ -67,6 +67,7 @@ class KtorStandaloneJukeboxTest {
                 artist = "Artist"
                 albumName = "Album"
                 format = "flac"
+                duration = 180.0
                 setPresent(true)
             }
             Mockito.`when`(mediaFiles.getMediaFile("album/track.flac", 1)).thenReturn(file)
@@ -101,6 +102,16 @@ class KtorStandaloneJukeboxTest {
                 assertEquals(HttpStatusCode.OK, queued.status, queued.bodyAsText())
                 assertTrue(queued.bodyAsText().contains("\"trackId\":101"))
                 assertEquals(HttpStatusCode.Conflict, client.get("/api/v1/jukebox") { bearerAuth(adminToken) }.status)
+                assertEquals(HttpStatusCode.Conflict, client.get("/api/v1/jukebox/queue/export") {
+                    bearerAuth(adminToken)
+                }.status)
+                val export = client.get("/api/v1/jukebox/queue/export") { bearerAuth(listenerToken) }
+                assertEquals(HttpStatusCode.OK, export.status)
+                assertTrue(export.headers["Content-Disposition"].orEmpty().contains("jukebox.m3u"))
+                assertEquals("""#EXTM3U
+#EXTINF:180,Artist - Track
+/api/v1/tracks/101/stream
+""".trimIndent() + "\n", export.bodyAsText())
 
                 val gain = client.post("/api/v1/jukebox/commands") {
                     bearerAuth(listenerToken)

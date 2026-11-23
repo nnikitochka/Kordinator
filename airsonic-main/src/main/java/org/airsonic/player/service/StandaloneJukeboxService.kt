@@ -15,7 +15,13 @@ data class StandaloneJukeboxState(
     val tracks: List<JukeboxQueueTrackResponse>,
 )
 
-data class JukeboxQueueTrackResponse(val trackId: Long, val title: String, val artist: String?, val album: String?)
+data class JukeboxQueueTrackResponse(
+    val trackId: Long,
+    val title: String,
+    val artist: String?,
+    val album: String?,
+    val durationSeconds: Int?,
+)
 
 /** Owns the single server audio output and its live queue through bearer-authenticated Ktor commands. */
 class StandaloneJukeboxService(
@@ -122,7 +128,9 @@ class StandaloneJukeboxService(
         val queue = current.player.playQueue
         val index = queue.index
         val tracks = queue.files.mapNotNull { file ->
-            file.id?.let(current.coreIdsByMediaId::get)?.let { id -> JukeboxQueueTrackResponse(id, file.title.orEmpty(), file.artist, file.albumName) }
+            file.id?.let(current.coreIdsByMediaId::get)?.let { id ->
+                JukeboxQueueTrackResponse(id, file.title.orEmpty(), file.artist, file.albumName, file.duration?.toInt())
+            }
         }
         return StandaloneJukeboxState(
             if (queue.status == PlayQueue.Status.PLAYING && index in queue.files.indices) "PLAYING" else "PAUSED",
