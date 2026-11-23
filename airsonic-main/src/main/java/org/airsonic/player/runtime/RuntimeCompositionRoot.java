@@ -87,7 +87,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.health.StatusAggregator statusAggregator;
     private org.airsonic.player.controller.rest.admin.GeneralSettingsController generalSettingsController;
     private org.airsonic.player.controller.rest.admin.MusicFolderSettingsController musicFolderSettingsController;
-    private org.airsonic.player.controller.rest.users.PasswordController passwordController;
     private org.airsonic.player.controller.rest.admin.DLNASettingsController dlnaSettingsController;
     private org.airsonic.player.controller.rest.settings.PersonalSettingsController personalSettingsController;
     private org.airsonic.player.controller.rest.admin.PlayerSettingsController playerSettingsController;
@@ -208,15 +207,6 @@ public final class RuntimeCompositionRoot {
                     service, createSubsonicJaxbWriter());
         }
         return musicFolderSettingsController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.users.PasswordController createPasswordController(
-            org.airsonic.player.service.SecurityService securityService) {
-        if (passwordController == null) {
-            passwordController = new org.airsonic.player.controller.rest.users.PasswordController(
-                    securityService, createSubsonicJaxbWriter());
-        }
-        return passwordController;
     }
 
     public synchronized org.airsonic.player.controller.rest.admin.DLNASettingsController createDLNASettingsController(
