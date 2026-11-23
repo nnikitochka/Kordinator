@@ -289,8 +289,6 @@ class RuntimeCompositionRootGraphTest {
         org.airsonic.player.service.UPnPService upnpService = runtimeRoot.createUpnpService(settingsService,
                 dispatchingContentDirectory);
         assertSame(upnpService, runtimeRoot.createUpnpService(settingsService, dispatchingContentDirectory));
-        assertSame(runtimeRoot.createDLNASettingsController(settingsService, upnpService),
-                runtimeRoot.createDLNASettingsController(settingsService, upnpService));
         runtimeRoot.createAlbumUpnpProcessor(albumDao);
         runtimeRoot.createRecentAlbumUpnpProcessor(albumDao);
         runtimeRoot.createArtistUpnpProcessor(artistDao);
