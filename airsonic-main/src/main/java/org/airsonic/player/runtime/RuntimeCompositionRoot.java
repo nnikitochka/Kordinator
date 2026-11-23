@@ -96,7 +96,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.albums.AlbumsController subsonicAlbumsController;
     private org.airsonic.player.controller.rest.server.ServerInfoController serverInfoController;
     private org.airsonic.player.controller.rest.recovery.PasswordRecoveryController passwordRecoveryController;
-    private org.airsonic.player.controller.rest.ping.PingController pingController;
     private org.airsonic.player.controller.rest.scan.ScanController scanController;
     private org.airsonic.player.controller.rest.music.similar.SimilarSongsController similarSongsController;
     private org.airsonic.player.controller.rest.music.genre.SongsByGenreController songsByGenreController;
@@ -319,13 +318,6 @@ public final class RuntimeCompositionRoot {
                     passwordRecoveryService, objectMapper);
         }
         return passwordRecoveryController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.ping.PingController createPingController() {
-        if (pingController == null) {
-            pingController = new org.airsonic.player.controller.rest.ping.PingController(createSubsonicJaxbWriter());
-        }
-        return pingController;
     }
 
     public synchronized org.airsonic.player.controller.rest.scan.ScanController createScanController(

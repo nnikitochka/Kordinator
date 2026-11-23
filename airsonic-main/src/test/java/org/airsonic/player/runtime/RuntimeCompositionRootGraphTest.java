@@ -51,7 +51,6 @@ class RuntimeCompositionRootGraphTest {
         RuntimeCompositionRoot runtimeRoot = new RuntimeCompositionRoot(runtimeConfig, lifecycleRegistry);
         org.airsonic.player.controller.JAXBWriter jaxbWriter = runtimeRoot.createSubsonicJaxbWriter();
         assertSame(jaxbWriter, runtimeRoot.createSubsonicJaxbWriter());
-        assertSame(runtimeRoot.createPingController(), runtimeRoot.createPingController());
 
         JDBCDataSource dataSource = new JDBCDataSource();
         dataSource.setUrl("jdbc:hsqldb:mem:graphassembly_" + UUID.randomUUID().toString().replace('-', '_'));
