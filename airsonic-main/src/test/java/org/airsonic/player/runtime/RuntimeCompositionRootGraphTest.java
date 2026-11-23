@@ -384,10 +384,6 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createPasswordController(securityService));
         assertSame(runtimeRoot.createPlayQueueController(mediaFileService, responseMapper),
                 runtimeRoot.createPlayQueueController(mediaFileService, responseMapper));
-        assertSame(runtimeRoot.createMusicDirectoryController(mediaFileService, securityService,
-                        ratingService, responseMapper),
-                runtimeRoot.createMusicDirectoryController(mediaFileService, securityService,
-                        ratingService, responseMapper));
         org.airsonic.player.health.HealthContributorRegistry healthContributors =
                 runtimeRoot.createHealthContributorRegistry(dataSource);
         assertSame(healthContributors, runtimeRoot.createHealthContributorRegistry(dataSource));

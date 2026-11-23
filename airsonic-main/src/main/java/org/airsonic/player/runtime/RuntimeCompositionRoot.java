@@ -89,7 +89,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.admin.MusicFolderSettingsController musicFolderSettingsController;
     private org.airsonic.player.controller.rest.users.PasswordController passwordController;
     private org.airsonic.player.controller.rest.playqueue.PlayQueueController playQueueController;
-    private org.airsonic.player.controller.rest.music.directory.MusicDirectoryController musicDirectoryController;
     private org.airsonic.player.controller.rest.admin.DLNASettingsController dlnaSettingsController;
     private org.airsonic.player.controller.rest.settings.PersonalSettingsController personalSettingsController;
     private org.airsonic.player.controller.rest.admin.PlayerSettingsController playerSettingsController;
@@ -233,23 +232,6 @@ public final class RuntimeCompositionRoot {
                     responseMapper, createSubsonicJaxbWriter());
         }
         return playQueueController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.music.directory.MusicDirectoryController
-            createMusicDirectoryController(
-                    org.airsonic.player.service.MediaFileService mediaFileService,
-                    org.airsonic.player.service.SecurityService securityService,
-                    org.airsonic.player.service.RatingService ratingService,
-                    org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
-        if (musicDirectoryController == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException("Persistence graph must be created before MusicDirectoryController");
-            }
-            musicDirectoryController = new org.airsonic.player.controller.rest.music.directory.MusicDirectoryController(
-                    mediaFileService, persistenceGraph.getDaos().getMediaFileDao(), securityService,
-                    ratingService, responseMapper, createSubsonicJaxbWriter());
-        }
-        return musicDirectoryController;
     }
 
     public synchronized org.airsonic.player.controller.rest.admin.DLNASettingsController createDLNASettingsController(
