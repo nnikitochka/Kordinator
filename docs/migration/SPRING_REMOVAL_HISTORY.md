@@ -580,6 +580,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалён XML `StatisticsController` и его runtime-root factory. Счётчики переводов и пользователей доступны в Ktor admin API; `KtorStandaloneTransferStatisticsTest` проверяет transfer snapshots, user totals и `/api/v1/now-playing`.
 
+**Срез 23 ноября 2026:** удалён legacy XML `ScheduledTasksController` и runtime-root factory. Снимок запланированных задач доступен администраторам на `GET /api/v1/admin/scheduled-tasks`.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

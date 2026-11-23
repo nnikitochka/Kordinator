@@ -423,8 +423,6 @@ class RuntimeCompositionRootGraphTest {
         org.airsonic.player.health.HealthContributorRegistry healthContributors =
                 runtimeRoot.createHealthContributorRegistry(dataSource);
         assertSame(healthContributors, runtimeRoot.createHealthContributorRegistry(dataSource));
-        assertSame(runtimeRoot.createScheduledTasksController(scheduler),
-                runtimeRoot.createScheduledTasksController(scheduler));
         assertSame(runtimeRoot.createPathWatchersController(pathWatcher),
                 runtimeRoot.createPathWatchersController(pathWatcher));
         assertSame(runtimeRoot.createStatusAggregator(), runtimeRoot.createStatusAggregator());
