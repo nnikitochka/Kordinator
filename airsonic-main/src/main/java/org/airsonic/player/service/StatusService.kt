@@ -44,7 +44,7 @@ open class StatusService(
             status.isActive = false
             return
         }
-        inactiveStreamStatuses.compute(status.player!!.id) { _, _ ->
+        inactiveStreamStatuses.compute(status.player!!.id!!) { _, _ ->
             streamStatuses.remove(status)
             status.isActive = false
             status

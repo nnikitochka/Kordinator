@@ -50,13 +50,14 @@ class StandaloneJukeboxService(
             technology = PlayerTechnology.JUKEBOX
             playQueue = PlayQueue { folderId -> folders.getMusicFolderById(folderId) }
         }
+        val queue = player.playQueue!!
         if (current != null) {
-            player.playQueue.status = PlayQueue.Status.STOPPED
+            queue.status = PlayQueue.Status.STOPPED
             audio.updateStandaloneJukebox(player, 0)
         }
-        player.playQueue.clear()
-        player.playQueue.addFiles(false, tracks.map { it.mediaFile })
-        player.playQueue.status = PlayQueue.Status.STOPPED
+        queue.clear()
+        queue.addFiles(false, tracks.map { it.mediaFile })
+        queue.status = PlayQueue.Status.STOPPED
         val gain = current?.gain ?: DEFAULT_GAIN
         audio.setGain(gain)
         session = Session(ownerId, player, tracks.associate { requireNotNull(it.mediaFile.id) to it.trackId }, gain)
@@ -66,7 +67,7 @@ class StandaloneJukeboxService(
     @Synchronized
     fun command(ownerId: Long, action: String, index: Int?, offsetSeconds: Int?, gain: Float?): StandaloneJukeboxState {
         val active = session?.takeIf { it.ownerId == ownerId } ?: throw NoSuchElementException("Jukebox queue not found")
-        val queue = active.player.playQueue
+        val queue = active.player.playQueue!!
         require(queue.size() > 0 || action in setOf("clear", "stop")) { "Jukebox queue is empty" }
         when (action) {
             "play" -> {
@@ -125,7 +126,7 @@ class StandaloneJukeboxService(
     fun state(ownerId: Long): StandaloneJukeboxState {
         val current = session ?: return StandaloneJukeboxState("IDLE", -1, 0, 0.75f, emptyList())
         if (current.ownerId != ownerId) throw IllegalStateException("Server audio output is in use by another user")
-        val queue = current.player.playQueue
+        val queue = current.player.playQueue!!
         val index = queue.index
         val tracks = queue.files.mapNotNull { file ->
             file.id?.let(current.coreIdsByMediaId::get)?.let { id ->
@@ -144,9 +145,10 @@ class StandaloneJukeboxService(
     @Synchronized
     fun release(ownerId: Long): Boolean {
         val active = session?.takeIf { it.ownerId == ownerId } ?: return false
-        active.player.playQueue.status = PlayQueue.Status.STOPPED
+        val queue = active.player.playQueue!!
+        queue.status = PlayQueue.Status.STOPPED
         audio.releaseStandaloneJukebox(active.player)
-        active.player.playQueue.clear()
+        queue.clear()
         session = null
         return true
     }

@@ -45,7 +45,7 @@ open class JukeboxService(private val jukeboxLegacySubsonicService: JukeboxLegac
     open fun start(airsonicPlayer: Player) = play(airsonicPlayer)
 
     open fun stop(airsonicPlayer: Player) {
-        airsonicPlayer.playQueue.status = PlayQueue.Status.STOPPED
+        airsonicPlayer.playQueue?.status = PlayQueue.Status.STOPPED
         if (airsonicPlayer.technology == PlayerTechnology.JUKEBOX) {
             jukeboxLegacySubsonicService.updateJukebox(airsonicPlayer, 0)
         }
