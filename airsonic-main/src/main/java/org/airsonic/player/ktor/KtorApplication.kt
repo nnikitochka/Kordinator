@@ -74,6 +74,7 @@ import org.airsonic.player.service.StandaloneArtist
 import org.airsonic.player.service.StandaloneTrack
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.StandaloneBookmarkService
+import org.airsonic.player.service.StandaloneVideoBookmarkService
 import org.airsonic.player.service.StandaloneTrackNoteService
 import org.airsonic.player.service.TagEditService
 import org.airsonic.player.service.StandaloneShareService
@@ -204,6 +205,7 @@ fun Application.standaloneModule(
     tagEditService: TagEditService? = null,
     artworkSearchService: StandaloneArtworkSearchService? = null,
     artworkManagementService: ArtworkManagementService? = null,
+    videoBookmarkService: StandaloneVideoBookmarkService? = null,
 ) {
     val audioTranscoding = transcodingService?.let(::StandaloneAudioTranscodingService)
     val loginRateLimiter = LoginRateLimiter()
@@ -327,6 +329,7 @@ fun Application.standaloneModule(
                         StandaloneVideoPlaybackRoutes(mediaFileService, videoPlaybackService).routes(this)
                         monitor.subscribe(ApplicationStopped) { videoPlaybackService.close() }
                     }
+                    StandaloneVideoBookmarkRoutes(videoBookmarkService, jsonMapper, scanDispatcher).routes(this)
                     if (standaloneJukeboxService != null && mediaCatalogService != null && mediaFileService != null) {
                         StandaloneJukeboxRoutes(mediaCatalogService, mediaFileService, standaloneJukeboxService).routes(this)
                         monitor.subscribe(ApplicationStopped) { standaloneJukeboxService.close() }
@@ -4040,6 +4043,7 @@ fun main(args: Array<String>) {
     )
     val transcodingService = runtime.createTranscodingService(legacyGraph.transcodingDao, settingsService, mediaFolderService)
     val videoPlaybackService = StandaloneVideoPlaybackService(mediaFileService, transcodingService)
+    val videoBookmarkService = StandaloneVideoBookmarkService(standaloneDatabase.dataSource, mediaFileService)
     val playerService = runtime.createPlayerService(runtime.createPlayerDao(), statusService, securityService, transcodingService)
     val audioScrobblerService = runtime.createAudioScrobblerService(settingsService, securityService)
     val scrobbleService = StandaloneScrobbleService(
@@ -4164,6 +4168,7 @@ fun main(args: Array<String>) {
             tagEditService,
             artworkSearchService,
             artworkManagementService,
+            videoBookmarkService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }

@@ -7,6 +7,7 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.delete
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
@@ -18,6 +19,7 @@ import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.StandaloneVideoPlaybackService
+import org.airsonic.player.service.StandaloneVideoBookmarkService
 import org.airsonic.player.service.TranscodingService
 import org.mockito.Mockito
 import java.nio.file.Path
@@ -79,6 +81,7 @@ class KtorStandaloneVideoTest {
                 val mediaFileService = Mockito.mock(MediaFileService::class.java)
                 videos.forEach { video -> Mockito.`when`(mediaFileService.getMediaFile(video.id!!)).thenReturn(video) }
                 val playbackService = StandaloneVideoPlaybackService(mediaFileService, Mockito.mock(TranscodingService::class.java))
+                val videoBookmarkService = StandaloneVideoBookmarkService(dataSource, mediaFileService)
                 val previousHome = System.getProperty("airsonic.home")
                 System.setProperty("airsonic.home", home.resolve("airsonic-home").toString())
 
@@ -91,6 +94,7 @@ class KtorStandaloneVideoTest {
                             mediaFileDao = mediaFileDao,
                             mediaFileService = mediaFileService,
                             videoPlaybackService = playbackService,
+                            videoBookmarkService = videoBookmarkService,
                         )
                     }
 
@@ -116,6 +120,43 @@ class KtorStandaloneVideoTest {
                     assertTrue(auth.setAllowedLibraries(listenerId, setOf(library.id!!.toLong())))
                     val visible = client.get("/api/v1/videos") { bearerAuth(listenerToken) }
                     assertEquals(2, jacksonObjectMapper().readTree(visible.bodyAsText()).get("items").size())
+
+                    val unauthenticatedBookmarks = client.get("/api/v1/me/video-bookmarks")
+                    assertEquals(HttpStatusCode.Unauthorized, unauthenticatedBookmarks.status)
+                    val hiddenBookmark = client.put("/api/v1/videos/$videoId/bookmark") {
+                        bearerAuth(adminToken)
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"positionMillis":10000}""")
+                    }
+                    assertEquals(HttpStatusCode.NoContent, hiddenBookmark.status)
+                    val privateBookmarks = client.get("/api/v1/me/video-bookmarks") { bearerAuth(listenerToken) }
+                    assertEquals(0, jacksonObjectMapper().readTree(privateBookmarks.bodyAsText()).get("count").asInt())
+                    val savedBookmark = client.put("/api/v1/videos/$videoId/bookmark") {
+                        bearerAuth(listenerToken)
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"positionMillis":10000,"comment":"resume here"}""")
+                    }
+                    assertEquals(HttpStatusCode.NoContent, savedBookmark.status)
+                    val bookmarkList = jacksonObjectMapper().readTree(
+                        client.get("/api/v1/me/video-bookmarks") { bearerAuth(listenerToken) }.bodyAsText(),
+                    )
+                    assertEquals(1, bookmarkList.get("count").asInt())
+                    assertEquals(videoId, bookmarkList.get("items")[0].get("videoId").asInt())
+                    assertEquals("resume here", bookmarkList.get("items")[0].get("comment").asText())
+                    assertEquals(HttpStatusCode.BadRequest, client.put("/api/v1/videos/$videoId/bookmark") {
+                        bearerAuth(listenerToken)
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"positionMillis":-1}""")
+                    }.status)
+                    val nearEnd = client.put("/api/v1/videos/$videoId/bookmark") {
+                        bearerAuth(listenerToken)
+                        contentType(ContentType.Application.Json)
+                        setBody("""{"positionMillis":40000}""")
+                    }
+                    assertEquals(HttpStatusCode.NoContent, nearEnd.status)
+                    assertEquals(0, jacksonObjectMapper().readTree(
+                        client.get("/api/v1/me/video-bookmarks") { bearerAuth(listenerToken) }.bodyAsText(),
+                    ).get("count").asInt())
 
                     val createdSession = client.post("/api/v1/videos/$videoId/playback-sessions") {
                         bearerAuth(listenerToken)

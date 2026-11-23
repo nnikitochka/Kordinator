@@ -377,6 +377,33 @@
             <column name="updated_at"/>
         </createIndex>
     </changeSet>
+    <changeSet id="standalone-video-bookmarks-1" author="kordinator">
+        <createTable tableName="video_bookmark">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_video_bookmark"/>
+            </column>
+            <column name="video_id" type="INT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_video_bookmark"/>
+            </column>
+            <column name="position_ms" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="comment" type="VARCHAR(1024)"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="video_bookmark" baseColumnNames="user_id"
+                                 constraintName="fk_video_bookmark_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="video_bookmark" indexName="ix_video_bookmark_user_updated">
+            <column name="user_id"/>
+            <column name="updated_at"/>
+        </createIndex>
+    </changeSet>
     <changeSet id="standalone-track-ratings-1" author="kordinator">
         <createTable tableName="track_rating">
             <column name="user_id" type="BIGINT">
