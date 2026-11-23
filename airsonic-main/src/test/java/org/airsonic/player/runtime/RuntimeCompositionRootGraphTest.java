@@ -294,10 +294,6 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createSubsonicResponseMapper(mediaFileService, ratingService, coverArtService, transcodingService);
         assertSame(responseMapper, runtimeRoot.createSubsonicResponseMapper(
                 mediaFileService, ratingService, coverArtService, transcodingService));
-        assertSame(runtimeRoot.createSimilarSongsController(mediaFileService, lastFmService,
-                        mediaFolderService, responseMapper),
-                runtimeRoot.createSimilarSongsController(mediaFileService, lastFmService,
-                        mediaFolderService, responseMapper));
         assertSame(runtimeRoot.createSongsByGenreController(mediaFolderService, responseMapper),
                 runtimeRoot.createSongsByGenreController(mediaFolderService, responseMapper));
         assertSame(runtimeRoot.createSongController(securityService, responseMapper),

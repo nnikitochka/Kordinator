@@ -93,7 +93,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.search.SearchController subsonicSearchController;
     private org.airsonic.player.controller.rest.artists.ArtistsController subsonicArtistsController;
     private org.airsonic.player.controller.rest.albums.AlbumsController subsonicAlbumsController;
-    private org.airsonic.player.controller.rest.music.similar.SimilarSongsController similarSongsController;
     private org.airsonic.player.controller.rest.music.genre.SongsByGenreController songsByGenreController;
     private org.airsonic.player.controller.rest.music.song.SongController songController;
     private org.airsonic.player.controller.rest.videos.VideosController videosController;
@@ -290,23 +289,6 @@ public final class RuntimeCompositionRoot {
                     ratingService, searchService, responseMapper, createSubsonicJaxbWriter());
         }
         return subsonicAlbumsController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.music.similar.SimilarSongsController
-            createSimilarSongsController(
-                    org.airsonic.player.service.MediaFileService mediaFileService,
-                    org.airsonic.player.service.LastFmService lastFmService,
-                    org.airsonic.player.service.MediaFolderService mediaFolderService,
-                    org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
-        if (similarSongsController == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException("Persistence graph must be created before SimilarSongsController");
-            }
-            similarSongsController = new org.airsonic.player.controller.rest.music.similar.SimilarSongsController(
-                    mediaFileService, persistenceGraph.getDaos().getArtistDao(), lastFmService,
-                    mediaFolderService, responseMapper, createSubsonicJaxbWriter());
-        }
-        return similarSongsController;
     }
 
     public synchronized org.airsonic.player.controller.rest.music.genre.SongsByGenreController

@@ -564,6 +564,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалены legacy `TopSongsController` и request DTO с runtime wiring. Функция Last.fm top tracks доступна через `GET /api/v1/artists/{id}/top-tracks` с библиотечным scope; standalone catalog test проверяет маршрут.
 
+**Срез 23 ноября 2026:** удалены старые Subsonic `SimilarSongsController` и request DTO вместе с DAO/runtime wiring. Похожие треки доступны через `GET /api/v1/tracks/{id}/similar-tracks`; каталоговый Ktor test проверяет новый маршрут.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
