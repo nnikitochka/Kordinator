@@ -10,7 +10,7 @@ import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
-import org.airsonic.player.service.SecurityService
+import org.airsonic.player.security.LocalUserPrincipal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
@@ -21,7 +21,6 @@ class KordinatorLibraryRoutesTest {
     fun listsAllowedFoldersAndPagesRootDirectoryEntries() = testApplication {
         val mediaFiles = Mockito.mock(MediaFileService::class.java)
         val folders = Mockito.mock(MediaFolderService::class.java)
-        val security = Mockito.mock(SecurityService::class.java)
         val folder = MusicFolder(3, Path.of("/music"), "My Music", MusicFolder.Type.MEDIA, true, null)
         val root = MediaFile().apply {
             id = 30
@@ -45,17 +44,15 @@ class KordinatorLibraryRoutesTest {
             artist = "Artist"
             duration = 100.0
         }
-        Mockito.`when`(folders.getMusicFoldersForUser("alice")).thenReturn(listOf(folder))
+        Mockito.`when`(folders.getAllMusicFolders(false, false)).thenReturn(listOf(folder))
         Mockito.`when`(mediaFiles.getMediaFile("", 3)).thenReturn(root)
         Mockito.`when`(mediaFiles.getChildrenOf(root, true, true, true)).thenReturn(listOf(subdirectory, track))
-        Mockito.`when`(security.isFolderAccessAllowed(subdirectory, "alice")).thenReturn(true)
-        Mockito.`when`(security.isFolderAccessAllowed(track, "alice")).thenReturn(true)
         val mapper = jacksonObjectMapper()
         application {
             routing {
-                KordinatorLibraryRoutes(mediaFiles, folders, security).routes(
+                KordinatorLibraryRoutes(mediaFiles, folders).routes(
                     this,
-                    currentUsername = { call -> call.request.headers["X-Test-User"] },
+                    currentUser = { call -> if (call.request.headers["X-Test-User"] == "alice") LocalUserPrincipal(1, "alice", "USER", setOf(3)) else null },
                     objectMapper = mapper,
                 )
             }
@@ -84,19 +81,19 @@ class KordinatorLibraryRoutesTest {
     fun hidesDirectoriesOutsideTheUsersAllowedFolders() = testApplication {
         val mediaFiles = Mockito.mock(MediaFileService::class.java)
         val folders = Mockito.mock(MediaFolderService::class.java)
-        val security = Mockito.mock(SecurityService::class.java)
+        val folder = MusicFolder(3, Path.of("/music"), "My Music", MusicFolder.Type.MEDIA, true, null)
         val directory = MediaFile().apply {
             id = 31
             folderId = 4
             mediaType = MediaFile.MediaType.DIRECTORY
         }
         Mockito.`when`(mediaFiles.getMediaFile(31)).thenReturn(directory)
-        Mockito.`when`(security.isFolderAccessAllowed(directory, "alice")).thenReturn(false)
+        Mockito.`when`(folders.getAllMusicFolders(false, false)).thenReturn(listOf(folder))
         application {
             routing {
-                KordinatorLibraryRoutes(mediaFiles, folders, security).routes(
+                KordinatorLibraryRoutes(mediaFiles, folders).routes(
                     this,
-                    currentUsername = { call -> call.request.headers["X-Test-User"] },
+                    currentUser = { call -> if (call.request.headers["X-Test-User"] == "alice") LocalUserPrincipal(1, "alice", "USER", setOf(3)) else null },
                     objectMapper = jacksonObjectMapper(),
                 )
             }
@@ -109,7 +106,7 @@ class KordinatorLibraryRoutesTest {
 
         assertEquals(HttpStatusCode.Unauthorized, anonymous.status)
         assertEquals(HttpStatusCode.NotFound, inaccessible.status)
-        Mockito.verifyNoInteractions(folders)
+        Mockito.verify(folders).getAllMusicFolders(false, false)
         Mockito.verify(mediaFiles).getMediaFile(31)
     }
 }

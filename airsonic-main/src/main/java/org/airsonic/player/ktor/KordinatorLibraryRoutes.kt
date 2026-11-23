@@ -11,7 +11,7 @@ import io.ktor.server.routing.get
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
-import org.airsonic.player.service.SecurityService
+import org.airsonic.player.security.LocalUserPrincipal
 
 data class KordinatorLibraryFolder(val id: Int, val name: String)
 
@@ -39,27 +39,27 @@ data class KordinatorDirectoryContents(
 class KordinatorLibraryRoutes(
     private val mediaFileService: MediaFileService,
     private val mediaFolderService: MediaFolderService,
-    private val securityService: SecurityService,
 ) {
     fun routes(
         root: Route,
-        currentUsername: (ApplicationCall) -> String?,
+        currentUser: (ApplicationCall) -> LocalUserPrincipal?,
         objectMapper: ObjectMapper,
+        apiPrefix: String = "/api/v1",
     ) {
-        root.get("/api/v1/library/folders") {
-            val username = currentUsername(call)
-            if (username.isNullOrBlank()) {
+        root.get("$apiPrefix/library/folders") {
+            val user = currentUser(call)
+            if (user == null) {
                 call.respond(HttpStatusCode.Unauthorized)
                 return@get
             }
-            val folders = mediaFolderService.getMusicFoldersForUser(username)
+            val folders = accessibleFolders(user)
                 .map { KordinatorLibraryFolder(requireNotNull(it.id), it.name) }
             call.respondText(objectMapper.writeValueAsString(folders), ContentType.Application.Json)
         }
 
-        root.get("/api/v1/library/folders/{id}") {
-            val username = currentUsername(call)
-            if (username.isNullOrBlank()) {
+        root.get("$apiPrefix/library/folders/{id}") {
+            val user = currentUser(call)
+            if (user == null) {
                 call.respond(HttpStatusCode.Unauthorized)
                 return@get
             }
@@ -68,7 +68,7 @@ class KordinatorLibraryRoutes(
                 invalidRequest(call, objectMapper, "Music folder ID must be a positive number")
                 return@get
             }
-            val folder = mediaFolderService.getMusicFoldersForUser(username).firstOrNull { it.id == id }
+            val folder = accessibleFolders(user).firstOrNull { it.id == id }
             if (folder == null) {
                 call.respond(HttpStatusCode.NotFound)
                 return@get
@@ -78,12 +78,12 @@ class KordinatorLibraryRoutes(
                 call.respond(HttpStatusCode.NotFound)
                 return@get
             }
-            respondDirectory(call, username, rootDirectory, folder.name, true, objectMapper)
+            respondDirectory(call, rootDirectory, folder.name, true, objectMapper)
         }
 
-        root.get("/api/v1/library/directories/{id}") {
-            val username = currentUsername(call)
-            if (username.isNullOrBlank()) {
+        root.get("$apiPrefix/library/directories/{id}") {
+            val user = currentUser(call)
+            if (user == null) {
                 call.respond(HttpStatusCode.Unauthorized)
                 return@get
             }
@@ -93,24 +93,26 @@ class KordinatorLibraryRoutes(
                 return@get
             }
             val directory = mediaFileService.getMediaFile(id)
-            if (directory == null || !directory.isDirectory ||
-                !securityService.isFolderAccessAllowed(directory, username)
-            ) {
+            if (directory == null || !directory.isDirectory) {
                 call.respond(HttpStatusCode.NotFound)
                 return@get
             }
             val folderId = directory.folderId
-            if (folderId == null || mediaFolderService.getMusicFoldersForUser(username).none { it.id == folderId }) {
+            if (folderId == null || accessibleFolders(user).none { it.id == folderId }) {
                 call.respond(HttpStatusCode.NotFound)
                 return@get
             }
-            respondDirectory(call, username, directory, directory.name, false, objectMapper)
+            respondDirectory(call, directory, directory.name, false, objectMapper)
         }
     }
 
+    private fun accessibleFolders(user: LocalUserPrincipal) = mediaFolderService.getAllMusicFolders(false, false)
+        .filter { folder ->
+            user.role == "ADMIN" || folder.id?.toLong()?.let { it in user.allowedLibraryIds } == true
+        }
+
     private suspend fun respondDirectory(
         call: ApplicationCall,
-        username: String,
         directory: MediaFile,
         name: String,
         root: Boolean,
@@ -128,7 +130,7 @@ class KordinatorLibraryRoutes(
         val folderId = requireNotNull(directory.folderId)
         val children = mediaFileService.getChildrenOf(directory, true, true, true)
             .asSequence()
-            .filter { securityService.isFolderAccessAllowed(it, username) }
+            .filter { it.folderId == folderId }
             .filter { it.isDirectory || it.isAudio }
             .toList()
         val page = children.drop(offset).take(limit + 1)

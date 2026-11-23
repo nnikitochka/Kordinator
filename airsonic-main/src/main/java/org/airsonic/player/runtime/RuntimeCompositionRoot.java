@@ -217,11 +217,10 @@ public final class RuntimeCompositionRoot {
 
     public synchronized org.airsonic.player.ktor.KordinatorLibraryRoutes createKordinatorLibraryRoutes(
             org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.service.SecurityService securityService) {
+            org.airsonic.player.service.MediaFolderService mediaFolderService) {
         if (kordinatorLibraryRoutes == null) {
             kordinatorLibraryRoutes = new org.airsonic.player.ktor.KordinatorLibraryRoutes(
-                    mediaFileService, mediaFolderService, securityService);
+                    mediaFileService, mediaFolderService);
         }
         return kordinatorLibraryRoutes;
     }

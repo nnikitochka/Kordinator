@@ -238,6 +238,14 @@ fun Application.standaloneModule(
         if (authService != null) {
             route("/api/v1") {
                 authenticate("server-session") {
+                    if (mediaFileService != null && mediaFolderService != null) {
+                        KordinatorLibraryRoutes(mediaFileService, mediaFolderService).routes(
+                            this,
+                            currentUser = { applicationCall: ApplicationCall -> applicationCall.principal<LocalUserPrincipal>() },
+                            objectMapper = jsonMapper,
+                            apiPrefix = "",
+                        )
+                    }
                     if (tagEditService != null && mediaFileService != null && mediaFolderService != null) {
                         KordinatorTrackTagRoutes(tagEditService, mediaFileService, mediaFolderService).routes(this)
                     }
@@ -710,6 +718,58 @@ fun Application.standaloneModule(
                             ),
                         )
                     }
+                    get("/artists/{id}/metadata") {
+                        val catalog = mediaCatalogService
+                        val files = mediaFileService
+                        val metadata = topSongsService
+                        if (catalog == null || files == null || metadata == null) {
+                            call.respondJson(ApiError("unavailable", "Artist metadata lookup is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val artist = call.parameters["id"]?.decodeCatalogId()
+                        if (artist == null) {
+                            call.respondJson(ApiError("invalid_request", "Artist ID is invalid"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val tracks = withContext(scanDispatcher) {
+                            catalog.tracksForArtist(artist.first, artist.second, call.catalogLibraryScope())
+                        }
+                        val firstTrack = tracks.firstOrNull() ?: return@get call.respond(HttpStatusCode.NotFound)
+                        val mediaFile = withContext(Dispatchers.IO) { files.getMediaFile(firstTrack.relativePath, firstTrack.libraryId.toInt()) }
+                            ?: return@get call.respond(HttpStatusCode.NotFound)
+                        val bio = withContext(Dispatchers.IO) { metadata.getArtistBio(mediaFile, java.util.Locale.getDefault()) }
+                        call.response.headers.append(HttpHeaders.CacheControl, "private, max-age=300")
+                        call.respondJson(bio?.let {
+                            ArtistExternalMetadataResponse(it.biography, it.musicBrainzId, it.lastFmUrl,
+                                it.smallImageUrl, it.mediumImageUrl, it.largeImageUrl)
+                        } ?: ArtistExternalMetadataResponse(null, null, null, null, null, null))
+                    }
+                    get("/albums/{id}/metadata") {
+                        val catalog = mediaCatalogService
+                        val files = mediaFileService
+                        val metadata = topSongsService
+                        if (catalog == null || files == null || metadata == null) {
+                            call.respondJson(ApiError("unavailable", "Album metadata lookup is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val album = call.parameters["id"]?.decodeCatalogId()
+                        if (album == null) {
+                            call.respondJson(ApiError("invalid_request", "Album ID is invalid"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val tracks = withContext(scanDispatcher) {
+                            catalog.tracksForAlbum(album.first, album.second, call.catalogLibraryScope())
+                        }
+                        val firstTrack = tracks.firstOrNull() ?: return@get call.respond(HttpStatusCode.NotFound)
+                        val mediaFile = withContext(Dispatchers.IO) { files.getMediaFile(firstTrack.relativePath, firstTrack.libraryId.toInt()) }
+                            ?: return@get call.respond(HttpStatusCode.NotFound)
+                        val notes = withContext(Dispatchers.IO) { metadata.getAlbumNotes(mediaFile) }
+                        call.response.headers.append(HttpHeaders.CacheControl, "private, max-age=300")
+                        call.respondJson(notes?.let {
+                            AlbumExternalMetadataResponse(it.notes, it.musicBrainzId, it.lastFmUrl,
+                                it.smallImageUrl, it.mediumImageUrl, it.largeImageUrl)
+                        } ?: AlbumExternalMetadataResponse(null, null, null, null, null, null))
+                    }
                     route("/tracks/{id}/stream") {
                         install(HttpRequestLifecycle) { cancelCallOnClose = true }
                         get {
@@ -725,41 +785,22 @@ fun Application.standaloneModule(
                     head("/tracks/{id}/download") {
                         respondTrackFile(call, libraryScanService, mediaCatalogService, true, true)
                     }
-                    get("/tracks/{id}/artwork") {
-                    val scanService = libraryScanService
-                    val catalogService = mediaCatalogService
-                    if (scanService == null || catalogService == null) {
-                        call.respondJson(ApiError("unavailable", "Track catalog is not configured"), HttpStatusCode.ServiceUnavailable)
-                        return@get
+                    get("/tracks/{id}/artwork") { respondTrackArtwork(call, mediaCatalogService, libraryScanService, head = false) }
+                    head("/tracks/{id}/artwork") { respondTrackArtwork(call, mediaCatalogService, libraryScanService, head = true) }
+                    get("/albums/{id}/artwork") {
+                        respondCatalogEntityArtwork(call, mediaCatalogService, libraryScanService, artist = false, head = false)
                     }
-                    val trackId = call.parameters["id"]?.toLongOrNull()
-                    if (trackId == null || trackId < 0) {
-                        call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
-                        return@get
+                    head("/albums/{id}/artwork") {
+                        respondCatalogEntityArtwork(call, mediaCatalogService, libraryScanService, artist = false, head = true)
                     }
-                    val catalogTrack = withContext(scanDispatcher) {
-                        catalogService.track(trackId, call.catalogLibraryScope())
+                    get("/artists/{id}/artwork") {
+                        respondCatalogEntityArtwork(call, mediaCatalogService, libraryScanService, artist = true, head = false)
                     }
-                    if (catalogTrack == null) {
-                        call.respond(HttpStatusCode.NotFound)
-                        return@get
+                    head("/artists/{id}/artwork") {
+                        respondCatalogEntityArtwork(call, mediaCatalogService, libraryScanService, artist = true, head = true)
                     }
-                    val artwork = withContext(scanDispatcher) {
-                        scanService.artwork(catalogTrack.libraryId, catalogTrack.relativePath)
-                    }
-                    if (artwork == null) {
-                        call.respond(HttpStatusCode.NotFound)
-                        return@get
-                    }
-                    call.response.headers.append(HttpHeaders.CacheControl, "private, max-age=300")
-                    val etag = "\"${MessageDigest.getInstance("SHA-256").digest(artwork.bytes).joinToString("") { "%02x".format(it) }}\""
-                    call.setRepresentationValidators(etag, null)
-                    if (call.isNotModified(etag, null)) {
-                        call.respond(HttpStatusCode.NotModified)
-                        return@get
-                    }
-                    call.respondBytes(artwork.bytes, ContentType.parse(artwork.contentType))
-                    }
+                    get("/playlists/{id}/artwork") { respondPlaylistArtwork(call, playlistService, libraryScanService, head = false) }
+                    head("/playlists/{id}/artwork") { respondPlaylistArtwork(call, playlistService, libraryScanService, head = true) }
                 }
                 post("/auth/login") {
                     val request = try {
@@ -3618,6 +3659,101 @@ private fun LocalUserPrincipal.catalogLibraryScope(): Set<Long>? =
 private fun ApplicationCall.catalogLibraryScope(): Set<Long>? {
     val user = principal<LocalUserPrincipal>() ?: return emptySet()
     return user.catalogLibraryScope()
+}
+
+private suspend fun respondTrackArtwork(
+    call: ApplicationCall,
+    catalog: KtorCoreMediaCatalogService?,
+    scan: StandaloneLibraryScanService?,
+    head: Boolean,
+) {
+    if (catalog == null || scan == null) {
+        call.respondJson(ApiError("unavailable", "Track artwork is not configured"), HttpStatusCode.ServiceUnavailable)
+        return
+    }
+    val trackId = call.parameters["id"]?.toLongOrNull()?.takeIf { it >= 0 }
+    if (trackId == null) {
+        call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
+        return
+    }
+    val track = withContext(scanDispatcher) { catalog.track(trackId, call.catalogLibraryScope()) }
+        ?: return call.respond(HttpStatusCode.NotFound)
+    val artwork = withContext(scanDispatcher) { scan.artwork(track.libraryId, track.relativePath) }
+        ?: return call.respond(HttpStatusCode.NotFound)
+    call.respondArtwork(artwork.bytes, artwork.contentType, head)
+}
+
+private suspend fun respondCatalogEntityArtwork(
+    call: ApplicationCall,
+    catalog: KtorCoreMediaCatalogService?,
+    scan: StandaloneLibraryScanService?,
+    artist: Boolean,
+    head: Boolean,
+) {
+    if (catalog == null || scan == null) {
+        call.respondJson(ApiError("unavailable", "Catalog artwork is not configured"), HttpStatusCode.ServiceUnavailable)
+        return
+    }
+    val selector = call.parameters["id"]?.decodeCatalogId()
+    if (selector == null) {
+        call.respondJson(ApiError("invalid_request", "Catalog ID is invalid"), HttpStatusCode.BadRequest)
+        return
+    }
+    val tracks = withContext(scanDispatcher) {
+        if (artist) catalog.tracksForArtist(selector.first, selector.second, call.catalogLibraryScope())
+        else catalog.tracksForAlbum(selector.first, selector.second, call.catalogLibraryScope())
+    }
+    val track = tracks.firstOrNull()
+    if (track == null) {
+        call.respond(HttpStatusCode.NotFound)
+        return
+    }
+    val artwork = withContext(scanDispatcher) { scan.artwork(track.libraryId, track.relativePath) }
+    if (artwork == null) call.respond(HttpStatusCode.NotFound)
+    else call.respondArtwork(artwork.bytes, artwork.contentType, head)
+}
+
+private suspend fun respondPlaylistArtwork(
+    call: ApplicationCall,
+    playlists: StandalonePlaylistService?,
+    scan: StandaloneLibraryScanService?,
+    head: Boolean,
+) {
+    val actor = call.principal<LocalUserPrincipal>()
+        ?: return call.respond(HttpStatusCode.Unauthorized)
+    val id = call.parameters["id"]?.toLongOrNull()?.takeIf { it >= 0 }
+        ?: return call.respondJson(ApiError("invalid_request", "Playlist ID must be a non-negative number"), HttpStatusCode.BadRequest)
+    if (playlists == null) {
+        call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
+        return
+    }
+    val playlist = withContext(scanDispatcher) { playlists.get(actor.id, id, actor.catalogLibraryScope()) }
+        ?: return call.respond(HttpStatusCode.NotFound)
+    val track = playlist.tracks.firstOrNull() ?: return call.respond(HttpStatusCode.NotFound)
+    if (scan == null) {
+        call.respondJson(ApiError("unavailable", "Library artwork is not configured"), HttpStatusCode.ServiceUnavailable)
+        return
+    }
+    val artwork = withContext(scanDispatcher) { scan.artwork(track.libraryId, track.relativePath) }
+        ?: return call.respond(HttpStatusCode.NotFound)
+    call.respondArtwork(artwork.bytes, artwork.contentType, head)
+}
+
+private suspend fun ApplicationCall.respondArtwork(bytes: ByteArray, contentType: String, head: Boolean) {
+    response.headers.append(HttpHeaders.CacheControl, "private, max-age=300")
+    val etag = "\"${MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }}\""
+    setRepresentationValidators(etag, null)
+    if (isNotModified(etag, null)) {
+        respond(HttpStatusCode.NotModified)
+        return
+    }
+    if (head) {
+        respond(object : OutgoingContent.NoContent() {
+            override val contentType = ContentType.parse(contentType)
+        })
+    } else {
+        respondBytes(bytes, ContentType.parse(contentType))
+    }
 }
 
 private suspend fun setFavorite(call: ApplicationCall, service: StandaloneFavoriteService?, favorite: Boolean) {

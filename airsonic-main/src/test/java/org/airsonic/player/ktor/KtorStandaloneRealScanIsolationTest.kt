@@ -7,6 +7,7 @@ import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.HttpClient
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
+import io.ktor.client.request.head
 import io.ktor.client.request.delete
 import io.ktor.client.request.post
 import io.ktor.client.request.put
@@ -23,6 +24,7 @@ import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.StandaloneLibraryScanService
+import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandaloneShareService
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
@@ -111,6 +113,7 @@ class KtorStandaloneRealScanIsolationTest {
                             libraryScanService = scanService,
                             mediaFolderService = runtime.mediaFolderService,
                             mediaCatalogService = mediaCatalog,
+                            playlistService = StandalonePlaylistService(dataSource, mediaCatalog),
                             favoriteService = StandaloneFavoriteService(dataSource, mediaCatalog),
                             shareService = shareService,
                         )
@@ -215,7 +218,23 @@ class KtorStandaloneRealScanIsolationTest {
                     val firstArtwork = client.get("/api/v1/tracks/$firstTrackId/artwork") { bearerAuth(firstToken) }
                     assertEquals(HttpStatusCode.OK, firstArtwork.status)
                     assertTrue(firstCover.contentEquals(firstArtwork.bodyAsBytes()))
+                    val firstArtworkHead = client.head("/api/v1/tracks/$firstTrackId/artwork") { bearerAuth(firstToken) }
+                    assertEquals(HttpStatusCode.OK, firstArtworkHead.status)
+                    assertTrue(firstArtworkHead.bodyAsBytes().isEmpty())
                     assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/tracks/$firstTrackId/artwork") {
+                        bearerAuth(secondToken)
+                    }.status)
+                    val playlistResponse = client.post("/api/v1/playlists") {
+                        bearerAuth(firstToken)
+                        contentType(ContentType.Application.Json)
+                        setBody(mapper.writeValueAsString(mapOf("name" to "Artwork playlist", "trackIds" to listOf(firstTrackId))))
+                    }
+                    assertEquals(HttpStatusCode.Created, playlistResponse.status, playlistResponse.bodyAsText())
+                    val playlistId = mapper.readTree(playlistResponse.bodyAsText()).get("id").asLong()
+                    val playlistArtwork = client.get("/api/v1/playlists/$playlistId/artwork") { bearerAuth(firstToken) }
+                    assertEquals(HttpStatusCode.OK, playlistArtwork.status)
+                    assertTrue(firstCover.contentEquals(playlistArtwork.bodyAsBytes()))
+                    assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/playlists/$playlistId/artwork") {
                         bearerAuth(secondToken)
                     }.status)
                     val firstTrackRange = client.get("/api/v1/tracks/$firstTrackId/stream") {
@@ -467,6 +486,13 @@ class KtorStandaloneRealScanIsolationTest {
         assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/artists/${firstArtist.get("id").asText()}") {
             bearerAuth(secondToken)
         }.status)
+        val artistArtwork = client.get("/api/v1/artists/${firstArtist.get("id").asText()}/artwork") {
+            bearerAuth(firstToken)
+        }
+        assertEquals(HttpStatusCode.OK, artistArtwork.status)
+        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/artists/${firstArtist.get("id").asText()}/artwork") {
+            bearerAuth(secondToken)
+        }.status)
         val artistPage0 = mapper.readTree(client.get("/api/v1/artists?limit=1&offset=0") {
             bearerAuth(adminToken)
         }.bodyAsText()).get("items")[0]
@@ -489,6 +515,13 @@ class KtorStandaloneRealScanIsolationTest {
             bearerAuth(firstToken)
         }.status)
         assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/albums/${firstAlbum.get("id").asText()}") {
+            bearerAuth(secondToken)
+        }.status)
+        val albumArtwork = client.get("/api/v1/albums/${firstAlbum.get("id").asText()}/artwork") {
+            bearerAuth(firstToken)
+        }
+        assertEquals(HttpStatusCode.OK, albumArtwork.status)
+        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/albums/${firstAlbum.get("id").asText()}/artwork") {
             bearerAuth(secondToken)
         }.status)
         val albumPage0 = mapper.readTree(client.get("/api/v1/albums?limit=1&offset=0") {

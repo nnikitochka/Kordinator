@@ -144,10 +144,15 @@ class KtorStandalonePlaylistTest {
 
                 val tracksResponse = client.get("/api/v1/tracks") { bearerAuth(ownerToken) }
                 val trackId = mapper.readTree(tracksResponse.bodyAsText()).get("items")[0].get("id").asLong()
+                assertLibraryFolderList(client, mapper, ownerToken, library.id.toLong())
                 assertTrackMetadata(client, mapper, ownerToken, otherToken, trackId)
+                assertIndependentMetadata(client, mapper, ownerToken, otherToken, auth, otherId)
                 assertEquals(true, auth.setAllowedLibraries(otherId, setOf(library.id.toLong())))
                 assertTrackNotes(client, mapper, ownerToken, otherToken, trackId)
                 assertEquals(true, auth.setAllowedLibraries(otherId, emptySet()))
+                assertEquals(0, mapper.readTree(client.get("/api/v1/library/folders") {
+                    bearerAuth(otherToken)
+                }.bodyAsText()).size())
 
                 val randomTracks = mapper.readTree(client.get(
                     "/api/v1/tracks/random?size=1&genre=Rock&fromYear=1990&toYear=2000&libraryId=${library.id}",
@@ -543,6 +548,18 @@ class KtorStandalonePlaylistTest {
             .thenReturn(AlbumNotes("Album notes", "album-mbid", "https://last.fm/album", "small", "medium", "large"))
     }
 
+    private suspend fun assertLibraryFolderList(
+        client: HttpClient,
+        mapper: com.fasterxml.jackson.databind.ObjectMapper,
+        ownerToken: String,
+        libraryId: Long,
+    ) {
+        val response = client.get("/api/v1/library/folders") { bearerAuth(ownerToken) }
+        assertEquals(200, response.status.value, response.bodyAsText())
+        assertEquals(libraryId, mapper.readTree(response.bodyAsText())[0].get("id").asLong())
+        assertEquals(401, client.get("/api/v1/library/folders").status.value)
+    }
+
     private suspend fun assertTrackMetadata(
         client: HttpClient,
         mapper: com.fasterxml.jackson.databind.ObjectMapper,
@@ -556,5 +573,30 @@ class KtorStandalonePlaylistTest {
         assertEquals("Artist biography", metadata.get("artist").get("biography").asText())
         assertEquals("Album notes", metadata.get("album").get("notes").asText())
         assertEquals(404, client.get("/api/v1/tracks/$trackId/metadata") { bearerAuth(otherToken) }.status.value)
+    }
+
+    private suspend fun assertIndependentMetadata(
+        client: HttpClient,
+        mapper: com.fasterxml.jackson.databind.ObjectMapper,
+        ownerToken: String,
+        otherToken: String,
+        auth: LocalAuthService,
+        otherId: Long,
+    ) {
+        val albumId = mapper.readTree(client.get("/api/v1/albums") { bearerAuth(ownerToken) }.bodyAsText())
+            .get("items")[0].get("id").asText()
+        val artistId = mapper.readTree(client.get("/api/v1/artists") { bearerAuth(ownerToken) }.bodyAsText())
+            .get("items")[0].get("id").asText()
+        val album = client.get("/api/v1/albums/$albumId/metadata") { bearerAuth(ownerToken) }
+        assertEquals(200, album.status.value, album.bodyAsText())
+        assertEquals("Album notes", mapper.readTree(album.bodyAsText()).get("notes").asText())
+        val artist = client.get("/api/v1/artists/$artistId/metadata") { bearerAuth(ownerToken) }
+        assertEquals(200, artist.status.value, artist.bodyAsText())
+        assertEquals("Artist biography", mapper.readTree(artist.bodyAsText()).get("biography").asText())
+        assertEquals(401, client.get("/api/v1/albums/$albumId/metadata").status.value)
+        assertEquals(401, client.get("/api/v1/artists/$artistId/metadata").status.value)
+        assertEquals(true, auth.setAllowedLibraries(otherId, emptySet()))
+        assertEquals(404, client.get("/api/v1/albums/$albumId/metadata") { bearerAuth(otherToken) }.status.value)
+        assertEquals(404, client.get("/api/v1/artists/$artistId/metadata") { bearerAuth(otherToken) }.status.value)
     }
 }
