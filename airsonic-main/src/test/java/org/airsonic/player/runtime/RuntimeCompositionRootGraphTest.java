@@ -212,9 +212,6 @@ class RuntimeCompositionRootGraphTest {
         assertSame(lastFmService, runtimeRoot.createLastFmService(mediaFileDao, mediaFileService, artistDao));
         ShareService shareService = runtimeRoot.createShareService(daoGraph.getShareDao(), mediaFileService);
         assertSame(shareService, runtimeRoot.createShareService(daoGraph.getShareDao(), mediaFileService));
-        org.airsonic.player.service.hls.HlsPlaylistService hlsPlaylistService =
-                runtimeRoot.createHlsPlaylistService(jwtSecurityService);
-        assertSame(hlsPlaylistService, runtimeRoot.createHlsPlaylistService(jwtSecurityService));
         CaptionService captionService = runtimeRoot.createCaptionService(mediaFileService, mediaFolderService,
                 settingsService, metaDataParserFactory, jwtSecurityService);
         assertSame(captionService, runtimeRoot.createCaptionService(mediaFileService, mediaFolderService,
@@ -238,11 +235,6 @@ class RuntimeCompositionRootGraphTest {
                 daoGraph.getTranscodingDao(), settingsService, mediaFolderService);
         assertSame(transcodingService, runtimeRoot.createTranscodingService(
                 daoGraph.getTranscodingDao(), settingsService, mediaFolderService));
-        org.airsonic.player.service.hls.HlsSegmentService hlsSegmentService =
-                runtimeRoot.createHlsSegmentService(mediaFileService, securityService, statusService,
-                        settingsService, transcodingService);
-        assertSame(hlsSegmentService, runtimeRoot.createHlsSegmentService(mediaFileService, securityService,
-                statusService, settingsService, transcodingService));
         PlayerDao playerServiceDao = mock(PlayerDao.class);
         PlayerService playerService = runtimeRoot.createPlayerService(playerServiceDao, statusService,
                 securityService, transcodingService);
@@ -312,10 +304,6 @@ class RuntimeCompositionRootGraphTest {
         org.airsonic.player.dao.PlayerDaoPlayQueueFactory playQueueFactory =
                 runtimeRoot.createPlayerDaoPlayQueueFactory();
         assertSame(playQueueFactory, runtimeRoot.createPlayerDaoPlayQueueFactory());
-        MediaStreamService mediaStreamService = runtimeRoot.createMediaStreamService(statusService, securityService,
-                settingsService, transcodingService, audioScrobblerService, mediaFileService, searchService);
-        assertSame(mediaStreamService, runtimeRoot.createMediaStreamService(statusService, securityService,
-                settingsService, transcodingService, audioScrobblerService, mediaFileService, searchService));
         org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper =
                 runtimeRoot.createSubsonicResponseMapper(mediaFileService, ratingService, coverArtService, transcodingService);
         assertSame(responseMapper, runtimeRoot.createSubsonicResponseMapper(
@@ -436,12 +424,6 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createAvatarRestController(settingsService));
         assertSame(runtimeRoot.createAvatarUploadController(settingsService),
                 runtimeRoot.createAvatarUploadController(settingsService));
-        assertSame(runtimeRoot.createHlsRestController(hlsPlaylistService),
-                runtimeRoot.createHlsRestController(hlsPlaylistService));
-        assertSame(runtimeRoot.createHlsSegmentRestController(hlsSegmentService),
-                runtimeRoot.createHlsSegmentRestController(hlsSegmentService));
-        assertSame(runtimeRoot.createStreamRestController(mediaStreamService),
-                runtimeRoot.createStreamRestController(mediaStreamService));
         assertSame(runtimeRoot.createPublicShareController(shareService, mediaFileService, mediaFolderService,
                         jwtSecurityService, metaDataParserFactory, objectMapper),
                 runtimeRoot.createPublicShareController(shareService, mediaFileService, mediaFolderService,

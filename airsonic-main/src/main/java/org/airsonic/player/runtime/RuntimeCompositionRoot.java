@@ -46,15 +46,12 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.metadata.JaudiotaggerParser jaudiotaggerParser;
     private org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory;
     private org.airsonic.player.service.CoverArtService coverArtService;
-    private org.airsonic.player.service.hls.HlsPlaylistService hlsPlaylistService;
-    private org.airsonic.player.service.hls.HlsSegmentService hlsSegmentService;
     private org.airsonic.player.service.TagEditService tagEditService;
     private org.airsonic.player.service.DownloadService downloadService;
     private org.airsonic.player.service.UserAdministrationService userAdministrationService;
     private org.airsonic.player.service.MusicIndexStateService musicIndexStateService;
     private org.airsonic.player.service.CoverArtImageService coverArtImageService;
     private org.airsonic.player.dao.PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory;
-    private org.airsonic.player.service.MediaStreamService mediaStreamService;
     private org.airsonic.player.service.PlaylistService playlistService;
     private org.airsonic.player.service.TaskSchedulingService taskSchedulingService;
     private org.airsonic.player.service.PathWatcherService pathWatcherService;
@@ -147,9 +144,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.cover.CoverArtRestController coverArtRestController;
     private org.airsonic.player.controller.rest.avatar.AvatarRestController avatarRestController;
     private org.airsonic.player.controller.rest.avatar.AvatarUploadController avatarUploadController;
-    private org.airsonic.player.controller.rest.hls.HlsRestController hlsRestController;
-    private org.airsonic.player.controller.rest.hls.HlsSegmentRestController hlsSegmentRestController;
-    private org.airsonic.player.controller.rest.stream.StreamRestController streamRestController;
     private org.airsonic.player.controller.rest.shares.PublicShareController publicShareController;
     private org.airsonic.player.controller.captions.CaptionsRestController captionsRestController;
     private org.airsonic.player.controller.rest.shares.SharesController sharesController;
@@ -872,30 +866,6 @@ public final class RuntimeCompositionRoot {
         return avatarUploadController;
     }
 
-    public synchronized org.airsonic.player.controller.rest.hls.HlsRestController createHlsRestController(
-            org.airsonic.player.service.hls.HlsPlaylistService hlsPlaylistService) {
-        if (hlsRestController == null) {
-            hlsRestController = new org.airsonic.player.controller.rest.hls.HlsRestController(hlsPlaylistService);
-        }
-        return hlsRestController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.hls.HlsSegmentRestController createHlsSegmentRestController(
-            org.airsonic.player.service.hls.HlsSegmentService hlsSegmentService) {
-        if (hlsSegmentRestController == null) {
-            hlsSegmentRestController = new org.airsonic.player.controller.rest.hls.HlsSegmentRestController(hlsSegmentService);
-        }
-        return hlsSegmentRestController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.stream.StreamRestController createStreamRestController(
-            org.airsonic.player.service.MediaStreamService mediaStreamService) {
-        if (streamRestController == null) {
-            streamRestController = new org.airsonic.player.controller.rest.stream.StreamRestController(mediaStreamService);
-        }
-        return streamRestController;
-    }
-
     public synchronized org.airsonic.player.controller.rest.shares.PublicShareController createPublicShareController(
             org.airsonic.player.service.ShareService shareService,
             org.airsonic.player.service.MediaFileService mediaFileService,
@@ -1455,28 +1425,6 @@ public final class RuntimeCompositionRoot {
         return coverArtService;
     }
 
-    public synchronized org.airsonic.player.service.hls.HlsPlaylistService createHlsPlaylistService(
-            org.airsonic.player.service.JWTSecurityService jwtSecurityService) {
-        if (hlsPlaylistService == null) {
-            hlsPlaylistService = RuntimeMediaServiceFactory.createHlsPlaylistService(jwtSecurityService);
-        }
-        return hlsPlaylistService;
-    }
-
-    public synchronized org.airsonic.player.service.hls.HlsSegmentService createHlsSegmentService(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.service.StatusService statusService,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.TranscodingService transcodingService) {
-        if (hlsSegmentService == null) {
-            hlsSegmentService = RuntimeMediaServiceFactory.createHlsSegmentService(
-                    mediaFileService, securityService, statusService, settingsService, transcodingService);
-            hlsSegmentService.init();
-        }
-        return hlsSegmentService;
-    }
-
     public synchronized org.airsonic.player.service.TagEditService createTagEditService(
             org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory,
             org.airsonic.player.service.MediaFileService mediaFileService,
@@ -1537,22 +1485,6 @@ public final class RuntimeCompositionRoot {
             coverArtImageService.init();
         }
         return coverArtImageService;
-    }
-
-    public synchronized org.airsonic.player.service.MediaStreamService createMediaStreamService(
-            org.airsonic.player.service.StatusService statusService,
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.TranscodingService transcodingService,
-            org.airsonic.player.service.AudioScrobblerService audioScrobblerService,
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.SearchService searchService) {
-        if (mediaStreamService == null) {
-            mediaStreamService = new org.airsonic.player.service.MediaStreamService(
-                    statusService, securityService, settingsService, transcodingService, audioScrobblerService,
-                    mediaFileService, searchService, createPlayerDaoPlayQueueFactory());
-        }
-        return mediaStreamService;
     }
 
     public synchronized org.airsonic.player.service.playlist.DefaultPlaylistExportHandler createDefaultPlaylistExportHandler(

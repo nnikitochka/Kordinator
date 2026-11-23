@@ -19,8 +19,6 @@ import org.airsonic.player.service.TagEditService
 import org.airsonic.player.service.TranscodingService
 import org.airsonic.player.service.UserAdministrationService
 import org.airsonic.player.service.JWTSecurityService
-import org.airsonic.player.service.hls.HlsPlaylistService
-import org.airsonic.player.service.hls.HlsSegmentService
 import org.airsonic.player.service.metadata.DefaultMetaDataParser
 import org.airsonic.player.service.metadata.FFmpegParser
 import org.airsonic.player.service.metadata.JaudiotaggerParser
@@ -79,21 +77,6 @@ object RuntimeMediaServiceFactory {
         jaudiotaggerParser: JaudiotaggerParser,
         cacheManager: CacheManager,
     ): CoverArtService = CoverArtService(coverArtDao, mediaFolderService, jaudiotaggerParser, cacheManager)
-
-    @JvmStatic
-    fun createHlsPlaylistService(jwtSecurityService: JWTSecurityService): HlsPlaylistService =
-        HlsPlaylistService(jwtSecurityService)
-
-    @JvmStatic
-    fun createHlsSegmentService(
-        mediaFileService: MediaFileService,
-        securityService: SecurityService,
-        statusService: StatusService,
-        settingsService: SettingsService,
-        transcodingService: TranscodingService,
-    ): HlsSegmentService = HlsSegmentService(
-        mediaFileService, securityService, statusService, settingsService, transcodingService,
-    )
 
     @JvmStatic
     fun createTagEditService(
