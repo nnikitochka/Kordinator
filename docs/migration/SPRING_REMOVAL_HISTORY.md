@@ -626,6 +626,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалён старый `BookmarksController` с Subsonic XML/JAXB endpoints. Закладки доступны через bearer API `GET /api/v1/me/bookmarks` и `PUT`/`DELETE /api/v1/tracks/{id}/bookmark`; `KtorStandalonePlaylistTest` проверяет чтение и изменение закладок.
 
+**Срез 23 ноября 2026:** удалён legacy `StarredController` и runtime wiring. Ktor API `/api/v1/favorites/{tracks,albums,artists}` и PUT/DELETE `favorite` маршруты покрыты `KtorStandalonePlaylistTest`, включая пользовательскую изоляцию и отсутствие доступа за пределами библиотеки.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

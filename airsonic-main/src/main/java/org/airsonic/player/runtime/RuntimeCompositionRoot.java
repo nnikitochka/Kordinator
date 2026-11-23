@@ -84,7 +84,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.SubsonicResponseMapper subsonicResponseMapper;
     private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
-    private org.airsonic.player.controller.rest.starred.StarredController starredController;
     private org.airsonic.player.controller.rest.jukebox.JukeboxController jukeboxController;
     private org.airsonic.player.controller.rest.playlists.PlaylistExportController playlistExportController;
     private org.airsonic.player.controller.rest.playlists.PlaylistImportController playlistImportController;
@@ -175,21 +174,6 @@ public final class RuntimeCompositionRoot {
             meterRegistry = RuntimeHealthFactory.createMeterRegistry();
         }
         return meterRegistry;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.starred.StarredController createStarredController(
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
-        if (starredController == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException("Persistence graph must be created before StarredController");
-            }
-            DaoGraph daos = persistenceGraph.getDaos();
-            starredController = new org.airsonic.player.controller.rest.starred.StarredController(
-                    daos.getMediaFileDao(), daos.getAlbumDao(), daos.getArtistDao(),
-                    mediaFolderService, responseMapper, createSubsonicJaxbWriter());
-        }
-        return starredController;
     }
 
     public synchronized org.airsonic.player.controller.rest.jukebox.JukeboxController createJukeboxController(
