@@ -88,7 +88,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.admin.GeneralSettingsController generalSettingsController;
     private org.airsonic.player.controller.rest.admin.MusicFolderSettingsController musicFolderSettingsController;
     private org.airsonic.player.controller.rest.users.PasswordController passwordController;
-    private org.airsonic.player.controller.rest.playqueue.PlayQueueController playQueueController;
     private org.airsonic.player.controller.rest.admin.DLNASettingsController dlnaSettingsController;
     private org.airsonic.player.controller.rest.settings.PersonalSettingsController personalSettingsController;
     private org.airsonic.player.controller.rest.admin.PlayerSettingsController playerSettingsController;
@@ -218,20 +217,6 @@ public final class RuntimeCompositionRoot {
                     securityService, createSubsonicJaxbWriter());
         }
         return passwordController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.playqueue.PlayQueueController createPlayQueueController(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
-        if (playQueueController == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException("Persistence graph must be created before PlayQueueController");
-            }
-            playQueueController = new org.airsonic.player.controller.rest.playqueue.PlayQueueController(
-                    persistenceGraph.getDaos().getPlayQueueDao(), mediaFileService,
-                    responseMapper, createSubsonicJaxbWriter());
-        }
-        return playQueueController;
     }
 
     public synchronized org.airsonic.player.controller.rest.admin.DLNASettingsController createDLNASettingsController(
