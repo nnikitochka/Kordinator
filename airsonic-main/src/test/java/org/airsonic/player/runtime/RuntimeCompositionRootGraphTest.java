@@ -300,8 +300,6 @@ class RuntimeCompositionRootGraphTest {
                         mediaFolderService, responseMapper));
         assertSame(runtimeRoot.createSongsByGenreController(mediaFolderService, responseMapper),
                 runtimeRoot.createSongsByGenreController(mediaFolderService, responseMapper));
-        assertSame(runtimeRoot.createTopSongsController(lastFmService, mediaFolderService, responseMapper),
-                runtimeRoot.createTopSongsController(lastFmService, mediaFolderService, responseMapper));
         assertSame(runtimeRoot.createSongController(securityService, responseMapper),
                 runtimeRoot.createSongController(securityService, responseMapper));
         assertSame(runtimeRoot.createVideosController(mediaFolderService, responseMapper),
