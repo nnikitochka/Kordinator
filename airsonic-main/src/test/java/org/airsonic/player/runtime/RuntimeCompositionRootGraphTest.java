@@ -254,14 +254,6 @@ class RuntimeCompositionRootGraphTest {
         assertSame(musicFolderAdministrationService, runtimeRoot.createMusicFolderAdministrationService(
                 settingsService, mediaScannerService, mediaFolderService, artistDao, albumDao, mediaFileDao,
                 indexManager, playlistService, coverArtService));
-        PlayQueueService playQueueService = runtimeRoot.createPlayQueueService(
-                searchService, jukeboxService, settingsService, mediaFileService,
-                lastFmService, ratingService, playlistService, mediaFileDao, mediaFolderService,
-                playQueueDao, jwtSecurityService);
-        assertSame(playQueueService, runtimeRoot.createPlayQueueService(
-                searchService, jukeboxService, settingsService, mediaFileService,
-                lastFmService, ratingService, playlistService, mediaFileDao, mediaFolderService,
-                playQueueDao, jwtSecurityService));
         org.airsonic.player.dao.PlayerDaoPlayQueueFactory playQueueFactory =
                 runtimeRoot.createPlayerDaoPlayQueueFactory();
         assertSame(playQueueFactory, runtimeRoot.createPlayerDaoPlayQueueFactory());

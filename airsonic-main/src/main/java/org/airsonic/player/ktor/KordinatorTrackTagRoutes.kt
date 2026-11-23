@@ -10,13 +10,13 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.put
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.airsonic.player.ajax.tag.TagData
 import org.airsonic.player.domain.User
 import org.airsonic.player.security.CallerContext
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.TagEditService
+import org.airsonic.player.service.TrackTagUpdate
 
 class KordinatorTrackTagRoutes(
     private val tags: TagEditService,
@@ -62,15 +62,10 @@ class KordinatorTrackTagRoutes(
         }
         val context = CallerContext(user.username, setOf(User.Role.ADMIN), folderIds, true)
         val result = withContext(Dispatchers.IO) {
-            tags.setTags(TagData().apply {
-                mediaFileId = id
-                artist = request.artist
-                album = request.album
-                title = request.title
-                genre = request.genre
-                track = request.track
-                year = request.year
-            }, context)
+            tags.setTags(
+                TrackTagUpdate(id, request.track, request.artist, request.album, request.title, request.year, request.genre),
+                context,
+            )
         }
         if (result == "UPDATED" || result == "SKIPPED") {
             call.respondJson(EditTrackTagsResponse(result))

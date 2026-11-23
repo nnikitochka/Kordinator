@@ -1,21 +1,13 @@
 package org.airsonic.player.runtime
 
-import org.airsonic.player.dao.MediaFileDao
-import org.airsonic.player.dao.PlayQueueDao
 import org.airsonic.player.dao.PlayerDao
 import org.airsonic.player.dao.TranscodingDao
 import org.airsonic.player.service.AudioScrobblerService
-import org.airsonic.player.service.JWTSecurityService
 import org.airsonic.player.service.JukeboxLegacySubsonicService
 import org.airsonic.player.service.JukeboxService
-import org.airsonic.player.service.LastFmService
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
-import org.airsonic.player.service.PlayQueueService
 import org.airsonic.player.service.PlayerService
-import org.airsonic.player.service.PlaylistService
-import org.airsonic.player.service.RatingService
-import org.airsonic.player.service.SearchService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.SettingsService
 import org.airsonic.player.service.StatusService
@@ -58,21 +50,4 @@ object RuntimePlaybackServiceFactory {
     fun createJukeboxService(legacyService: JukeboxLegacySubsonicService): JukeboxService =
         JukeboxService(legacyService)
 
-    @JvmStatic
-    fun createPlayQueueService(
-        searchService: SearchService,
-        jukeboxService: JukeboxService,
-        settingsService: SettingsService,
-        mediaFileService: MediaFileService,
-        lastFmService: LastFmService,
-        ratingService: RatingService,
-        playlistService: PlaylistService,
-        mediaFileDao: MediaFileDao,
-        mediaFolderService: MediaFolderService,
-        playQueueDao: PlayQueueDao,
-        jwtSecurityService: JWTSecurityService,
-    ): PlayQueueService = PlayQueueService(
-        searchService, jukeboxService, settingsService, mediaFileService, lastFmService,
-        ratingService, playlistService, mediaFileDao, mediaFolderService, playQueueDao, jwtSecurityService,
-    )
 }

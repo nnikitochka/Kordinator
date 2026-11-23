@@ -4,7 +4,7 @@
 
 ## Фактически зарегистрированные маршруты
 
-Проверено 23 ноября 2026 года по точке входа `main` и регистрации `standaloneModule` в `airsonic-main/src/main/java/org/airsonic/player/ktor/KtorApplication.kt`. Это список активного `/api/v1`, не перечень всех Kotlin-файлов с обработчиками.
+Проверено 23 ноября 2026 года по точке входа `main` и регистрации `standaloneModule` в `nnedition`. Это список активного `/api/v1`, не перечень всех Kotlin-файлов с обработчиками.
 
 | Доступ | Метод и путь | Старое поведение, которое сопоставляется | Проверки активной регистрации |
 |---|---|---|---|
@@ -57,7 +57,7 @@
 | `/rest/ping` | Есть публичный `GET /api/v1/health` | Заменено health API; старый Subsonic envelope и URL удаляются |
 | JSP `/editTags` и WebSocket `/tags/edit` | Есть `PUT /api/v1/tracks/{id}/tags`, bearer auth и проверка роли администратора; операция использует существующий `TagEditService` | Перенесено редактирование метаданных в поддерживаемых форматах. Для неподдерживаемого формата ответ сообщает об отказе; JSP форма и WebSocket контракт удалены |
 
-Production HTTP routes регистрируются из `KtorApplication.kt` внутри `standaloneModule`; сюда входят как обработчики, объявленные непосредственно в модуле, так и route-классы, явно вызванные из bearer-authenticated группы. Несколько прежних `Kordinator*Routes` (auth, playlist, artist, search, track и album) и их factories/tests не были подключены к production и использовали старые core services/identity callbacks. Они удалены; API-поведение проверяется интеграционными тестами production module (`KtorStandalonePlaylistTest`, `KtorStandaloneRealScanIsolationTest`, `KtorStandaloneAuthTest` и соответствующие admin/media suites). `KordinatorLibraryRoutesTest` проверяет отдельные детали адаптера; регистрацию и bearer-доступ к папкам дополнительно проверяет `KtorStandalonePlaylistTest` на настоящем `standaloneModule`.
+Production HTTP routes регистрируются из `Kordinator.kt` внутри `standaloneModule`; сюда входят как обработчики, объявленные непосредственно в модуле, так и route-классы, явно вызванные из bearer-authenticated группы. Несколько прежних `Kordinator*Routes` (auth, playlist, artist, search, track и album) и их factories/tests не были подключены к production и использовали старые core services/identity callbacks. Они удалены; API-поведение проверяется интеграционными тестами production module (`KtorStandalonePlaylistTest`, `KtorStandaloneRealScanIsolationTest`, `KtorStandaloneAuthTest` и соответствующие admin/media suites). `KordinatorLibraryRoutesTest` проверяет отдельные детали адаптера; регистрацию и bearer-доступ к папкам дополнительно проверяет `KtorStandalonePlaylistTest` на настоящем `standaloneModule`.
 
 | Функциональная область | Старый путь | Standalone Ktor и подтверждение | Оставшееся ограничение |
 |---|---|---|---|
@@ -89,7 +89,11 @@ Production HTTP routes регистрируются из `KtorApplication.kt` в
 
 ### Удалена серверная локализация старого сайта
 
-`LocaleService`, его фабрики и зависимости в конструкторе `MediaFileService` удалены. Последний потребитель текстовых переводов — незарегистрированный Subsonic `PlaylistsController` — удалён вместе с request DTO; активные операции плейлистов остаются в `/api/v1/playlists`. Удалены `ResourceBundle_*.properties`, вспомогательная утилита сравнения переводов и Maven-копирование английского bundle. Оставшийся старый `MediaFileEntry` форматирует размер файла с `Locale.ENGLISH`, без чтения пользовательских настроек. `locales.txt` пока нужен для списка допустимых настроек языка в действующем API; он не содержит текстовых переводов.
+`LocaleService`, его фабрики и зависимости в конструкторе `MediaFileService` удалены. Последний потребитель текстовых переводов — незарегистрированный Subsonic `PlaylistsController` — удалён вместе с request DTO; активные операции плейлистов остаются в `/api/v1/playlists`. Удалены `ResourceBundle_*.properties`, вспомогательная утилита сравнения переводов и Maven-копирование английского bundle. Старый AJAX DTO `MediaFileEntry` удалён вместе с неиспользуемой legacy-очередью; `locales.txt` пока нужен для списка допустимых настроек языка в действующем API, он не содержит текстовых переводов.
+
+### Удалены модели старого AJAX-слоя
+
+Пакет `org.airsonic.player.ajax` больше не нужен: `ArtistInfo` и `SimilarArtist` не использовались production-кодом; `MediaFileEntry`, `PlayQueueInfo` и `PlayQueueService` обслуживали отключённый старый queue path. Новая пользовательская очередь остаётся в `StandalonePlayQueueService`, а остановка legacy-плеера при смене его настроек выполняется через `JukeboxService`. `NowPlayingInfo` заменён передачей `PlayStatus` из `StatusService` в Ktor response mapping с прежними фильтрами приватности и часового окна. `TagData` заменён Kotlin-командой `TrackTagUpdate` сервисного уровня.
 
 ### Аудиотранскодирование в активном API
 

@@ -3,7 +3,6 @@ package org.airsonic.player.service
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.lang.ObjectUtils
 import org.apache.commons.lang.StringUtils
-import org.airsonic.player.ajax.tag.TagData
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
 import org.airsonic.player.security.CallerContext
@@ -19,7 +18,7 @@ open class TagEditService(
     private val securityService: SecurityService
 ) {
     /** Updates tags, returning `UPDATED`, `SKIPPED`, or a user-facing error message. */
-    open fun setTags(data: TagData, callerContext: CallerContext): String {
+    open fun setTags(data: TrackTagUpdate, callerContext: CallerContext): String {
         try {
             val file = mediaFileService.getMediaFile(data.mediaFileId)
                 ?: throw IllegalArgumentException("Media file not found")
@@ -35,11 +34,16 @@ open class TagEditService(
                 return "Tag editing of ${FilenameUtils.getExtension(file.path)} files is not supported."
             }
 
-            if (StringUtils.equals(data.artist, file.artist) &&
-                StringUtils.equals(data.album, file.albumName) &&
-                StringUtils.equals(data.title, file.title) &&
+            val artist = data.artist.trimToNull()
+            val album = data.album.trimToNull()
+            val title = data.title.trimToNull()
+            val genre = data.genre.trimToNull()
+
+            if (StringUtils.equals(artist, file.artist) &&
+                StringUtils.equals(album, file.albumName) &&
+                StringUtils.equals(title, file.title) &&
                 ObjectUtils.equals(data.year, file.year) &&
-                StringUtils.equals(data.genre, file.genre) &&
+                StringUtils.equals(genre, file.genre) &&
                 ObjectUtils.equals(data.track, file.trackNumber)
             ) {
                 return "SKIPPED"
@@ -47,11 +51,11 @@ open class TagEditService(
 
             val newMetaData: MetaData = parser.getMetaData(filePath)
             // Album artist is intentionally unchanged; it is not user-editable.
-            newMetaData.artist = data.artist
-            newMetaData.albumName = data.album
-            newMetaData.title = data.title
+            newMetaData.artist = artist
+            newMetaData.albumName = album
+            newMetaData.title = title
             newMetaData.year = data.year
-            newMetaData.genre = data.genre
+            newMetaData.genre = genre
             newMetaData.trackNumber = data.track
             parser.setMetaData(file, newMetaData)
 
@@ -78,3 +82,5 @@ open class TagEditService(
         private val LOG = LoggerFactory.getLogger(TagEditService::class.java)
     }
 }
+
+private fun String?.trimToNull(): String? = this?.trim()?.takeIf(String::isNotEmpty)

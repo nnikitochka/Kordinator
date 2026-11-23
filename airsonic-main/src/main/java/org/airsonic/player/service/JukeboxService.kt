@@ -2,6 +2,7 @@ package org.airsonic.player.service
 
 import org.airsonic.player.domain.Player
 import org.airsonic.player.domain.PlayerTechnology
+import org.airsonic.player.domain.PlayQueue
 
 /** Service for controlling a jukebox player. */
 open class JukeboxService(private val jukeboxLegacySubsonicService: JukeboxLegacySubsonicService) {
@@ -43,7 +44,12 @@ open class JukeboxService(private val jukeboxLegacySubsonicService: JukeboxLegac
 
     open fun start(airsonicPlayer: Player) = play(airsonicPlayer)
 
-    open fun stop(airsonicPlayer: Player) = play(airsonicPlayer)
+    open fun stop(airsonicPlayer: Player) {
+        airsonicPlayer.playQueue.status = PlayQueue.Status.STOPPED
+        if (airsonicPlayer.technology == PlayerTechnology.JUKEBOX) {
+            jukeboxLegacySubsonicService.updateJukebox(airsonicPlayer, 0)
+        }
+    }
 
     open fun skip(airsonicPlayer: Player, index: Int, offset: Int) {
         if (airsonicPlayer.technology == PlayerTechnology.JUKEBOX) {

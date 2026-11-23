@@ -1,6 +1,5 @@
 package org.airsonic.player.service
 
-import org.airsonic.player.ajax.playing.NowPlayingInfo
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.PlayStatus
 import org.airsonic.player.domain.Player
@@ -9,7 +8,6 @@ import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.Collections
-import java.util.Objects
 import java.util.concurrent.ConcurrentHashMap
 import java.util.stream.Collectors
 import java.util.stream.Stream
@@ -111,19 +109,21 @@ open class StatusService(
     private fun createStatus(player: Player, statusList: MutableList<TransferStatus>): TransferStatus =
         TransferStatus(player).also(statusList::add)
 
-    open fun getActivePlays(): List<NowPlayingInfo> = activeLocalPlays.parallelStream()
-        .map { NowPlayingInfo.createForBroadcast(it, settingsService) }
-        .filter(Objects::nonNull)
-        .map { requireNotNull(it) }
+    open fun getActivePlays(): List<PlayStatus> = activeLocalPlays.parallelStream()
+        .filter(::isVisibleNowPlaying)
         .collect(Collectors.toList())
 
-    open fun getInactivePlays(): List<NowPlayingInfo> = Stream.concat(
+    open fun getInactivePlays(): List<PlayStatus> = Stream.concat(
         remotePlays.parallelStream(),
         inactiveStreamStatuses.values.parallelStream().map(this::getPlayStatus)
-    ).map { NowPlayingInfo.createForBroadcast(it, settingsService) }
-        .filter(Objects::nonNull)
-        .map { requireNotNull(it) }
+    ).filter(::isVisibleNowPlaying)
         .collect(Collectors.toList())
+
+    private fun isVisibleNowPlaying(play: PlayStatus): Boolean {
+        if (play.mediaFile == null || play.minutesAgo > MAX_NOW_PLAYING_AGE_MINUTES) return false
+        val username = play.player?.username ?: return false
+        return settingsService.getUserSettings(username).nowPlayingAllowed
+    }
 
     open fun setMediaFileService(mediaFileService: MediaFileService) {
         this.mediaFileService = mediaFileService
@@ -131,5 +131,9 @@ open class StatusService(
 
     open fun setSettingsService(settingsService: SettingsService) {
         this.settingsService = settingsService
+    }
+
+    companion object {
+        private const val MAX_NOW_PLAYING_AGE_MINUTES = 60
     }
 }

@@ -18,7 +18,7 @@ import org.airsonic.player.domain.PlayerTechnology
 import org.airsonic.player.domain.Transcoding
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
-import org.airsonic.player.service.PlayQueueService
+import org.airsonic.player.service.JukeboxService
 import org.airsonic.player.service.PlayerService
 import org.airsonic.player.service.TranscodingService
 import org.mockito.Mockito
@@ -61,7 +61,7 @@ class KtorStandalonePlayerSettingsTest {
             Mockito.`when`(transcoding.allTranscodings).thenReturn(listOf(Transcoding(3, "MP3", "flac", "mp3", "ffmpeg", null, null, false)))
             Mockito.`when`(transcoding.getTranscodingsForPlayer(player)).thenReturn(emptyList())
             Mockito.`when`(transcoding.getTranscodingsForPlayer(cloned)).thenReturn(emptyList())
-            val queues = Mockito.mock(PlayQueueService::class.java)
+            val jukebox = Mockito.mock(JukeboxService::class.java)
 
             testApplication {
                 application {
@@ -69,7 +69,7 @@ class KtorStandalonePlayerSettingsTest {
                         authService = auth,
                         playerService = players,
                         transcodingService = transcoding,
-                        playerQueueService = queues,
+                        jukeboxService = jukebox,
                     )
                 }
 
@@ -90,7 +90,7 @@ class KtorStandalonePlayerSettingsTest {
                 }
                 assertEquals(HttpStatusCode.OK, updated.status, updated.bodyAsText())
                 assertEquals(PlayerTechnology.JUKEBOX, player.technology)
-                Mockito.verify(queues).stop(player)
+                Mockito.verify(jukebox).stop(player)
                 assertTrue(Mockito.mockingDetails(transcoding).invocations.any { it.method.name == "setTranscodingsForPlayer" })
 
                 val clonedResponse = client.post("/api/v1/admin/players/7/clone") { bearerAuth(adminToken) }

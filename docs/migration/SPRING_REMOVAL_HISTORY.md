@@ -668,9 +668,9 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** `GET`/`PUT /api/v1/tracks/{id}/rating` вынесены в `StandaloneRatingRoutes` и подключены в активном bearer route tree. Проверка видимости трека происходит до чтения оценки; запись сохраняет диапазон 0–5 и удаление оценки значением 0. `KtorStandalonePlaylistTest` прошёл через production module и проверил чтение, права и запись.
 
-**Срез 23 ноября 2026:** `POST /api/v1/tracks/{id}/scrobble` вынесен из `KtorApplication.kt` в Kotlin `StandaloneScrobbleRoutes` и подключён в активном bearer route tree. Сохранены проверка доступа пользователя к треку, валидация ID/времени и передача события существующему scrobble service. `KtorStandalonePlaylistTest` прошёл через production module (1/1) и проверил HTTP-ответ и регистрацию scrobble.
+**Срез 23 ноября 2026:** `POST /api/v1/tracks/{id}/scrobble` вынесен из `Kordinator.kt` в Kotlin `StandaloneScrobbleRoutes` и подключён в активном bearer route tree. Сохранены проверка доступа пользователя к треку, валидация ID/времени и передача события существующему scrobble service. `KtorStandalonePlaylistTest` прошёл через production module (1/1) и проверил HTTP-ответ и регистрацию scrobble.
 
-**Срез 23 ноября 2026:** `GET /api/v1/lyrics` вынесен из `KtorApplication.kt` в Kotlin `StandaloneLyricsRoutes` внутри bearer route tree. Сохранены artist/title query parameters, вызов `LyricsService` через auth dispatcher и опциональный `tryLater` по `includeLookupStatus=true`. Production module проверяется `KtorStandalonePlaylistTest`.
+**Срез 23 ноября 2026:** `GET /api/v1/lyrics` вынесен из `Kordinator.kt` в Kotlin `StandaloneLyricsRoutes` внутри bearer route tree. Сохранены artist/title query parameters, вызов `LyricsService` через auth dispatcher и опциональный `tryLater` по `includeLookupStatus=true`. Production module проверяется `KtorStandalonePlaylistTest`.
 
 ## 6. Основание и связанные аудиты
 

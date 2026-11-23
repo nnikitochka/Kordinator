@@ -1,6 +1,5 @@
 package org.airsonic.player.service;
 
-import org.airsonic.player.ajax.tag.TagData;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.security.CallerContext;
@@ -28,14 +27,7 @@ public class TagEditServiceTest {
         MetaDataParser parser = mock(MetaDataParser.class);
         MetaData metadata = mock(MetaData.class);
         Path filePath = Path.of("/music/album/track.mp3");
-        TagData data = new TagData();
-        data.setMediaFileId(1);
-        data.setArtist("Artist");
-        data.setAlbum("Album");
-        data.setTitle("Title");
-        data.setYear(2024);
-        data.setGenre("Rock");
-        data.setTrack(3);
+        TrackTagUpdate data = new TrackTagUpdate(1, 3, "Artist", "Album", "Title", 2024, "Rock");
         CallerContext caller = new CallerContext("admin", Set.of(), Set.of(2), true);
         when(files.getMediaFile(1)).thenReturn(file);
         when(file.isFile()).thenReturn(true);
@@ -77,8 +69,7 @@ public class TagEditServiceTest {
         MediaFile file = mock(MediaFile.class);
         MusicFolder folder = mock(MusicFolder.class);
         MetaDataParser parser = mock(MetaDataParser.class);
-        TagData data = new TagData();
-        data.setMediaFileId(1);
+        TrackTagUpdate data = new TrackTagUpdate(1, null, null, null, null, null, null);
         when(files.getMediaFile(1)).thenReturn(file);
         when(file.isFile()).thenReturn(true);
         when(file.getPath()).thenReturn("test.wav");
@@ -101,8 +92,7 @@ public class TagEditServiceTest {
         MediaFolderService folders = mock(MediaFolderService.class);
         SecurityService security = mock(SecurityService.class);
         MediaFile file = mock(MediaFile.class);
-        TagData data = new TagData();
-        data.setMediaFileId(1);
+        TrackTagUpdate data = new TrackTagUpdate(1, null, null, null, null, null, null);
         CallerContext caller = new CallerContext("reader", Set.of(), Set.of(), true);
         when(files.getMediaFile(1)).thenReturn(file);
         TagEditService service = new TagEditService(factory, files, folders, security);

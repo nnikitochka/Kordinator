@@ -1,6 +1,21 @@
 package org.airsonic.player.runtime;
 
 
+import org.airsonic.player.dao.*;
+import org.airsonic.player.health.HealthContributorRegistry;
+import org.airsonic.player.health.StatusAggregator;
+import org.airsonic.player.monitor.MetricsManager;
+import org.airsonic.player.security.CredentialEncoderRegistry;
+import org.airsonic.player.security.SubsonicCredentialAuthenticationService;
+import org.airsonic.player.service.*;
+import org.airsonic.player.service.metadata.DefaultMetaDataParser;
+import org.airsonic.player.service.metadata.FFmpegParser;
+import org.airsonic.player.service.metadata.JaudiotaggerParser;
+import org.airsonic.player.service.metadata.MetaDataParserFactory;
+import org.airsonic.player.service.playlist.*;
+import org.airsonic.player.service.search.*;
+import org.airsonic.player.service.upnp.*;
+
 import java.util.Objects;
 import javax.sql.DataSource;
 
@@ -14,71 +29,70 @@ public final class RuntimeCompositionRoot {
     private boolean liquibaseMigrated;
     private PersistenceGraph persistenceGraph;
     private javax.cache.CacheManager cacheManager;
-    private org.airsonic.player.service.MediaFolderService mediaFolderService;
-    private org.airsonic.player.service.MediaFileService mediaFileService;
-    private org.airsonic.player.dao.PlayerDao playerDao;
-    private org.airsonic.player.service.VersionService versionService;
-    private org.airsonic.player.service.ServerInfoService serverInfoService;
-    private org.airsonic.player.service.StatusService statusService;
-    private org.airsonic.player.service.LyricsService lyricsService;
-    private org.airsonic.player.service.BookmarkService bookmarkService;
-    private org.airsonic.player.service.RatingService ratingService;
-    private org.airsonic.player.service.MusicIndexService musicIndexService;
-    private org.airsonic.player.service.SecurityService securityService;
-    private org.airsonic.player.security.SubsonicCredentialAuthenticationService subsonicCredentialAuthenticationService;
-    private org.airsonic.player.service.JWTSecurityService jwtSecurityService;
-    private org.airsonic.player.service.DatabaseService databaseService;
-    private org.airsonic.player.service.JukeboxLegacySubsonicService jukeboxLegacySubsonicService;
-    private org.airsonic.player.service.JukeboxService jukeboxService;
-    private org.airsonic.player.service.PlayQueueService playQueueService;
-    private org.airsonic.player.service.LastFmService lastFmService;
-    private org.airsonic.player.service.ShareService shareService;
-    private org.airsonic.player.service.AudioScrobblerService audioScrobblerService;
-    private org.airsonic.player.service.CaptionService captionService;
-    private org.airsonic.player.service.TranscodingService transcodingService;
-    private org.airsonic.player.service.PlayerService playerService;
-    private org.airsonic.player.service.metadata.DefaultMetaDataParser defaultMetaDataParser;
-    private org.airsonic.player.service.metadata.FFmpegParser ffmpegParser;
-    private org.airsonic.player.service.metadata.JaudiotaggerParser jaudiotaggerParser;
-    private org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory;
-    private org.airsonic.player.service.CoverArtService coverArtService;
-    private org.airsonic.player.service.TagEditService tagEditService;
-    private org.airsonic.player.service.DownloadService downloadService;
-    private org.airsonic.player.service.CoverArtImageService coverArtImageService;
-    private org.airsonic.player.dao.PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory;
-    private org.airsonic.player.service.PlaylistService playlistService;
-    private org.airsonic.player.service.TaskSchedulingService taskSchedulingService;
-    private org.airsonic.player.service.PathWatcherService pathWatcherService;
-    private org.airsonic.player.service.MediaScannerService mediaScannerService;
-    private org.airsonic.player.service.search.AnalyzerFactory analyzerFactory;
-    private org.airsonic.player.service.search.DocumentFactory documentFactory;
-    private org.airsonic.player.service.search.IndexManager indexManager;
-    private org.airsonic.player.service.search.QueryFactory queryFactory;
-    private org.airsonic.player.service.search.SearchServiceUtilities searchServiceUtilities;
-    private org.airsonic.player.service.search.SearchServiceImpl searchService;
-    private org.airsonic.player.service.ConfigurationPropertiesService configurationPropertiesService;
-    private org.airsonic.player.service.SettingsService settingsService;
-    private org.airsonic.player.service.GeneralSettingsAdministrationService generalSettingsAdministrationService;
-    private org.airsonic.player.service.MusicFolderAdministrationService musicFolderAdministrationService;
-    private org.airsonic.player.service.CoverArtAccentColorBackfill coverArtAccentColorBackfill;
-    private org.airsonic.player.service.UPnPService upnpService;
-    private org.airsonic.player.service.upnp.AlbumUpnpProcessor albumUpnpProcessor;
-    private org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor recentAlbumUpnpProcessor;
-    private org.airsonic.player.service.upnp.ArtistUpnpProcessor artistUpnpProcessor;
-    private org.airsonic.player.service.upnp.GenreUpnpProcessor genreUpnpProcessor;
-    private org.airsonic.player.service.upnp.MediaFileUpnpProcessor mediaFileUpnpProcessor;
-    private org.airsonic.player.service.upnp.PlaylistUpnpProcessor playlistUpnpProcessor;
-    private org.airsonic.player.service.upnp.RootUpnpProcessor rootUpnpProcessor;
-    private org.airsonic.player.service.upnp.DispatchingContentDirectory dispatchingContentDirectory;
-    private org.airsonic.player.service.upnp.FolderBasedContentDirectory folderBasedContentDirectory;
-    private org.airsonic.player.service.playlist.DefaultPlaylistExportHandler defaultPlaylistExportHandler;
-    private org.airsonic.player.service.playlist.DefaultPlaylistImportHandler defaultPlaylistImportHandler;
-    private org.airsonic.player.service.playlist.XspfPlaylistExportHandler xspfPlaylistExportHandler;
-    private org.airsonic.player.service.playlist.XspfPlaylistImportHandler xspfPlaylistImportHandler;
-    private org.airsonic.player.health.HealthContributorRegistry healthContributorRegistry;
-    private org.airsonic.player.monitor.MetricsManager metricsManager;
+    private MediaFolderService mediaFolderService;
+    private MediaFileService mediaFileService;
+    private PlayerDao playerDao;
+    private VersionService versionService;
+    private ServerInfoService serverInfoService;
+    private StatusService statusService;
+    private LyricsService lyricsService;
+    private BookmarkService bookmarkService;
+    private RatingService ratingService;
+    private MusicIndexService musicIndexService;
+    private SecurityService securityService;
+    private SubsonicCredentialAuthenticationService subsonicCredentialAuthenticationService;
+    private JWTSecurityService jwtSecurityService;
+    private DatabaseService databaseService;
+    private JukeboxLegacySubsonicService jukeboxLegacySubsonicService;
+    private JukeboxService jukeboxService;
+    private LastFmService lastFmService;
+    private ShareService shareService;
+    private AudioScrobblerService audioScrobblerService;
+    private CaptionService captionService;
+    private TranscodingService transcodingService;
+    private PlayerService playerService;
+    private DefaultMetaDataParser defaultMetaDataParser;
+    private FFmpegParser ffmpegParser;
+    private JaudiotaggerParser jaudiotaggerParser;
+    private MetaDataParserFactory metaDataParserFactory;
+    private CoverArtService coverArtService;
+    private TagEditService tagEditService;
+    private DownloadService downloadService;
+    private CoverArtImageService coverArtImageService;
+    private PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory;
+    private PlaylistService playlistService;
+    private TaskSchedulingService taskSchedulingService;
+    private PathWatcherService pathWatcherService;
+    private MediaScannerService mediaScannerService;
+    private AnalyzerFactory analyzerFactory;
+    private DocumentFactory documentFactory;
+    private IndexManager indexManager;
+    private QueryFactory queryFactory;
+    private SearchServiceUtilities searchServiceUtilities;
+    private SearchServiceImpl searchService;
+    private ConfigurationPropertiesService configurationPropertiesService;
+    private SettingsService settingsService;
+    private GeneralSettingsAdministrationService generalSettingsAdministrationService;
+    private MusicFolderAdministrationService musicFolderAdministrationService;
+    private CoverArtAccentColorBackfill coverArtAccentColorBackfill;
+    private UPnPService upnpService;
+    private AlbumUpnpProcessor albumUpnpProcessor;
+    private RecentAlbumUpnpProcessor recentAlbumUpnpProcessor;
+    private ArtistUpnpProcessor artistUpnpProcessor;
+    private GenreUpnpProcessor genreUpnpProcessor;
+    private MediaFileUpnpProcessor mediaFileUpnpProcessor;
+    private PlaylistUpnpProcessor playlistUpnpProcessor;
+    private RootUpnpProcessor rootUpnpProcessor;
+    private DispatchingContentDirectory dispatchingContentDirectory;
+    private FolderBasedContentDirectory folderBasedContentDirectory;
+    private DefaultPlaylistExportHandler defaultPlaylistExportHandler;
+    private DefaultPlaylistImportHandler defaultPlaylistImportHandler;
+    private XspfPlaylistExportHandler xspfPlaylistExportHandler;
+    private XspfPlaylistImportHandler xspfPlaylistImportHandler;
+    private HealthContributorRegistry healthContributorRegistry;
+    private MetricsManager metricsManager;
     private io.micrometer.core.instrument.MeterRegistry meterRegistry;
-    private org.airsonic.player.health.StatusAggregator statusAggregator;
+    private StatusAggregator statusAggregator;
     private org.airsonic.player.ktor.KordinatorSessionService kordinatorSessionService;
     private org.airsonic.player.ktor.KordinatorLibraryRoutes kordinatorLibraryRoutes;
 
@@ -107,7 +121,7 @@ public final class RuntimeCompositionRoot {
         return lifecycleRegistry;
     }
 
-    public synchronized org.airsonic.player.health.StatusAggregator createStatusAggregator() {
+    public synchronized StatusAggregator createStatusAggregator() {
         if (statusAggregator == null) {
             statusAggregator = RuntimeHealthFactory.createStatusAggregator(configuration);
         }
@@ -122,9 +136,9 @@ public final class RuntimeCompositionRoot {
     }
 
     public synchronized org.airsonic.player.ktor.KordinatorSessionService createKordinatorSessionService(
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.security.CredentialEncoderRegistry credentialEncoders,
-            org.airsonic.player.service.SettingsService settingsService) {
+            SecurityService securityService,
+            CredentialEncoderRegistry credentialEncoders,
+            SettingsService settingsService) {
         if (kordinatorSessionService == null) {
             if (persistenceGraph == null) {
                 throw new IllegalStateException("Persistence graph must be created before KordinatorSessionService");
@@ -138,8 +152,8 @@ public final class RuntimeCompositionRoot {
     }
 
     public synchronized org.airsonic.player.ktor.KordinatorLibraryRoutes createKordinatorLibraryRoutes(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService) {
+            MediaFileService mediaFileService,
+            MediaFolderService mediaFolderService) {
         if (kordinatorLibraryRoutes == null) {
             kordinatorLibraryRoutes = new org.airsonic.player.ktor.KordinatorLibraryRoutes(
                     mediaFileService, mediaFolderService);
@@ -179,7 +193,7 @@ public final class RuntimeCompositionRoot {
         liquibaseMigrated = true;
     }
 
-    public synchronized org.airsonic.player.monitor.MetricsManager createMetricsManager() {
+    public synchronized MetricsManager createMetricsManager() {
         if (metricsManager == null) {
             metricsManager = RuntimeHealthFactory.createMetricsManager(configuration);
             lifecycleRegistry.registerShutdown("metricsManager", metricsManager);
@@ -187,7 +201,7 @@ public final class RuntimeCompositionRoot {
         return metricsManager;
     }
 
-    public synchronized org.airsonic.player.health.HealthContributorRegistry createHealthContributorRegistry(
+    public synchronized HealthContributorRegistry createHealthContributorRegistry(
             DataSource dataSource) {
         if (healthContributorRegistry == null) {
             healthContributorRegistry = RuntimeHealthFactory.createHealthContributorRegistry(dataSource);
@@ -195,29 +209,29 @@ public final class RuntimeCompositionRoot {
         return healthContributorRegistry;
     }
 
-    public synchronized org.airsonic.player.service.TaskSchedulingService createTaskSchedulingService() {
+    public synchronized TaskSchedulingService createTaskSchedulingService() {
         if (taskSchedulingService == null) {
-            taskSchedulingService = new org.airsonic.player.service.TaskSchedulingService();
+            taskSchedulingService = new TaskSchedulingService();
             lifecycleRegistry.registerShutdown("taskSchedulingService", taskSchedulingService);
         }
         return taskSchedulingService;
     }
 
-    public synchronized org.airsonic.player.service.PathWatcherService createPathWatcherService() throws Exception {
+    public synchronized PathWatcherService createPathWatcherService() throws Exception {
         if (pathWatcherService == null) {
-            pathWatcherService = new org.airsonic.player.service.PathWatcherService();
+            pathWatcherService = new PathWatcherService();
             lifecycleRegistry.registerShutdown("pathWatcherService", pathWatcherService);
         }
         return pathWatcherService;
     }
 
-    public synchronized org.airsonic.player.service.MediaScannerService createMediaScannerService(
-            org.airsonic.player.service.PlaylistService playlistService,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.search.IndexManager indexManager,
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.service.CoverArtService coverArtService) {
+    public synchronized MediaScannerService createMediaScannerService(
+            PlaylistService playlistService,
+            SettingsService settingsService,
+            IndexManager indexManager,
+            MediaFileService mediaFileService,
+            MediaFolderService mediaFolderService,
+            CoverArtService coverArtService) {
         if (mediaScannerService == null) {
             if (persistenceGraph == null) {
                 throw new IllegalStateException("Persistence graph must be created before MediaScannerService");
@@ -234,21 +248,21 @@ public final class RuntimeCompositionRoot {
         return mediaScannerService;
     }
 
-    public synchronized org.airsonic.player.service.search.AnalyzerFactory createAnalyzerFactory() {
+    public synchronized AnalyzerFactory createAnalyzerFactory() {
         if (analyzerFactory == null) {
             analyzerFactory = RuntimeSearchServiceFactory.createAnalyzerFactory();
         }
         return analyzerFactory;
     }
 
-    public synchronized org.airsonic.player.service.search.DocumentFactory createDocumentFactory() {
+    public synchronized DocumentFactory createDocumentFactory() {
         if (documentFactory == null) {
             documentFactory = RuntimeSearchServiceFactory.createDocumentFactory();
         }
         return documentFactory;
     }
 
-    public synchronized org.airsonic.player.service.search.IndexManager createIndexManager() {
+    public synchronized IndexManager createIndexManager() {
         if (indexManager == null) {
             if (persistenceGraph == null) {
                 throw new IllegalStateException("Persistence graph must be created before IndexManager");
@@ -261,15 +275,15 @@ public final class RuntimeCompositionRoot {
         return indexManager;
     }
 
-    public synchronized org.airsonic.player.service.search.QueryFactory createQueryFactory() {
+    public synchronized QueryFactory createQueryFactory() {
         if (queryFactory == null) {
             queryFactory = RuntimeSearchServiceFactory.createQueryFactory(createAnalyzerFactory());
         }
         return queryFactory;
     }
 
-    public synchronized org.airsonic.player.service.search.SearchServiceUtilities createSearchServiceUtilities(
-            org.airsonic.player.service.MediaFileService mediaFileService) {
+    public synchronized SearchServiceUtilities createSearchServiceUtilities(
+            MediaFileService mediaFileService) {
         if (searchServiceUtilities == null) {
             if (persistenceGraph == null) {
                 throw new IllegalStateException("Persistence graph must be created before SearchServiceUtilities");
@@ -281,8 +295,8 @@ public final class RuntimeCompositionRoot {
         return searchServiceUtilities;
     }
 
-    public synchronized org.airsonic.player.service.search.SearchServiceImpl createSearchService(
-            org.airsonic.player.service.MediaFileService mediaFileService) {
+    public synchronized SearchServiceImpl createSearchService(
+            MediaFileService mediaFileService) {
         if (searchService == null) {
             searchService = RuntimeSearchServiceFactory.createSearchService(
                     createQueryFactory(), createIndexManager(), createSearchServiceUtilities(mediaFileService));
@@ -290,15 +304,15 @@ public final class RuntimeCompositionRoot {
         return searchService;
     }
 
-    public synchronized org.airsonic.player.service.ConfigurationPropertiesService createConfigurationPropertiesService() {
+    public synchronized ConfigurationPropertiesService createConfigurationPropertiesService() {
         if (configurationPropertiesService == null) {
             // The Spring environment bootstrap still exposes this same file-backed source during migration.
-            configurationPropertiesService = org.airsonic.player.service.ConfigurationPropertiesService.getInstance();
+            configurationPropertiesService = ConfigurationPropertiesService.getInstance();
         }
         return configurationPropertiesService;
     }
 
-    public synchronized org.airsonic.player.service.SettingsService createSettingsService() {
+    public synchronized SettingsService createSettingsService() {
         if (settingsService == null) {
             if (persistenceGraph == null) {
                 throw new IllegalStateException("Persistence graph must be created before SettingsService");
@@ -312,9 +326,9 @@ public final class RuntimeCompositionRoot {
         return settingsService;
     }
 
-    public synchronized org.airsonic.player.service.GeneralSettingsAdministrationService
-            createGeneralSettingsAdministrationService(org.airsonic.player.service.SettingsService settingsService,
-                    org.airsonic.player.service.PlaylistService playlistService) {
+    public synchronized GeneralSettingsAdministrationService
+            createGeneralSettingsAdministrationService(SettingsService settingsService,
+                    PlaylistService playlistService) {
         if (generalSettingsAdministrationService == null) {
             generalSettingsAdministrationService = RuntimeSettingsServiceFactory.createGeneralSettingsAdministrationService(
                     settingsService, playlistService);
@@ -322,16 +336,16 @@ public final class RuntimeCompositionRoot {
         return generalSettingsAdministrationService;
     }
 
-    public synchronized org.airsonic.player.service.MusicFolderAdministrationService
-            createMusicFolderAdministrationService(org.airsonic.player.service.SettingsService settingsService,
-                    org.airsonic.player.service.MediaScannerService mediaScannerService,
-                    org.airsonic.player.service.MediaFolderService mediaFolderService,
-                    org.airsonic.player.dao.ArtistDao artistDao,
-                    org.airsonic.player.dao.AlbumDao albumDao,
-                    org.airsonic.player.dao.MediaFileDao mediaFileDao,
-                    org.airsonic.player.service.search.IndexManager indexManager,
-                    org.airsonic.player.service.PlaylistService playlistService,
-                    org.airsonic.player.service.CoverArtService coverArtService) {
+    public synchronized MusicFolderAdministrationService
+            createMusicFolderAdministrationService(SettingsService settingsService,
+                    MediaScannerService mediaScannerService,
+                    MediaFolderService mediaFolderService,
+                    ArtistDao artistDao,
+                    AlbumDao albumDao,
+                    MediaFileDao mediaFileDao,
+                    IndexManager indexManager,
+                    PlaylistService playlistService,
+                    CoverArtService coverArtService) {
         if (musicFolderAdministrationService == null) {
             musicFolderAdministrationService = RuntimeSettingsServiceFactory.createMusicFolderAdministrationService(
                     settingsService, mediaScannerService, mediaFolderService, artistDao, albumDao, mediaFileDao,
@@ -340,8 +354,8 @@ public final class RuntimeCompositionRoot {
         return musicFolderAdministrationService;
     }
 
-    public synchronized org.airsonic.player.service.CoverArtAccentColorBackfill createCoverArtAccentColorBackfill(
-            org.airsonic.player.service.CoverArtService coverArtService) {
+    public synchronized CoverArtAccentColorBackfill createCoverArtAccentColorBackfill(
+            CoverArtService coverArtService) {
         if (coverArtAccentColorBackfill == null) {
             coverArtAccentColorBackfill = RuntimeSettingsServiceFactory.createCoverArtAccentColorBackfill(coverArtService);
             lifecycleRegistry.registerStartup("coverArtAccentColorBackfill",
@@ -350,9 +364,9 @@ public final class RuntimeCompositionRoot {
         return coverArtAccentColorBackfill;
     }
 
-    public synchronized org.airsonic.player.service.UPnPService createUpnpService(
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.upnp.CustomContentDirectory contentDirectory) {
+    public synchronized UPnPService createUpnpService(
+            SettingsService settingsService,
+            CustomContentDirectory contentDirectory) {
         if (upnpService == null) {
             upnpService = RuntimeUpnpFactory.createUpnpService(settingsService, contentDirectory);
             upnpService.init();
@@ -361,72 +375,72 @@ public final class RuntimeCompositionRoot {
         return upnpService;
     }
 
-    public synchronized org.airsonic.player.service.upnp.AlbumUpnpProcessor createAlbumUpnpProcessor(
-            org.airsonic.player.dao.AlbumDao albumDao) {
+    public synchronized AlbumUpnpProcessor createAlbumUpnpProcessor(
+            AlbumDao albumDao) {
         if (albumUpnpProcessor == null) {
             albumUpnpProcessor = RuntimeUpnpFactory.createAlbumProcessor(albumDao);
         }
         return albumUpnpProcessor;
     }
 
-    public synchronized org.airsonic.player.service.upnp.RecentAlbumUpnpProcessor createRecentAlbumUpnpProcessor(
-            org.airsonic.player.dao.AlbumDao albumDao) {
+    public synchronized RecentAlbumUpnpProcessor createRecentAlbumUpnpProcessor(
+            AlbumDao albumDao) {
         if (recentAlbumUpnpProcessor == null) {
             recentAlbumUpnpProcessor = RuntimeUpnpFactory.createRecentAlbumProcessor(albumDao);
         }
         return recentAlbumUpnpProcessor;
     }
 
-    public synchronized org.airsonic.player.service.upnp.ArtistUpnpProcessor createArtistUpnpProcessor(
-            org.airsonic.player.dao.ArtistDao artistDao) {
+    public synchronized ArtistUpnpProcessor createArtistUpnpProcessor(
+            ArtistDao artistDao) {
         if (artistUpnpProcessor == null) {
             artistUpnpProcessor = RuntimeUpnpFactory.createArtistProcessor(artistDao);
         }
         return artistUpnpProcessor;
     }
 
-    public synchronized org.airsonic.player.service.upnp.GenreUpnpProcessor createGenreUpnpProcessor() {
+    public synchronized GenreUpnpProcessor createGenreUpnpProcessor() {
         if (genreUpnpProcessor == null) {
             genreUpnpProcessor = RuntimeUpnpFactory.createGenreProcessor();
         }
         return genreUpnpProcessor;
     }
 
-    public synchronized org.airsonic.player.service.upnp.MediaFileUpnpProcessor createMediaFileUpnpProcessor(
-            org.airsonic.player.dao.MediaFileDao mediaFileDao) {
+    public synchronized MediaFileUpnpProcessor createMediaFileUpnpProcessor(
+            MediaFileDao mediaFileDao) {
         if (mediaFileUpnpProcessor == null) {
             mediaFileUpnpProcessor = RuntimeUpnpFactory.createMediaFileProcessor(mediaFileDao);
         }
         return mediaFileUpnpProcessor;
     }
 
-    public synchronized org.airsonic.player.service.upnp.PlaylistUpnpProcessor createPlaylistUpnpProcessor(
-            org.airsonic.player.service.PlaylistService playlistService) {
+    public synchronized PlaylistUpnpProcessor createPlaylistUpnpProcessor(
+            PlaylistService playlistService) {
         if (playlistUpnpProcessor == null) {
             playlistUpnpProcessor = RuntimeUpnpFactory.createPlaylistProcessor(playlistService);
         }
         return playlistUpnpProcessor;
     }
 
-    public synchronized org.airsonic.player.service.upnp.RootUpnpProcessor createRootUpnpProcessor(
-            org.airsonic.player.service.search.IndexManager indexManager) {
+    public synchronized RootUpnpProcessor createRootUpnpProcessor(
+            IndexManager indexManager) {
         if (rootUpnpProcessor == null) {
             rootUpnpProcessor = RuntimeUpnpFactory.createRootProcessor(indexManager);
         }
         return rootUpnpProcessor;
     }
 
-    public synchronized org.airsonic.player.service.upnp.DispatchingContentDirectory createDispatchingContentDirectory(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.service.PlaylistService playlistService,
-            org.airsonic.player.service.SearchService searchService,
-            org.airsonic.player.service.MusicIndexService musicIndexService,
-            org.airsonic.player.service.search.IndexManager indexManager,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.PlayerService playerService,
-            org.airsonic.player.service.TranscodingService transcodingService,
-            org.airsonic.player.service.JWTSecurityService jwtSecurityService) {
+    public synchronized DispatchingContentDirectory createDispatchingContentDirectory(
+            MediaFileService mediaFileService,
+            MediaFolderService mediaFolderService,
+            PlaylistService playlistService,
+            SearchService searchService,
+            MusicIndexService musicIndexService,
+            IndexManager indexManager,
+            SettingsService settingsService,
+            PlayerService playerService,
+            TranscodingService transcodingService,
+            JWTSecurityService jwtSecurityService) {
         if (dispatchingContentDirectory == null) {
             if (persistenceGraph == null) {
                 throw new IllegalStateException("Persistence graph must be created before UPnP processors");
@@ -457,15 +471,15 @@ public final class RuntimeCompositionRoot {
         return dispatchingContentDirectory;
     }
 
-    public synchronized org.airsonic.player.service.upnp.FolderBasedContentDirectory createFolderBasedContentDirectory(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.service.PlaylistService playlistService,
-            org.airsonic.player.service.search.IndexManager indexManager,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.PlayerService playerService,
-            org.airsonic.player.service.TranscodingService transcodingService,
-            org.airsonic.player.service.JWTSecurityService jwtSecurityService) {
+    public synchronized FolderBasedContentDirectory createFolderBasedContentDirectory(
+            MediaFileService mediaFileService,
+            MediaFolderService mediaFolderService,
+            PlaylistService playlistService,
+            IndexManager indexManager,
+            SettingsService settingsService,
+            PlayerService playerService,
+            TranscodingService transcodingService,
+            JWTSecurityService jwtSecurityService) {
         if (folderBasedContentDirectory == null) {
             folderBasedContentDirectory = RuntimeUpnpFactory.createFolderBasedContentDirectory(
                     mediaFileService, mediaFolderService, playlistService, indexManager);
@@ -500,7 +514,7 @@ public final class RuntimeCompositionRoot {
         return cacheManager;
     }
 
-    public synchronized org.airsonic.player.service.MediaFolderService createMediaFolderService() {
+    public synchronized MediaFolderService createMediaFolderService() {
         if (persistenceGraph == null) {
             throw new IllegalStateException("Persistence graph must be created before media services");
         }
@@ -512,14 +526,14 @@ public final class RuntimeCompositionRoot {
         return mediaFolderService;
     }
 
-    public synchronized org.airsonic.player.service.MediaFileService createMediaFileService(
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.dao.MediaFileDao mediaFileDao,
-            org.airsonic.player.dao.AlbumDao albumDao,
-            org.airsonic.player.service.metadata.JaudiotaggerParser parser,
-            org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory,
-            org.airsonic.player.service.CoverArtService coverArtService) {
+    public synchronized MediaFileService createMediaFileService(
+            SecurityService securityService,
+            SettingsService settingsService,
+            MediaFileDao mediaFileDao,
+            AlbumDao albumDao,
+            JaudiotaggerParser parser,
+            MetaDataParserFactory metaDataParserFactory,
+            CoverArtService coverArtService) {
         if (mediaFileService == null) {
             mediaFileService = RuntimeMediaServiceFactory.createMediaFileService(
                     securityService, settingsService, mediaFileDao, albumDao, createMediaFolderService(),
@@ -528,28 +542,28 @@ public final class RuntimeCompositionRoot {
         return mediaFileService;
     }
 
-    public synchronized org.airsonic.player.service.metadata.DefaultMetaDataParser createDefaultMetaDataParser() {
+    public synchronized DefaultMetaDataParser createDefaultMetaDataParser() {
         if (defaultMetaDataParser == null) {
             defaultMetaDataParser = RuntimeMediaServiceFactory.createDefaultMetaDataParser(createMediaFolderService());
         }
         return defaultMetaDataParser;
     }
 
-    public synchronized org.airsonic.player.service.metadata.FFmpegParser createFFmpegParser() {
+    public synchronized FFmpegParser createFFmpegParser() {
         if (ffmpegParser == null) {
             ffmpegParser = RuntimeMediaServiceFactory.createFFmpegParser(createMediaFolderService());
         }
         return ffmpegParser;
     }
 
-    public synchronized org.airsonic.player.service.metadata.JaudiotaggerParser createJaudiotaggerParser() {
+    public synchronized JaudiotaggerParser createJaudiotaggerParser() {
         if (jaudiotaggerParser == null) {
             jaudiotaggerParser = RuntimeMediaServiceFactory.createJaudiotaggerParser(createMediaFolderService());
         }
         return jaudiotaggerParser;
     }
 
-    public synchronized org.airsonic.player.service.metadata.MetaDataParserFactory createMetaDataParserFactory() {
+    public synchronized MetaDataParserFactory createMetaDataParserFactory() {
         if (metaDataParserFactory == null) {
             metaDataParserFactory = RuntimeMediaServiceFactory.createMetaDataParserFactory(
                     createJaudiotaggerParser(), createFFmpegParser(), createDefaultMetaDataParser());
@@ -557,8 +571,8 @@ public final class RuntimeCompositionRoot {
         return metaDataParserFactory;
     }
 
-    public synchronized org.airsonic.player.service.CoverArtService createCoverArtService(
-            org.airsonic.player.dao.CoverArtDao coverArtDao) {
+    public synchronized CoverArtService createCoverArtService(
+            CoverArtDao coverArtDao) {
         if (coverArtService == null) {
             coverArtService = RuntimeMediaServiceFactory.createCoverArtService(
                     coverArtDao, createMediaFolderService(), createJaudiotaggerParser(), createCacheManager());
@@ -566,10 +580,10 @@ public final class RuntimeCompositionRoot {
         return coverArtService;
     }
 
-    public synchronized org.airsonic.player.service.TagEditService createTagEditService(
-            org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory,
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.SecurityService securityService) {
+    public synchronized TagEditService createTagEditService(
+            MetaDataParserFactory metaDataParserFactory,
+            MediaFileService mediaFileService,
+            SecurityService securityService) {
         if (tagEditService == null) {
             tagEditService = RuntimeMediaServiceFactory.createTagEditService(
                     metaDataParserFactory, mediaFileService, createMediaFolderService(), securityService);
@@ -577,13 +591,13 @@ public final class RuntimeCompositionRoot {
         return tagEditService;
     }
 
-    public synchronized org.airsonic.player.service.DownloadService createDownloadService(
-            org.airsonic.player.service.StatusService statusService,
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.service.PlaylistService playlistService,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.CoverArtService coverArtService) {
+    public synchronized DownloadService createDownloadService(
+            StatusService statusService,
+            SecurityService securityService,
+            PlaylistService playlistService,
+            SettingsService settingsService,
+            MediaFileService mediaFileService,
+            CoverArtService coverArtService) {
         if (downloadService == null) {
             downloadService = RuntimeMediaServiceFactory.createDownloadService(statusService, securityService,
                     playlistService, settingsService, mediaFileService, createMediaFolderService(), coverArtService);
@@ -591,14 +605,14 @@ public final class RuntimeCompositionRoot {
         return downloadService;
     }
 
-    public synchronized org.airsonic.player.service.CoverArtImageService createCoverArtImageService(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.CoverArtService coverArtService,
-            org.airsonic.player.service.TranscodingService transcodingService,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.PlaylistService playlistService,
-            org.airsonic.player.dao.ArtistDao artistDao,
-            org.airsonic.player.dao.AlbumDao albumDao) {
+    public synchronized CoverArtImageService createCoverArtImageService(
+            MediaFileService mediaFileService,
+            CoverArtService coverArtService,
+            TranscodingService transcodingService,
+            SettingsService settingsService,
+            PlaylistService playlistService,
+            ArtistDao artistDao,
+            AlbumDao albumDao) {
         if (coverArtImageService == null) {
             coverArtImageService = RuntimeMediaServiceFactory.createCoverArtImageService(
                     mediaFileService, coverArtService, transcodingService, settingsService, playlistService,
@@ -608,8 +622,8 @@ public final class RuntimeCompositionRoot {
         return coverArtImageService;
     }
 
-    public synchronized org.airsonic.player.service.playlist.DefaultPlaylistExportHandler createDefaultPlaylistExportHandler(
-            org.airsonic.player.dao.MediaFileDao mediaFileDao) {
+    public synchronized DefaultPlaylistExportHandler createDefaultPlaylistExportHandler(
+            MediaFileDao mediaFileDao) {
         if (defaultPlaylistExportHandler == null) {
             defaultPlaylistExportHandler = RuntimePlaylistServiceFactory.createDefaultExportHandler(
                     mediaFileDao, createMediaFolderService());
@@ -617,9 +631,9 @@ public final class RuntimeCompositionRoot {
         return defaultPlaylistExportHandler;
     }
 
-    public synchronized org.airsonic.player.service.playlist.DefaultPlaylistImportHandler createDefaultPlaylistImportHandler(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.SettingsService settingsService) {
+    public synchronized DefaultPlaylistImportHandler createDefaultPlaylistImportHandler(
+            MediaFileService mediaFileService,
+            SettingsService settingsService) {
         if (defaultPlaylistImportHandler == null) {
             defaultPlaylistImportHandler = RuntimePlaylistServiceFactory.createDefaultImportHandler(
                     mediaFileService, settingsService);
@@ -627,10 +641,10 @@ public final class RuntimeCompositionRoot {
         return defaultPlaylistImportHandler;
     }
 
-    public synchronized org.airsonic.player.service.playlist.XspfPlaylistExportHandler createXspfPlaylistExportHandler(
-            org.airsonic.player.dao.MediaFileDao mediaFileDao,
-            org.airsonic.player.dao.PlaylistDao playlistDao,
-            org.airsonic.player.service.CoverArtService coverArtService) {
+    public synchronized XspfPlaylistExportHandler createXspfPlaylistExportHandler(
+            MediaFileDao mediaFileDao,
+            PlaylistDao playlistDao,
+            CoverArtService coverArtService) {
         if (xspfPlaylistExportHandler == null) {
             xspfPlaylistExportHandler = RuntimePlaylistServiceFactory.createXspfExportHandler(
                     mediaFileDao, playlistDao, createMediaFolderService(), coverArtService);
@@ -638,9 +652,9 @@ public final class RuntimeCompositionRoot {
         return xspfPlaylistExportHandler;
     }
 
-    public synchronized org.airsonic.player.service.playlist.XspfPlaylistImportHandler createXspfPlaylistImportHandler(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.SettingsService settingsService) {
+    public synchronized XspfPlaylistImportHandler createXspfPlaylistImportHandler(
+            MediaFileService mediaFileService,
+            SettingsService settingsService) {
         if (xspfPlaylistImportHandler == null) {
             xspfPlaylistImportHandler = RuntimePlaylistServiceFactory.createXspfImportHandler(
                     mediaFileService, settingsService);
@@ -648,20 +662,20 @@ public final class RuntimeCompositionRoot {
         return xspfPlaylistImportHandler;
     }
 
-    public synchronized org.airsonic.player.service.PlaylistService createPlaylistService(
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.CoverArtService coverArtService) throws Exception {
+    public synchronized PlaylistService createPlaylistService(
+            SecurityService securityService,
+            SettingsService settingsService,
+            MediaFileService mediaFileService,
+            CoverArtService coverArtService) throws Exception {
         if (playlistService == null) {
             if (persistenceGraph == null) {
                 throw new IllegalStateException("Persistence graph must be created before PlaylistService");
             }
             DaoGraph daos = persistenceGraph.getDaos();
-            java.util.List<org.airsonic.player.service.playlist.PlaylistExportHandler> exportHandlers = java.util.List.of(
+            java.util.List<PlaylistExportHandler> exportHandlers = java.util.List.of(
                     createDefaultPlaylistExportHandler(daos.getMediaFileDao()),
                     createXspfPlaylistExportHandler(daos.getMediaFileDao(), daos.getPlaylistDao(), coverArtService));
-            java.util.List<org.airsonic.player.service.playlist.PlaylistImportHandler> importHandlers = java.util.List.of(
+            java.util.List<PlaylistImportHandler> importHandlers = java.util.List.of(
                     createDefaultPlaylistImportHandler(mediaFileService, settingsService),
                     createXspfPlaylistImportHandler(mediaFileService, settingsService));
             playlistService = RuntimePlaylistServiceFactory.createPlaylistService(
@@ -673,46 +687,46 @@ public final class RuntimeCompositionRoot {
         return playlistService;
     }
 
-    public synchronized org.airsonic.player.dao.PlayerDao createPlayerDao() throws Exception {
+    public synchronized PlayerDao createPlayerDao() throws Exception {
         if (persistenceGraph == null) {
             throw new IllegalStateException("Persistence graph must be created before PlayerDao");
         }
         if (playerDao == null) {
-            org.airsonic.player.dao.PlayerDaoPlayQueueFactory queueFactory = createPlayerDaoPlayQueueFactory();
-            playerDao = new org.airsonic.player.dao.PlayerDao(queueFactory, persistenceGraph.getJdbcHelper());
+            PlayerDaoPlayQueueFactory queueFactory = createPlayerDaoPlayQueueFactory();
+            playerDao = new PlayerDao(queueFactory, persistenceGraph.getJdbcHelper());
             playerDao.register();
         }
         return playerDao;
     }
 
-    public synchronized org.airsonic.player.dao.PlayerDaoPlayQueueFactory createPlayerDaoPlayQueueFactory() {
+    public synchronized PlayerDaoPlayQueueFactory createPlayerDaoPlayQueueFactory() {
         if (playerDaoPlayQueueFactory == null) {
-            playerDaoPlayQueueFactory = new org.airsonic.player.dao.PlayerDaoPlayQueueFactory(createMediaFolderService());
+            playerDaoPlayQueueFactory = new PlayerDaoPlayQueueFactory(createMediaFolderService());
         }
         return playerDaoPlayQueueFactory;
     }
 
-    public synchronized org.airsonic.player.service.VersionService createVersionService() throws java.io.IOException {
+    public synchronized VersionService createVersionService() throws java.io.IOException {
         if (versionService == null) {
-            versionService = new org.airsonic.player.service.VersionService();
+            versionService = new VersionService();
         }
         return versionService;
     }
 
-    public synchronized org.airsonic.player.service.ServerInfoService createServerInfoService(
-            org.airsonic.player.service.VersionService versions,
-            org.airsonic.player.service.SettingsService settingsService) {
+    public synchronized ServerInfoService createServerInfoService(
+            VersionService versions,
+            SettingsService settingsService) {
         if (serverInfoService == null) {
             serverInfoService = RuntimeApplicationServiceFactory.createServerInfoService(versions, settingsService);
         }
         return serverInfoService;
     }
 
-    public synchronized org.airsonic.player.service.StatusService createStatusService(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.TaskSchedulingService taskSchedulingService) {
+    public synchronized StatusService createStatusService(
+            MediaFileService mediaFileService,
+            MediaFolderService mediaFolderService,
+            SettingsService settingsService,
+            TaskSchedulingService taskSchedulingService) {
         if (statusService == null) {
             statusService = RuntimeApplicationServiceFactory.createStatusService(
                     mediaFileService, mediaFolderService, settingsService, taskSchedulingService);
@@ -721,46 +735,46 @@ public final class RuntimeCompositionRoot {
         return statusService;
     }
 
-    public synchronized org.airsonic.player.service.LyricsService createLyricsService() {
+    public synchronized LyricsService createLyricsService() {
         if (lyricsService == null) {
             lyricsService = RuntimeApplicationServiceFactory.createLyricsService();
         }
         return lyricsService;
     }
 
-    public synchronized org.airsonic.player.service.BookmarkService createBookmarkService(
-            org.airsonic.player.dao.BookmarkDao bookmarkDao,
-            org.airsonic.player.service.MediaFileService mediaFileService) {
+    public synchronized BookmarkService createBookmarkService(
+            BookmarkDao bookmarkDao,
+            MediaFileService mediaFileService) {
         if (bookmarkService == null) {
             bookmarkService = RuntimeApplicationServiceFactory.createBookmarkService(bookmarkDao, mediaFileService);
         }
         return bookmarkService;
     }
 
-    public synchronized org.airsonic.player.service.RatingService createRatingService(
-            org.airsonic.player.dao.RatingDao ratingDao,
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.service.MediaFileService mediaFileService) {
+    public synchronized RatingService createRatingService(
+            RatingDao ratingDao,
+            SecurityService securityService,
+            MediaFileService mediaFileService) {
         if (ratingService == null) {
             ratingService = RuntimeApplicationServiceFactory.createRatingService(ratingDao, securityService, mediaFileService);
         }
         return ratingService;
     }
 
-    public synchronized org.airsonic.player.service.MusicIndexService createMusicIndexService(
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.MediaFileService mediaFileService) {
+    public synchronized MusicIndexService createMusicIndexService(
+            SettingsService settingsService,
+            MediaFileService mediaFileService) {
         if (musicIndexService == null) {
             musicIndexService = RuntimeApplicationServiceFactory.createMusicIndexService(settingsService, mediaFileService);
         }
         return musicIndexService;
     }
 
-    public synchronized org.airsonic.player.service.SecurityService createSecurityService(
-            org.airsonic.player.dao.UserDao userDao,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.security.CredentialEncoderRegistry credentialEncoders) {
+    public synchronized SecurityService createSecurityService(
+            UserDao userDao,
+            SettingsService settingsService,
+            MediaFolderService mediaFolderService,
+            CredentialEncoderRegistry credentialEncoders) {
         if (securityService == null) {
             securityService = RuntimeSecurityServiceFactory.createSecurityService(
                     userDao, settingsService, mediaFolderService, createCacheManager(), credentialEncoders);
@@ -768,10 +782,10 @@ public final class RuntimeCompositionRoot {
         return securityService;
     }
 
-    public synchronized org.airsonic.player.security.SubsonicCredentialAuthenticationService
+    public synchronized SubsonicCredentialAuthenticationService
             createSubsonicCredentialAuthenticationService(
-                    org.airsonic.player.service.SecurityService securityService,
-                    org.airsonic.player.security.CredentialEncoderRegistry credentialEncoders) {
+                    SecurityService securityService,
+                    CredentialEncoderRegistry credentialEncoders) {
         if (subsonicCredentialAuthenticationService == null) {
             subsonicCredentialAuthenticationService =
                     RuntimeSecurityServiceFactory.createCredentialAuthenticationService(
@@ -780,18 +794,18 @@ public final class RuntimeCompositionRoot {
         return subsonicCredentialAuthenticationService;
     }
 
-    public synchronized org.airsonic.player.service.JWTSecurityService createJwtSecurityService(
-            org.airsonic.player.service.SettingsService settingsService) {
+    public synchronized JWTSecurityService createJwtSecurityService(
+            SettingsService settingsService) {
         if (jwtSecurityService == null) {
             jwtSecurityService = RuntimeSecurityServiceFactory.createJwtSecurityService(settingsService);
         }
         return jwtSecurityService;
     }
 
-    public synchronized org.airsonic.player.service.DatabaseService createDatabaseService(
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.dao.DatabaseDao databaseDao,
-            org.airsonic.player.service.TaskSchedulingService taskSchedulingService) {
+    public synchronized DatabaseService createDatabaseService(
+            SettingsService settingsService,
+            DatabaseDao databaseDao,
+            TaskSchedulingService taskSchedulingService) {
         if (databaseService == null) {
             databaseService = RuntimeApplicationServiceFactory.createDatabaseService(
                     settingsService, databaseDao, taskSchedulingService);
@@ -800,13 +814,13 @@ public final class RuntimeCompositionRoot {
         return databaseService;
     }
 
-    public synchronized org.airsonic.player.service.JukeboxLegacySubsonicService createJukeboxLegacySubsonicService(
-            org.airsonic.player.service.TranscodingService transcodingService,
-            org.airsonic.player.service.AudioScrobblerService audioScrobblerService,
-            org.airsonic.player.service.StatusService statusService,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.service.MediaFileService mediaFileService) {
+    public synchronized JukeboxLegacySubsonicService createJukeboxLegacySubsonicService(
+            TranscodingService transcodingService,
+            AudioScrobblerService audioScrobblerService,
+            StatusService statusService,
+            SettingsService settingsService,
+            SecurityService securityService,
+            MediaFileService mediaFileService) {
         if (jukeboxLegacySubsonicService == null) {
             jukeboxLegacySubsonicService = RuntimePlaybackServiceFactory.createLegacyJukeboxService(
                     transcodingService, audioScrobblerService, statusService, settingsService,
@@ -815,38 +829,18 @@ public final class RuntimeCompositionRoot {
         return jukeboxLegacySubsonicService;
     }
 
-    public synchronized org.airsonic.player.service.JukeboxService createJukeboxService(
-            org.airsonic.player.service.JukeboxLegacySubsonicService legacyJukebox) {
+    public synchronized JukeboxService createJukeboxService(
+            JukeboxLegacySubsonicService legacyJukebox) {
         if (jukeboxService == null) {
             jukeboxService = RuntimePlaybackServiceFactory.createJukeboxService(legacyJukebox);
         }
         return jukeboxService;
     }
 
-    public synchronized org.airsonic.player.service.PlayQueueService createPlayQueueService(
-            org.airsonic.player.service.SearchService searchService,
-            org.airsonic.player.service.JukeboxService jukeboxService,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.LastFmService lastFmService,
-            org.airsonic.player.service.RatingService ratingService,
-            org.airsonic.player.service.PlaylistService playlistService,
-            org.airsonic.player.dao.MediaFileDao mediaFileDao,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.dao.PlayQueueDao playQueueDao,
-            org.airsonic.player.service.JWTSecurityService jwtSecurityService) {
-        if (playQueueService == null) {
-            playQueueService = RuntimePlaybackServiceFactory.createPlayQueueService(
-                    searchService, jukeboxService, settingsService, mediaFileService, lastFmService,
-                    ratingService, playlistService, mediaFileDao, mediaFolderService, playQueueDao, jwtSecurityService);
-        }
-        return playQueueService;
-    }
-
-    public synchronized org.airsonic.player.service.LastFmService createLastFmService(
-            org.airsonic.player.dao.MediaFileDao mediaFileDao,
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.dao.ArtistDao artistDao) {
+    public synchronized LastFmService createLastFmService(
+            MediaFileDao mediaFileDao,
+            MediaFileService mediaFileService,
+            ArtistDao artistDao) {
         if (lastFmService == null) {
             lastFmService = RuntimeApplicationServiceFactory.createLastFmService(mediaFileDao, mediaFileService, artistDao);
             lastFmService.init();
@@ -854,18 +848,18 @@ public final class RuntimeCompositionRoot {
         return lastFmService;
     }
 
-    public synchronized org.airsonic.player.service.ShareService createShareService(
-            org.airsonic.player.dao.ShareDao shareDao,
-            org.airsonic.player.service.MediaFileService mediaFileService) {
+    public synchronized ShareService createShareService(
+            ShareDao shareDao,
+            MediaFileService mediaFileService) {
         if (shareService == null) {
             shareService = RuntimeApplicationServiceFactory.createShareService(shareDao, mediaFileService);
         }
         return shareService;
     }
 
-    public synchronized org.airsonic.player.service.AudioScrobblerService createAudioScrobblerService(
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.SecurityService securityService) {
+    public synchronized AudioScrobblerService createAudioScrobblerService(
+            SettingsService settingsService,
+            SecurityService securityService) {
         if (audioScrobblerService == null) {
             audioScrobblerService = RuntimeApplicationServiceFactory.createAudioScrobblerService(
                     settingsService, securityService);
@@ -873,11 +867,11 @@ public final class RuntimeCompositionRoot {
         return audioScrobblerService;
     }
 
-    public synchronized org.airsonic.player.service.CaptionService createCaptionService(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory) {
+    public synchronized CaptionService createCaptionService(
+            MediaFileService mediaFileService,
+            MediaFolderService mediaFolderService,
+            SettingsService settingsService,
+            MetaDataParserFactory metaDataParserFactory) {
         if (captionService == null) {
             captionService = RuntimeApplicationServiceFactory.createCaptionService(
                     mediaFileService, mediaFolderService, settingsService, metaDataParserFactory);
@@ -885,18 +879,18 @@ public final class RuntimeCompositionRoot {
         return captionService;
     }
 
-    public synchronized org.airsonic.player.service.TranscodingService createTranscodingService(
-            org.airsonic.player.dao.TranscodingDao transcodingDao,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService) {
+    public synchronized TranscodingService createTranscodingService(
+            TranscodingDao transcodingDao,
+            SettingsService settingsService,
+            MediaFolderService mediaFolderService) {
         return createTranscodingService(transcodingDao, settingsService, mediaFolderService, this::requirePlayerService);
     }
 
-    public synchronized org.airsonic.player.service.TranscodingService createTranscodingService(
-            org.airsonic.player.dao.TranscodingDao transcodingDao,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            java.util.function.Supplier<org.airsonic.player.service.PlayerService> playerServiceSupplier) {
+    public synchronized TranscodingService createTranscodingService(
+            TranscodingDao transcodingDao,
+            SettingsService settingsService,
+            MediaFolderService mediaFolderService,
+            java.util.function.Supplier<PlayerService> playerServiceSupplier) {
         if (transcodingService == null) {
             transcodingService = RuntimePlaybackServiceFactory.createTranscodingService(
                     transcodingDao, settingsService, mediaFolderService, playerServiceSupplier);
@@ -904,18 +898,18 @@ public final class RuntimeCompositionRoot {
         return transcodingService;
     }
 
-    private synchronized org.airsonic.player.service.PlayerService requirePlayerService() {
+    private synchronized PlayerService requirePlayerService() {
         if (playerService == null) {
             throw new IllegalStateException("PlayerService must be created before player transcodings are used");
         }
         return playerService;
     }
 
-    public synchronized org.airsonic.player.service.PlayerService createPlayerService(
-            org.airsonic.player.dao.PlayerDao playerDao,
-            org.airsonic.player.service.StatusService statusService,
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.service.TranscodingService transcodingService) {
+    public synchronized PlayerService createPlayerService(
+            PlayerDao playerDao,
+            StatusService statusService,
+            SecurityService securityService,
+            TranscodingService transcodingService) {
         if (playerService == null) {
             playerService = RuntimePlaybackServiceFactory.createPlayerService(
                     playerDao, statusService, securityService, transcodingService);

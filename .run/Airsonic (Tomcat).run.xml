@@ -1,0 +1,29 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Airsonic (Tomcat)" type="MavenRunConfiguration" factoryName="Maven">
+    <MavenSettings>
+      <option name="myGeneralSettings" />
+      <option name="myRunnerSettings" />
+      <option name="myRunnerParameters">
+        <MavenRunnerParameters>
+          <option name="goals">
+            <list>
+              <option value="-f" />
+              <option value="airsonic-main/pom.xml" />
+              <option value="spring-boot:run" />
+              <option value="-Dcheckstyle.skip=true" />
+              <option value="-Dspring-boot.run.jvmArguments=-Dairsonic.home=$USER_HOME$/Музыка/Kord" />
+              <option value="-Dspring-boot.run.arguments=--server.port=4040" />
+            </list>
+          </option>
+          <option name="pomFileName" value="pom.xml" />
+          <option name="profilesMap">
+            <map />
+          </option>
+          <option name="resolveToWorkspace" value="false" />
+          <option name="workingDirPath" value="$PROJECT_DIR$" />
+        </MavenRunnerParameters>
+      </option>
+    </MavenSettings>
+    <method v="2" />
+  </configuration>
+</component>

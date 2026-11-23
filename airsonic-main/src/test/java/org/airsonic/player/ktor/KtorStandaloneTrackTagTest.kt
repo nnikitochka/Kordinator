@@ -8,7 +8,6 @@ import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.server.testing.testApplication
-import org.airsonic.player.ajax.tag.TagData
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
 import org.airsonic.player.runtime.StandaloneDatabase
@@ -17,6 +16,7 @@ import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.TagEditService
+import org.airsonic.player.service.TrackTagUpdate
 import org.junit.jupiter.api.io.TempDir
 import org.mockito.Mockito
 import java.nio.file.Path
@@ -50,7 +50,7 @@ class KtorStandaloneTrackTagTest {
             Mockito.`when`(file.isFile).thenReturn(true)
             val mediaFiles = Mockito.mock(MediaFileService::class.java)
             Mockito.`when`(mediaFiles.getMediaFile(42)).thenReturn(file)
-            var capturedData: TagData? = null
+            var capturedData: TrackTagUpdate? = null
             var capturedCaller: CallerContext? = null
             val tags = object : TagEditService(
                 Mockito.mock(org.airsonic.player.service.metadata.MetaDataParserFactory::class.java),
@@ -58,7 +58,7 @@ class KtorStandaloneTrackTagTest {
                 folders,
                 Mockito.mock(org.airsonic.player.service.SecurityService::class.java),
             ) {
-                override fun setTags(data: TagData, callerContext: CallerContext): String {
+                override fun setTags(data: TrackTagUpdate, callerContext: CallerContext): String {
                     capturedData = data
                     capturedCaller = callerContext
                     return "UPDATED"

@@ -8,14 +8,11 @@ import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.authentication
 import io.ktor.server.auth.bearer
 import io.ktor.server.auth.principal
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.http.HttpRequestLifecycle
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondBytesWriter
@@ -47,19 +44,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
-import org.airsonic.player.runtime.LifecycleRegistry
-import org.airsonic.player.runtime.RuntimeCompositionRoot
-import org.airsonic.player.runtime.RuntimeConfigurationLoader
-import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.security.StandalonePasswordRecoveryService
 import org.airsonic.player.security.LastEnabledAdministratorException
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.security.LoginRateLimiter
-import org.airsonic.player.security.LegacyCredentialEncoderRegistry
 import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandaloneArtworkSearchService
-import org.airsonic.player.service.StandaloneArtworkManagementService
 import org.airsonic.player.service.ArtworkManagementService
 import org.airsonic.player.service.LibraryScan
 import org.airsonic.player.service.CaptionService
@@ -96,7 +87,7 @@ import javax.cache.CacheManager
 import org.airsonic.player.service.StatusService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.domain.TransferStatus
-import org.airsonic.player.ajax.playing.NowPlayingInfo
+import org.airsonic.player.domain.PlayStatus
 import org.airsonic.player.domain.UserSettings
 import org.airsonic.player.domain.AlbumListType
 import org.airsonic.player.domain.TranscodeScheme
@@ -112,7 +103,7 @@ import org.airsonic.player.service.UPnPService
 import org.airsonic.player.service.MusicFolderAdministrationService
 import org.airsonic.player.command.MusicFolderSettingsCommand
 import org.airsonic.player.service.PlayerService
-import org.airsonic.player.service.PlayQueueService
+import org.airsonic.player.service.JukeboxService
 import org.airsonic.player.service.DatabaseService
 import org.airsonic.player.domain.Transcoding
 import org.airsonic.player.service.StandaloneRatingService
@@ -196,7 +187,7 @@ fun Application.standaloneModule(
     upnpService: UPnPService? = null,
     musicFolderAdministrationService: MusicFolderAdministrationService? = null,
     playerService: PlayerService? = null,
-    playerQueueService: PlayQueueService? = null,
+    jukeboxService: JukeboxService? = null,
     databaseService: DatabaseService? = null,
     videoPlaybackService: StandaloneVideoPlaybackService? = null,
     standaloneJukeboxService: StandaloneJukeboxService? = null,
@@ -1705,8 +1696,8 @@ fun Application.standaloneModule(
                         }
                         val players = playerService
                             ?: return@put call.respondJson(ApiError("unavailable", "Player settings are not configured"), HttpStatusCode.ServiceUnavailable)
-                        val queues = playerQueueService
-                            ?: return@put call.respondJson(ApiError("unavailable", "Player queue control is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val jukebox = jukeboxService
+                            ?: return@put call.respondJson(ApiError("unavailable", "Player audio control is not configured"), HttpStatusCode.ServiceUnavailable)
                         val transcoding = transcodingService
                             ?: return@put call.respondJson(ApiError("unavailable", "Transcoding settings are not configured"), HttpStatusCode.ServiceUnavailable)
                         val id = call.parameters["id"]?.toIntOrNull()?.takeIf { it > 0 }
@@ -1733,7 +1724,7 @@ fun Application.standaloneModule(
                             return@put
                         }
                         val normalizedName = request.name.trim().ifEmpty { null }
-                        if (player.technology != technology || player.transcodeScheme != scheme) queues.stop(player)
+                        if (player.technology != technology || player.transcodeScheme != scheme) jukebox.stop(player)
                         player.name = normalizedName
                         player.dynamicIp = request.dynamicIp
                         player.autoControlEnabled = request.autoControlEnabled
@@ -3437,10 +3428,9 @@ private fun TransferStatus.toTransferResponse(type: String) = TransferStatistics
     bytesTransferred = bytesTransferred,
     history = history.map { TransferSampleResponse(it.timestamp, it.bytesTransferred) },
 )
-private fun NowPlayingInfo.toNowPlayingResponse(): NowPlayingResponse? {
-    val play = fromPlayStatus() ?: return null
-    val mediaFile = play.mediaFile ?: return null
-    val player = play.player ?: return null
+private fun PlayStatus.toNowPlayingResponse(): NowPlayingResponse? {
+    val mediaFile = mediaFile ?: return null
+    val player = player ?: return null
     return NowPlayingResponse(
         transferId = transferId?.toString(),
         playerId = player.id,
@@ -4039,232 +4029,4 @@ private suspend fun StandalonePlayQueue.toResponse(
         updatedAt = updatedAt?.toString(),
         tracks = visibleTracks.map { PlayQueueTrackResponse(it.id, it.title, it.artist, it.album, it.durationSeconds) },
     )
-}
-
-fun main(args: Array<String>) {
-    val configuration = RuntimeConfigurationLoader().load(args, System.getProperties(), System.getenv(), null)
-    System.setProperty("airsonic.home", configuration.airsonicHome.toString())
-    val host = configuration.getProperty("airsonic.http.host", "0.0.0.0") ?: "0.0.0.0"
-    val port = configuration.getIntProperty("airsonic.http.port", 8080)
-    val lifecycle = LifecycleRegistry()
-    Runtime.getRuntime().addShutdownHook(Thread({ lifecycle.shutdown() }, "airsonic-shutdown"))
-    val runtime = RuntimeCompositionRoot(configuration, lifecycle)
-    lateinit var standaloneDatabase: StandaloneDatabase
-    try {
-        standaloneDatabase = StandaloneDatabase.connect(configuration)
-        lifecycle.registerShutdown("standaloneDatabase", standaloneDatabase)
-        val legacyDataSource = runtime.createDataSource()
-        runtime.migrateDatabase()
-        runtime.createPersistenceGraph(legacyDataSource)
-        StandaloneDatabase.migrate(standaloneDatabase.dataSource)
-    } catch (failure: Throwable) {
-        lifecycle.shutdown()
-        throw failure
-    }
-    val authService = LocalAuthService(standaloneDatabase.dataSource)
-    val libraryScanService: StandaloneLibraryScanService
-    if (configuration.getBooleanProperty("airsonic.create-admin", false)) {
-        try {
-            val console = System.console()
-                ?: throw IllegalStateException("--airsonic.create-admin requires an interactive terminal")
-            val username = console.readLine("Administrator username: ").trim()
-            val password = console.readPassword("Administrator password (minimum 12 characters): ")
-            val confirmation = console.readPassword("Confirm administrator password: ")
-            try {
-                require(password.contentEquals(confirmation)) { "Passwords do not match" }
-                authService.createInitialAdmin(username, String(password))
-                console.printf("Administrator created. Start the server without --airsonic.create-admin.%n")
-            } finally {
-                password.fill('\u0000')
-                confirmation.fill('\u0000')
-            }
-        } finally {
-            lifecycle.shutdown()
-        }
-        return
-    }
-    val legacyGraph = runtime.createPersistenceGraph(runtime.createDataSource()).daos
-    val settingsService = runtime.createSettingsService()
-    val mediaFolderService = runtime.createMediaFolderService()
-    val mediaCatalogService = KtorCoreMediaCatalogService(runtime.createDataSource(), standaloneDatabase.dataSource)
-    val playlistService = StandalonePlaylistService(standaloneDatabase.dataSource, mediaCatalogService)
-    val favoriteService = StandaloneFavoriteService(standaloneDatabase.dataSource, mediaCatalogService)
-    val playQueueService = StandalonePlayQueueService(standaloneDatabase.dataSource, mediaCatalogService)
-    val bookmarkService = StandaloneBookmarkService(standaloneDatabase.dataSource, mediaCatalogService)
-    val trackNoteService = StandaloneTrackNoteService(standaloneDatabase.dataSource, mediaCatalogService)
-    val passwordRecoveryService = StandalonePasswordRecoveryService(authService, StandalonePasswordRecoveryService.smtp(settingsService))
-    val shareService = StandaloneShareService(standaloneDatabase.dataSource, mediaCatalogService)
-    val avatarRoot = SettingsService.getAirsonicHome().resolve("avatars")
-    val avatarService = StandaloneAvatarService(avatarRoot.resolve("accounts")).also {
-        it.migrateLegacyAvatars(runtime.createDataSource(), standaloneDatabase.dataSource, avatarRoot)
-    }
-    val healthContributors = runtime.createHealthContributorRegistry(runtime.createDataSource())
-    val healthStatusAggregator = runtime.createStatusAggregator()
-    val pathWatcherService = runtime.createPathWatcherService()
-    val taskSchedulingService = runtime.createTaskSchedulingService()
-    val databaseService = runtime.createDatabaseService(settingsService, legacyGraph.databaseDao, taskSchedulingService)
-    val cacheManager = runtime.createCacheManager()
-    val meterRegistry = runtime.createMeterRegistry()
-    val versionService = runtime.createVersionService()
-    val serverInfoService = runtime.createServerInfoService(versionService, settingsService)
-    val ratingService = StandaloneRatingService(standaloneDatabase.dataSource, mediaCatalogService)
-    val securityService = runtime.createSecurityService(
-        legacyGraph.userDao,
-        settingsService,
-        mediaFolderService,
-        LegacyCredentialEncoderRegistry(settingsService),
-    )
-    val coverArtService = runtime.createCoverArtService(legacyGraph.coverArtDao)
-    val mediaFileService = runtime.createMediaFileService(
-        securityService,
-        settingsService,
-        legacyGraph.mediaFileDao,
-        legacyGraph.albumDao,
-        runtime.createJaudiotaggerParser(),
-        runtime.createMetaDataParserFactory(),
-        coverArtService,
-    )
-    val artworkSearchService = StandaloneArtworkSearchService()
-    val artworkManagementService = StandaloneArtworkManagementService(mediaFileService, mediaFolderService, coverArtService)
-    val tagEditService = runtime.createTagEditService(
-        runtime.createMetaDataParserFactory(), mediaFileService, securityService,
-    )
-    val statusService = runtime.createStatusService(
-        mediaFileService,
-        mediaFolderService,
-        settingsService,
-        runtime.createTaskSchedulingService(),
-    )
-    val transcodingService = runtime.createTranscodingService(legacyGraph.transcodingDao, settingsService, mediaFolderService)
-    val videoPlaybackService = StandaloneVideoPlaybackService(mediaFileService, transcodingService)
-    val videoBookmarkService = StandaloneVideoBookmarkService(standaloneDatabase.dataSource, mediaFileService)
-    val playerService = runtime.createPlayerService(runtime.createPlayerDao(), statusService, securityService, transcodingService)
-    val audioScrobblerService = runtime.createAudioScrobblerService(settingsService, securityService)
-    val scrobbleService = StandaloneScrobbleService(
-        mediaFileService,
-        statusService,
-        audioScrobblerService,
-    )
-    val lyricsService = runtime.createLyricsService()
-    val searchIndex = runtime.createIndexManager()
-    val randomSearchService = runtime.createSearchService(mediaFileService)
-    val topSongsService = runtime.createLastFmService(legacyGraph.mediaFileDao, mediaFileService, legacyGraph.artistDao)
-    val captionService = runtime.createCaptionService(
-        mediaFileService,
-        mediaFolderService,
-        settingsService,
-        runtime.createMetaDataParserFactory(),
-    )
-    val corePlaylistService = runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService)
-    val legacyJukeboxEngine = runtime.createJukeboxLegacySubsonicService(
-        transcodingService,
-        audioScrobblerService,
-        statusService,
-        settingsService,
-        securityService,
-        mediaFileService,
-    )
-    val legacyJukeboxService = runtime.createJukeboxService(legacyJukeboxEngine)
-    val standaloneJukeboxService = StandaloneJukeboxService(mediaFolderService, legacyJukeboxEngine)
-    val playerQueueService = runtime.createPlayQueueService(
-        randomSearchService,
-        legacyJukeboxService,
-        settingsService,
-        mediaFileService,
-        topSongsService,
-        runtime.createRatingService(legacyGraph.ratingDao, securityService, mediaFileService),
-        corePlaylistService,
-        legacyGraph.mediaFileDao,
-        mediaFolderService,
-        legacyGraph.playQueueDao,
-        runtime.createJwtSecurityService(settingsService),
-    )
-    val upnpContentDirectory = runtime.createFolderBasedContentDirectory(
-        mediaFileService,
-        mediaFolderService,
-        corePlaylistService,
-        searchIndex,
-        settingsService,
-        playerService,
-        transcodingService,
-        runtime.createJwtSecurityService(settingsService),
-    )
-    val upnpService = runtime.createUpnpService(settingsService, upnpContentDirectory)
-    val generalSettingsService = runtime.createGeneralSettingsAdministrationService(settingsService, corePlaylistService)
-    val mediaScannerService = runtime.createMediaScannerService(
-        corePlaylistService,
-        settingsService,
-        searchIndex,
-        mediaFileService,
-        mediaFolderService,
-        coverArtService,
-    )
-    val musicFolderAdministrationService = runtime.createMusicFolderAdministrationService(
-        settingsService,
-        mediaScannerService,
-        mediaFolderService,
-        legacyGraph.artistDao,
-        legacyGraph.albumDao,
-        legacyGraph.mediaFileDao,
-        searchIndex,
-        corePlaylistService,
-        coverArtService,
-    )
-    libraryScanService = StandaloneLibraryScanService(
-        standaloneDatabase.dataSource,
-        mediaFolderService,
-        mediaFileService,
-        mediaScannerService,
-    )
-    val server = embeddedServer(Netty, host = host, port = port) {
-        standaloneModule(
-            authService,
-            libraryScanService,
-            playlistService,
-            favoriteService,
-            mediaFolderService,
-            mediaCatalogService,
-            playQueueService,
-            bookmarkService,
-            ratingService,
-            scrobbleService,
-            lyricsService,
-            randomSearchService,
-            settingsService.genreSeparators,
-            topSongsService,
-            mediaFileService,
-            legacyGraph.artistDao,
-            legacyGraph.mediaFileDao,
-            captionService,
-            shareService,
-            avatarService,
-            healthContributors,
-            healthStatusAggregator,
-            pathWatcherService,
-            taskSchedulingService,
-            cacheManager,
-            meterRegistry,
-            statusService,
-            securityService,
-            serverInfoService,
-            settingsService,
-            generalSettingsService,
-            transcodingService,
-            upnpService,
-            musicFolderAdministrationService,
-            playerService,
-            playerQueueService,
-            databaseService,
-            videoPlaybackService,
-            standaloneJukeboxService,
-            trackNoteService,
-            passwordRecoveryService,
-            tagEditService,
-            artworkSearchService,
-            artworkManagementService,
-            videoBookmarkService,
-        )
-    }
-    lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
-    server.start(wait = true)
 }

@@ -1,7 +1,6 @@
 package org.airsonic.player.service;
 
 import com.google.common.io.MoreFiles;
-import org.airsonic.player.ajax.media.MediaFileEntry;
 import org.airsonic.player.dao.AlbumDao;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.*;
@@ -26,7 +25,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -782,24 +780,6 @@ public class MediaFileService {
             album.incrementPlayCount();
             albumDao.createOrUpdateAlbum(album);
         }
-    }
-
-    public List<MediaFileEntry> toMediaFileEntryList(List<MediaFile> files, String username, boolean calculateStarred, boolean calculateFolderAccess,
-            Function<MediaFile, String> streamUrlGenerator, Function<MediaFile, String> remoteStreamUrlGenerator,
-            Function<MediaFile, String> remoteCoverArtUrlGenerator) {
-        List<MediaFileEntry> entries = new ArrayList<>(files.size());
-        for (MediaFile file : files) {
-            String streamUrl = Optional.ofNullable(streamUrlGenerator).map(g -> g.apply(file)).orElse(null);
-            String remoteStreamUrl = Optional.ofNullable(remoteStreamUrlGenerator).map(g -> g.apply(file)).orElse(null);
-            String remoteCoverArtUrl = Optional.ofNullable(remoteCoverArtUrlGenerator).map(g -> g.apply(file)).orElse(null);
-
-            boolean starred = calculateStarred && username != null && getMediaFileStarredDate(file.getId(), username) != null;
-            boolean folderAccess = !calculateFolderAccess || username == null || securityService.isFolderAccessAllowed(file, username);
-            entries.add(MediaFileEntry.fromMediaFile(file, starred, folderAccess, streamUrl, remoteStreamUrl, remoteCoverArtUrl,
-                    getAccentColor(file)));
-        }
-
-        return entries;
     }
 
     /**
