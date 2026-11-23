@@ -86,7 +86,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.health.StatusAggregator statusAggregator;
     private org.airsonic.player.controller.rest.tags.TagEditController tagEditController;
     private org.airsonic.player.controller.rest.avatar.AvatarRestController avatarRestController;
-    private org.airsonic.player.controller.rest.avatar.AvatarUploadController avatarUploadController;
     private org.airsonic.player.controller.rest.shares.PublicShareController publicShareController;
     private org.airsonic.player.controller.captions.CaptionsRestController captionsRestController;
     private org.airsonic.player.controller.rest.shares.SharesController sharesController;
@@ -185,15 +184,6 @@ public final class RuntimeCompositionRoot {
             avatarRestController = new org.airsonic.player.controller.rest.avatar.AvatarRestController(settingsService);
         }
         return avatarRestController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.avatar.AvatarUploadController
-            createAvatarUploadController(org.airsonic.player.service.SettingsService settingsService) {
-        if (avatarUploadController == null) {
-            avatarUploadController = new org.airsonic.player.controller.rest.avatar.AvatarUploadController(
-                    settingsService, createSubsonicJaxbWriter());
-        }
-        return avatarUploadController;
     }
 
     public synchronized org.airsonic.player.controller.rest.shares.PublicShareController createPublicShareController(

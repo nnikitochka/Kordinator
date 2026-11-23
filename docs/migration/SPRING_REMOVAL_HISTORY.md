@@ -640,6 +640,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалён старый `CoverArtRestController` с `/rest/getCoverArt` и незарегистрированным переходным маршрутом. Artwork трека обрабатывает самостоятельный Ktor `/api/v1/tracks/{id}/artwork`; `KtorStandaloneScanTest` проверяет изображение, fallback, caching и библиотечные права.
 
+**Срез 23 ноября 2026:** удалён `AvatarUploadController` с multipart XML-ответом и legacy runtime wiring. Загрузка, просмотр и удаление собственного avatar доступны через bearer `/api/v1/me/avatar`; `KtorStandaloneAvatarTest` покрывает нормализацию изображения, приватность, некорректную загрузку и удаление.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

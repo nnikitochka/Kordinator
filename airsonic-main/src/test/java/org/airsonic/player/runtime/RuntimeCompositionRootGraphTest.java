@@ -307,8 +307,6 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createTagEditController(tagEditService));
         assertSame(runtimeRoot.createAvatarRestController(settingsService),
                 runtimeRoot.createAvatarRestController(settingsService));
-        assertSame(runtimeRoot.createAvatarUploadController(settingsService),
-                runtimeRoot.createAvatarUploadController(settingsService));
         assertSame(runtimeRoot.createPublicShareController(shareService, mediaFileService, mediaFolderService,
                         jwtSecurityService, metaDataParserFactory, objectMapper),
                 runtimeRoot.createPublicShareController(shareService, mediaFileService, mediaFolderService,
