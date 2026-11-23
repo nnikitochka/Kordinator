@@ -13,6 +13,7 @@ import io.ktor.server.auth.bearer
 import io.ktor.server.auth.principal
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.http.HttpRequestLifecycle
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.response.respond
@@ -642,13 +643,16 @@ fun Application.standaloneModule(
                             track.artist, track.album, track.albumArtist, track.durationSeconds, track.sizeBytes,
                             track.modifiedAt?.toString()))
                     }
-                    get("/tracks/{id}/stream") {
-                        respondTrackFile(call, libraryScanService, mediaCatalogService, false, false,
-                            audioTranscoding = audioTranscoding, mediaFiles = mediaFileService)
-                    }
-                    head("/tracks/{id}/stream") {
-                        respondTrackFile(call, libraryScanService, mediaCatalogService, false, true,
-                            audioTranscoding = audioTranscoding, mediaFiles = mediaFileService)
+                    route("/tracks/{id}/stream") {
+                        install(HttpRequestLifecycle) { cancelCallOnClose = true }
+                        get {
+                            respondTrackFile(call, libraryScanService, mediaCatalogService, false, false,
+                                audioTranscoding = audioTranscoding, mediaFiles = mediaFileService)
+                        }
+                        head {
+                            respondTrackFile(call, libraryScanService, mediaCatalogService, false, true,
+                                audioTranscoding = audioTranscoding, mediaFiles = mediaFileService)
+                        }
                     }
                     get("/tracks/{id}/download") { respondTrackFile(call, libraryScanService, mediaCatalogService, true, false) }
                     head("/tracks/{id}/download") {
@@ -3503,7 +3507,7 @@ private suspend fun respondTrackFile(
         return
     }
     if (!download && !publicAccess &&
-        (call.request.queryParameters.contains("format") || call.request.queryParameters.contains("bitrateKbps"))) {
+        (call.request.queryParameters.contains("format") || call.request.queryParameters.contains("bitrateKbps") || call.request.queryParameters.contains("startSeconds"))) {
         respondTranscodedAudio(call, trackId, catalogTrack.libraryId, catalogTrack.relativePath,
             head, audioTranscoding, mediaFiles)
         return
@@ -3522,7 +3526,13 @@ private suspend fun respondTrackFile(
         return
     }
     call.response.headers.append(HttpHeaders.AcceptRanges, "bytes")
-    val rangeHeader = call.request.headers[HttpHeaders.Range]
+    val rangeHeader = call.request.headers[HttpHeaders.Range]?.takeIf {
+        val condition = call.request.headers[HttpHeaders.IfRange]
+        condition == null || (modifiedAt != null && runCatching {
+            val date = Instant.from(DateTimeFormatter.RFC_1123_DATE_TIME.parse(condition))
+            modifiedAt.truncatedTo(java.time.temporal.ChronoUnit.SECONDS) == date
+        }.getOrDefault(false))
+    }
     val range = if (rangeHeader == null) ByteRange(0, track.sizeBytes - 1) else parseByteRange(rangeHeader, track.sizeBytes)
     if (range == null) {
         call.response.headers.append(HttpHeaders.ContentRange, "bytes */${track.sizeBytes}")
@@ -3572,8 +3582,10 @@ private suspend fun respondTranscodedAudio(
     val format = query["format"] ?: "mp3"
     val rawBitrate = query["bitrateKbps"]
     val bitrate = if (rawBitrate == null) 192 else rawBitrate.toIntOrNull()
-    if (format.isBlank() || bitrate == null || bitrate !in 32..320) {
-        call.respondJson(ApiError("invalid_request", "Expected an audio format and bitrateKbps between 32 and 320"), HttpStatusCode.BadRequest)
+    val rawStart = query["startSeconds"]
+    val start = if (rawStart == null) 0.0 else rawStart.toDoubleOrNull()
+    if (format.isBlank() || bitrate == null || bitrate !in 32..320 || start == null || !start.isFinite() || start < 0) {
+        call.respondJson(ApiError("invalid_request", "Expected an audio format, bitrateKbps between 32 and 320, and finite non-negative startSeconds"), HttpStatusCode.BadRequest)
         return
     }
     if (call.request.headers[HttpHeaders.Range] != null) {
@@ -3589,9 +3601,14 @@ private suspend fun respondTranscodedAudio(
         call.respond(HttpStatusCode.NotFound)
         return
     }
-    val plan = withContext(Dispatchers.IO) { service.prepare(file, format, bitrate) }
+    val plan = try {
+        withContext(Dispatchers.IO) { service.prepare(file, format, bitrate, start) }
+    } catch (failure: IllegalArgumentException) {
+        call.respondJson(ApiError("invalid_request", failure.message ?: "Invalid audio parameters"), HttpStatusCode.BadRequest)
+        return
+    }
     if (plan == null) {
-        call.respondJson(ApiError("unsupported_format", "No configured audio profile supports this conversion"), HttpStatusCode.NotAcceptable)
+        call.respondJson(ApiError("unsupported_format", "No configured audio profile supports this conversion and start position"), HttpStatusCode.NotAcceptable)
         return
     }
     call.response.headers.append(HttpHeaders.CacheControl, "private, no-store")
@@ -3615,6 +3632,22 @@ private suspend fun respondTranscodedAudio(
         opened?.close()
         throw failure
     }
+    val buffer = ByteArray(64 * 1024)
+    val firstCount = try {
+        readAudioStart(input, buffer)
+    } catch (failure: java.io.IOException) {
+        input.close()
+        call.respondJson(ApiError("unavailable", "Audio transcoder failed before producing audio"), HttpStatusCode.ServiceUnavailable)
+        return
+    } catch (failure: Throwable) {
+        input.close()
+        throw failure
+    }
+    if (firstCount < 1) {
+        input.close()
+        call.respondJson(ApiError("unavailable", "Audio transcoder produced no audio"), HttpStatusCode.ServiceUnavailable)
+        return
+    }
     try {
         call.respondBytesWriter(contentType = contentType) {
             coroutineScope {
@@ -3624,7 +3657,7 @@ private suspend fun respondTranscodedAudio(
                 }
                 try {
                     input.use {
-                        val buffer = ByteArray(64 * 1024)
+                        writeFully(buffer, 0, firstCount)
                         while (true) {
                             kotlinx.coroutines.currentCoroutineContext().ensureActive()
                             val count = withContext(Dispatchers.IO) { it.read(buffer) }
@@ -3640,6 +3673,26 @@ private suspend fun respondTranscodedAudio(
     } catch (failure: Throwable) {
         input.close()
         throw failure
+    }
+}
+
+/** Waits for the first audio bytes while retaining ownership until the body writer takes over. */
+private suspend fun readAudioStart(input: java.io.InputStream, buffer: ByteArray): Int = coroutineScope {
+    var ready = false
+    val closer = launch(start = CoroutineStart.UNDISPATCHED) {
+        try { awaitCancellation() } finally { if (!ready) input.close() }
+    }
+    val timeout = launch {
+        kotlinx.coroutines.delay(30_000)
+        input.close()
+    }
+    try {
+        val count = withContext(Dispatchers.IO) { input.read(buffer) }
+        ready = count > 0
+        count
+    } finally {
+        timeout.cancel()
+        closer.cancel()
     }
 }
 

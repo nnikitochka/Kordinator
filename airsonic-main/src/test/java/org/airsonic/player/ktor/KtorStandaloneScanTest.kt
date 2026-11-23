@@ -137,18 +137,20 @@ class KtorStandaloneScanTest {
                     }
                 }
                 org.mockito.Mockito.`when`(coreCatalog.mediaFileService.getMediaFile(coreTrackId.toInt())).thenAnswer {
-                    runtime.runtime.createPersistenceGraph().daos.mediaFileDao.getMediaFile(coreTrackId.toInt())
+                    runtime.runtime.createPersistenceGraph().daos.mediaFileDao.getMediaFile(coreTrackId.toInt()).apply { duration = 30.0 }
                 }
                 val favoriteService = StandaloneFavoriteService(dataSource, mediaCatalogService)
                 val mapper = jacksonObjectMapper()
                 val transcoding = org.mockito.Mockito.mock(org.airsonic.player.service.TranscodingService::class.java)
-                val profile = org.airsonic.player.domain.Transcoding(1, "test audio", "mp3", "opus", "unused", null, null, true)
+                val profile = org.airsonic.player.domain.Transcoding(1, "test audio", "mp3", "opus", "ffmpeg -i %s -f opus -", null, null, true)
                 org.mockito.Mockito.`when`(transcoding.allTranscodings).thenReturn(listOf(profile))
+                val starts = mutableListOf<Double>()
                 val closedTranscodes = java.util.concurrent.atomic.AtomicInteger()
                 org.mockito.Mockito.`when`(transcoding.openTranscodedInputStream(org.mockito.ArgumentMatchers.any())).thenAnswer { invocation ->
                     val parameters = invocation.getArgument<org.airsonic.player.service.TranscodingService.Parameters>(0)
                     assertEquals(128, parameters.maxBitRate)
                     assertEquals(profile, parameters.transcoding)
+                    starts.add(parameters.audioStartSeconds)
                     object : java.io.ByteArrayInputStream("encoded audio".toByteArray()) {
                         override fun close() { closedTranscodes.incrementAndGet(); super.close() }
                     }
@@ -330,11 +332,25 @@ class KtorStandaloneScanTest {
                 assertEquals(null, encoded.headers["ETag"])
                 assertEquals("encoded audio", encoded.bodyAsText())
                 assertTrue(closedTranscodes.get() > 0)
+                assertEquals(HttpStatusCode.OK, client.get("$encodedUrl&startSeconds=12.5") { bearerAuth(token) }.status)
+                assertEquals(listOf(0.0, 12.5), starts)
+                for (start in listOf("bad", "NaN", "Infinity", "-1", "30", "100")) {
+                    assertEquals(HttpStatusCode.BadRequest, client.get("$encodedUrl&startSeconds=$start") { bearerAuth(token) }.status)
+                }
+                profile.step1 = "custom-encoder %s"
+                assertEquals(HttpStatusCode.NotAcceptable, client.get("$encodedUrl&startSeconds=1") { bearerAuth(token) }.status)
+                profile.step1 = "ffmpeg -i %s -f opus -"
+
                 for (suffix in listOf("format=opus&bitrateKbps=bad", "format=opus&bitrateKbps=0", "format=opus&bitrateKbps=321", "format=")) {
                     assertEquals(HttpStatusCode.BadRequest, client.get("/api/v1/tracks/$trackId/stream?$suffix") { bearerAuth(token) }.status)
                 }
                 assertEquals(HttpStatusCode.NotAcceptable, client.get("/api/v1/tracks/$trackId/stream?format=flac") { bearerAuth(token) }.status)
                 assertEquals(HttpStatusCode.BadRequest, client.get(encodedUrl) { bearerAuth(token); header("Range", "bytes=0-9") }.status)
+                assertDisconnectStopsTranscoder(encodedUrl, token, auth, scanService, mediaCatalogService,
+                    coreCatalog.mediaFileService, transcoding)
+                org.mockito.Mockito.doReturn(java.io.ByteArrayInputStream(byteArrayOf())).`when`(transcoding)
+                    .openTranscodedInputStream(org.mockito.ArgumentMatchers.any())
+                assertEquals(HttpStatusCode.ServiceUnavailable, client.get(encodedUrl) { bearerAuth(token) }.status)
                 org.mockito.Mockito.doThrow(java.io.IOException("missing executable")).`when`(transcoding)
                     .openTranscodedInputStream(org.mockito.ArgumentMatchers.any())
                 assertEquals(HttpStatusCode.ServiceUnavailable, client.get(encodedUrl) { bearerAuth(token) }.status)
@@ -348,6 +364,19 @@ class KtorStandaloneScanTest {
                     bearerAuth(token)
                     header("If-Modified-Since", streamModified)
                 }.status.value)
+
+                for (ifRange in listOf("Thu, 01 Jan 1970 00:00:00 GMT", "invalid", streamEtag)) {
+                    val changed = client.get("/api/v1/tracks/$trackId/stream") {
+                        bearerAuth(token); header("Range", "bytes=0-3"); header("If-Range", ifRange)
+                    }
+                    assertEquals(HttpStatusCode.OK, changed.status)
+                    assertTrue(fullStream.bodyAsBytes().contentEquals(changed.bodyAsBytes()))
+                }
+                val unchangedRange = client.get("/api/v1/tracks/$trackId/stream") {
+                    bearerAuth(token); header("Range", "bytes=0-3"); header("If-Range", streamModified)
+                }
+                assertEquals(HttpStatusCode.PartialContent, unchangedRange.status)
+                assertEquals("not ", unchangedRange.bodyAsText())
 
                 val artwork = client.get("/api/v1/tracks/$trackId/artwork") { bearerAuth(token) }
                 assertEquals(200, artwork.status.value)
@@ -414,4 +443,44 @@ class KtorStandaloneScanTest {
             runtime.close()
         }
     }
+    private suspend fun assertDisconnectStopsTranscoder(
+        encodedUrl: String,
+        token: String,
+        auth: LocalAuthService,
+        scanService: StandaloneLibraryScanService,
+        mediaCatalogService: org.airsonic.player.service.KtorCoreMediaCatalogService,
+        mediaFiles: org.airsonic.player.service.MediaFileService,
+        transcoding: org.airsonic.player.service.TranscodingService,
+    ) {
+        if (!Files.isExecutable(Path.of("/usr/bin/tail"))) return
+        val opened = kotlinx.coroutines.CompletableDeferred<org.airsonic.player.io.TranscodeInputStream>()
+        org.mockito.Mockito.doAnswer {
+            org.airsonic.player.io.TranscodeInputStream(
+                ProcessBuilder("/usr/bin/tail", "-f", "/dev/null"), null, null,
+            ).also { opened.complete(it) }
+        }.`when`(transcoding).openTranscodedInputStream(org.mockito.ArgumentMatchers.any())
+        val server = io.ktor.server.engine.embeddedServer(io.ktor.server.netty.Netty, host = "127.0.0.1", port = 0) {
+            standaloneModule(authService = auth, libraryScanService = scanService,
+                mediaCatalogService = mediaCatalogService, mediaFileService = mediaFiles,
+                transcodingService = transcoding)
+        }.start(wait = false)
+        var blocked: org.airsonic.player.io.TranscodeInputStream? = null
+        try {
+            val port = server.engine.resolvedConnectors().first().port
+            java.net.Socket("127.0.0.1", port).use { socket ->
+                socket.getOutputStream().write(("GET $encodedUrl HTTP/1.1\r\nHost: localhost\r\n" +
+                    "Authorization: Bearer $token\r\nConnection: close\r\n\r\n").toByteArray())
+                socket.getOutputStream().flush()
+                blocked = kotlinx.coroutines.withTimeout(5_000) { opened.await() }
+            }
+            val stopped = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                blocked!!.process!!.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)
+            }
+            assertTrue(stopped, "Closing HTTP connection must terminate a blocked transcoder")
+        } finally {
+            blocked?.close()
+            server.stop(0, 1_000)
+        }
+    }
+
 }

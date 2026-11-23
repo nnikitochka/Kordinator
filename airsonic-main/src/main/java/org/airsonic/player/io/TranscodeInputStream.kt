@@ -95,6 +95,7 @@ class TranscodeInputStream(
     override fun close() {
         if (!closed.compareAndSet(false, true)) return
         process?.destroy()
+        if (process?.isAlive == true) process.destroyForcibly()
         FileUtil.closeQuietly(input)
         FileUtil.closeQuietly(processInputStream)
         FileUtil.closeQuietly(processOutputStream)

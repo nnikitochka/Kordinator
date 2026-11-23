@@ -286,7 +286,8 @@ public class TranscodingService {
         VideoTranscodingSettings videoTranscodingSettings = parameters.getVideoTranscodingSettings();
         MediaFile mediaFile = parameters.getMediaFile();
 
-        TranscodeInputStream in = createTranscodeInputStream(transcoding.getStep1(), maxBitRate, videoTranscodingSettings, mediaFile, null);
+        TranscodeInputStream in = createTranscodeInputStream(transcoding.getStep1(), maxBitRate, videoTranscodingSettings, mediaFile, null,
+                parameters.getAudioStartSeconds());
 
         try {
             if (transcoding.getStep2() != null) {
@@ -330,6 +331,13 @@ public class TranscodingService {
     private TranscodeInputStream createTranscodeInputStream(String command, Integer maxBitRate,
                                                             VideoTranscodingSettings videoTranscodingSettings, MediaFile mediaFile, InputStream in) throws IOException {
 
+        return createTranscodeInputStream(command, maxBitRate, videoTranscodingSettings, mediaFile, in, null);
+    }
+
+    private TranscodeInputStream createTranscodeInputStream(String command, Integer maxBitRate,
+            VideoTranscodingSettings videoTranscodingSettings, MediaFile mediaFile, InputStream in,
+            Double audioStartSeconds) throws IOException {
+
         // Work-around for filename character encoding problem on Windows.
         // Create temporary file, and feed this to the transcoder.
         Path path = mediaFile.getFullPath(mediaFolderService.getMusicFolderById(mediaFile.getFolderId()).getPath()).toAbsolutePath();
@@ -348,7 +356,8 @@ public class TranscodingService {
                 Optional.ofNullable(mediaFile.getArtist()).orElse("Unknown Artist"),
                 Optional.ofNullable(mediaFile.getAlbumName()).orElse("Unknown Album"),
                 Optional.ofNullable(maxBitRate).map(String::valueOf).orElse(null),
-                videoTranscodingSettings != null ? String.valueOf(videoTranscodingSettings.getTimeOffset()) : null,
+                audioStartSeconds != null ? String.valueOf(audioStartSeconds)
+                        : videoTranscodingSettings != null ? String.valueOf(videoTranscodingSettings.getTimeOffset()) : null,
                 videoTranscodingSettings != null ? String.valueOf(videoTranscodingSettings.getDuration()) : null,
                 videoTranscodingSettings != null ? String.valueOf(videoTranscodingSettings.getWidth()) : null,
                 videoTranscodingSettings != null ? String.valueOf(videoTranscodingSettings.getHeight()) : null,
@@ -362,6 +371,19 @@ public class TranscodingService {
                 Optional.ofNullable(videoTranscodingSettings).map(VideoTranscodingSettings::getOutputFilename).orElse(null));
 
         ProcessBuilder builder = transformTranscodingVariables(command, vars);
+        if (audioStartSeconds != null) {
+            String executable = Path.of(builder.command().getFirst()).getFileName().toString();
+            boolean ffmpeg = "ffmpeg".equalsIgnoreCase(executable) || "ffmpeg.exe".equalsIgnoreCase(executable);
+            if (ffmpeg && !builder.command().contains("-nostdin")) {
+                builder.command().add(1, "-nostdin");
+            }
+            if (audioStartSeconds > 0 && !command.contains("%o")) {
+                if (!ffmpeg) {
+                    throw new IllegalArgumentException("Audio profile does not support time seeking");
+                }
+                builder.command().addAll(1, List.of("-ss", String.valueOf(audioStartSeconds)));
+            }
+        }
         return new TranscodeInputStream(builder, in, tmpFile);
     }
 
@@ -489,7 +511,11 @@ public class TranscodingService {
     private InputStream createDownsampledInputStream(Parameters parameters) throws IOException {
         String command = settingsService.getDownsamplingCommand();
         return createTranscodeInputStream(command, parameters.getMaxBitRate(), parameters.getVideoTranscodingSettings(),
-                parameters.getMediaFile(), null);
+                parameters.getMediaFile(), null, parameters.getAudioStartSeconds());
+    }
+
+    public String getAudioDownsamplingCommand() {
+        return settingsService.getDownsamplingCommand();
     }
 
     /**
@@ -653,6 +679,18 @@ public class TranscodingService {
         private final VideoTranscodingSettings videoTranscodingSettings;
         private Integer maxBitRate;
         private Transcoding transcoding;
+        private Double audioStartSeconds;
+
+        public Double getAudioStartSeconds() {
+            return audioStartSeconds;
+        }
+
+        public void setAudioStartSeconds(Double audioStartSeconds) {
+            if (audioStartSeconds != null && (!Double.isFinite(audioStartSeconds) || audioStartSeconds < 0)) {
+                throw new IllegalArgumentException("Audio start must be finite and non-negative");
+            }
+            this.audioStartSeconds = audioStartSeconds;
+        }
 
         public Parameters(MediaFile mediaFile, VideoTranscodingSettings videoTranscodingSettings) {
             this.mediaFile = mediaFile;
