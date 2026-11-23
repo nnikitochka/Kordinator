@@ -16,7 +16,6 @@ import org.airsonic.player.service.SettingsService
 import org.airsonic.player.service.StatusService
 import org.airsonic.player.service.TagEditService
 import org.airsonic.player.service.TranscodingService
-import org.airsonic.player.service.UserAdministrationService
 import org.airsonic.player.service.JWTSecurityService
 import org.airsonic.player.service.metadata.DefaultMetaDataParser
 import org.airsonic.player.service.metadata.FFmpegParser
@@ -98,13 +97,6 @@ object RuntimeMediaServiceFactory {
         statusService, securityService, playlistService, settingsService, mediaFileService,
         mediaFolderService, coverArtService,
     )
-
-    @JvmStatic
-    fun createUserAdministrationService(
-        securityService: SecurityService,
-        settingsService: SettingsService,
-        mediaFolderService: MediaFolderService,
-    ): UserAdministrationService = UserAdministrationService(securityService, settingsService, mediaFolderService)
 
     @JvmStatic
     fun createCoverArtImageService(

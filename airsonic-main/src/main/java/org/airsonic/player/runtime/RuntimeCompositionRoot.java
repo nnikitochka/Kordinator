@@ -46,7 +46,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.CoverArtService coverArtService;
     private org.airsonic.player.service.TagEditService tagEditService;
     private org.airsonic.player.service.DownloadService downloadService;
-    private org.airsonic.player.service.UserAdministrationService userAdministrationService;
     private org.airsonic.player.service.CoverArtImageService coverArtImageService;
     private org.airsonic.player.dao.PlayerDaoPlayQueueFactory playerDaoPlayQueueFactory;
     private org.airsonic.player.service.PlaylistService playlistService;
@@ -97,7 +96,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.bookmarks.BookmarksController bookmarksController;
     private org.airsonic.player.controller.rest.starred.StarredController starredController;
     private org.airsonic.player.controller.rest.jukebox.JukeboxController jukeboxController;
-    private org.airsonic.player.controller.rest.users.UsersController usersController;
     private org.airsonic.player.controller.rest.playlists.PlaylistExportController playlistExportController;
     private org.airsonic.player.controller.rest.playlists.PlaylistImportController playlistImportController;
     private org.airsonic.player.controller.rest.scrobble.ScrobbleController scrobbleController;
@@ -326,19 +324,6 @@ public final class RuntimeCompositionRoot {
                     playQueueService, jukeboxService, responseMapper, createSubsonicJaxbWriter());
         }
         return jukeboxController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.users.UsersController createUsersController(
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.service.UserAdministrationService userAdministrationService) {
-        if (usersController == null) {
-            usersController = new org.airsonic.player.controller.rest.users.UsersController(
-                    securityService, settingsService, mediaFolderService,
-                    userAdministrationService, createSubsonicJaxbWriter());
-        }
-        return usersController;
     }
 
     public synchronized org.airsonic.player.controller.rest.playlists.PlaylistExportController
@@ -995,16 +980,6 @@ public final class RuntimeCompositionRoot {
                     playlistService, settingsService, mediaFileService, createMediaFolderService(), coverArtService);
         }
         return downloadService;
-    }
-
-    public synchronized org.airsonic.player.service.UserAdministrationService createUserAdministrationService(
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.service.SettingsService settingsService) {
-        if (userAdministrationService == null) {
-            userAdministrationService = RuntimeMediaServiceFactory.createUserAdministrationService(
-                    securityService, settingsService, createMediaFolderService());
-        }
-        return userAdministrationService;
     }
 
     public synchronized org.airsonic.player.service.CoverArtImageService createCoverArtImageService(

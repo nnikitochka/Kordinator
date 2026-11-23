@@ -604,6 +604,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалён старый `PasswordController`, который принимал новый пароль без проверки текущего. Личный пароль меняется через bearer `PUT /api/v1/me/password` с проверкой действующего пароля, а администратор задаёт пароль через `/api/v1/admin/users/{id}/password`; standalone auth tests проверяют сценарии сессий и смены пароля.
 
+**Срез 23 ноября 2026:** удалены старый `UsersController` и больше не используемый `UserAdministrationService` со Spring-era настройками ролей/паролей. Аккаунты, роли, сессии и library grants управляются самостоятельным bearer API `/api/v1/admin/users`; Ktor auth и user-settings tests покрывают управление аккаунтами и разделение прав.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
