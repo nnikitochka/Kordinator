@@ -13,18 +13,14 @@ import org.slf4j.LoggerFactory
 import java.io.FilterInputStream
 import java.io.IOException
 import java.io.InputStream
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
-import java.time.Instant
 
 open class CaptionService(
     private val mediaFileService: MediaFileService,
     private val mediaFolderService: MediaFolderService,
     private val settingsService: SettingsService,
-    private val metaDataParserFactory: MetaDataParserFactory,
-    private val jwtSecurityService: JWTSecurityService
+    private val metaDataParserFactory: MetaDataParserFactory
 ) {
     @Throws(IOException::class)
     open fun openConverted(inputFile: Path, identifier: String, format: String): InputStream {
@@ -58,23 +54,14 @@ open class CaptionService(
         }
     }
 
-    open fun listCaptions(video: MediaFile, basePath: String): List<CaptionInfo> =
-        listCaptions(video, basePath, null, null)
-
-    open fun listCaptions(
-        video: MediaFile,
-        basePath: String,
-        externalUser: String?,
-        externalExpiration: Instant?
-    ): List<CaptionInfo> {
+    open fun listCaptions(video: MediaFile): List<CaptionInfo> {
         val metaData = getVideoMetaData(video)
         val internalCaptions = metaData?.subtitleTracks.orEmpty().map { track ->
             CaptionInfo(
                 track.id.toString(),
                 CaptionInfo.Location.INTERNAL,
                 getDisplayFormat(track.codec!!),
-                track.language!!,
-                getUrl(basePath, externalUser, externalExpiration, video.id, track.id.toString())
+                track.language!!
             )
         }
         val externalCaptions = findExternalCaptionsForVideo(video).map { caption ->
@@ -82,14 +69,7 @@ open class CaptionService(
                 caption.toString(), // leaks internal structure for now
                 CaptionInfo.Location.EXTERNAL,
                 MoreFiles.getFileExtension(caption),
-                caption.fileName.toString(),
-                getUrl(
-                    basePath,
-                    externalUser,
-                    externalExpiration,
-                    video.id,
-                    URLEncoder.encode(caption.toString(), StandardCharsets.UTF_8)
-                )
+                caption.fileName.toString()
             )
         }
         return internalCaptions + externalCaptions
@@ -99,19 +79,6 @@ open class CaptionService(
         val videoFullPath = video.getFullPath(mediaFolderService.getMusicFolderById(video.folderId).path)
         val parser: MetaDataParser? = metaDataParserFactory.getParser(videoFullPath)
         return parser?.getMetaData(videoFullPath)
-    }
-
-    open fun getUrl(
-        basePath: String,
-        externalUser: String?,
-        externalExpiration: Instant?,
-        mediaId: Int,
-        captionId: String
-    ): String {
-        val external = !StringUtils.isBlank(externalUser)
-        var url = (if (external) "ext/" else "") + "rest/captions?id=$mediaId&captionId=$captionId"
-        if (external) url = jwtSecurityService.addJWTToken(externalUser!!, url, externalExpiration)
-        return basePath + url
     }
 
     @Throws(IOException::class)

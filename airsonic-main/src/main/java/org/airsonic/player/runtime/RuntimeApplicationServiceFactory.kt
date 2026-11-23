@@ -22,7 +22,6 @@ import org.airsonic.player.service.ShareService
 import org.airsonic.player.service.StatusService
 import org.airsonic.player.service.TaskSchedulingService
 import org.airsonic.player.service.TranscodingService
-import org.airsonic.player.service.JWTSecurityService
 
 /** Constructors for application services outside the persistence, media and playback factories. */
 object RuntimeApplicationServiceFactory {
@@ -70,8 +69,7 @@ object RuntimeApplicationServiceFactory {
     @JvmStatic
     fun createCaptionService(mediaFileService: MediaFileService, mediaFolderService: MediaFolderService,
                              settingsService: SettingsService,
-                             parserFactory: org.airsonic.player.service.metadata.MetaDataParserFactory,
-                             jwtSecurityService: JWTSecurityService) =
-        CaptionService(mediaFileService, mediaFolderService, settingsService, parserFactory, jwtSecurityService)
+                             parserFactory: org.airsonic.player.service.metadata.MetaDataParserFactory) =
+        CaptionService(mediaFileService, mediaFolderService, settingsService, parserFactory)
 
 }

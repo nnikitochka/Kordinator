@@ -4127,7 +4127,6 @@ fun main(args: Array<String>) {
         mediaFolderService,
         settingsService,
         runtime.createMetaDataParserFactory(),
-        runtime.createJwtSecurityService(settingsService),
     )
     val corePlaylistService = runtime.createPlaylistService(securityService, settingsService, mediaFileService, coverArtService)
     val legacyJukeboxEngine = runtime.createJukeboxLegacySubsonicService(

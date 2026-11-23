@@ -956,11 +956,10 @@ public final class RuntimeCompositionRoot {
             org.airsonic.player.service.MediaFileService mediaFileService,
             org.airsonic.player.service.MediaFolderService mediaFolderService,
             org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory,
-            org.airsonic.player.service.JWTSecurityService jwtSecurityService) {
+            org.airsonic.player.service.metadata.MetaDataParserFactory metaDataParserFactory) {
         if (captionService == null) {
             captionService = RuntimeApplicationServiceFactory.createCaptionService(
-                    mediaFileService, mediaFolderService, settingsService, metaDataParserFactory, jwtSecurityService);
+                    mediaFileService, mediaFolderService, settingsService, metaDataParserFactory);
         }
         return captionService;
     }

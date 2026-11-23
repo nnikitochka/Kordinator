@@ -67,9 +67,9 @@ class KtorStandaloneVideoCaptionsTest {
                 Mockito.`when`(mediaFiles.getMediaFile(27)).thenReturn(video)
                 val captionService = Mockito.mock(CaptionService::class.java)
                 val available = listOf(
-                    CaptionInfo(subtitle.toString(), CaptionInfo.Location.EXTERNAL, "srt", "English", "legacy-private-url"),
+                    CaptionInfo(subtitle.toString(), CaptionInfo.Location.EXTERNAL, "srt", "English"),
                 )
-                Mockito.`when`(captionService.listCaptions(video, "")).thenReturn(available)
+                Mockito.`when`(captionService.listCaptions(video)).thenReturn(available)
                 Mockito.`when`(captionService.openExternal(subtitle, "srt")).thenReturn(
                     ByteArrayInputStream(Files.readAllBytes(subtitle)),
                 )

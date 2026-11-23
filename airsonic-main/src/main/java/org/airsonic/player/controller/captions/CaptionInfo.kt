@@ -4,8 +4,7 @@ class CaptionInfo(
     val identifier: String,
     val location: Location,
     val format: String,
-    val language: String,
-    val url: String
+    val language: String
 ) {
     enum class Location {
         INTERNAL, EXTERNAL

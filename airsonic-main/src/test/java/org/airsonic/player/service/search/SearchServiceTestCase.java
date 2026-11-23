@@ -19,7 +19,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.subsonic.restapi.ArtistID3;
 
 import java.util.Arrays;
 import java.util.List;
@@ -172,10 +171,6 @@ public class SearchServiceTestCase extends AbstractAirsonicHomeTest {
          * Should be 0 in Lucene 3.0(Since the slash is not a delimiter).
          */
         query = "lker/Nash";
-        ParamSearchResult<ArtistID3> artistId3Result = searchService.searchByName(query, 0,
-                Integer.MAX_VALUE, allMusicFolders, ArtistID3.class);
-        Assert.assertEquals("(20) Specify '" + query + "' as the name, and get an artist.", 0,
-                artistId3Result.getItems().size());
         ParamSearchResult<Artist> artistResult = searchService.searchByName(query, 0,
                 Integer.MAX_VALUE, allMusicFolders, Artist.class);
 

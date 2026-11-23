@@ -53,7 +53,7 @@ class KordinatorVideoCaptionRoutes(
 
     private suspend fun list(call: ApplicationCall) {
         val video = accessibleVideo(call) ?: return
-        val available = withContext(Dispatchers.IO) { captions.listCaptions(video, "") }
+        val available = withContext(Dispatchers.IO) { captions.listCaptions(video) }
         call.response.header(HttpHeaders.CacheControl, "no-store")
         val id = requireNotNull(video.id)
         val response = available.map { caption ->
@@ -72,7 +72,7 @@ class KordinatorVideoCaptionRoutes(
     private suspend fun read(call: ApplicationCall, head: Boolean) {
         val video = accessibleVideo(call) ?: return
         val token = call.parameters["captionId"] ?: return call.respond(HttpStatusCode.NotFound)
-        val available = withContext(Dispatchers.IO) { captions.listCaptions(video, "") }
+        val available = withContext(Dispatchers.IO) { captions.listCaptions(video) }
         val selected = available.firstOrNull { captionToken(it.identifier) == token }
             ?: return call.respond(HttpStatusCode.NotFound)
         val format = (call.request.queryParameters["format"] ?: selected.format).lowercase()

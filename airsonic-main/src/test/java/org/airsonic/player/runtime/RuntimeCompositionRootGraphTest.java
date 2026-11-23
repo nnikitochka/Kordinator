@@ -191,9 +191,9 @@ class RuntimeCompositionRootGraphTest {
         ShareService shareService = runtimeRoot.createShareService(daoGraph.getShareDao(), mediaFileService);
         assertSame(shareService, runtimeRoot.createShareService(daoGraph.getShareDao(), mediaFileService));
         CaptionService captionService = runtimeRoot.createCaptionService(mediaFileService, mediaFolderService,
-                settingsService, metaDataParserFactory, jwtSecurityService);
+                settingsService, metaDataParserFactory);
         assertSame(captionService, runtimeRoot.createCaptionService(mediaFileService, mediaFolderService,
-                settingsService, metaDataParserFactory, jwtSecurityService));
+                settingsService, metaDataParserFactory));
 
         TaskSchedulingService scheduler = runtimeRoot.createTaskSchedulingService();
         assertSame(scheduler, runtimeRoot.createTaskSchedulingService());
