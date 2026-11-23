@@ -289,6 +289,8 @@ class RuntimeCompositionRootGraphTest {
         org.airsonic.player.service.UPnPService upnpService = runtimeRoot.createUpnpService(settingsService,
                 dispatchingContentDirectory);
         assertSame(upnpService, runtimeRoot.createUpnpService(settingsService, dispatchingContentDirectory));
+        assertSame(runtimeRoot.createDLNASettingsController(settingsService, upnpService),
+                runtimeRoot.createDLNASettingsController(settingsService, upnpService));
         runtimeRoot.createAlbumUpnpProcessor(albumDao);
         runtimeRoot.createRecentAlbumUpnpProcessor(albumDao);
         runtimeRoot.createArtistUpnpProcessor(artistDao);
@@ -303,8 +305,6 @@ class RuntimeCompositionRootGraphTest {
 
         DatabaseService databaseService = runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler);
         assertSame(databaseService, runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler));
-        assertSame(runtimeRoot.createDLNASettingsController(settingsService, upnpService),
-                runtimeRoot.createDLNASettingsController(settingsService, upnpService));
         assertSame(runtimeRoot.createPersonalSettingsController(settingsService, securityService),
                 runtimeRoot.createPersonalSettingsController(settingsService, securityService));
         assertSame(runtimeRoot.createPlayerSettingsController(playerService, transcodingService, playQueueService),
@@ -368,8 +368,6 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createKordinatorFavoriteRoutes(mediaFileService, mediaFolderService, securityService));
         assertSame(runtimeRoot.createKordinatorLibraryRoutes(mediaFileService, mediaFolderService, securityService),
                 runtimeRoot.createKordinatorLibraryRoutes(mediaFileService, mediaFolderService, securityService));
-        assertSame(runtimeRoot.createMusicFolderSettingsController(musicFolderAdministrationService),
-                runtimeRoot.createMusicFolderSettingsController(musicFolderAdministrationService));
         org.airsonic.player.health.HealthContributorRegistry healthContributors =
                 runtimeRoot.createHealthContributorRegistry(dataSource);
         assertSame(healthContributors, runtimeRoot.createHealthContributorRegistry(dataSource));
