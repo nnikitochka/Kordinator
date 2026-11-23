@@ -84,7 +84,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.SubsonicResponseMapper subsonicResponseMapper;
     private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
-    private org.airsonic.player.controller.rest.tags.TagEditController tagEditController;
     private org.airsonic.player.ktor.KordinatorSessionService kordinatorSessionService;
     private org.airsonic.player.ktor.KordinatorAuthRoutes kordinatorAuthRoutes;
     private org.airsonic.player.ktor.KordinatorPlaylistRoutes kordinatorPlaylistRoutes;
@@ -163,15 +162,6 @@ public final class RuntimeCompositionRoot {
             meterRegistry = RuntimeHealthFactory.createMeterRegistry();
         }
         return meterRegistry;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.tags.TagEditController createTagEditController(
-            org.airsonic.player.service.TagEditService tagEditService) {
-        if (tagEditController == null) {
-            tagEditController = new org.airsonic.player.controller.rest.tags.TagEditController(
-                    tagEditService, createSubsonicJaxbWriter());
-        }
-        return tagEditController;
     }
 
     public synchronized org.airsonic.player.ktor.KordinatorSessionService createKordinatorSessionService(

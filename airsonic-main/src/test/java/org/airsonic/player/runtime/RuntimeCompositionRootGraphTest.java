@@ -303,8 +303,6 @@ class RuntimeCompositionRootGraphTest {
 
         DatabaseService databaseService = runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler);
         assertSame(databaseService, runtimeRoot.createDatabaseService(settingsService, databaseDao, scheduler));
-        assertSame(runtimeRoot.createTagEditController(tagEditService),
-                runtimeRoot.createTagEditController(tagEditService));
         org.airsonic.player.ktor.KordinatorSessionService sessionService =
                 runtimeRoot.createKordinatorSessionService(securityService, credentialEncoders, settingsService);
         assertSame(sessionService, runtimeRoot.createKordinatorSessionService(

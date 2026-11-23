@@ -646,6 +646,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалён старый `CaptionsRestController` с `/rest/captions` и внешними JWT URL. Ktor `/api/v1/videos/{id}/captions` выдаёт scoped bearer endpoints и безопасные caption IDs; `KtorStandaloneVideoCaptionsTest` проверяет доступ, форматирование, cache headers и защиту путей.
 
+**Срез 23 ноября 2026:** удалён `TagEditController` с Subsonic `editTags` и перенесено редактирование метаданных в `PUT /api/v1/tracks/{id}/tags`. Новый маршрут требует администратора; `KtorStandalonePlaylistTest` проверяет запрет обычному пользователю и вызов сервиса для администратора.
+
 **Срез 23 ноября 2026:** удалён `SharesController` и связанный `SharesRequest` XML adapter. Старые подписанные share URLs заменены bearer CRUD `GET`/`POST /api/v1/shares`, `DELETE /api/v1/shares/{id}` и новым public token API; `KtorStandaloneRealScanIsolationTest` проверяет владение, публичное чтение, scope и отзыв ссылки.
 
 **Срез 23 ноября 2026:** удалён старый `PublicShareController` со ссылками на основе legacy JWT и XML/внешних stream URLs. Публичный share теперь использует отдельный одноразово выдаваемый share token в `/api/v1/public/shares/{token}`; Ktor isolation test проверяет stream по token и его недоступность после удаления share.

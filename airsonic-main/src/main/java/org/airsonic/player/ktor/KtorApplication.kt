@@ -71,6 +71,7 @@ import org.airsonic.player.service.StandaloneTrack
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.StandaloneBookmarkService
 import org.airsonic.player.service.StandaloneTrackNoteService
+import org.airsonic.player.service.TagEditService
 import org.airsonic.player.service.StandaloneShareService
 import org.airsonic.player.service.StandaloneShare
 import org.airsonic.player.service.StandaloneAvatarService
@@ -196,6 +197,7 @@ fun Application.standaloneModule(
     standaloneJukeboxService: StandaloneJukeboxService? = null,
     trackNoteService: StandaloneTrackNoteService? = null,
     passwordRecoveryService: StandalonePasswordRecoveryService? = null,
+    tagEditService: TagEditService? = null,
 ) {
     val audioTranscoding = transcodingService?.let(::StandaloneAudioTranscodingService)
     val loginRateLimiter = LoginRateLimiter()
@@ -236,6 +238,9 @@ fun Application.standaloneModule(
         if (authService != null) {
             route("/api/v1") {
                 authenticate("server-session") {
+                    if (tagEditService != null && mediaFileService != null && mediaFolderService != null) {
+                        KordinatorTrackTagRoutes(tagEditService, mediaFileService, mediaFolderService).routes(this)
+                    }
                     if (videoPlaybackService != null && mediaFileService != null) {
                         StandaloneVideoPlaybackRoutes(mediaFileService, videoPlaybackService).routes(this)
                         monitor.subscribe(ApplicationStopped) { videoPlaybackService.close() }
@@ -4095,6 +4100,9 @@ fun main(args: Array<String>) {
         runtime.createMetaDataParserFactory(),
         coverArtService,
     )
+    val tagEditService = runtime.createTagEditService(
+        runtime.createMetaDataParserFactory(), mediaFileService, securityService,
+    )
     val statusService = runtime.createStatusService(
         mediaFileService,
         mediaFolderService,
@@ -4225,6 +4233,7 @@ fun main(args: Array<String>) {
             standaloneJukeboxService,
             trackNoteService,
             passwordRecoveryService,
+            tagEditService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
