@@ -414,8 +414,6 @@ class RuntimeCompositionRootGraphTest {
         assertSame(runtimeRoot.createScrobbleController(mediaFileService, statusService, audioScrobblerService),
                 runtimeRoot.createScrobbleController(mediaFileService, statusService, audioScrobblerService));
         assertSame(runtimeRoot.createDownloadRestController(), runtimeRoot.createDownloadRestController());
-        assertSame(runtimeRoot.createMediaFileCommentController(mediaFileService, securityService),
-                runtimeRoot.createMediaFileCommentController(mediaFileService, securityService));
         assertSame(runtimeRoot.createTagEditController(tagEditService),
                 runtimeRoot.createTagEditController(tagEditService));
         assertSame(runtimeRoot.createCoverArtRestController(coverArtImageService),

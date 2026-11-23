@@ -139,7 +139,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.livequeue.LiveQueueExportController liveQueueExportController;
     private org.airsonic.player.controller.rest.scrobble.ScrobbleController scrobbleController;
     private org.airsonic.player.controller.rest.download.DownloadRestController downloadRestController;
-    private org.airsonic.player.controller.rest.tags.MediaFileCommentController mediaFileCommentController;
     private org.airsonic.player.controller.rest.tags.TagEditController tagEditController;
     private org.airsonic.player.controller.rest.cover.CoverArtRestController coverArtRestController;
     private org.airsonic.player.controller.rest.avatar.AvatarRestController avatarRestController;
@@ -818,17 +817,6 @@ public final class RuntimeCompositionRoot {
                     createSubsonicJaxbWriter());
         }
         return downloadRestController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.tags.MediaFileCommentController
-            createMediaFileCommentController(
-                    org.airsonic.player.service.MediaFileService mediaFileService,
-                    org.airsonic.player.service.SecurityService securityService) {
-        if (mediaFileCommentController == null) {
-            mediaFileCommentController = new org.airsonic.player.controller.rest.tags.MediaFileCommentController(
-                    mediaFileService, securityService, createSubsonicJaxbWriter());
-        }
-        return mediaFileCommentController;
     }
 
     public synchronized org.airsonic.player.controller.rest.tags.TagEditController createTagEditController(
