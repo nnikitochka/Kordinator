@@ -568,6 +568,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалены `SongsByGenreController` и старый request DTO с runtime wiring. Жанровый фильтр работает как query-параметр `genre` у `GET /api/v1/tracks`; playlist/catalog Ktor integration test проверяет его.
 
+**Срез 23 ноября 2026:** удалены legacy `SongController` и request DTO с runtime-root wiring. Детали трека обслуживает `GET /api/v1/tracks/{id}`, с библиотечным scope; `KtorStandalonePlaylistTest` проверяет этот ресурс и доступ.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

@@ -93,7 +93,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.search.SearchController subsonicSearchController;
     private org.airsonic.player.controller.rest.artists.ArtistsController subsonicArtistsController;
     private org.airsonic.player.controller.rest.albums.AlbumsController subsonicAlbumsController;
-    private org.airsonic.player.controller.rest.music.song.SongController songController;
     private org.airsonic.player.controller.rest.videos.VideosController videosController;
     private org.airsonic.player.controller.rest.lyrics.LyricsController lyricsController;
     private org.airsonic.player.controller.rest.nowplaying.NowPlayingController nowPlayingController;
@@ -288,20 +287,6 @@ public final class RuntimeCompositionRoot {
                     ratingService, searchService, responseMapper, createSubsonicJaxbWriter());
         }
         return subsonicAlbumsController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.music.song.SongController createSongController(
-            org.airsonic.player.service.SecurityService securityService,
-            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
-        if (songController == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException("Persistence graph must be created before SongController");
-            }
-            songController = new org.airsonic.player.controller.rest.music.song.SongController(
-                    persistenceGraph.getDaos().getMediaFileDao(), securityService,
-                    responseMapper, createSubsonicJaxbWriter());
-        }
-        return songController;
     }
 
     public synchronized org.airsonic.player.controller.rest.videos.VideosController createVideosController(
