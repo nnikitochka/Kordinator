@@ -108,9 +108,10 @@ open class CoverArtService {
     open fun persistIfNeeded(mediaFile: MediaFile) {
         val art = mediaFile.art
         if (art != null && art != CoverArt.NULL_ART) {
-            val existing = get(EntityType.MEDIA_FILE, mediaFile.id)
+            val mediaFileId = mediaFile.id!!
+            val existing = get(EntityType.MEDIA_FILE, mediaFileId)
             if (existing == CoverArt.NULL_ART || !existing.overridden) {
-                art.entityId = mediaFile.id
+                art.entityId = mediaFileId
                 upsert(art)
             }
             mediaFile.art = null

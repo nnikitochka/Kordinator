@@ -107,7 +107,7 @@ class StandaloneVideoBookmarkService(
         if (videoId < 0) return null
         val video = mediaFiles.getMediaFile(videoId) ?: return null
         if (!video.isVideo || !video.isPresent) return null
-        if (accessibleLibraryIds != null && video.folderId.toLong() !in accessibleLibraryIds) return null
+        if (accessibleLibraryIds != null && video.folderId!!.toLong() !in accessibleLibraryIds) return null
         return video
     }
 

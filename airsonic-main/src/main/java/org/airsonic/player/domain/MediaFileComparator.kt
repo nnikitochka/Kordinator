@@ -20,9 +20,9 @@ class MediaFileComparator(private val sortAlbumsByYear: Boolean) : Comparator<Me
         }
 
         if (first.isDirectory && second.isDirectory) {
-            val nameComparison = first.name.compareTo(second.name, ignoreCase = true)
+            val nameComparison = first.name!!.compareTo(second.name!!, ignoreCase = true)
             return if (nameComparison == 0) {
-                first.path.compareTo(second.path, ignoreCase = true)
+                first.path!!.compareTo(second.path!!, ignoreCase = true)
             } else {
                 nameComparison
             }
@@ -34,7 +34,7 @@ class MediaFileComparator(private val sortAlbumsByYear: Boolean) : Comparator<Me
         val trackComparison = nullSafeCompare(trackA, trackB)
         if (trackComparison != 0) return trackComparison
 
-        return first.path.compareTo(second.path, ignoreCase = true)
+        return first.path!!.compareTo(second.path!!, ignoreCase = true)
     }
 
     private fun nullSafeCompare(first: Int?, second: Int?): Int = when {

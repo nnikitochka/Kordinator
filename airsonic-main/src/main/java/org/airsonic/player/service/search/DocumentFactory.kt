@@ -60,17 +60,17 @@ class DocumentFactory {
 
     fun createPrimarykey(artist: Artist): Term = createPrimarykey(artist.id)
 
-    fun createPrimarykey(mediaFile: MediaFile): Term = createPrimarykey(mediaFile.id)
+    fun createPrimarykey(mediaFile: MediaFile): Term = createPrimarykey(mediaFile.id!!)
 
     fun createAlbumDocument(mediaFile: MediaFile, musicFolder: MusicFolder): Document = Document().apply {
-        fieldId.accept(this, mediaFile.id)
+        fieldId.accept(this, mediaFile.id!!)
         fieldWords.accept(this, FieldNames.ARTIST, mediaFile.artist)
         fieldWords.accept(this, FieldNames.ALBUM, mediaFile.albumName)
         fieldFolderPath.accept(this, musicFolder.path.toString())
     }
 
     fun createArtistDocument(mediaFile: MediaFile, musicFolder: MusicFolder): Document = Document().apply {
-        fieldId.accept(this, mediaFile.id)
+        fieldId.accept(this, mediaFile.id!!)
         fieldWords.accept(this, FieldNames.ARTIST, mediaFile.artist)
         fieldFolderPath.accept(this, musicFolder.path.toString())
     }
@@ -89,8 +89,8 @@ class DocumentFactory {
     }
 
     fun createSongDocument(mediaFile: MediaFile, musicFolder: MusicFolder): Document = Document().apply {
-        fieldId.accept(this, mediaFile.id)
-        fieldMediaType.accept(this, mediaFile.mediaType.name)
+        fieldId.accept(this, mediaFile.id!!)
+        fieldMediaType.accept(this, mediaFile.mediaType!!.name)
         fieldWords.accept(this, FieldNames.TITLE, mediaFile.title)
         fieldWords.accept(this, FieldNames.ARTIST, mediaFile.artist)
         fieldGenre.accept(this, mediaFile.genre)

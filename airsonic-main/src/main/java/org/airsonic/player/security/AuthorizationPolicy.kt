@@ -19,5 +19,5 @@ class AuthorizationPolicy {
         caller != null && caller.isAuthenticated && caller.hasFolderAccess(folderId)
 
     fun hasFolderAccess(caller: CallerContext?, file: MediaFile?): Boolean =
-        file != null && caller != null && hasFolderAccess(caller, file.folderId)
+        file != null && caller != null && hasFolderAccess(caller, file.folderId!!)
 }

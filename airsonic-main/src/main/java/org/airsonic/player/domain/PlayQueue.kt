@@ -171,7 +171,7 @@ open class PlayQueue(private val folderIdToFolder: Function<Int, MusicFolder>) {
     }
 
     @Synchronized
-    open fun length(): Long = queueFiles.parallelStream().mapToLong(MediaFile::getFileSize).sum()
+    open fun length(): Long = queueFiles.parallelStream().mapToLong { it.fileSize!! }.sum()
 
     @Synchronized
     open fun duration(): Double = queueFiles.parallelStream()

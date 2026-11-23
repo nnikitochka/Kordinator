@@ -93,7 +93,7 @@ class StandaloneVideoPlaybackRoutes(
     private fun org.airsonic.player.domain.MediaFile?.isAccessibleVideo(user: LocalUserPrincipal): Boolean {
         if (this == null || !isVideo || !isPresent) return false
         val allowed = user.libraryScope()
-        return allowed == null || folderId.toLong() in allowed
+        return allowed == null || folderId!!.toLong() in allowed
     }
 
     private fun LocalUserPrincipal.libraryScope(): Set<Long>? = if (role == "ADMIN") null else allowedLibraryIds

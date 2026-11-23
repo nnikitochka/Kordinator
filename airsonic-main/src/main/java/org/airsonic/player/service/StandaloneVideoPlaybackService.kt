@@ -47,7 +47,7 @@ class StandaloneVideoPlaybackService(
             "Too many active video sessions"
         }
         val id = UUID.randomUUID().toString()
-        val key = HlsSession.Key(mediaFile.id, id, bitrate, "${width}x$height", SEGMENT_SECONDS, audioTrack)
+        val key = HlsSession.Key(mediaFile.id!!, id, bitrate, "${width}x$height", SEGMENT_SECONDS, audioTrack)
         val session = Session(ownerId, mediaFile, HlsSession(key, mediaFile, transcodingService),
             id, expiresAt = Instant.now().plus(SESSION_TTL))
         sessions[id] = session
@@ -56,7 +56,7 @@ class StandaloneVideoPlaybackService(
 
     fun playlist(ownerId: Long, id: String, accessibleLibraryIds: Set<Long>?): Pair<VideoPlaybackSession, String>? {
         val session = find(ownerId, id, accessibleLibraryIds) ?: return null
-        val duration = session.mediaFile.duration.coerceAtLeast(0.0)
+        val duration = session.mediaFile.duration!!.coerceAtLeast(0.0)
         val segmentCount = kotlin.math.ceil(duration / SEGMENT_SECONDS).toInt()
         val builder = StringBuilder()
             .append("#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:")
@@ -73,7 +73,7 @@ class StandaloneVideoPlaybackService(
     fun segment(ownerId: Long, id: String, index: Int, accessibleLibraryIds: Set<Long>?): VideoPlaybackSegment? {
         require(index >= 0) { "Segment index must be non-negative" }
         val session = find(ownerId, id, accessibleLibraryIds) ?: return null
-        val count = kotlin.math.ceil(session.mediaFile.duration.coerceAtLeast(0.0) / SEGMENT_SECONDS).toInt()
+        val count = kotlin.math.ceil(session.mediaFile.duration!!.coerceAtLeast(0.0) / SEGMENT_SECONDS).toInt()
         require(index < count) { "Segment index is outside the video duration" }
         val file = session.engine.waitForSegment(index, SEGMENT_TIMEOUT.toMillis())
             ?: throw java.util.concurrent.TimeoutException("Timed out producing video segment")
@@ -96,7 +96,7 @@ class StandaloneVideoPlaybackService(
             if (sessions.remove(id, session)) session.engine.destroySession()
             return null
         }
-        val libraryId = session.mediaFile.folderId.toLong()
+        val libraryId = session.mediaFile.folderId!!.toLong()
         if (accessibleLibraryIds != null && libraryId !in accessibleLibraryIds) return null
         session.expiresAt = Instant.now().plus(SESSION_TTL)
         return session
