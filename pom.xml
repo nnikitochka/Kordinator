@@ -58,7 +58,6 @@
     </scm>
 
     <modules>
-        <module>subsonic-rest-api</module>
         <module>airsonic-main</module>
     </modules>
 
@@ -122,17 +121,6 @@
                 <groupId>org.jvnet.staxex</groupId>
                 <artifactId>stax-ex</artifactId>
                 <version>2.1.0</version>
-            </dependency>
-            <!-- JAXB runtime: moxy replaces the old javax-era 2.7.8 pin -->
-            <dependency>
-                <groupId>org.eclipse.persistence</groupId>
-                <artifactId>org.eclipse.persistence.moxy</artifactId>
-                <version>4.0.7</version>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.jaxb</groupId>
-                <artifactId>jaxb-runtime</artifactId>
-                <version>4.0.5</version>
             </dependency>
             <!-- Explicit version retained for the legacy metrics compatibility layer. -->
             <dependency>
@@ -302,11 +290,6 @@
                 <version>2.19.2</version>
             </dependency>
             <dependency>
-                <groupId>com.fasterxml.jackson.module</groupId>
-                <artifactId>jackson-module-jaxb-annotations</artifactId>
-                <version>2.19.2</version>
-            </dependency>
-            <dependency>
                 <groupId>jakarta.annotation</groupId>
                 <artifactId>jakarta.annotation-api</artifactId>
                 <version>2.1.1</version>
@@ -321,6 +304,7 @@
                 <artifactId>jakarta.xml.ws-api</artifactId>
                 <version>4.0.2</version>
             </dependency>
+            <!-- Keep XML Bind transitives aligned for playlist-rmp; application code no longer uses JAXB. -->
             <dependency>
                 <groupId>jakarta.xml.bind</groupId>
                 <artifactId>jakarta.xml.bind-api</artifactId>
@@ -577,13 +561,11 @@
                                 <ignoredUnusedDeclaredDependency>org.jetbrains.kotlin:kotlin-test-junit5</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>com.fasterxml.jackson.module:jackson-module-kotlin</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>com.google.code.findbugs:jsr305:*</ignoredUnusedDeclaredDependency>
-                                <ignoredUnusedDeclaredDependency>com.fasterxml.jackson.module:jackson-module-jaxb-annotations</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>com.sun.mail:jakarta.mail*</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>org.seamless:seamless-http*</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>org.seamless:seamless-http*</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>org.tukaani:xz:*</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>org.liquibase:liquibase-core</ignoredUnusedDeclaredDependency>
-                                <ignoredUnusedDeclaredDependency>jakarta.xml.bind:jakarta.xml.bind-api*</ignoredUnusedDeclaredDependency>
                                 <ignoredUnusedDeclaredDependency>jakarta.annotation:jakarta.annotation-api</ignoredUnusedDeclaredDependency>
                             </ignoredUnusedDeclaredDependencies>
                         </configuration>
@@ -615,7 +597,6 @@
         <profile>
             <id>docker</id>
             <modules>
-                <module>subsonic-rest-api</module>
                 <module>airsonic-main</module>
                 <module>install/docker</module>
             </modules>

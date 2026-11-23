@@ -19,12 +19,6 @@
 
     <dependencies>
 
-        <dependency>
-            <groupId>org.airsonic.player</groupId>
-            <artifactId>subsonic-rest-api</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
         <!-- Kotlin runtime & reflection -->
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -261,11 +255,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.persistence</groupId>
-            <artifactId>org.eclipse.persistence.moxy</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>jakarta.mail</groupId>
             <artifactId>jakarta.mail-api</artifactId>
         </dependency>
@@ -457,10 +446,6 @@
             <artifactId>jackson-module-parameter-names</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-jaxb-annotations</artifactId>
-         </dependency>
-        <dependency>
             <groupId>org.eclipse.angus</groupId>
             <artifactId>angus-mail</artifactId>
             <scope>runtime</scope>
@@ -468,10 +453,6 @@
         <dependency>
             <groupId>jakarta.annotation</groupId>
             <artifactId>jakarta.annotation-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.xml.bind</groupId>
-            <artifactId>jakarta.xml.bind-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>

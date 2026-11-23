@@ -656,6 +656,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалено построение legacy `/rest/captions` и `/ext/rest/captions` ссылок из `CaptionService`, включая больше не нужную JWT-зависимость и URL-тесты. Сервис теперь только перечисляет и читает subtitle metadata; ссылки формирует Ktor API.
 
+**Срез 23 ноября 2026:** удалён отдельный `subsonic-rest-api` модуль с JAXB DTO и XSD: production-код и тесты больше не ссылаются на его типы, а новые API используют собственные JSON DTO. Модуль убран из Maven reactor и Docker profile, из `airsonic-main` удалены прямые JAXB API и Jackson JAXB-annotations зависимости.
+
 **Срез 23 ноября 2026:** удалён `SharesController` и связанный `SharesRequest` XML adapter. Старые подписанные share URLs заменены bearer CRUD `GET`/`POST /api/v1/shares`, `DELETE /api/v1/shares/{id}` и новым public token API; `KtorStandaloneRealScanIsolationTest` проверяет владение, публичное чтение, scope и отзыв ссылки.
 
 **Срез 23 ноября 2026:** удалён старый `PublicShareController` со ссылками на основе legacy JWT и XML/внешних stream URLs. Публичный share теперь использует отдельный одноразово выдаваемый share token в `/api/v1/public/shares/{token}`; Ktor isolation test проверяет stream по token и его недоступность после удаления share.
