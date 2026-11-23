@@ -87,6 +87,12 @@ class KtorStandaloneLibraryTest {
                     auth.setAllowedLibraries(listenerId, setOf(createdId.toLong()))
                     assertEquals(setOf(createdId.toLong()), auth.allowedLibraries(listenerId))
 
+                    val accessibleLibraries = client.get("/api/v1/libraries") { bearerAuth(userToken) }
+                    assertEquals(HttpStatusCode.OK, accessibleLibraries.status)
+                    assertTrue(accessibleLibraries.bodyAsText().contains("\"id\":$createdId"))
+                    assertTrue(accessibleLibraries.bodyAsText().contains("\"name\":\"Other\""))
+                    assertTrue(!accessibleLibraries.bodyAsText().contains(musicRoot.toRealPath().toString()))
+
                     val renamed = client.put("/api/v1/admin/libraries/$createdId") {
                         bearerAuth(adminToken)
                         contentType(ContentType.Application.Json)

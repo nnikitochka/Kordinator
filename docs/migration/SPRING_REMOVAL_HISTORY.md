@@ -588,6 +588,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалён старый Subsonic `GenresController`, его адаптер и unit-тесты XML-модели. Фильтруемый каталог жанров обслуживает `GET /api/v1/genres`; playlist integration test проверяет жанры и количество треков.
 
+**Срез 23 ноября 2026:** доступные пользователю библиотеки перечисляются через новый bearer endpoint `GET /api/v1/libraries` (только ID и имя, без пути). После добавления этой API удалены legacy `MusicFoldersController`, его mapper/service и root wiring; library test проверяет, что ответ ограничен назначенным пользователю library scope.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

@@ -549,6 +549,23 @@ fun Application.standaloneModule(
                         }
                         call.respondJson(SimilarTrackPage(null, tracks.map { it.toResponse() }, tracks.size))
                     }
+                    get("/libraries") {
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val folders = mediaFolderService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Library service is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val scope = user.catalogLibraryScope()
+                        val libraries = withContext(authDispatcher) {
+                            folders.getAllMusicFolders(false, false)
+                                .filter { folder ->
+                                    val id = folder.id?.toLong()
+                                    id != null && (scope == null || id in scope)
+                                }
+                                .sortedWith(compareBy<MusicFolder> { it.name }.thenBy { it.id })
+                                .map { folder -> AvailableLibraryResponse(requireNotNull(folder.id).toLong(), folder.name) }
+                        }
+                        call.respondJson(libraries)
+                    }
                     get("/genres") {
                         val catalog = mediaCatalogService
                         if (catalog == null) {
@@ -3073,6 +3090,7 @@ data class SetUserLibrariesRequest(val libraryIds: Set<Long>)
 data class CreateLibraryRequest(val name: String, val path: String)
 data class UpdateLibraryRequest(val name: String, val path: String? = null)
 data class LibraryResponse(val id: Long, val name: String, val path: String, val enabled: Boolean, val createdAt: String, val scanId: String? = null)
+data class AvailableLibraryResponse(val id: Long, val name: String)
 data class UploadedLibraryFileResponse(val libraryId: Long, val path: String, val sizeBytes: Long)
 data class AvatarResponse(val width: Int, val height: Int, val sizeBytes: Int)
 data class CreateShareRequest(val trackIds: List<Long> = emptyList(), val description: String? = null, val expiresAt: String? = null)

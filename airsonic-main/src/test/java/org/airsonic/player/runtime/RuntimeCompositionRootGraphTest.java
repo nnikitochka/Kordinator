@@ -164,12 +164,6 @@ class RuntimeCompositionRootGraphTest {
                 mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService);
         assertSame(mediaFileService, runtimeRoot.createMediaFileService(securityService, settingsService,
                 mediaFileDao, albumDao, parser, metaDataParserFactory, coverArtService));
-        assertSame(runtimeRoot.createSubsonicMusicFoldersService(mediaFolderService),
-                runtimeRoot.createSubsonicMusicFoldersService(mediaFolderService));
-        org.airsonic.player.controller.rest.music.folder.MusicFoldersService subsonicMusicFoldersService =
-                runtimeRoot.createSubsonicMusicFoldersService(mediaFolderService);
-        assertSame(runtimeRoot.createSubsonicMusicFoldersController(subsonicMusicFoldersService),
-                runtimeRoot.createSubsonicMusicFoldersController(subsonicMusicFoldersService));
         org.airsonic.player.service.search.SearchServiceUtilities searchServiceUtilities =
                 runtimeRoot.createSearchServiceUtilities(mediaFileService);
         assertSame(searchServiceUtilities, runtimeRoot.createSearchServiceUtilities(mediaFileService));
