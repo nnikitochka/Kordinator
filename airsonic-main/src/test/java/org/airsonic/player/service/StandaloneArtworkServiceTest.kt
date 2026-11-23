@@ -48,6 +48,32 @@ class StandaloneArtworkServiceTest {
     }
 
     @Test
+    fun storesAnimatedGifArtworkWithItsNativeExtensionAndContentType() {
+        val albumDirectory = Files.createDirectory(root.resolve("Gif Album"))
+        val mediaFiles = Mockito.mock(MediaFileService::class.java)
+        val folders = Mockito.mock(MediaFolderService::class.java)
+        val coverArt = Mockito.mock(CoverArtService::class.java)
+        val directory = MediaFile().apply {
+            id = 57
+            folderId = 3
+            path = "Gif Album"
+            mediaType = MediaFile.MediaType.DIRECTORY
+        }
+        Mockito.`when`(mediaFiles.getMediaFile(57)).thenReturn(directory)
+        Mockito.`when`(folders.getMusicFolderById(3, true, true)).thenReturn(
+            MusicFolder(3, root, "Music", MusicFolder.Type.MEDIA, true, Instant.now()),
+        )
+
+        val bytes = encodedImage("gif")
+        val stored = StandaloneArtworkManagementService(mediaFiles, folders, coverArt).setDirectoryArtwork(57, bytes)
+
+        assertEquals("Gif Album/cover.gif", stored.relativePath)
+        assertEquals("image/gif", stored.contentType)
+        assertTrue(bytes.contentEquals(Files.readAllBytes(albumDirectory.resolve("cover.gif"))))
+        Mockito.verify(coverArt).upsert(CoverArt.EntityType.MEDIA_FILE, 57, "Gif Album/cover.gif", 3, true)
+    }
+
+    @Test
     fun rejectsInvalidImagesAndDirectoriesOutsideTheLibrary() {
         val outside = Files.createDirectory(root.resolveSibling("${root.fileName}-outside"))
         val mediaFiles = Mockito.mock(MediaFileService::class.java)
@@ -116,6 +142,11 @@ class StandaloneArtworkServiceTest {
 
     private fun png(width: Int, height: Int): ByteArray = ByteArrayOutputStream().use { output ->
         ImageIO.write(BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), "png", output)
+        output.toByteArray()
+    }
+
+    private fun encodedImage(format: String): ByteArray = ByteArrayOutputStream().use { output ->
+        ImageIO.write(BufferedImage(16, 16, BufferedImage.TYPE_INT_RGB), format, output)
         output.toByteArray()
     }
 }

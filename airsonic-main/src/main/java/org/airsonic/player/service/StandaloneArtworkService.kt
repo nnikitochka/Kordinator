@@ -107,7 +107,8 @@ class StandaloneArtworkManagementService(
         val extension = when (format) {
             "jpeg" -> "jpg"
             "png" -> "png"
-            else -> throw IllegalArgumentException("Only JPEG and PNG artwork is supported")
+            "gif" -> "gif"
+            else -> throw IllegalArgumentException("Only JPEG, PNG, and GIF artwork is supported")
         }
         val target = realDirectory.resolve("cover.$extension")
         val temporary = Files.createTempFile(realDirectory, ".kordinator-cover-", ".$extension")
@@ -123,7 +124,12 @@ class StandaloneArtworkManagementService(
         }
         val relativePath = libraryRoot.relativize(target).toString().replace('\\', '/')
         coverArtService.upsert(CoverArt.EntityType.MEDIA_FILE, directoryId, relativePath, folderId, true)
-        return StoredArtwork(relativePath, if (format == "jpeg") "image/jpeg" else "image/png", bytes.size)
+        val contentType = when (format) {
+            "jpeg" -> "image/jpeg"
+            "png" -> "image/png"
+            else -> "image/gif"
+        }
+        return StoredArtwork(relativePath, contentType, bytes.size)
     }
 
     private fun validateImage(bytes: ByteArray): String {
