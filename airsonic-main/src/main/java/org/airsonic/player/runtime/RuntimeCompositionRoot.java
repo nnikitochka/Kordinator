@@ -84,7 +84,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.SubsonicResponseMapper subsonicResponseMapper;
     private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
-    private org.airsonic.player.controller.rest.bookmarks.BookmarksController bookmarksController;
     private org.airsonic.player.controller.rest.starred.StarredController starredController;
     private org.airsonic.player.controller.rest.jukebox.JukeboxController jukeboxController;
     private org.airsonic.player.controller.rest.playlists.PlaylistExportController playlistExportController;
@@ -176,17 +175,6 @@ public final class RuntimeCompositionRoot {
             meterRegistry = RuntimeHealthFactory.createMeterRegistry();
         }
         return meterRegistry;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.bookmarks.BookmarksController createBookmarksController(
-            org.airsonic.player.service.BookmarkService bookmarkService,
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
-        if (bookmarksController == null) {
-            bookmarksController = new org.airsonic.player.controller.rest.bookmarks.BookmarksController(
-                    bookmarkService, mediaFileService, responseMapper, createSubsonicJaxbWriter());
-        }
-        return bookmarksController;
     }
 
     public synchronized org.airsonic.player.controller.rest.starred.StarredController createStarredController(
