@@ -26,6 +26,7 @@ import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.server.request.receiveText
 import io.ktor.server.request.receiveMultipart
+import io.ktor.server.request.receiveChannel
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.delete
@@ -57,6 +58,9 @@ import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.security.LoginRateLimiter
 import org.airsonic.player.security.LegacyCredentialEncoderRegistry
 import org.airsonic.player.service.StandaloneLibraryScanService
+import org.airsonic.player.service.StandaloneArtworkSearchService
+import org.airsonic.player.service.StandaloneArtworkManagementService
+import org.airsonic.player.service.ArtworkManagementService
 import org.airsonic.player.service.LibraryScan
 import org.airsonic.player.service.CaptionService
 import org.airsonic.player.service.StandalonePlaylistService
@@ -198,6 +202,8 @@ fun Application.standaloneModule(
     trackNoteService: StandaloneTrackNoteService? = null,
     passwordRecoveryService: StandalonePasswordRecoveryService? = null,
     tagEditService: TagEditService? = null,
+    artworkSearchService: StandaloneArtworkSearchService? = null,
+    artworkManagementService: ArtworkManagementService? = null,
 ) {
     val audioTranscoding = transcodingService?.let(::StandaloneAudioTranscodingService)
     val loginRateLimiter = LoginRateLimiter()
@@ -245,6 +251,74 @@ fun Application.standaloneModule(
                             objectMapper = jsonMapper,
                             apiPrefix = "",
                         )
+                    }
+                    get("/artwork/search") {
+                        if (call.principal<LocalUserPrincipal>() == null) return@get call.respond(HttpStatusCode.Unauthorized)
+                        val service = artworkSearchService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Artwork search is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val artist = call.request.queryParameters["artist"]
+                        val album = call.request.queryParameters["album"]
+                        if (artist.isNullOrBlank() || album.isNullOrBlank() || artist.length > 200 || album.length > 200) {
+                            return@get call.respondJson(ApiError("invalid_request", "Artist and album are required and must be at most 200 characters"), HttpStatusCode.BadRequest)
+                        }
+                        val matches = withContext(Dispatchers.IO) { service.search(artist, album) }
+                        call.respondJson(matches)
+                    }
+                    put("/library/directories/{id}/artwork/from-search") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            return@put call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                        }
+                        val searchService = artworkSearchService
+                            ?: return@put call.respondJson(ApiError("unavailable", "Artwork search is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val managementService = artworkManagementService
+                            ?: return@put call.respondJson(ApiError("unavailable", "Artwork storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val id = call.parameters["id"]?.toIntOrNull()?.takeIf { it > 0 }
+                            ?: return@put call.respondJson(ApiError("invalid_request", "Directory ID must be a positive number"), HttpStatusCode.BadRequest)
+                        val selection = runCatching {
+                            jsonMapper.readValue(call.receiveText(), ArtworkSelectionRequest::class.java)
+                        }.getOrElse {
+                            return@put call.respondJson(ApiError("invalid_request", "Artwork selection is required"), HttpStatusCode.BadRequest)
+                        }
+                        try {
+                            val bytes = withContext(Dispatchers.IO) {
+                                searchService.downloadSelectedArtwork(selection.artist, selection.album, selection.imageUrl)
+                            }
+                            val stored = withContext(Dispatchers.IO) { managementService.setDirectoryArtwork(id, bytes) }
+                            call.respondJson(DirectoryArtworkResponse(id, stored.relativePath, stored.contentType, stored.sizeBytes))
+                        } catch (failure: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_artwork", failure.message ?: "Artwork selection is invalid"), HttpStatusCode.BadRequest)
+                        }
+                    }
+                    put("/library/directories/{id}/artwork") {
+                        val actor = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        if (actor.role != "ADMIN") {
+                            return@put call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
+                        }
+                        val service = artworkManagementService
+                            ?: return@put call.respondJson(ApiError("unavailable", "Artwork storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val id = call.parameters["id"]?.toIntOrNull()?.takeIf { it > 0 }
+                            ?: return@put call.respondJson(ApiError("invalid_request", "Directory ID must be a positive number"), HttpStatusCode.BadRequest)
+                        val contentType = call.request.headers[HttpHeaders.ContentType]
+                        if (contentType != null && !contentType.substringBefore(';').startsWith("image/", ignoreCase = true)) {
+                            return@put call.respondJson(ApiError("invalid_artwork", "Request body must be an image"), HttpStatusCode.UnsupportedMediaType)
+                        }
+                        val bytes = withContext(Dispatchers.IO) { call.receiveChannel().toInputStream().use { it.readNBytes(20 * 1024 * 1024 + 1) } }
+                        if (bytes.size > 20 * 1024 * 1024) {
+                            return@put call.respondJson(ApiError("artwork_too_large", "Artwork must not exceed 20 MiB"), HttpStatusCode.PayloadTooLarge)
+                        }
+                        try {
+                            val stored = withContext(Dispatchers.IO) { service.setDirectoryArtwork(id, bytes) }
+                            call.respondJson(DirectoryArtworkResponse(id, stored.relativePath, stored.contentType, stored.sizeBytes))
+                        } catch (failure: IllegalArgumentException) {
+                            val missingDirectory = failure.message == "Directory does not exist" || failure.message == "Library does not exist"
+                            call.respondJson(
+                                ApiError(if (missingDirectory) "not_found" else "invalid_artwork", failure.message ?: "Artwork is invalid"),
+                                if (missingDirectory) HttpStatusCode.NotFound else HttpStatusCode.BadRequest,
+                            )
+                        }
                     }
                     if (tagEditService != null && mediaFileService != null && mediaFolderService != null) {
                         KordinatorTrackTagRoutes(tagEditService, mediaFileService, mediaFolderService).routes(this)
@@ -3569,6 +3643,8 @@ data class TrackExternalMetadataResponse(
     val artist: ArtistExternalMetadataResponse?,
     val album: AlbumExternalMetadataResponse?,
 )
+data class DirectoryArtworkResponse(val directoryId: Int, val path: String, val contentType: String, val sizeBytes: Int)
+data class ArtworkSelectionRequest(val artist: String, val album: String, val imageUrl: String)
 data class ArtistExternalMetadataResponse(
     val biography: String?,
     val musicBrainzId: String?,
@@ -4237,6 +4313,8 @@ fun main(args: Array<String>) {
         runtime.createMetaDataParserFactory(),
         coverArtService,
     )
+    val artworkSearchService = StandaloneArtworkSearchService()
+    val artworkManagementService = StandaloneArtworkManagementService(mediaFileService, mediaFolderService, coverArtService)
     val tagEditService = runtime.createTagEditService(
         runtime.createMetaDataParserFactory(), mediaFileService, securityService,
     )
@@ -4370,6 +4448,8 @@ fun main(args: Array<String>) {
             trackNoteService,
             passwordRecoveryService,
             tagEditService,
+            artworkSearchService,
+            artworkManagementService,
         )
     }
     lifecycle.registerShutdown("ktor-server") { server.stop(1_000, 5_000) }
