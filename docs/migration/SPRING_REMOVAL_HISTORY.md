@@ -606,6 +606,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалены старый `UsersController` и больше не используемый `UserAdministrationService` со Spring-era настройками ролей/паролей. Аккаунты, роли, сессии и library grants управляются самостоятельным bearer API `/api/v1/admin/users`; Ktor auth и user-settings tests покрывают управление аккаунтами и разделение прав.
 
+**Срез 23 ноября 2026:** удалён Subsonic `GeneralSettingsController` и runtime-root factory. Чтение и изменение параметров сервера обслуживают bearer endpoints `GET`/`PUT /api/v1/admin/settings/general`; `KtorStandaloneGeneralSettingsTest` проверяет чтение, валидацию и сохранение.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
