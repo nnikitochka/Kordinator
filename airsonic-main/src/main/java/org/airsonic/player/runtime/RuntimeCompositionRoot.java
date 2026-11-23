@@ -112,7 +112,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.statistics.ScheduledTasksController scheduledTasksController;
     private org.airsonic.player.controller.rest.statistics.PathWatchersController pathWatchersController;
     private org.airsonic.player.controller.rest.statistics.CacheStatisticsController cacheStatisticsController;
-    private org.airsonic.player.controller.rest.upload.UploadStatusController uploadStatusController;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
     private org.airsonic.player.controller.rest.admin.GeneralSettingsController generalSettingsController;
     private org.airsonic.player.controller.rest.admin.MusicFolderSettingsController musicFolderSettingsController;
@@ -501,16 +500,6 @@ public final class RuntimeCompositionRoot {
             meterRegistry = RuntimeHealthFactory.createMeterRegistry();
         }
         return meterRegistry;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.upload.UploadStatusController createUploadStatusController(
-            org.airsonic.player.service.StatusService statusService,
-            org.airsonic.player.service.DatabaseService databaseService) {
-        if (uploadStatusController == null) {
-            uploadStatusController = new org.airsonic.player.controller.rest.upload.UploadStatusController(
-                    statusService, createSubsonicJaxbWriter(), databaseService);
-        }
-        return uploadStatusController;
     }
 
     public synchronized org.airsonic.player.controller.rest.admin.GeneralSettingsController

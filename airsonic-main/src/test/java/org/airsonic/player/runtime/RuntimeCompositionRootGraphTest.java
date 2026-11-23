@@ -472,8 +472,6 @@ class RuntimeCompositionRootGraphTest {
         assertSame(meterRegistry, runtimeRoot.createMeterRegistry());
         assertSame(runtimeRoot.createCacheStatisticsController(cacheManager),
                 runtimeRoot.createCacheStatisticsController(cacheManager));
-        assertSame(runtimeRoot.createUploadStatusController(statusService, databaseService),
-                runtimeRoot.createUploadStatusController(statusService, databaseService));
 
         // Custom lifecycle items to verify ordering and shutdown
         AtomicBoolean customStarted = new AtomicBoolean(false);
