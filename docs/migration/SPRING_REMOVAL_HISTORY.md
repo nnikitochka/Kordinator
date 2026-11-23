@@ -556,6 +556,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалён старый `ServerInfoController` с Subsonic server-info и log endpoints вместе с runtime-root factory. Standalone Ktor обслуживает server diagnostics через собственные bearer маршруты; `KtorStandaloneServerInfoTest` проверяет их.
 
+**Срез 23 ноября 2026:** старый `/rest/recover` controller и завязанный на legacy users/settings/security `PasswordRecoveryService` удалены вместе с runtime factories и их graph/service tests. Восстановление реализовано standalone bearer-аккаунтами через новый Ktor API и проверяется `KtorStandalonePasswordRecoveryTest`.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

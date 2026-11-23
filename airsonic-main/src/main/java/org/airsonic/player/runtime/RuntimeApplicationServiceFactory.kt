@@ -14,7 +14,6 @@ import org.airsonic.player.service.LastFmService
 import org.airsonic.player.service.LyricsService
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
-import org.airsonic.player.service.PasswordRecoveryService
 import org.airsonic.player.service.RatingService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.ServerInfoService
@@ -36,10 +35,6 @@ object RuntimeApplicationServiceFactory {
     fun createStatusService(mediaFileService: MediaFileService, mediaFolderService: MediaFolderService,
                             settingsService: SettingsService, taskSchedulingService: TaskSchedulingService) =
         StatusService(mediaFileService, mediaFolderService, settingsService, taskSchedulingService)
-
-    @JvmStatic
-    fun createPasswordRecoveryService(settingsService: SettingsService, securityService: SecurityService) =
-        PasswordRecoveryService(settingsService, securityService)
 
     @JvmStatic
     fun createLyricsService() = LyricsService()

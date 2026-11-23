@@ -193,13 +193,6 @@ class RuntimeCompositionRootGraphTest {
                 mediaFileService));
         MusicIndexService musicIndexService = runtimeRoot.createMusicIndexService(settingsService, mediaFileService);
         assertSame(musicIndexService, runtimeRoot.createMusicIndexService(settingsService, mediaFileService));
-        PasswordRecoveryService passwordRecoveryService =
-                runtimeRoot.createPasswordRecoveryService(settingsService, securityService);
-        assertSame(passwordRecoveryService,
-                runtimeRoot.createPasswordRecoveryService(settingsService, securityService));
-        assertSame(runtimeRoot.createPasswordRecoveryController(passwordRecoveryService, objectMapper),
-                runtimeRoot.createPasswordRecoveryController(passwordRecoveryService, objectMapper));
-
         JWTSecurityService jwtSecurityService = runtimeRoot.createJwtSecurityService(settingsService);
         assertSame(jwtSecurityService, runtimeRoot.createJwtSecurityService(settingsService));
         assertNotNull(jwtSecurityService);

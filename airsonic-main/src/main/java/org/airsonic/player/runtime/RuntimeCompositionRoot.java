@@ -21,7 +21,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.service.VersionService versionService;
     private org.airsonic.player.service.ServerInfoService serverInfoService;
     private org.airsonic.player.service.StatusService statusService;
-    private org.airsonic.player.service.PasswordRecoveryService passwordRecoveryService;
     private org.airsonic.player.service.LyricsService lyricsService;
     private org.airsonic.player.service.BookmarkService bookmarkService;
     private org.airsonic.player.service.RatingService ratingService;
@@ -94,7 +93,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.search.SearchController subsonicSearchController;
     private org.airsonic.player.controller.rest.artists.ArtistsController subsonicArtistsController;
     private org.airsonic.player.controller.rest.albums.AlbumsController subsonicAlbumsController;
-    private org.airsonic.player.controller.rest.recovery.PasswordRecoveryController passwordRecoveryController;
     private org.airsonic.player.controller.rest.scan.ScanController scanController;
     private org.airsonic.player.controller.rest.music.similar.SimilarSongsController similarSongsController;
     private org.airsonic.player.controller.rest.music.genre.SongsByGenreController songsByGenreController;
@@ -295,17 +293,6 @@ public final class RuntimeCompositionRoot {
                     ratingService, searchService, responseMapper, createSubsonicJaxbWriter());
         }
         return subsonicAlbumsController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.recovery.PasswordRecoveryController
-            createPasswordRecoveryController(
-                    org.airsonic.player.service.PasswordRecoveryService passwordRecoveryService,
-                    com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
-        if (passwordRecoveryController == null) {
-            passwordRecoveryController = new org.airsonic.player.controller.rest.recovery.PasswordRecoveryController(
-                    passwordRecoveryService, objectMapper);
-        }
-        return passwordRecoveryController;
     }
 
     public synchronized org.airsonic.player.controller.rest.scan.ScanController createScanController(
@@ -1496,16 +1483,6 @@ public final class RuntimeCompositionRoot {
             statusService.cleanup();
         }
         return statusService;
-    }
-
-    public synchronized org.airsonic.player.service.PasswordRecoveryService createPasswordRecoveryService(
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.SecurityService securityService) {
-        if (passwordRecoveryService == null) {
-            passwordRecoveryService = RuntimeApplicationServiceFactory.createPasswordRecoveryService(
-                    settingsService, securityService);
-        }
-        return passwordRecoveryService;
     }
 
     public synchronized org.airsonic.player.service.LyricsService createLyricsService() {
