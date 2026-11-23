@@ -147,17 +147,26 @@ class KtorStandaloneRealScanIsolationTest {
 
                     runtime.coreDataSource.connection.use { connection ->
                         connection.prepareStatement(
-                            "UPDATE media_file SET title = ?, artist = ?, album_artist = ?, album = ?, track_number = ? " +
+                            "UPDATE media_file SET title = ?, artist = ?, album_artist = ?, album = ?, track_number = ?, " +
+                                "genre = ?, year = ?, play_count = ?, last_played = ?, created = ? " +
                                 "WHERE path = ? AND folder_id = ?",
                         ).use { statement ->
-                            listOf(firstLibrary.id!! to "first.mp3", secondLibraryId to "second.mp3").forEach { (folderId, path) ->
+                            listOf(
+                                CatalogFixture(firstLibrary.id!!, "first.mp3", "Rock", 2000, 1, "2020-01-01T00:00:00Z", "2022-01-01T00:00:00Z"),
+                                CatalogFixture(secondLibraryId, "second.mp3", "Jazz", 2020, 10, "2024-01-01T00:00:00Z", "2025-01-01T00:00:00Z"),
+                            ).forEach { fixture ->
                                 statement.setString(1, "Shared Title")
                                 statement.setString(2, "Shared Artist")
                                 statement.setString(3, "Shared Artist")
                                 statement.setString(4, "Shared Album")
                                 statement.setInt(5, 1)
-                                statement.setString(6, path)
-                                statement.setInt(7, folderId)
+                                statement.setString(6, fixture.genre)
+                                statement.setInt(7, fixture.year)
+                                statement.setInt(8, fixture.playCount)
+                                statement.setTimestamp(9, java.sql.Timestamp.from(java.time.Instant.parse(fixture.lastPlayed)))
+                                statement.setTimestamp(10, java.sql.Timestamp.from(java.time.Instant.parse(fixture.created)))
+                                statement.setString(11, fixture.path)
+                                statement.setInt(12, fixture.libraryId)
                                 assertEquals(1, statement.executeUpdate())
                             }
                         }
@@ -449,6 +458,16 @@ class KtorStandaloneRealScanIsolationTest {
         return bytes
     }
 
+    private data class CatalogFixture(
+        val libraryId: Int,
+        val path: String,
+        val genre: String,
+        val year: Int,
+        val playCount: Int,
+        val lastPlayed: String,
+        val created: String,
+    )
+
     private suspend fun assertCatalogPagination(
         client: HttpClient,
         mapper: ObjectMapper,
@@ -522,6 +541,41 @@ class KtorStandaloneRealScanIsolationTest {
         assertEquals(2, allAlbums.get("total").asInt())
         assertEquals(allAlbums.get("items")[0].get("name").asText(), allAlbums.get("items")[1].get("name").asText())
         assertTrue(allAlbums.get("items")[0].get("id").asText() != allAlbums.get("items")[1].get("id").asText())
+        val secondLibraryId = allAlbums.get("items").first { it.get("libraryId").asLong() != firstLibraryId }
+            .get("libraryId").asLong()
+        val rockAlbums = mapper.readTree(client.get("/api/v1/albums?genre=Rock") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        assertEquals(1, rockAlbums.get("total").asInt())
+        assertEquals("Rock", rockAlbums.get("items")[0].get("genre").asText())
+        assertEquals(0, mapper.readTree(client.get("/api/v1/albums?genre=Jazz") {
+            bearerAuth(firstToken)
+        }.bodyAsText()).get("total").asInt())
+        val byYear = mapper.readTree(client.get("/api/v1/albums?sort=year&fromYear=1990&toYear=2025") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        assertEquals(2000, byYear.get("items")[0].get("year").asInt())
+        assertEquals(2020, byYear.get("items")[1].get("year").asInt())
+        val mostPlayed = mapper.readTree(client.get("/api/v1/albums?sort=most-played") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        assertEquals(secondLibraryId, mostPlayed.get("items")[0].get("libraryId").asLong())
+        val recentlyPlayed = mapper.readTree(client.get("/api/v1/albums?sort=recently-played") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        assertEquals(secondLibraryId, recentlyPlayed.get("items")[0].get("libraryId").asLong())
+        val newest = mapper.readTree(client.get("/api/v1/albums?sort=newest") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        assertEquals(secondLibraryId, newest.get("items")[0].get("libraryId").asLong())
+        val randomAlbums = mapper.readTree(client.get("/api/v1/albums?sort=random") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        assertEquals(2, randomAlbums.get("total").asInt())
+        assertEquals(2, randomAlbums.get("items").size())
+        assertEquals(400, client.get("/api/v1/albums?sort=unknown") { bearerAuth(adminToken) }.status.value)
+        assertEquals(400, client.get("/api/v1/albums?fromYear=2000") { bearerAuth(adminToken) }.status.value)
+        assertEquals(400, client.get("/api/v1/albums?fromYear=2025&toYear=2000") { bearerAuth(adminToken) }.status.value)
         val firstAlbum = allAlbums.get("items").first { it.get("libraryId").asLong() == firstLibraryId }
         assertEquals(HttpStatusCode.OK, client.get("/api/v1/albums/${firstAlbum.get("id").asText()}") {
             bearerAuth(firstToken)

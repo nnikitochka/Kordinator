@@ -310,20 +310,39 @@ class KtorCoreMediaCatalogService(
         )
     }
 
-    fun albums(libraryId: Long?, limit: Int, offset: Int, accessibleLibraryIds: Set<Long>? = null): List<StandaloneAlbum> {
+    fun albums(
+        libraryId: Long?,
+        limit: Int,
+        offset: Int,
+        accessibleLibraryIds: Set<Long>? = null,
+        sort: String = "name",
+        genre: String? = null,
+        fromYear: Int? = null,
+        toYear: Int? = null,
+    ): List<StandaloneAlbum> {
         val folderId = libraryId?.toCoreFolderId()
+        require(sort in ALBUM_SORTS) { "Unsupported album sort" }
+        require((fromYear == null) == (toYear == null)) { "Both year bounds must be provided" }
+        require(fromYear == null || fromYear <= requireNotNull(toYear)) { "Year range is reversed" }
         val sql = "SELECT folder_id, album, MAX(COALESCE(NULLIF(TRIM(album_artist), ''), TRIM(artist))) AS album_artist, " +
             "MAX(year) AS year, MAX(genre) AS genre, COUNT(*) AS track_count, " +
             "CAST(SUM(COALESCE(duration, 0)) AS BIGINT) AS duration_seconds FROM media_file " +
             "WHERE present AND type IN ('MUSIC', 'AUDIOBOOK') AND (? IS NULL OR folder_id = ?) " +
             "AND album IS NOT NULL AND TRIM(album) <> ''" + libraryScope(accessibleLibraryIds) + " " +
-            "GROUP BY folder_id, album " +
-            "ORDER BY LOWER(album), album, folder_id LIMIT ? OFFSET ?"
+            "GROUP BY folder_id, album HAVING (? IS NULL OR MAX(genre) = ?) " +
+            "AND (? IS NULL OR MAX(year) >= ?) AND (? IS NULL OR MAX(year) <= ?) " +
+            "ORDER BY ${albumOrder(sort)} LIMIT ? OFFSET ?"
         return coreDataSource.connection.use { connection ->
             connection.prepareStatement(sql).use { statement ->
                 statement.setObject(1, folderId)
                 statement.setObject(2, folderId)
-                val nextParameter = bindLibraryScope(statement, 3, accessibleLibraryIds)
+                var nextParameter = bindLibraryScope(statement, 3, accessibleLibraryIds)
+                statement.setString(nextParameter++, genre)
+                statement.setString(nextParameter++, genre)
+                statement.setObject(nextParameter++, fromYear)
+                statement.setObject(nextParameter++, fromYear)
+                statement.setObject(nextParameter++, toYear)
+                statement.setObject(nextParameter++, toYear)
                 statement.setInt(nextParameter, limit.coerceIn(1, 100))
                 statement.setInt(nextParameter + 1, offset.coerceAtLeast(0))
                 statement.executeQuery().use { rows ->
@@ -341,13 +360,52 @@ class KtorCoreMediaCatalogService(
         }
     }
 
-    fun countAlbums(libraryId: Long?, accessibleLibraryIds: Set<Long>? = null): Long =
-        countCatalogEntries(
-            "album",
-            "album IS NOT NULL AND TRIM(album) <> ''",
-            libraryId,
-            accessibleLibraryIds,
-        )
+    fun countAlbums(
+        libraryId: Long?,
+        accessibleLibraryIds: Set<Long>? = null,
+        genre: String? = null,
+        fromYear: Int? = null,
+        toYear: Int? = null,
+    ): Long {
+        val folderId = libraryId?.toCoreFolderId()
+        require((fromYear == null) == (toYear == null)) { "Both year bounds must be provided" }
+        require(fromYear == null || fromYear <= requireNotNull(toYear)) { "Year range is reversed" }
+        val sql = "SELECT COUNT(*) FROM (SELECT folder_id, album FROM media_file " +
+            "WHERE present AND type IN ('MUSIC', 'AUDIOBOOK') AND (? IS NULL OR folder_id = ?) " +
+            "AND album IS NOT NULL AND TRIM(album) <> ''" + libraryScope(accessibleLibraryIds) + " " +
+            "GROUP BY folder_id, album HAVING (? IS NULL OR MAX(genre) = ?) " +
+            "AND (? IS NULL OR MAX(year) >= ?) AND (? IS NULL OR MAX(year) <= ?)) catalog_albums"
+        return coreDataSource.connection.use { connection ->
+            connection.prepareStatement(sql).use { statement ->
+                statement.setObject(1, folderId)
+                statement.setObject(2, folderId)
+                var nextParameter = bindLibraryScope(statement, 3, accessibleLibraryIds)
+                statement.setString(nextParameter++, genre)
+                statement.setString(nextParameter++, genre)
+                statement.setObject(nextParameter++, fromYear)
+                statement.setObject(nextParameter++, fromYear)
+                statement.setObject(nextParameter++, toYear)
+                statement.setObject(nextParameter, toYear)
+                statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
+            }
+        }
+    }
+
+    private fun albumOrder(sort: String): String = when (sort) {
+        "name" -> "LOWER(album), album, folder_id"
+        "artist" -> "LOWER(album_artist), album_artist, LOWER(album), album, folder_id"
+        "year" -> "MAX(year), LOWER(album), album, folder_id"
+        "newest" -> "MAX(created) DESC, LOWER(album), album, folder_id"
+        "most-played" -> "SUM(COALESCE(play_count, 0)) DESC, LOWER(album), album, folder_id"
+        "recently-played" -> "MAX(last_played) DESC, LOWER(album), album, folder_id"
+        "random" -> when (coreDataSource.connection.use { it.metaData.databaseProductName.lowercase() }) {
+            "hsql database engine", "h2" -> "RAND()"
+            "postgresql" -> "RANDOM()"
+            "mysql", "mariadb" -> "RAND()"
+            else -> throw IllegalArgumentException("Random album ordering is not supported by this database")
+        }
+        else -> error("Unsupported album sort")
+    }
 
     fun artists(
         libraryId: Long?,
@@ -501,6 +559,7 @@ class KtorCoreMediaCatalogService(
     }
 
     private companion object {
+        val ALBUM_SORTS = setOf("name", "artist", "year", "newest", "most-played", "recently-played", "random")
         const val TRACK_REFERENCE_MIGRATION = "core-media-track-references-v1"
         const val TRACK_COLUMNS = "id, folder_id, path, title, artist, album, album_artist, disc_number, " +
             "track_number, year, genre, duration, file_size, changed"

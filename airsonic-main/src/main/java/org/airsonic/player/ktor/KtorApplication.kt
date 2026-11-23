@@ -408,12 +408,26 @@ fun Application.standaloneModule(
                         val libraryId = requestedLibraryId?.toLongOrNull()
                         val limitValue = call.request.queryParameters["limit"]
                         val offsetValue = call.request.queryParameters["offset"]
+                        val sort = call.request.queryParameters["sort"] ?: "name"
+                        val genre = call.request.queryParameters["genre"]?.takeIf(String::isNotBlank)
+                        val rawFromYear = call.request.queryParameters["fromYear"]
+                        val fromYear = rawFromYear?.toIntOrNull()
+                        val rawToYear = call.request.queryParameters["toYear"]
+                        val toYear = rawToYear?.toIntOrNull()
                         val limit = limitValue?.toIntOrNull() ?: if (limitValue == null) 50 else null
                         val offset = offsetValue?.toIntOrNull() ?: if (offsetValue == null) 0 else null
                         if ((requestedLibraryId != null && (libraryId == null || libraryId !in 0..Int.MAX_VALUE.toLong())) ||
-                            limit == null || limit !in 1..100 || offset == null || offset < 0
+                            limit == null || limit !in 1..100 || offset == null || offset < 0 ||
+                            sort !in setOf("name", "artist", "year", "newest", "most-played", "recently-played", "random") ||
+                            genre?.length?.let { it > 128 } == true ||
+                            rawFromYear != null && fromYear == null || rawToYear != null && toYear == null ||
+                            (rawFromYear == null) != (rawToYear == null) ||
+                            fromYear != null && toYear != null && fromYear > toYear
                         ) {
-                            call.respondJson(ApiError("invalid_request", "libraryId must be between 0 and ${Int.MAX_VALUE}, limit between 1 and 100, and offset non-negative"), HttpStatusCode.BadRequest)
+                            call.respondJson(
+                                ApiError("invalid_request", "Invalid libraryId, sort, genre, year range, limit, or offset"),
+                                HttpStatusCode.BadRequest,
+                            )
                             return@get
                         }
                         val accessibleLibraries = call.catalogLibraryScope()
@@ -422,10 +436,10 @@ fun Application.standaloneModule(
                             return@get
                         }
                         val albums = withContext(scanDispatcher) {
-                            mediaCatalogService.albums(libraryId, limit, offset, accessibleLibraries)
+                            mediaCatalogService.albums(libraryId, limit, offset, accessibleLibraries, sort, genre, fromYear, toYear)
                         }
                         val total = withContext(scanDispatcher) {
-                            mediaCatalogService.countAlbums(libraryId, accessibleLibraries)
+                            mediaCatalogService.countAlbums(libraryId, accessibleLibraries, genre, fromYear, toYear)
                         }
                         call.respondJson(AlbumPage(albums.map { it.toResponse() }, albums.size, total, limit, offset))
                     }
