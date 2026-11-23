@@ -666,6 +666,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** `GET /api/v1/me/bookmarks` и PUT/DELETE `/api/v1/tracks/{id}/bookmark` вынесены из inline `standaloneModule` в `StandaloneBookmarkRoutes`, сохраняя bearer-проверки, библиотечный scope, валидацию и прежние dispatchers для чтения/записи и удаления. `KtorStandalonePlaylistTest` прошёл через активную регистрацию и проверил создание, чтение, скрытие недоступных треков, валидацию и удаление закладок.
 
+**Срез 23 ноября 2026:** `GET`/`PUT /api/v1/tracks/{id}/rating` вынесены в `StandaloneRatingRoutes` и подключены в активном bearer route tree. Проверка видимости трека происходит до чтения оценки; запись сохраняет диапазон 0–5 и удаление оценки значением 0. `KtorStandalonePlaylistTest` прошёл через production module и проверил чтение, права и запись.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

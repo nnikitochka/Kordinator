@@ -2019,56 +2019,7 @@ fun Application.standaloneModule(
                         }
                         if (deleted) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
                     }
-                    get("/tracks/{id}/rating") {
-                        val service = ratingService
-                        val catalog = mediaCatalogService
-                        if (service == null || catalog == null) {
-                            call.respondJson(ApiError("unavailable", "Rating storage is not configured"), HttpStatusCode.ServiceUnavailable)
-                            return@get
-                        }
-                        val user = call.principal<LocalUserPrincipal>()
-                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
-                        val trackId = call.parameters["id"]?.toLongOrNull()
-                        if (trackId == null || trackId < 0) {
-                            call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
-                            return@get
-                        }
-                        if (catalog.track(trackId, user.catalogLibraryScope()) == null) {
-                            call.respond(HttpStatusCode.NotFound)
-                            return@get
-                        }
-                        val rating = withContext(authDispatcher) { service.get(user.id, trackId) }
-                        call.respondJson(TrackRatingResponse(rating))
-                    }
-                    put("/tracks/{id}/rating") {
-                        val service = ratingService
-                        if (service == null) {
-                            call.respondJson(ApiError("unavailable", "Rating storage is not configured"), HttpStatusCode.ServiceUnavailable)
-                            return@put
-                        }
-                        val user = call.principal<LocalUserPrincipal>()
-                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
-                        val trackId = call.parameters["id"]?.toLongOrNull()
-                        if (trackId == null || trackId < 0) {
-                            call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
-                            return@put
-                        }
-                        val request = try {
-                            jsonMapper.readValue(call.receiveText(), SetTrackRatingRequest::class.java)
-                        } catch (_: Exception) {
-                            call.respondJson(ApiError("invalid_request", "Expected rating from 0 to 5"), HttpStatusCode.BadRequest)
-                            return@put
-                        }
-                        val saved = try {
-                            withContext(scanDispatcher) {
-                                service.set(user.id, trackId, request.rating, user.catalogLibraryScope())
-                            }
-                        } catch (failure: IllegalArgumentException) {
-                            call.respondJson(ApiError("invalid_request", failure.message ?: "Rating is invalid"), HttpStatusCode.BadRequest)
-                            return@put
-                        }
-                        if (saved) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
-                    }
+                    StandaloneRatingRoutes(ratingService, mediaCatalogService, jsonMapper, scanDispatcher, authDispatcher).routes(this)
                     post("/tracks/{id}/scrobble") {
                         val service = scrobbleService
                         val catalog = mediaCatalogService
@@ -3035,8 +2986,6 @@ data class PlayQueueResponse(
 data class PlayQueueTrackResponse(val id: Long, val title: String, val artist: String?, val album: String?, val durationSeconds: Int)
 data class SetTrackNoteRequest(val note: String)
 data class TrackNoteResponse(val trackId: Long, val note: String?, val createdAt: String?, val updatedAt: String?)
-data class SetTrackRatingRequest(val rating: Int)
-data class TrackRatingResponse(val rating: Int?)
 data class ScrobbleTrackRequest(val time: String? = null, val submission: Boolean = true)
 data class LyricsResponse(val artist: String?, val title: String?, val lyrics: String?, val tryLater: Boolean?)
 data class RandomTrackResponse(val items: List<TrackResponse>, val count: Int)
