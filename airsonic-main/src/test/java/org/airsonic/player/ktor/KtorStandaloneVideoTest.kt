@@ -21,6 +21,7 @@ import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.service.StandaloneVideoPlaybackService
 import org.airsonic.player.service.StandaloneVideoBookmarkService
+import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.TranscodingService
 import org.mockito.Mockito
 import java.nio.file.Path
@@ -158,6 +159,27 @@ class KtorStandaloneVideoTest {
                             statement.executeUpdate()
                         }
                     }
+                    val legacyPlaylistId = connection.prepareStatement(
+                        "INSERT INTO playlist (id, username, is_public, name, comment, file_count, duration, created, changed) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    ).use { statement ->
+                        statement.setInt(1, 701)
+                        statement.setString(2, "admin")
+                        statement.setBoolean(3, true)
+                        statement.setString(4, "Imported shared playlist")
+                        statement.setString(5, "legacy playlist comment")
+                        statement.setInt(6, 1)
+                        statement.setInt(7, 180)
+                        statement.setTimestamp(8, java.sql.Timestamp.from(legacyTrackTime))
+                        statement.setTimestamp(9, java.sql.Timestamp.from(legacyTrackTime))
+                        statement.executeUpdate()
+                        701
+                    }
+                    connection.prepareStatement("INSERT INTO playlist_file (playlist_id, media_file_id) VALUES (?, ?)").use { statement ->
+                        statement.setInt(1, legacyPlaylistId)
+                        statement.setInt(2, legacyTrack.id!!)
+                        statement.executeUpdate()
+                    }
                     connection.prepareStatement(
                         "INSERT INTO artist (name, album_count, last_scanned, present, folder_id) VALUES (?, ?, ?, ?, ?)",
                     ).use { statement ->
@@ -181,7 +203,22 @@ class KtorStandaloneVideoTest {
                         statement.executeUpdate()
                     }
                 }
-                KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
+                val mediaCatalog = KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
+                val playlists = StandalonePlaylistService(dataSource, mediaCatalog)
+                val importedPlaylistId = dataSource.connection.use { connection ->
+                    connection.prepareStatement(
+                        "SELECT playlist_id FROM legacy_playlist_import WHERE legacy_playlist_id = ?",
+                    ).use { statement ->
+                        statement.setInt(1, 701)
+                        statement.executeQuery().use { rows -> assertTrue(rows.next()); rows.getLong(1) }
+                    }
+                }
+                val importedPlaylist = playlists.get(adminId, importedPlaylistId)
+                assertEquals("Imported shared playlist", importedPlaylist?.name)
+                assertEquals("PUBLIC", importedPlaylist?.visibility)
+                assertEquals("legacy playlist comment", importedPlaylist?.description)
+                assertEquals(legacyTrack.id!!.toLong(), importedPlaylist?.tracks?.single()?.id)
+                assertEquals(importedPlaylistId, playlists.list(listenerId).single().id)
                 dataSource.connection.use { connection ->
                     connection.prepareStatement(
                         "SELECT position_ms, comment FROM track_bookmark WHERE user_id = ? AND track_id = ?",

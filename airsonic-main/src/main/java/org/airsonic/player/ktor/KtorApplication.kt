@@ -1039,7 +1039,12 @@ fun Application.standaloneModule(
                         }
                         val accessibleLibraries = user.catalogLibraryScope()
                         val playlists = withContext(scanDispatcher) { playlistService.list(user.id, accessibleLibraries) }
-                            .map { PlaylistSummaryResponse(it.id, it.name, it.createdAt.toString(), it.updatedAt.toString(), it.trackCount) }
+                            .map {
+                                PlaylistSummaryResponse(
+                                    it.id, it.name, it.createdAt.toString(), it.updatedAt.toString(),
+                                    it.trackCount, it.visibility, it.description,
+                                )
+                            }
                         call.respondJson(playlists)
                     }
                     post("/playlists") {
@@ -1057,7 +1062,9 @@ fun Application.standaloneModule(
                         }
                         try {
                             val playlist = withContext(scanDispatcher) {
-                                playlistService.create(user.id, request.name, request.trackIds, user.catalogLibraryScope())
+                                playlistService.create(
+                                    user.id, request.name, request.trackIds, user.catalogLibraryScope(), request.visibility, request.description,
+                                )
                             }
                             call.respondJson(playlist.toResponse(), HttpStatusCode.Created)
                         } catch (_: IllegalArgumentException) {
@@ -1100,6 +1107,35 @@ fun Application.standaloneModule(
                         call.response.headers.append(HttpHeaders.ContentDisposition, "attachment; filename=\"$fileName\"")
                         call.respondText(content, ContentType.parse("application/vnd.apple.mpegurl"))
                     }
+                    get("/playlists/{id}/readers") {
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                        val service = playlistService
+                            ?: return@get call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val playlistId = call.parameters["id"]?.toLongOrNull()?.takeIf { it >= 0 }
+                            ?: return@get call.respondJson(ApiError("invalid_request", "Playlist ID must be non-negative"), HttpStatusCode.BadRequest)
+                        val readers = withContext(scanDispatcher) { service.readers(user.id, playlistId) }
+                        if (readers == null) call.respond(HttpStatusCode.NotFound) else call.respondJson(PlaylistReadersResponse(readers))
+                    }
+                    put("/playlists/{id}/readers") {
+                        val user = call.principal<LocalUserPrincipal>()
+                            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                        val service = playlistService
+                            ?: return@put call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                        val playlistId = call.parameters["id"]?.toLongOrNull()?.takeIf { it >= 0 }
+                            ?: return@put call.respondJson(ApiError("invalid_request", "Playlist ID must be non-negative"), HttpStatusCode.BadRequest)
+                        val request = try {
+                            jsonMapper.readValue(call.receiveText(), SetPlaylistReadersRequest::class.java)
+                        } catch (_: Exception) {
+                            return@put call.respondJson(ApiError("invalid_request", "Expected userIds"), HttpStatusCode.BadRequest)
+                        }
+                        try {
+                            val readers = withContext(scanDispatcher) { service.setReaders(user.id, playlistId, request.userIds) }
+                            if (readers == null) call.respond(HttpStatusCode.NotFound) else call.respondJson(PlaylistReadersResponse(readers))
+                        } catch (_: IllegalArgumentException) {
+                            call.respondJson(ApiError("invalid_readers", "Reader account IDs are invalid"), HttpStatusCode.BadRequest)
+                        }
+                    }
                     get("/playlists/{id}") {
                         val user = call.principal<LocalUserPrincipal>()
                             ?: return@get call.respond(HttpStatusCode.Unauthorized)
@@ -1139,7 +1175,10 @@ fun Application.standaloneModule(
                         }
                         try {
                             val playlist = withContext(scanDispatcher) {
-                                service.update(user.id, playlistId, request.name, request.trackIds, user.catalogLibraryScope())
+                                service.update(
+                                    user.id, playlistId, request.name, request.trackIds, user.catalogLibraryScope(),
+                                    request.visibility, request.description,
+                                )
                             }
                             if (playlist == null) call.respond(HttpStatusCode.NotFound) else call.respondJson(playlist.toResponse())
                         } catch (_: IllegalArgumentException) {
@@ -3606,8 +3645,23 @@ private suspend fun ApplicationCall.respondArtwork(bytes: ByteArray, contentType
     }
 }
 
-data class SavePlaylistRequest(val name: String, val trackIds: List<Long> = emptyList())
-data class PlaylistSummaryResponse(val id: Long, val name: String, val createdAt: String, val updatedAt: String, val trackCount: Int)
+data class SavePlaylistRequest(
+    val name: String,
+    val trackIds: List<Long> = emptyList(),
+    val visibility: String = "PRIVATE",
+    val description: String? = null,
+)
+data class PlaylistSummaryResponse(
+    val id: Long,
+    val name: String,
+    val createdAt: String,
+    val updatedAt: String,
+    val trackCount: Int,
+    val visibility: String,
+    val description: String?,
+)
+data class SetPlaylistReadersRequest(val userIds: List<Long>)
+data class PlaylistReadersResponse(val userIds: List<Long>)
 data class PlaylistTrackResponse(
     val id: Long,
     val title: String,
@@ -3620,6 +3674,8 @@ data class PlaylistResponse(
     val name: String,
     val createdAt: String,
     val updatedAt: String,
+    val visibility: String,
+    val description: String?,
     val trackIds: List<Long>,
     val tracks: List<PlaylistTrackResponse>,
 )
@@ -3929,6 +3985,8 @@ private fun org.airsonic.player.service.StandalonePlaylist.toResponse() = Playli
     name,
     createdAt.toString(),
     updatedAt.toString(),
+    visibility,
+    description,
     tracks.map { it.id },
     tracks.map { PlaylistTrackResponse(it.id, it.title, it.artist, it.album, it.durationSeconds) },
 )

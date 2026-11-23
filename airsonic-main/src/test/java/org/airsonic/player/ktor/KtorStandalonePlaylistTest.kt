@@ -415,6 +415,7 @@ class KtorStandalonePlaylistTest {
                 val privateList = client.get("/api/v1/playlists") { bearerAuth(otherToken) }
                 assertEquals(0, mapper.readTree(privateList.bodyAsText()).size())
                 assertEquals(404, client.get("/api/v1/playlists/$playlistId") { bearerAuth(otherToken) }.status.value)
+                assertPlaylistReaders(client, mapper, ownerToken, otherToken, playlistId, otherId)
                 assertEquals(
                     404,
                     client.put("/api/v1/playlists/$playlistId") {
@@ -446,6 +447,8 @@ class KtorStandalonePlaylistTest {
                 assertEquals("Favorites", updatedBody.get("name").asText())
                 assertEquals(listOf(trackId), updatedBody.get("trackIds").map { it.asLong() })
 
+                assertPlaylistVisibility(client, mapper, ownerToken, otherToken, playlistId, trackId)
+
                 assertEquals(204, client.delete("/api/v1/playlists/$playlistId") { bearerAuth(ownerToken) }.status.value)
                 assertEquals(404, client.get("/api/v1/playlists/$playlistId") { bearerAuth(ownerToken) }.status.value)
                 }
@@ -453,6 +456,56 @@ class KtorStandalonePlaylistTest {
         } finally {
             runtime.close()
         }
+    }
+
+    private suspend fun assertPlaylistReaders(
+        client: HttpClient,
+        mapper: com.fasterxml.jackson.databind.ObjectMapper,
+        ownerToken: String,
+        otherToken: String,
+        playlistId: Long,
+        otherId: Long,
+    ) {
+        val setReaders = client.put("/api/v1/playlists/$playlistId/readers") {
+            bearerAuth(ownerToken)
+            header("Content-Type", "application/json")
+            setBody("""{"userIds":[$otherId]}""")
+        }
+        assertEquals(200, setReaders.status.value)
+        assertEquals(listOf(otherId), mapper.readTree(setReaders.bodyAsText()).get("userIds").map { it.asLong() })
+        assertEquals(200, client.get("/api/v1/playlists/$playlistId") { bearerAuth(otherToken) }.status.value)
+        assertEquals(1, mapper.readTree(client.get("/api/v1/playlists") { bearerAuth(otherToken) }.bodyAsText()).size())
+        assertEquals(404, client.put("/api/v1/playlists/$playlistId/readers") {
+            bearerAuth(otherToken)
+            header("Content-Type", "application/json")
+            setBody("""{"userIds":[]}""")
+        }.status.value)
+        assertEquals(200, client.put("/api/v1/playlists/$playlistId/readers") {
+            bearerAuth(ownerToken)
+            header("Content-Type", "application/json")
+            setBody("""{"userIds":[]}""")
+        }.status.value)
+        assertEquals(404, client.get("/api/v1/playlists/$playlistId") { bearerAuth(otherToken) }.status.value)
+    }
+
+    private suspend fun assertPlaylistVisibility(
+        client: HttpClient,
+        mapper: com.fasterxml.jackson.databind.ObjectMapper,
+        ownerToken: String,
+        otherToken: String,
+        playlistId: Long,
+        trackId: Long,
+    ) {
+        val makePublic = client.put("/api/v1/playlists/$playlistId") {
+            bearerAuth(ownerToken)
+            header("Content-Type", "application/json")
+            setBody("""{"name":"Favorites","trackIds":[$trackId],"visibility":"PUBLIC","description":"Shared set"}""")
+        }
+        assertEquals(200, makePublic.status.value)
+        val response = mapper.readTree(makePublic.bodyAsText())
+        assertEquals("PUBLIC", response.get("visibility").asText())
+        assertEquals("Shared set", response.get("description").asText())
+        assertEquals(200, client.get("/api/v1/playlists/$playlistId") { bearerAuth(otherToken) }.status.value)
     }
 
     private suspend fun assertPlaylistExport(client: HttpClient, ownerToken: String, otherToken: String, playlistId: Long) {

@@ -66,6 +66,8 @@ class KordinatorPlaylistImportRoutes(
             playlist.name,
             playlist.createdAt.toString(),
             playlist.updatedAt.toString(),
+            playlist.visibility,
+            playlist.description,
             playlist.tracks.map { it.id },
             playlist.tracks.map { PlaylistTrackResponse(it.id, it.title, it.artist, it.album, it.durationSeconds) },
         )

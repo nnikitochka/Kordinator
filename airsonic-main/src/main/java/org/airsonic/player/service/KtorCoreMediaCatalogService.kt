@@ -42,6 +42,7 @@ class KtorCoreMediaCatalogService(
         migrateLegacyBookmarks()
         migrateLegacyRatings()
         migrateLegacyFavorites()
+        migrateLegacyPlaylists()
         dropLegacyTrackProjection()
     }
 
@@ -671,6 +672,171 @@ class KtorCoreMediaCatalogService(
     }
 
     private fun coreTableExists(tableName: String): Boolean = coreDataSource.connection.use { tableExists(it, tableName) }
+
+    /** Move legacy user playlists and their read grants into the account-scoped Ktor store. */
+    private fun migrateLegacyPlaylists() {
+        val migrationId = "legacy-user-playlists-1"
+        ktorDataSource.connection.use { connection ->
+            connection.autoCommit = false
+            try {
+                val completed = connection.prepareStatement(
+                    "SELECT 1 FROM standalone_data_migration WHERE migration_id = ?",
+                ).use { statement ->
+                    statement.setString(1, migrationId)
+                    statement.executeQuery().use { it.next() }
+                }
+                if (completed) {
+                    connection.commit()
+                    return
+                }
+                if (!coreTableExists("playlist")) {
+                    recordMigration(connection, migrationId)
+                    connection.commit()
+                    return
+                }
+                val userIds = connection.prepareStatement("SELECT id, username FROM local_user").use { statement ->
+                    statement.executeQuery().use { rows ->
+                        buildMap { while (rows.next()) put(rows.getString("username"), rows.getLong("id")) }
+                    }
+                }
+                val oldPlaylists = coreDataSource.connection.use { coreConnection ->
+                    coreConnection.prepareStatement(
+                        "SELECT id, username, is_public, name, comment, created, changed FROM playlist ORDER BY id",
+                    ).use { statement ->
+                        statement.executeQuery().use { rows ->
+                            buildList {
+                                while (rows.next()) add(
+                                    LegacyPlaylistRow(
+                                        rows.getLong("id"), rows.getString("username"), rows.getBoolean("is_public"),
+                                        rows.getString("name"), rows.getString("comment"), rows.getTimestamp("created")?.toInstant() ?: Instant.EPOCH,
+                                        rows.getTimestamp("changed")?.toInstant() ?: Instant.EPOCH,
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+                var pendingAccountMatch = false
+                oldPlaylists.forEach { old ->
+                    val ownerId = userIds[old.username]
+                    if (ownerId == null) {
+                        pendingAccountMatch = true
+                        return@forEach
+                    }
+                    val playlistId = connection.prepareStatement(
+                        "SELECT playlist_id FROM legacy_playlist_import WHERE legacy_playlist_id = ?",
+                    ).use { statement ->
+                        statement.setLong(1, old.id)
+                        statement.executeQuery().use { if (it.next()) it.getLong(1) else null }
+                    } ?: createLegacyPlaylist(connection, old, ownerId)
+
+                    val legacyTracks = if (coreTableExists("playlist_file")) coreDataSource.connection.use { coreConnection ->
+                        coreConnection.prepareStatement(
+                            "SELECT pf.media_file_id FROM playlist_file pf JOIN media_file m ON m.id = pf.media_file_id " +
+                                "WHERE pf.playlist_id = ? AND m.present AND m.type IN ('MUSIC', 'AUDIOBOOK') ORDER BY pf.id",
+                        ).use { statement ->
+                            statement.setLong(1, old.id)
+                            statement.executeQuery().use { rows -> buildList { while (rows.next()) add(rows.getLong(1)) } }
+                        }
+                    } else emptyList()
+                    if (legacyTracks.isNotEmpty()) {
+                        val existingTrackCount = connection.prepareStatement(
+                            "SELECT COUNT(*) FROM user_playlist_track WHERE playlist_id = ?",
+                        ).use { statement ->
+                            statement.setLong(1, playlistId)
+                            statement.executeQuery().use { rows -> rows.next(); rows.getInt(1) }
+                        }
+                        if (existingTrackCount == 0) {
+                            connection.prepareStatement(
+                                "INSERT INTO user_playlist_track (playlist_id, position, track_id) VALUES (?, ?, ?)",
+                            ).use { statement ->
+                                legacyTracks.forEachIndexed { position, trackId ->
+                                    statement.setLong(1, playlistId)
+                                    statement.setInt(2, position)
+                                    statement.setLong(3, trackId)
+                                    statement.addBatch()
+                                }
+                                statement.executeBatch()
+                            }
+                        }
+                    }
+                    if (coreTableExists("playlist_user")) {
+                        val sharedUsernames = coreDataSource.connection.use { coreConnection ->
+                            coreConnection.prepareStatement("SELECT username FROM playlist_user WHERE playlist_id = ?").use { statement ->
+                                statement.setLong(1, old.id)
+                                statement.executeQuery().use { rows -> buildList { while (rows.next()) add(rows.getString(1)) } }
+                            }
+                        }
+                        sharedUsernames.forEach { username ->
+                            val sharedUserId = userIds[username]
+                            if (sharedUserId == null) {
+                                pendingAccountMatch = true
+                            } else if (sharedUserId != ownerId) {
+                                connection.prepareStatement(
+                                    "INSERT INTO user_playlist_access (playlist_id, user_id) " +
+                                        "SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM user_playlist_access WHERE playlist_id = ? AND user_id = ?)",
+                                ).use { statement ->
+                                    statement.setLong(1, playlistId)
+                                    statement.setLong(2, sharedUserId)
+                                    statement.setLong(3, playlistId)
+                                    statement.setLong(4, sharedUserId)
+                                    statement.executeUpdate()
+                                }
+                            }
+                        }
+                    }
+                }
+                if (!pendingAccountMatch) recordMigration(connection, migrationId)
+                connection.commit()
+            } catch (failure: Throwable) {
+                connection.rollback()
+                throw failure
+            }
+        }
+    }
+
+    private fun createLegacyPlaylist(connection: java.sql.Connection, old: LegacyPlaylistRow, ownerId: Long): Long {
+        val playlistId = connection.prepareStatement(
+            "INSERT INTO user_playlist (owner_id, name, created_at, updated_at, visibility, description) VALUES (?, ?, ?, ?, ?, ?)",
+            arrayOf("id"),
+        ).use { statement ->
+            statement.setLong(1, ownerId)
+            statement.setString(2, old.name.trim().ifEmpty { "Imported playlist ${old.id}" })
+            statement.setTimestamp(3, Timestamp.from(old.createdAt))
+            statement.setTimestamp(4, Timestamp.from(old.changedAt))
+            statement.setString(5, if (old.isPublic) "PUBLIC" else "PRIVATE")
+            statement.setString(6, old.description)
+            statement.executeUpdate()
+            statement.generatedKeys.use { keys -> check(keys.next()); keys.getLong(1) }
+        }
+        connection.prepareStatement(
+            "INSERT INTO legacy_playlist_import (legacy_playlist_id, playlist_id) VALUES (?, ?)",
+        ).use { statement ->
+            statement.setLong(1, old.id)
+            statement.setLong(2, playlistId)
+            statement.executeUpdate()
+        }
+        return playlistId
+    }
+
+    private fun recordMigration(connection: java.sql.Connection, migrationId: String) {
+        connection.prepareStatement(
+            "INSERT INTO standalone_data_migration (migration_id, completed_at) VALUES (?, CURRENT_TIMESTAMP)",
+        ).use { statement ->
+            statement.setString(1, migrationId)
+            statement.executeUpdate()
+        }
+    }
+
+    private data class LegacyPlaylistRow(
+        val id: Long,
+        val username: String,
+        val isPublic: Boolean,
+        val name: String,
+        val description: String?,
+        val createdAt: Instant,
+        val changedAt: Instant,
+    )
 
     private fun insertTrackFavorite(connection: java.sql.Connection, userId: Long, trackId: Long, createdAt: Instant) {
         if (connection.prepareStatement("SELECT 1 FROM favorite_track WHERE user_id = ? AND track_id = ?").use { statement ->
