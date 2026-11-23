@@ -546,6 +546,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** добавлен `GET /api/v1/jukebox/queue/export` с M3U живой очереди, прикреплённым файлом и относительными ссылками на новые bearer-защищённые stream routes. Экспорт возвращает очередь только её владельцу и конфликтует, если jukebox занят другим аккаунтом. Удалены старый `/rest/exportLivePlayQueue`, его контроллер и root factory. `KtorStandaloneJukeboxTest` прошёл 1/1.
 
+**Срез 23 ноября 2026:** Last.fm биография исполнителя и заметки альбома перенесены в `GET /api/v1/tracks/{id}/metadata`. Endpoint возвращает внешнее обогащение для трека из доступной пользователю библиотеки, с приватным кешем на 5 минут. Старые Spring `ArtistInfoController` и `AlbumInfoController`, их runtime-root factories и graph assertions удалены; интеграционный тест проверил данные и отказ в доступе к чужой библиотеке.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

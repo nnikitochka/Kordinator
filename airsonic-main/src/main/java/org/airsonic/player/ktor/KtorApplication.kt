@@ -649,6 +649,45 @@ fun Application.standaloneModule(
                             track.artist, track.album, track.albumArtist, track.durationSeconds, track.sizeBytes,
                             track.modifiedAt?.toString()))
                     }
+                    get("/tracks/{id}/metadata") {
+                        val catalog = mediaCatalogService
+                        val files = mediaFileService
+                        val metadata = topSongsService
+                        if (catalog == null || files == null || metadata == null) {
+                            call.respondJson(ApiError("unavailable", "Track metadata lookup is not configured"), HttpStatusCode.ServiceUnavailable)
+                            return@get
+                        }
+                        val trackId = call.parameters["id"]?.toLongOrNull()
+                        if (trackId == null || trackId < 0) {
+                            call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative number"), HttpStatusCode.BadRequest)
+                            return@get
+                        }
+                        val track = withContext(scanDispatcher) { catalog.track(trackId, call.catalogLibraryScope()) }
+                            ?: return@get call.respond(HttpStatusCode.NotFound)
+                        val mediaFile = withContext(Dispatchers.IO) { files.getMediaFile(track.relativePath, track.libraryId.toInt()) }
+                            ?: return@get call.respond(HttpStatusCode.NotFound)
+                        val (artistBio, albumNotes) = withContext(Dispatchers.IO) {
+                            metadata.getArtistBio(mediaFile, java.util.Locale.getDefault()) to metadata.getAlbumNotes(mediaFile)
+                        }
+                        call.response.headers.append(HttpHeaders.CacheControl, "private, max-age=300")
+                        call.respondJson(
+                            TrackExternalMetadataResponse(
+                                trackId,
+                                artistBio?.let {
+                                    ArtistExternalMetadataResponse(
+                                        it.biography, it.musicBrainzId, it.lastFmUrl,
+                                        it.smallImageUrl, it.mediumImageUrl, it.largeImageUrl,
+                                    )
+                                },
+                                albumNotes?.let {
+                                    AlbumExternalMetadataResponse(
+                                        it.notes, it.musicBrainzId, it.lastFmUrl,
+                                        it.smallImageUrl, it.mediumImageUrl, it.largeImageUrl,
+                                    )
+                                },
+                            ),
+                        )
+                    }
                     route("/tracks/{id}/stream") {
                         install(HttpRequestLifecycle) { cancelCallOnClose = true }
                         get {
@@ -3460,6 +3499,27 @@ data class TrackResponse(
     val trackNumber: Int? = null,
     val year: Int? = null,
     val genre: String? = null,
+)
+data class TrackExternalMetadataResponse(
+    val trackId: Long,
+    val artist: ArtistExternalMetadataResponse?,
+    val album: AlbumExternalMetadataResponse?,
+)
+data class ArtistExternalMetadataResponse(
+    val biography: String?,
+    val musicBrainzId: String?,
+    val lastFmUrl: String?,
+    val smallImageUrl: String?,
+    val mediumImageUrl: String?,
+    val largeImageUrl: String?,
+)
+data class AlbumExternalMetadataResponse(
+    val notes: String?,
+    val musicBrainzId: String?,
+    val lastFmUrl: String?,
+    val smallImageUrl: String?,
+    val mediumImageUrl: String?,
+    val largeImageUrl: String?,
 )
 data class StandaloneSearchResponse(val query: String, val offset: Int, val totalHits: Long, val tracks: List<TrackResponse>)
 data class TrackPage(val items: List<TrackResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)

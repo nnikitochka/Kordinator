@@ -18,6 +18,8 @@ import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.server.testing.testApplication
 import org.airsonic.player.runtime.StandaloneDatabase
+import org.airsonic.player.domain.AlbumNotes
+import org.airsonic.player.domain.ArtistBio
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlaylistService
@@ -104,6 +106,7 @@ class KtorStandalonePlaylistTest {
                 val coreTrackId = mediaCatalogService.tracks(null, null, 10, 0, null).single().id
                 val coreFile = runtime.runtime.createPersistenceGraph().daos.mediaFileDao.getMediaFile(coreTrackId.toInt())
                 Mockito.`when`(coreCatalog.mediaFileService.getMediaFile(coreTrackId.toInt())).thenReturn(coreFile)
+                Mockito.`when`(coreCatalog.mediaFileService.getMediaFile("track.mp3", library.id.toInt())).thenReturn(coreFile)
                 Mockito.`when`(randomSearch.getRandomSongs(Mockito.any(RandomSearchCriteria::class.java))).thenReturn(listOf(coreFile))
                 Mockito.`when`(topSongs.getTopSongs(Mockito.anyString(), Mockito.anyInt(), Mockito.anyList())).thenReturn(listOf(coreFile))
                 Mockito.`when`(topSongs.getSimilarSongs(
@@ -114,6 +117,7 @@ class KtorStandalonePlaylistTest {
                 )).thenReturn(listOf(coreFile))
                 Mockito.`when`(artistDao.getArtist(Mockito.eq("Album Artist"), Mockito.anyList()))
                     .thenReturn(org.airsonic.player.domain.Artist().apply { name = "Album Artist" })
+                configureExternalMetadata(topSongs)
                 val mapper = jacksonObjectMapper()
 
                 testApplication {
@@ -140,6 +144,7 @@ class KtorStandalonePlaylistTest {
 
                 val tracksResponse = client.get("/api/v1/tracks") { bearerAuth(ownerToken) }
                 val trackId = mapper.readTree(tracksResponse.bodyAsText()).get("items")[0].get("id").asLong()
+                assertTrackMetadata(client, mapper, ownerToken, otherToken, trackId)
                 assertEquals(true, auth.setAllowedLibraries(otherId, setOf(library.id.toLong())))
                 assertTrackNotes(client, mapper, ownerToken, otherToken, trackId)
                 assertEquals(true, auth.setAllowedLibraries(otherId, emptySet()))
@@ -528,5 +533,28 @@ class KtorStandalonePlaylistTest {
         assertEquals(204, client.delete(path) { bearerAuth(ownerToken) }.status.value)
         assertEquals(true, mapper.readTree(client.get(path) { bearerAuth(ownerToken) }.bodyAsText()).get("note").isNull)
         assertEquals(404, client.delete(path) { bearerAuth(ownerToken) }.status.value)
+    }
+
+    private fun configureExternalMetadata(lastFm: LastFmService) {
+        Mockito.`when`(lastFm.getArtistBio(
+            Mockito.any(org.airsonic.player.domain.MediaFile::class.java), Mockito.any(java.util.Locale::class.java),
+        )).thenReturn(ArtistBio("Artist biography", "artist-mbid", "https://last.fm/artist", "small", "medium", "large"))
+        Mockito.`when`(lastFm.getAlbumNotes(Mockito.any(org.airsonic.player.domain.MediaFile::class.java)))
+            .thenReturn(AlbumNotes("Album notes", "album-mbid", "https://last.fm/album", "small", "medium", "large"))
+    }
+
+    private suspend fun assertTrackMetadata(
+        client: HttpClient,
+        mapper: com.fasterxml.jackson.databind.ObjectMapper,
+        ownerToken: String,
+        otherToken: String,
+        trackId: Long,
+    ) {
+        val response = client.get("/api/v1/tracks/$trackId/metadata") { bearerAuth(ownerToken) }
+        assertEquals(200, response.status.value, response.bodyAsText())
+        val metadata = mapper.readTree(response.bodyAsText())
+        assertEquals("Artist biography", metadata.get("artist").get("biography").asText())
+        assertEquals("Album notes", metadata.get("album").get("notes").asText())
+        assertEquals(404, client.get("/api/v1/tracks/$trackId/metadata") { bearerAuth(otherToken) }.status.value)
     }
 }

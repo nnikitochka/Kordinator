@@ -100,8 +100,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.ping.PingController pingController;
     private org.airsonic.player.controller.rest.scan.ScanController scanController;
     private org.airsonic.player.controller.rest.music.similar.SimilarSongsController similarSongsController;
-    private org.airsonic.player.controller.rest.info.artist.ArtistInfoController artistInfoController;
-    private org.airsonic.player.controller.rest.info.album.AlbumInfoController albumInfoController;
     private org.airsonic.player.controller.rest.music.genre.SongsByGenreController songsByGenreController;
     private org.airsonic.player.controller.rest.music.top.TopSongsController topSongsController;
     private org.airsonic.player.controller.rest.music.random.RandomSongsController randomSongsController;
@@ -357,36 +355,6 @@ public final class RuntimeCompositionRoot {
                     mediaFolderService, responseMapper, createSubsonicJaxbWriter());
         }
         return similarSongsController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.info.artist.ArtistInfoController
-            createArtistInfoController(
-                    org.airsonic.player.service.MediaFileService mediaFileService,
-                    org.airsonic.player.service.LastFmService lastFmService,
-                    org.airsonic.player.service.MediaFolderService mediaFolderService,
-                    org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
-        if (artistInfoController == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException("Persistence graph must be created before ArtistInfoController");
-            }
-            artistInfoController = new org.airsonic.player.controller.rest.info.artist.ArtistInfoController(
-                    mediaFileService, persistenceGraph.getDaos().getArtistDao(), lastFmService,
-                    mediaFolderService, responseMapper, createSubsonicJaxbWriter());
-        }
-        return artistInfoController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.info.album.AlbumInfoController createAlbumInfoController(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.LastFmService lastFmService) {
-        if (albumInfoController == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException("Persistence graph must be created before AlbumInfoController");
-            }
-            albumInfoController = new org.airsonic.player.controller.rest.info.album.AlbumInfoController(
-                    mediaFileService, persistenceGraph.getDaos().getAlbumDao(), lastFmService, createSubsonicJaxbWriter());
-        }
-        return albumInfoController;
     }
 
     public synchronized org.airsonic.player.controller.rest.music.genre.SongsByGenreController
