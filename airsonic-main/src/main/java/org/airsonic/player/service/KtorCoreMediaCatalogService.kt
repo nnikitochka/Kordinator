@@ -41,6 +41,7 @@ class KtorCoreMediaCatalogService(
         migrateStoredTrackReferences()
         migrateLegacyBookmarks()
         migrateLegacyRatings()
+        migrateLegacyFavorites()
         dropLegacyTrackProjection()
     }
 
@@ -519,6 +520,219 @@ class KtorCoreMediaCatalogService(
         val mediaType: String,
         val libraryId: Long,
         val albumName: String?,
+    )
+
+    /** Copy legacy starred songs, albums and artists to account-scoped Kordinator favorites. */
+    private fun migrateLegacyFavorites() {
+        ktorDataSource.connection.use { connection ->
+            connection.autoCommit = false
+            try {
+                val migrationId = "legacy-media-favorites-1"
+                val completed = connection.prepareStatement(
+                    "SELECT 1 FROM standalone_data_migration WHERE migration_id = ?",
+                ).use { statement ->
+                    statement.setString(1, migrationId)
+                    statement.executeQuery().use { it.next() }
+                }
+                if (completed) {
+                    connection.commit()
+                    return
+                }
+                val userIds = connection.prepareStatement("SELECT id, username FROM local_user").use { statement ->
+                    statement.executeQuery().use { rows ->
+                        buildMap { while (rows.next()) put(rows.getString("username"), rows.getLong("id")) }
+                    }
+                }
+                var pendingAccountMatch = false
+                if (coreTableExists("starred_media_file")) {
+                    val favorites = coreDataSource.connection.use { coreConnection ->
+                        coreConnection.prepareStatement(
+                            "SELECT s.username, s.created, m.id AS media_id, m.type AS media_type, " +
+                                "m.folder_id, m.album, m.artist, m.title, m.path FROM starred_media_file s " +
+                                "JOIN media_file m ON m.id = s.media_file_id WHERE m.present",
+                        ).use { statement ->
+                            statement.executeQuery().use { rows ->
+                                buildList {
+                                    while (rows.next()) {
+                                        add(
+                                            LegacyFavoriteRow(
+                                                rows.getString("username"), rows.getTimestamp("created")?.toInstant() ?: Instant.now(),
+                                                rows.getLong("media_id"), rows.getString("media_type"), rows.getLong("folder_id"),
+                                                rows.getString("album"), rows.getString("artist"), rows.getString("title"), rows.getString("path"),
+                                            ),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    favorites.forEach { favorite ->
+                        val userId = userIds[favorite.username]
+                        if (userId == null) {
+                            pendingAccountMatch = true
+                            return@forEach
+                        }
+                        when (favorite.mediaType) {
+                            "MUSIC", "AUDIOBOOK" -> insertTrackFavorite(connection, userId, favorite.mediaId, favorite.createdAt)
+                            "ALBUM" -> {
+                                val name = favorite.albumName?.trim()?.takeIf(String::isNotEmpty)
+                                    ?: favorite.path.substringAfterLast('/').takeIf(String::isNotEmpty)
+                                if (name != null && album(favorite.libraryId, name) != null) {
+                                    insertCatalogFavorite(connection, "favorite_album", "album_name", userId, favorite.libraryId, name, favorite.createdAt)
+                                }
+                            }
+                            "DIRECTORY" -> {
+                                val candidates = listOfNotNull(favorite.artistName, favorite.title, favorite.path.substringAfterLast('/'))
+                                    .map(String::trim).filter(String::isNotEmpty).distinct()
+                                val name = candidates.firstOrNull { artist(favorite.libraryId, it) != null }
+                                if (name != null) {
+                                    insertCatalogFavorite(connection, "favorite_artist", "artist_name", userId, favorite.libraryId, name, favorite.createdAt)
+                                }
+                            }
+                        }
+                    }
+                }
+                if (coreTableExists("starred_album")) {
+                    val favorites = coreDataSource.connection.use { coreConnection ->
+                        coreConnection.prepareStatement(
+                            "SELECT s.username, s.created, a.folder_id, a.name FROM starred_album s " +
+                                "JOIN album a ON a.id = s.album_id WHERE a.present",
+                        ).use { statement ->
+                            statement.executeQuery().use { rows ->
+                                buildList {
+                                    while (rows.next()) {
+                                        add(
+                                            LegacyCatalogFavoriteRow(
+                                                rows.getString("username"), rows.getTimestamp("created")?.toInstant() ?: Instant.now(),
+                                                rows.getLong("folder_id"), rows.getString("name"),
+                                            ),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    favorites.forEach { favorite ->
+                        val userId = userIds[favorite.username]
+                        if (userId == null) {
+                            pendingAccountMatch = true
+                            return@forEach
+                        }
+                        if (album(favorite.libraryId, favorite.name) != null) {
+                            insertCatalogFavorite(connection, "favorite_album", "album_name", userId, favorite.libraryId, favorite.name, favorite.createdAt)
+                        }
+                    }
+                }
+                if (coreTableExists("starred_artist")) {
+                    val favorites = coreDataSource.connection.use { coreConnection ->
+                        coreConnection.prepareStatement(
+                            "SELECT s.username, s.created, a.folder_id, a.name FROM starred_artist s " +
+                                "JOIN artist a ON a.id = s.artist_id WHERE a.present",
+                        ).use { statement ->
+                            statement.executeQuery().use { rows ->
+                                buildList {
+                                    while (rows.next()) {
+                                        add(
+                                            LegacyCatalogFavoriteRow(
+                                                rows.getString("username"), rows.getTimestamp("created")?.toInstant() ?: Instant.now(),
+                                                rows.getLong("folder_id"), rows.getString("name"),
+                                            ),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    favorites.forEach { favorite ->
+                        val userId = userIds[favorite.username]
+                        if (userId == null) {
+                            pendingAccountMatch = true
+                            return@forEach
+                        }
+                        if (artist(favorite.libraryId, favorite.name) != null) {
+                            insertCatalogFavorite(connection, "favorite_artist", "artist_name", userId, favorite.libraryId, favorite.name, favorite.createdAt)
+                        }
+                    }
+                }
+                if (!pendingAccountMatch) {
+                    connection.prepareStatement(
+                        "INSERT INTO standalone_data_migration (migration_id, completed_at) VALUES (?, CURRENT_TIMESTAMP)",
+                    ).use { statement ->
+                        statement.setString(1, migrationId)
+                        statement.executeUpdate()
+                    }
+                }
+                connection.commit()
+            } catch (failure: Throwable) {
+                connection.rollback()
+                throw failure
+            }
+        }
+    }
+
+    private fun coreTableExists(tableName: String): Boolean = coreDataSource.connection.use { tableExists(it, tableName) }
+
+    private fun insertTrackFavorite(connection: java.sql.Connection, userId: Long, trackId: Long, createdAt: Instant) {
+        if (connection.prepareStatement("SELECT 1 FROM favorite_track WHERE user_id = ? AND track_id = ?").use { statement ->
+                statement.setLong(1, userId)
+                statement.setLong(2, trackId)
+                statement.executeQuery().use { it.next() }
+            }
+        ) return
+        connection.prepareStatement(
+            "INSERT INTO favorite_track (user_id, track_id, created_at) VALUES (?, ?, ?)",
+        ).use { statement ->
+            statement.setLong(1, userId)
+            statement.setLong(2, trackId)
+            statement.setTimestamp(3, Timestamp.from(createdAt))
+            statement.executeUpdate()
+        }
+    }
+
+    private fun insertCatalogFavorite(
+        connection: java.sql.Connection,
+        table: String,
+        nameColumn: String,
+        userId: Long,
+        libraryId: Long,
+        name: String,
+        createdAt: Instant,
+    ) {
+        connection.prepareStatement("SELECT 1 FROM $table WHERE user_id = ? AND library_id = ? AND $nameColumn = ?")
+            .use { statement ->
+                statement.setLong(1, userId)
+                statement.setLong(2, libraryId)
+                statement.setString(3, name)
+                if (statement.executeQuery().use { it.next() }) return
+            }
+        connection.prepareStatement(
+            "INSERT INTO $table (user_id, library_id, $nameColumn, created_at) VALUES (?, ?, ?, ?)",
+        ).use { statement ->
+            statement.setLong(1, userId)
+            statement.setLong(2, libraryId)
+            statement.setString(3, name)
+            statement.setTimestamp(4, Timestamp.from(createdAt))
+            statement.executeUpdate()
+        }
+    }
+
+    private data class LegacyFavoriteRow(
+        val username: String,
+        val createdAt: Instant,
+        val mediaId: Long,
+        val mediaType: String,
+        val libraryId: Long,
+        val albumName: String?,
+        val artistName: String?,
+        val title: String?,
+        val path: String,
+    )
+
+    private data class LegacyCatalogFavoriteRow(
+        val username: String,
+        val createdAt: Instant,
+        val libraryId: Long,
+        val name: String,
     )
 
     private fun tableExists(connection: java.sql.Connection, tableName: String): Boolean =

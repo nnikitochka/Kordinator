@@ -87,6 +87,8 @@ class KtorStandaloneVideoTest {
                     folderId = library.id
                     mediaType = MediaFile.MediaType.MUSIC
                     title = "Legacy Track"
+                    albumName = "Legacy Rated Album"
+                    artist = "Legacy Artist"
                     format = "mp3"
                     duration = 180.0
                     fileSize = 1_000
@@ -146,6 +148,38 @@ class KtorStandaloneVideoTest {
                             statement.executeUpdate()
                         }
                     }
+                    listOf(legacyTrack.id!!, legacyAlbum.id!!).forEach { mediaId ->
+                        connection.prepareStatement(
+                            "INSERT INTO starred_media_file (media_file_id, username, created) VALUES (?, ?, ?)",
+                        ).use { statement ->
+                            statement.setInt(1, mediaId)
+                            statement.setString(2, "admin")
+                            statement.setTimestamp(3, java.sql.Timestamp.from(Instant.now()))
+                            statement.executeUpdate()
+                        }
+                    }
+                    connection.prepareStatement(
+                        "INSERT INTO artist (name, album_count, last_scanned, present, folder_id) VALUES (?, ?, ?, ?, ?)",
+                    ).use { statement ->
+                        statement.setString(1, "Legacy Artist")
+                        statement.setInt(2, 1)
+                        statement.setTimestamp(3, java.sql.Timestamp.from(legacyTrackTime))
+                        statement.setBoolean(4, true)
+                        statement.setInt(5, library.id!!)
+                        statement.executeUpdate()
+                    }
+                    val artistId = connection.prepareStatement("SELECT id FROM artist WHERE name = ?").use { statement ->
+                        statement.setString(1, "Legacy Artist")
+                        statement.executeQuery().use { rows -> rows.next(); rows.getInt(1) }
+                    }
+                    connection.prepareStatement(
+                        "INSERT INTO starred_artist (artist_id, username, created) VALUES (?, ?, ?)",
+                    ).use { statement ->
+                        statement.setInt(1, artistId)
+                        statement.setString(2, "admin")
+                        statement.setTimestamp(3, java.sql.Timestamp.from(Instant.now()))
+                        statement.executeUpdate()
+                    }
                 }
                 KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
                 dataSource.connection.use { connection ->
@@ -180,6 +214,27 @@ class KtorStandaloneVideoTest {
                             assertTrue(rows.next())
                             assertEquals(5, rows.getInt("rating"))
                         }
+                    }
+                    connection.prepareStatement("SELECT 1 FROM favorite_track WHERE user_id = ? AND track_id = ?").use { statement ->
+                        statement.setLong(1, adminId)
+                        statement.setLong(2, legacyTrack.id!!.toLong())
+                        assertTrue(statement.executeQuery().use { it.next() })
+                    }
+                    connection.prepareStatement(
+                        "SELECT 1 FROM favorite_album WHERE user_id = ? AND library_id = ? AND album_name = ?",
+                    ).use { statement ->
+                        statement.setLong(1, adminId)
+                        statement.setLong(2, library.id!!.toLong())
+                        statement.setString(3, "Legacy Rated Album")
+                        assertTrue(statement.executeQuery().use { it.next() })
+                    }
+                    connection.prepareStatement(
+                        "SELECT 1 FROM favorite_artist WHERE user_id = ? AND library_id = ? AND artist_name = ?",
+                    ).use { statement ->
+                        statement.setLong(1, adminId)
+                        statement.setLong(2, library.id!!.toLong())
+                        statement.setString(3, "Legacy Artist")
+                        assertTrue(statement.executeQuery().use { it.next() })
                     }
                 }
                 val playbackService = StandaloneVideoPlaybackService(mediaFileService, Mockito.mock(TranscodingService::class.java))
