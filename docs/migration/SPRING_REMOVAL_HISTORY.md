@@ -560,6 +560,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалён старый XML `ScanController` и root factory. Сканирование и статусы привязаны к библиотеке в `/api/v1/admin/libraries/{id}/scan`; Ktor tests проверяют запуск, статус, доступ и повторное сканирование.
 
+**Срез 23 ноября 2026:** удалён незарегистрированный Subsonic `RandomSongsController` и request DTO с его runtime-root wiring. Новая выборка доступна на `GET /api/v1/tracks/random`; каталоговый интеграционный тест проверяет фильтры и доступность треков.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

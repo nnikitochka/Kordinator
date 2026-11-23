@@ -96,7 +96,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.music.similar.SimilarSongsController similarSongsController;
     private org.airsonic.player.controller.rest.music.genre.SongsByGenreController songsByGenreController;
     private org.airsonic.player.controller.rest.music.top.TopSongsController topSongsController;
-    private org.airsonic.player.controller.rest.music.random.RandomSongsController randomSongsController;
     private org.airsonic.player.controller.rest.music.song.SongController songController;
     private org.airsonic.player.controller.rest.videos.VideosController videosController;
     private org.airsonic.player.controller.rest.lyrics.LyricsController lyricsController;
@@ -335,18 +334,6 @@ public final class RuntimeCompositionRoot {
                     lastFmService, mediaFolderService, responseMapper, createSubsonicJaxbWriter());
         }
         return topSongsController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.music.random.RandomSongsController
-            createRandomSongsController(
-                    org.airsonic.player.service.SearchService searchService,
-                    org.airsonic.player.service.MediaFolderService mediaFolderService,
-                    org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
-        if (randomSongsController == null) {
-            randomSongsController = new org.airsonic.player.controller.rest.music.random.RandomSongsController(
-                    searchService, mediaFolderService, responseMapper, createSubsonicJaxbWriter());
-        }
-        return randomSongsController;
     }
 
     public synchronized org.airsonic.player.controller.rest.music.song.SongController createSongController(
