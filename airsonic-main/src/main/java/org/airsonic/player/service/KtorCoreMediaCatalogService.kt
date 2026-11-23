@@ -349,20 +349,30 @@ class KtorCoreMediaCatalogService(
             accessibleLibraryIds,
         )
 
-    fun artists(libraryId: Long?, limit: Int, offset: Int, accessibleLibraryIds: Set<Long>? = null): List<StandaloneArtist> {
+    fun artists(
+        libraryId: Long?,
+        limit: Int,
+        offset: Int,
+        accessibleLibraryIds: Set<Long>? = null,
+        prefix: String? = null,
+    ): List<StandaloneArtist> {
         val folderId = libraryId?.toCoreFolderId()
         val artistExpression = "COALESCE(NULLIF(TRIM(album_artist), ''), TRIM(artist))"
+        val prefixPattern = prefix?.trim()?.takeIf(String::isNotEmpty)?.let(::prefixLikePattern)
         val sql = "SELECT folder_id, $artistExpression AS artist_name, " +
             "COUNT(DISTINCT NULLIF(TRIM(album), '')) AS album_count, COUNT(*) AS track_count " +
             "FROM media_file WHERE present AND type IN ('MUSIC', 'AUDIOBOOK') AND (? IS NULL OR folder_id = ?) " +
-            "AND $artistExpression IS NOT NULL" + libraryScope(accessibleLibraryIds) + " " +
+            "AND $artistExpression IS NOT NULL AND (? IS NULL OR LOWER($artistExpression) LIKE ? ESCAPE '!')" +
+            libraryScope(accessibleLibraryIds) + " " +
             "GROUP BY folder_id, $artistExpression " +
             "ORDER BY LOWER(artist_name), artist_name, folder_id LIMIT ? OFFSET ?"
         return coreDataSource.connection.use { connection ->
             connection.prepareStatement(sql).use { statement ->
                 statement.setObject(1, folderId)
                 statement.setObject(2, folderId)
-                val nextParameter = bindLibraryScope(statement, 3, accessibleLibraryIds)
+                statement.setString(3, prefixPattern)
+                statement.setString(4, prefixPattern)
+                val nextParameter = bindLibraryScope(statement, 5, accessibleLibraryIds)
                 statement.setInt(nextParameter, limit.coerceIn(1, 100))
                 statement.setInt(nextParameter + 1, offset.coerceAtLeast(0))
                 statement.executeQuery().use { rows ->
@@ -379,10 +389,28 @@ class KtorCoreMediaCatalogService(
         }
     }
 
-    fun countArtists(libraryId: Long?, accessibleLibraryIds: Set<Long>? = null): Long {
+    fun countArtists(libraryId: Long?, accessibleLibraryIds: Set<Long>? = null, prefix: String? = null): Long {
         val artistExpression = "COALESCE(NULLIF(TRIM(album_artist), ''), TRIM(artist))"
-        return countCatalogEntries(artistExpression, "$artistExpression IS NOT NULL", libraryId, accessibleLibraryIds)
+        val folderId = libraryId?.toCoreFolderId()
+        val prefixPattern = prefix?.trim()?.takeIf(String::isNotEmpty)?.let(::prefixLikePattern)
+        val sql = "SELECT COUNT(*) FROM (SELECT folder_id, $artistExpression AS catalog_entry FROM media_file " +
+            "WHERE present AND type IN ('MUSIC', 'AUDIOBOOK') AND (? IS NULL OR folder_id = ?) " +
+            "AND $artistExpression IS NOT NULL AND (? IS NULL OR LOWER($artistExpression) LIKE ? ESCAPE '!')" +
+            libraryScope(accessibleLibraryIds) + " GROUP BY folder_id, $artistExpression) catalog_entries"
+        return coreDataSource.connection.use { connection ->
+            connection.prepareStatement(sql).use { statement ->
+                statement.setObject(1, folderId)
+                statement.setObject(2, folderId)
+                statement.setString(3, prefixPattern)
+                statement.setString(4, prefixPattern)
+                bindLibraryScope(statement, 5, accessibleLibraryIds)
+                statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
+            }
+        }
     }
+
+    private fun prefixLikePattern(prefix: String): String =
+        prefix.lowercase().replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%"
 
     private fun countCatalogEntries(
         entryExpression: String,

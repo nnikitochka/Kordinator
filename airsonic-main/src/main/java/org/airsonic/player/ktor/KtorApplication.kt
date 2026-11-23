@@ -464,14 +464,17 @@ fun Application.standaloneModule(
                         }
                         val requestedLibraryId = call.request.queryParameters["libraryId"]
                         val libraryId = requestedLibraryId?.toLongOrNull()
+                        val requestedPrefix = call.request.queryParameters["prefix"]
+                        val prefix = requestedPrefix?.trim()?.takeIf(String::isNotEmpty)
                         val limitValue = call.request.queryParameters["limit"]
                         val offsetValue = call.request.queryParameters["offset"]
                         val limit = limitValue?.toIntOrNull() ?: if (limitValue == null) 50 else null
                         val offset = offsetValue?.toIntOrNull() ?: if (offsetValue == null) 0 else null
                         if ((requestedLibraryId != null && (libraryId == null || libraryId !in 0..Int.MAX_VALUE.toLong())) ||
+                            (requestedPrefix != null && requestedPrefix.length > 100) ||
                             limit == null || limit !in 1..100 || offset == null || offset < 0
                         ) {
-                            call.respondJson(ApiError("invalid_request", "libraryId must be between 0 and ${Int.MAX_VALUE}, limit between 1 and 100, and offset non-negative"), HttpStatusCode.BadRequest)
+                            call.respondJson(ApiError("invalid_request", "libraryId must be between 0 and ${Int.MAX_VALUE}, prefix at most 100 characters, limit between 1 and 100, and offset non-negative"), HttpStatusCode.BadRequest)
                             return@get
                         }
                         val accessibleLibraries = call.catalogLibraryScope()
@@ -480,10 +483,10 @@ fun Application.standaloneModule(
                             return@get
                         }
                         val artists = withContext(scanDispatcher) {
-                            mediaCatalogService.artists(libraryId, limit, offset, accessibleLibraries)
+                            mediaCatalogService.artists(libraryId, limit, offset, accessibleLibraries, prefix)
                         }
                         val total = withContext(scanDispatcher) {
-                            mediaCatalogService.countArtists(libraryId, accessibleLibraries)
+                            mediaCatalogService.countArtists(libraryId, accessibleLibraries, prefix)
                         }
                         call.respondJson(ArtistPage(artists.map { it.toResponse() }, artists.size, total, limit, offset))
                     }

@@ -479,6 +479,18 @@ class KtorStandaloneRealScanIsolationTest {
         assertEquals(2, allArtists.get("total").asInt())
         assertEquals(allArtists.get("items")[0].get("name").asText(), allArtists.get("items")[1].get("name").asText())
         assertTrue(allArtists.get("items")[0].get("id").asText() != allArtists.get("items")[1].get("id").asText())
+        val prefixArtists = mapper.readTree(client.get("/api/v1/artists?prefix=Shared&limit=10") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        assertEquals(2, prefixArtists.get("total").asInt())
+        val absentPrefixArtists = mapper.readTree(client.get("/api/v1/artists?prefix=Missing") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        assertEquals(0, absentPrefixArtists.get("total").asInt())
+        val wildcardPrefixArtists = mapper.readTree(client.get("/api/v1/artists?prefix=%25") {
+            bearerAuth(adminToken)
+        }.bodyAsText())
+        assertEquals(0, wildcardPrefixArtists.get("total").asInt())
         val firstArtist = allArtists.get("items").first { it.get("libraryId").asLong() == firstLibraryId }
         assertEquals(HttpStatusCode.OK, client.get("/api/v1/artists/${firstArtist.get("id").asText()}") {
             bearerAuth(firstToken)
