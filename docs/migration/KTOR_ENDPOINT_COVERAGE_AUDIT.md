@@ -24,6 +24,8 @@
 
 Имена ниже относятся к старым классам, а не к обязательным именам новых Ktor-классов. Удалённый контроллер считается заменённым, если его поддерживаемые действия доступны через указанные Ktor routes и покрыты поведением, даже когда маршрут спроектирован иначе.
 
+Старые Ktor adapter-файлы `KordinatorAuthRoutes`, `KordinatorArtistRoutes`, `KordinatorSearchRoutes`, `KordinatorPlaylistRoutes`, `KordinatorTrackRoutes`, `album/AlbumRoutes.kt` (ранее `KordinatorAlbumRoutes.kt`), `album/AlbumSummary.kt` и `album/AlbumDetails.kt` физически удалены коммитом `082b0f2`, потому что сами эти классы не были подключены к production `standaloneModule`. Их действующие маршруты находятся inline в `KtorApplication.kt` и используют production services; отдельные production route classes, например `KordinatorPlaylistImportRoutes`, остались подключены. В ходе повторной сверки восстановлены ранее отсутствовавшие album details (`year`, `genre`, `trackCount`) и artist details (`albumCount`, `albums`) в активных JSON-ответах. Старые тесты удалённых adapter-классов не считались проверкой production API; соответствующие active routes проверяются через `KtorStandaloneRealScanIsolationTest` и другие integration tests ниже.
+
 | Старые контроллеры/действия | Текущая замена | Проверки |
 |---|---|---|
 | `SubsonicRESTController`, ping/indexes/music directory/search/albums/artists/genres/random/similar/top/song | `/api/v1/health`, `/libraries`, `/library/*`, `/search`, `/tracks`, `/albums`, `/artists`, `/genres`, `/tracks/random`, `*/similar-tracks`, `*/top-tracks` | `KtorStandaloneRealScanIsolationTest`, `KtorStandalonePlaylistTest`, `KtorStandaloneScanTest` exercise the registered `standaloneModule` routes. |

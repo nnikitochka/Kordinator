@@ -472,8 +472,13 @@ fun Application.standaloneModule(
                             return@get
                         }
                         call.respondJson(AlbumDetailsResponse(
-                            catalogId(selector.first, selector.second), selector.second, tracks.first().albumArtist ?: tracks.first().artist,
-                            tracks.sumOf { it.durationSeconds.toLong() }, tracks.map { it.toResponse() },
+                            catalogId(selector.first, selector.second), selector.second,
+                            tracks.first().albumArtist ?: tracks.first().artist,
+                            tracks.mapNotNull { it.year }.maxOrNull(),
+                            tracks.firstNotNullOfOrNull { it.genre },
+                            tracks.size,
+                            tracks.sumOf { it.durationSeconds.toLong() },
+                            tracks.map { it.toResponse() },
                         ))
                     }
                     get("/artists") {
@@ -532,8 +537,23 @@ fun Application.standaloneModule(
                             call.respond(HttpStatusCode.NotFound)
                             return@get
                         }
+                        val albums = tracks.asSequence()
+                            .mapNotNull { track -> track.album?.takeIf(String::isNotBlank)?.let { it to track } }
+                            .groupBy({ it.first }, { it.second })
+                            .map { (name, albumTracks) ->
+                                AlbumSummaryResponse(
+                                    catalogId(selector.first, name), selector.first, name,
+                                    albumTracks.first().albumArtist ?: albumTracks.first().artist,
+                                    albumTracks.mapNotNull { it.year }.maxOrNull(),
+                                    albumTracks.firstNotNullOfOrNull { it.genre },
+                                    albumTracks.size.toLong(),
+                                    albumTracks.sumOf { it.durationSeconds.toLong() },
+                                )
+                            }
+                            .sortedBy { it.name.lowercase() }
                         call.respondJson(ArtistDetailsResponse(
                             catalogId(selector.first, selector.second), selector.second, tracks.map { it.toResponse() },
+                            albums.size, albums,
                         ))
                     }
                     get("/artists/{id}/top-tracks") {
@@ -3484,12 +3504,25 @@ data class AlbumSummaryResponse(
     val trackCount: Long, val durationSeconds: Long,
 )
 data class AlbumDetailsResponse(
-    val id: String, val name: String, val artist: String?, val durationSeconds: Long, val tracks: List<TrackResponse>,
+    val id: String,
+    val name: String,
+    val artist: String?,
+    val year: Int?,
+    val genre: String?,
+    val trackCount: Int,
+    val durationSeconds: Long,
+    val tracks: List<TrackResponse>,
 )
 data class ArtistSummaryResponse(
     val id: String, val libraryId: Long, val name: String, val albumCount: Long, val trackCount: Long,
 )
-data class ArtistDetailsResponse(val id: String, val name: String, val tracks: List<TrackResponse>)
+data class ArtistDetailsResponse(
+    val id: String,
+    val name: String,
+    val tracks: List<TrackResponse>,
+    val albumCount: Int,
+    val albums: List<AlbumSummaryResponse>,
+)
 data class AlbumPage(val items: List<AlbumSummaryResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
 data class ArtistPage(val items: List<ArtistSummaryResponse>, val count: Int, val total: Long, val limit: Int, val offset: Int)
 data class ScanResponse(

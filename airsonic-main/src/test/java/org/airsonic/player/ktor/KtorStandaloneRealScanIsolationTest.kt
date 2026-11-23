@@ -513,9 +513,14 @@ class KtorStandaloneRealScanIsolationTest {
         }.bodyAsText())
         assertEquals(0, wildcardPrefixArtists.get("total").asInt())
         val firstArtist = allArtists.get("items").first { it.get("libraryId").asLong() == firstLibraryId }
-        assertEquals(HttpStatusCode.OK, client.get("/api/v1/artists/${firstArtist.get("id").asText()}") {
+        val artistDetailsResponse = client.get("/api/v1/artists/${firstArtist.get("id").asText()}") {
             bearerAuth(firstToken)
-        }.status)
+        }
+        assertEquals(HttpStatusCode.OK, artistDetailsResponse.status)
+        val artistDetails = mapper.readTree(artistDetailsResponse.bodyAsText())
+        assertTrue(artistDetails.get("tracks").size() > 0)
+        assertEquals(artistDetails.get("albumCount").asInt(), artistDetails.get("albums").size())
+        assertTrue(artistDetails.get("albums").size() > 0)
         assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/artists/${firstArtist.get("id").asText()}") {
             bearerAuth(secondToken)
         }.status)
@@ -621,9 +626,15 @@ class KtorStandaloneRealScanIsolationTest {
         assertEquals(400, client.get("/api/v1/albums?fromYear=2000") { bearerAuth(adminToken) }.status.value)
         assertEquals(400, client.get("/api/v1/albums?fromYear=2025&toYear=2000") { bearerAuth(adminToken) }.status.value)
         val firstAlbum = allAlbums.get("items").first { it.get("libraryId").asLong() == firstLibraryId }
-        assertEquals(HttpStatusCode.OK, client.get("/api/v1/albums/${firstAlbum.get("id").asText()}") {
+        val albumDetailsResponse = client.get("/api/v1/albums/${firstAlbum.get("id").asText()}") {
             bearerAuth(firstToken)
-        }.status)
+        }
+        assertEquals(HttpStatusCode.OK, albumDetailsResponse.status)
+        val albumDetails = mapper.readTree(albumDetailsResponse.bodyAsText())
+        assertTrue(albumDetails.get("trackCount").asInt() > 0)
+        assertEquals(albumDetails.get("trackCount").asInt(), albumDetails.get("tracks").size())
+        assertTrue(albumDetails.has("year"))
+        assertTrue(albumDetails.has("genre"))
         assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/albums/${firstAlbum.get("id").asText()}") {
             bearerAuth(secondToken)
         }.status)
