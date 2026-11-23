@@ -7,7 +7,7 @@ import javax.cache.Cache
 class CacheHelper private constructor() {
     companion object {
         @JvmStatic
-        fun <K : Any?, V : Any?> getOrCompute(cache: Cache<K, V>?, key: K?, loader: Function<K?, V?>?): V? {
+        fun <K, V> getOrCompute(cache: Cache<K, V>?, key: K?, loader: Function<K?, V?>?): V? {
             if (key == null) return loader?.apply(null)
             if (cache == null) return loader?.apply(key)
 
