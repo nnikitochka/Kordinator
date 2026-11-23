@@ -634,6 +634,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалён старый `PlaylistImportController` с XML-ответом и multipart Subsonic контрактом. Ktor `POST /api/v1/playlists/import` использует bearer auth, новый JSON ответ и проверку загруженного playlist-файла; импорт и негативные случаи покрыты `KtorStandalonePlaylistTest`.
 
+**Срез 23 ноября 2026:** удалён `ScrobbleController` и runtime wiring. Новый bearer API `POST /api/v1/tracks/{id}/scrobble` обрабатывает время воспроизведения и submission через standalone service; интеграционный тест проверяет HTTP ответ и регистрацию scrobble.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

@@ -84,7 +84,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.SubsonicResponseMapper subsonicResponseMapper;
     private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
-    private org.airsonic.player.controller.rest.scrobble.ScrobbleController scrobbleController;
     private org.airsonic.player.controller.rest.download.DownloadRestController downloadRestController;
     private org.airsonic.player.controller.rest.tags.TagEditController tagEditController;
     private org.airsonic.player.controller.rest.cover.CoverArtRestController coverArtRestController;
@@ -171,17 +170,6 @@ public final class RuntimeCompositionRoot {
             meterRegistry = RuntimeHealthFactory.createMeterRegistry();
         }
         return meterRegistry;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.scrobble.ScrobbleController createScrobbleController(
-            org.airsonic.player.service.MediaFileService mediaFileService,
-            org.airsonic.player.service.StatusService statusService,
-            org.airsonic.player.service.AudioScrobblerService audioScrobblerService) {
-        if (scrobbleController == null) {
-            scrobbleController = new org.airsonic.player.controller.rest.scrobble.ScrobbleController(
-                    mediaFileService, statusService, audioScrobblerService, createSubsonicJaxbWriter());
-        }
-        return scrobbleController;
     }
 
     public synchronized org.airsonic.player.controller.rest.download.DownloadRestController createDownloadRestController() {
