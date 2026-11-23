@@ -44,7 +44,7 @@ open class StatusService(
             status.isActive = false
             return
         }
-        inactiveStreamStatuses.compute(status.player.id) { _, _ ->
+        inactiveStreamStatuses.compute(status.player!!.id) { _, _ ->
             streamStatuses.remove(status)
             status.isActive = false
             status
@@ -54,16 +54,16 @@ open class StatusService(
     open fun getAllStreamStatuses(): List<TransferStatus> {
         val snapshot = ArrayList(streamStatuses)
         val playerIds = snapshot.parallelStream()
-            .map { it.player.id }
+            .map { it.player!!.id }
             .collect(Collectors.toCollection { ConcurrentHashMap.newKeySet() })
         return Stream.concat(
             snapshot.parallelStream(),
-            inactiveStreamStatuses.values.parallelStream().filter { !playerIds.contains(it.player.id) }
+            inactiveStreamStatuses.values.parallelStream().filter { !playerIds.contains(it.player!!.id) }
         ).collect(Collectors.toList())
     }
 
     open fun getStreamStatusesForPlayer(player: Player): List<TransferStatus> = streamStatuses.parallelStream()
-        .filter { it.player.id == player.id }
+        .filter { it.player!!.id == player.id }
         .collect(Collectors.toList())
 
     open fun getInactiveStreamStatusForPlayer(player: Player): TransferStatus? = inactiveStreamStatuses[player.id]
