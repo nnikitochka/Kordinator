@@ -1,5 +1,7 @@
 package org.airsonic.player.service
 
+import java.sql.Timestamp
+import java.time.Instant
 import javax.sql.DataSource
 import org.apache.commons.lang3.StringUtils
 
@@ -37,6 +39,7 @@ class KtorCoreMediaCatalogService(
 
     init {
         migrateStoredTrackReferences()
+        migrateLegacyBookmarks()
         dropLegacyTrackProjection()
     }
 
@@ -261,6 +264,132 @@ class KtorCoreMediaCatalogService(
             }
         }
     }
+
+    /** Copy existing bookmark rows to the bearer-account store when usernames still match. */
+    private fun migrateLegacyBookmarks() {
+        ktorDataSource.connection.use { connection ->
+            connection.autoCommit = false
+            try {
+                val migrationId = "legacy-media-bookmarks-1"
+                val completed = connection.prepareStatement(
+                    "SELECT 1 FROM standalone_data_migration WHERE migration_id = ?",
+                ).use { statement ->
+                    statement.setString(1, migrationId)
+                    statement.executeQuery().use { it.next() }
+                }
+                if (completed) {
+                    connection.commit()
+                    return
+                }
+
+                val userIds = connection.prepareStatement("SELECT id, username FROM local_user").use { statement ->
+                    statement.executeQuery().use { rows ->
+                        buildMap { while (rows.next()) put(rows.getString("username"), rows.getLong("id")) }
+                    }
+                }
+                val hasLegacyBookmarkTable = coreDataSource.connection.use { tableExists(it, "bookmark") }
+                var pendingAccountMatch = false
+                if (hasLegacyBookmarkTable) {
+                    val bookmarks = coreDataSource.connection.use { coreConnection ->
+                        coreConnection.prepareStatement(
+                            "SELECT b.username, b.media_file_id, b.position_millis, b.comment, b.created, b.changed, " +
+                                "m.type AS media_type FROM bookmark b JOIN media_file m ON m.id = b.media_file_id " +
+                                "WHERE m.present",
+                        ).use { statement ->
+                            statement.executeQuery().use { rows ->
+                                buildList {
+                                    while (rows.next()) {
+                                        add(
+                                            LegacyBookmarkRow(
+                                                rows.getString("username"), rows.getInt("media_file_id"),
+                                                rows.getLong("position_millis"), rows.getString("comment"),
+                                                rows.getTimestamp("created")?.toInstant() ?: Instant.now(),
+                                                rows.getTimestamp("changed")?.toInstant() ?: Instant.now(),
+                                                rows.getString("media_type"),
+                                            ),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    bookmarks.forEach { bookmark ->
+                        val userId = userIds[bookmark.username]
+                        if (userId == null) {
+                            pendingAccountMatch = true
+                            return@forEach
+                        }
+                        when (bookmark.mediaType) {
+                            "VIDEO" -> migrateVideoBookmark(connection, userId, bookmark)
+                            "MUSIC", "AUDIOBOOK" -> migrateTrackBookmark(connection, userId, bookmark)
+                        }
+                    }
+                }
+                if (!pendingAccountMatch) {
+                    connection.prepareStatement(
+                        "INSERT INTO standalone_data_migration (migration_id, completed_at) VALUES (?, CURRENT_TIMESTAMP)",
+                    ).use { statement ->
+                        statement.setString(1, migrationId)
+                        statement.executeUpdate()
+                    }
+                }
+                connection.commit()
+            } catch (failure: Throwable) {
+                connection.rollback()
+                throw failure
+            }
+        }
+    }
+
+    private fun migrateTrackBookmark(connection: java.sql.Connection, userId: Long, bookmark: LegacyBookmarkRow) {
+        if (bookmarkExists(connection, "track_bookmark", userId, bookmark.mediaFileId.toLong())) return
+        connection.prepareStatement(
+            "INSERT INTO track_bookmark (user_id, track_id, position_ms, comment, created_at, updated_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?)",
+        ).use { statement ->
+            statement.setLong(1, userId)
+            statement.setLong(2, bookmark.mediaFileId.toLong())
+            statement.setLong(3, bookmark.positionMillis)
+            statement.setString(4, bookmark.comment)
+            statement.setTimestamp(5, Timestamp.from(bookmark.createdAt))
+            statement.setTimestamp(6, Timestamp.from(bookmark.updatedAt))
+            statement.executeUpdate()
+        }
+    }
+
+    private fun migrateVideoBookmark(connection: java.sql.Connection, userId: Long, bookmark: LegacyBookmarkRow) {
+        if (bookmarkExists(connection, "video_bookmark", userId, bookmark.mediaFileId.toLong())) return
+        connection.prepareStatement(
+            "INSERT INTO video_bookmark (user_id, video_id, position_ms, comment, created_at, updated_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?)",
+        ).use { statement ->
+            statement.setLong(1, userId)
+            statement.setInt(2, bookmark.mediaFileId)
+            statement.setLong(3, bookmark.positionMillis)
+            statement.setString(4, bookmark.comment)
+            statement.setTimestamp(5, Timestamp.from(bookmark.createdAt))
+            statement.setTimestamp(6, Timestamp.from(bookmark.updatedAt))
+            statement.executeUpdate()
+        }
+    }
+
+    private fun bookmarkExists(connection: java.sql.Connection, table: String, userId: Long, mediaId: Long): Boolean =
+        connection.prepareStatement("SELECT 1 FROM $table WHERE user_id = ? AND ${if (table == "video_bookmark") "video_id" else "track_id"} = ?")
+            .use { statement ->
+                statement.setLong(1, userId)
+                statement.setLong(2, mediaId)
+                statement.executeQuery().use { it.next() }
+            }
+
+    private data class LegacyBookmarkRow(
+        val username: String,
+        val mediaFileId: Int,
+        val positionMillis: Long,
+        val comment: String?,
+        val createdAt: Instant,
+        val updatedAt: Instant,
+        val mediaType: String,
+    )
 
     private fun tableExists(connection: java.sql.Connection, tableName: String): Boolean =
         connection.metaData.getTables(connection.catalog, null, null, arrayOf("TABLE")).use { tables ->

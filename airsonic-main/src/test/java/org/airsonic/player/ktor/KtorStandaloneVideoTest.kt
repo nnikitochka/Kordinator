@@ -18,6 +18,7 @@ import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.MediaFileService
+import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.service.StandaloneVideoPlaybackService
 import org.airsonic.player.service.StandaloneVideoBookmarkService
 import org.airsonic.player.service.TranscodingService
@@ -51,7 +52,7 @@ class KtorStandaloneVideoTest {
             dataSource.use {
                 StandaloneDatabase.migrate(dataSource)
                 val auth = LocalAuthService(dataSource)
-                auth.createInitialAdmin("admin", "a strong password for tests")
+                val adminId = auth.createInitialAdmin("admin", "a strong password for tests")
                 val listenerId = auth.createUser("listener", "listener password for tests")
                 val adminToken = auth.login("admin", "a strong password for tests")!!.token
                 val listenerToken = auth.login("listener", "listener password for tests")!!.token
@@ -80,6 +81,62 @@ class KtorStandaloneVideoTest {
                 val mediaFileDao = runtime.runtime.createPersistenceGraph().daos.mediaFileDao
                 val mediaFileService = Mockito.mock(MediaFileService::class.java)
                 videos.forEach { video -> Mockito.`when`(mediaFileService.getMediaFile(video.id!!)).thenReturn(video) }
+                val legacyTrackTime = Instant.now()
+                val legacyTrack = MediaFile().apply {
+                    path = "legacy-track.mp3"
+                    folderId = library.id
+                    mediaType = MediaFile.MediaType.MUSIC
+                    title = "Legacy Track"
+                    format = "mp3"
+                    duration = 180.0
+                    fileSize = 1_000
+                    parentPath = ""
+                    created = legacyTrackTime
+                    this.changed = legacyTrackTime
+                    lastScanned = legacyTrackTime
+                    childrenLastUpdated = legacyTrackTime
+                    setPresent(true)
+                }.also { mediaFileDao.createOrUpdateMediaFile(it) { } }
+                runtime.coreDataSource.connection.use { connection ->
+                    connection.prepareStatement(
+                        "INSERT INTO bookmark (media_file_id, position_millis, username, comment, created, changed) " +
+                            "VALUES (?, ?, ?, ?, ?, ?)",
+                    ).use { statement ->
+                        statement.setInt(1, videos.first().id!!)
+                        statement.setLong(2, 12_000)
+                        statement.setString(3, "admin")
+                        statement.setString(4, "migrated bookmark")
+                        statement.setTimestamp(5, java.sql.Timestamp.from(Instant.now()))
+                        statement.setTimestamp(6, java.sql.Timestamp.from(Instant.now()))
+                        statement.executeUpdate()
+                    }
+                    connection.prepareStatement(
+                        "INSERT INTO bookmark (media_file_id, position_millis, username, comment, created, changed) " +
+                            "VALUES (?, ?, ?, ?, ?, ?)",
+                    ).use { statement ->
+                        statement.setInt(1, legacyTrack.id!!)
+                        statement.setLong(2, 45_000)
+                        statement.setString(3, "admin")
+                        statement.setString(4, "migrated track bookmark")
+                        statement.setTimestamp(5, java.sql.Timestamp.from(Instant.now()))
+                        statement.setTimestamp(6, java.sql.Timestamp.from(Instant.now()))
+                        statement.executeUpdate()
+                    }
+                }
+                KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
+                dataSource.connection.use { connection ->
+                    connection.prepareStatement(
+                        "SELECT position_ms, comment FROM track_bookmark WHERE user_id = ? AND track_id = ?",
+                    ).use { statement ->
+                        statement.setLong(1, adminId)
+                        statement.setLong(2, legacyTrack.id!!.toLong())
+                        statement.executeQuery().use { rows ->
+                            assertTrue(rows.next())
+                            assertEquals(45_000, rows.getLong("position_ms"))
+                            assertEquals("migrated track bookmark", rows.getString("comment"))
+                        }
+                    }
+                }
                 val playbackService = StandaloneVideoPlaybackService(mediaFileService, Mockito.mock(TranscodingService::class.java))
                 val videoBookmarkService = StandaloneVideoBookmarkService(dataSource, mediaFileService)
                 val previousHome = System.getProperty("airsonic.home")
@@ -120,6 +177,12 @@ class KtorStandaloneVideoTest {
                     assertTrue(auth.setAllowedLibraries(listenerId, setOf(library.id!!.toLong())))
                     val visible = client.get("/api/v1/videos") { bearerAuth(listenerToken) }
                     assertEquals(2, jacksonObjectMapper().readTree(visible.bodyAsText()).get("items").size())
+                    val imported = jacksonObjectMapper().readTree(
+                        client.get("/api/v1/me/video-bookmarks") { bearerAuth(adminToken) }.bodyAsText(),
+                    )
+                    assertEquals(1, imported.get("count").asInt())
+                    assertEquals(12_000, imported.get("items")[0].get("positionMillis").asLong())
+                    assertEquals("migrated bookmark", imported.get("items")[0].get("comment").asText())
 
                     val unauthenticatedBookmarks = client.get("/api/v1/me/video-bookmarks")
                     assertEquals(HttpStatusCode.Unauthorized, unauthenticatedBookmarks.status)
