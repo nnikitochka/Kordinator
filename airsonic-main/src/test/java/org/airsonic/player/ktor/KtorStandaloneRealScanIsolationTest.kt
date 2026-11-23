@@ -9,6 +9,7 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.delete
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.client.statement.bodyAsText
@@ -20,6 +21,7 @@ import kotlinx.coroutines.delay
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.KtorCoreMediaCatalogService
+import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandaloneShareService
 import org.junit.jupiter.api.io.TempDir
@@ -109,6 +111,7 @@ class KtorStandaloneRealScanIsolationTest {
                             libraryScanService = scanService,
                             mediaFolderService = runtime.mediaFolderService,
                             mediaCatalogService = mediaCatalog,
+                            favoriteService = StandaloneFavoriteService(dataSource, mediaCatalog),
                             shareService = shareService,
                         )
                     }
@@ -266,6 +269,10 @@ class KtorStandaloneRealScanIsolationTest {
                     val repeatedItems = mapper.readTree(repeatedCatalog.bodyAsText()).get("items")
                     assertEquals(1, repeatedItems.size(), "repeat scan must not duplicate tracks")
                     assertEquals(firstTrack.get("id").asLong(), repeatedItems[0].get("id").asLong())
+
+                    assertFavoritesSurviveRescanAndLibraryAccessChanges(
+                        client, mapper, auth, adminToken, firstToken, firstUserId, firstLibrary.id!!.toLong(),
+                    )
 
                     val executor = Executors.newFixedThreadPool(2)
                     val ready = CountDownLatch(2)
@@ -507,4 +514,51 @@ class KtorStandaloneRealScanIsolationTest {
         assertEquals(1, searchPage1.get("tracks").size())
         assertTrue(searchPage0.get("tracks")[0].get("id").asLong() != searchPage1.get("tracks")[0].get("id").asLong())
     }
+
+    private suspend fun assertFavoritesSurviveRescanAndLibraryAccessChanges(
+        client: HttpClient,
+        mapper: ObjectMapper,
+        auth: LocalAuthService,
+        adminToken: String,
+        userToken: String,
+        userId: Long,
+        libraryId: Long,
+    ) {
+        val firstAlbum = mapper.readTree(client.get("/api/v1/albums") { bearerAuth(adminToken) }.bodyAsText())
+            .get("items").first { it.get("libraryId").asLong() == libraryId }
+        val firstArtist = mapper.readTree(client.get("/api/v1/artists") { bearerAuth(adminToken) }.bodyAsText())
+            .get("items").first { it.get("libraryId").asLong() == libraryId }
+        assertEquals(HttpStatusCode.NoContent, client.put("/api/v1/albums/${firstAlbum.get("id").asText()}/favorite") {
+            bearerAuth(userToken)
+        }.status)
+        assertEquals(HttpStatusCode.NoContent, client.put("/api/v1/artists/${firstArtist.get("id").asText()}/favorite") {
+            bearerAuth(userToken)
+        }.status)
+        assertEquals(1, favoriteTotal(client, mapper, userToken, "albums"))
+        assertEquals(1, favoriteTotal(client, mapper, userToken, "artists"))
+
+        val scanResponse = client.post("/api/v1/admin/libraries/$libraryId/scan") { bearerAuth(adminToken) }
+        assertEquals(HttpStatusCode.Accepted, scanResponse.status)
+        var scanState = "QUEUED"
+        for (attempt in 0 until 200) {
+            scanState = mapper.readTree(client.get("/api/v1/admin/libraries/$libraryId/scan") {
+                bearerAuth(adminToken)
+            }.bodyAsText()).get("state").asText()
+            if (scanState == "COMPLETED" || scanState == "FAILED") break
+            delay(50)
+        }
+        assertEquals("COMPLETED", scanState)
+        assertEquals(1, favoriteTotal(client, mapper, userToken, "albums"), "album favorite must survive a library rescan")
+        assertEquals(1, favoriteTotal(client, mapper, userToken, "artists"), "artist favorite must survive a library rescan")
+
+        assertTrue(auth.setAllowedLibraries(userId, emptySet()))
+        assertEquals(0, favoriteTotal(client, mapper, userToken, "albums"), "album favorite must be hidden when library access is revoked")
+        assertEquals(0, favoriteTotal(client, mapper, userToken, "artists"), "artist favorite must be hidden when library access is revoked")
+        assertTrue(auth.setAllowedLibraries(userId, setOf(libraryId)))
+        assertEquals(1, favoriteTotal(client, mapper, userToken, "albums"), "album favorite must return when library access is restored")
+        assertEquals(1, favoriteTotal(client, mapper, userToken, "artists"), "artist favorite must return when library access is restored")
+    }
+
+    private suspend fun favoriteTotal(client: HttpClient, mapper: ObjectMapper, token: String, type: String): Int =
+        mapper.readTree(client.get("/api/v1/favorites/$type") { bearerAuth(token) }.bodyAsText()).get("total").asInt()
 }

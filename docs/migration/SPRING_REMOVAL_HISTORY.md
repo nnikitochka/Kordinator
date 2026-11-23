@@ -536,6 +536,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 20 ноября 2026:** конфигурация БД и Liquibase переведена на `kordinator.database.*`; старые `spring.datasource.*`/`spring.liquibase.*` значения и `spring.datasource.hikari.*` остаются входными alias-ами. Alias-нормализация выполняется внутри каждого источника настроек, сохраняя порядок CLI > JVM > ENV > application.properties > airsonic.properties; новый ключ побеждает старый alias в том же слое. Главный runtime `application.properties` больше не содержит `spring.*` ключей. Configuration, Liquibase, Hikari и runtime graph наборы прошли 24/24. Checkstyle validate отдельно блокирован его парсером на `domain/PlayQueue.java:430` (`unexpected token: switch`), до анализа изменённых файлов.
 
+**Срез 23 ноября 2026:** `KtorStandaloneRealScanIsolationTest` расширен сквозной проверкой избранного альбома и исполнителя: добавление через активные Ktor-маршруты, сохранение после реального повторного сканирования, сокрытие при отзыве прав на библиотеку и возврат после их восстановления. Целевой тест прошёл 1/1. В запуске использован `-Dcheckstyle.skip=true`: Checkstyle пока падает на существующем Java `switch` в `PlayQueue.java:430`; PMD также сообщает ошибки парсинга на исходниках проекта.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.
