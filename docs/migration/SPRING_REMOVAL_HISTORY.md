@@ -622,6 +622,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалён XML `DatabaseSettingsController` и runtime wiring. Конфигурация, операции, резервное копирование, экспорт/импорт БД доступны через Ktor admin API `/api/v1/admin/settings/database` и `/api/v1/admin/database/*`; database settings test покрывает текущие маршруты.
 
+**Срез 23 ноября 2026:** удалён незарегистрированный `CredentialsManagementController` с Subsonic XML/JAXB контрактом и его runtime factory. Новый Kordinator bearer auth управляется отдельным API; старый контроллер не был подключён к standalone Ktor. Общие security/credential сервисы оставлены для входа и проверки bearer токенов.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

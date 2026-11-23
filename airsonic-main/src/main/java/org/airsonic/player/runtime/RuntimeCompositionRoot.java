@@ -84,7 +84,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.SubsonicResponseMapper subsonicResponseMapper;
     private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
-    private org.airsonic.player.controller.rest.settings.CredentialsManagementController credentialsManagementController;
     private org.airsonic.player.controller.rest.bookmarks.BookmarksController bookmarksController;
     private org.airsonic.player.controller.rest.starred.StarredController starredController;
     private org.airsonic.player.controller.rest.jukebox.JukeboxController jukeboxController;
@@ -177,22 +176,6 @@ public final class RuntimeCompositionRoot {
             meterRegistry = RuntimeHealthFactory.createMeterRegistry();
         }
         return meterRegistry;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.settings.CredentialsManagementController
-            createCredentialsManagementController(
-                    org.airsonic.player.service.SecurityService securityService,
-                    org.airsonic.player.service.SettingsService settingsService) {
-        if (credentialsManagementController == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException(
-                        "Persistence graph must be created before CredentialsManagementController");
-            }
-            credentialsManagementController = new org.airsonic.player.controller.rest.settings.CredentialsManagementController(
-                    securityService, settingsService, createSubsonicJaxbWriter(),
-                    persistenceGraph.getTransactionManager());
-        }
-        return credentialsManagementController;
     }
 
     public synchronized org.airsonic.player.controller.rest.bookmarks.BookmarksController createBookmarksController(
