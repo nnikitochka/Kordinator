@@ -87,7 +87,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
     private org.airsonic.player.controller.rest.search.SearchService subsonicSearchService;
     private org.airsonic.player.controller.rest.search.SearchController subsonicSearchController;
-    private org.airsonic.player.controller.rest.artists.ArtistsController subsonicArtistsController;
     private org.airsonic.player.controller.rest.albums.AlbumsController subsonicAlbumsController;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
     private org.airsonic.player.controller.rest.admin.GeneralSettingsController generalSettingsController;
@@ -202,23 +201,6 @@ public final class RuntimeCompositionRoot {
                     searchService, createSubsonicJaxbWriter());
         }
         return subsonicSearchController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.artists.ArtistsController createSubsonicArtistsController(
-            org.airsonic.player.service.MusicIndexService musicIndexService,
-            org.airsonic.player.service.SettingsService settingsService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
-        if (subsonicArtistsController == null) {
-            if (persistenceGraph == null) {
-                throw new IllegalStateException("Persistence graph must be created before Subsonic ArtistsController");
-            }
-            DaoGraph daos = persistenceGraph.getDaos();
-            subsonicArtistsController = new org.airsonic.player.controller.rest.artists.ArtistsController(
-                    daos.getArtistDao(), daos.getAlbumDao(), musicIndexService, settingsService,
-                    mediaFolderService, responseMapper, createSubsonicJaxbWriter());
-        }
-        return subsonicArtistsController;
     }
 
     public synchronized org.airsonic.player.controller.rest.albums.AlbumsController createSubsonicAlbumsController(
