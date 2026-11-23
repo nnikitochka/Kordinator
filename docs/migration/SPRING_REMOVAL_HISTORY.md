@@ -554,6 +554,8 @@ mvn clean verify -Dkotlin.compiler.daemon=false -Dcheckstyle.skip=true
 
 **Срез 23 ноября 2026:** удалён неиспользуемый Subsonic `PingController` и его runtime-root factory. Активный Ktor health endpoint `GET /api/v1/health` проверен набором `KtorStandaloneHealthTest`.
 
+**Срез 23 ноября 2026:** удалён старый `ServerInfoController` с Subsonic server-info и log endpoints вместе с runtime-root factory. Standalone Ktor обслуживает server diagnostics через собственные bearer маршруты; `KtorStandaloneServerInfoTest` проверяет их.
+
 ## 6. Основание и связанные аудиты
 
 Подробное состояние перенесённой HTTP-инфраструктуры и оставшихся servlet/JSP/Spring consumers: [MVC_INFRASTRUCTURE_AUDIT.md](../../MVC_INFRASTRUCTURE_AUDIT.md). Выполненные миграции прикладных MVC контроллеров и оставшиеся endpoint compatibility детали: [REMAINING_CONTROLLERS_MIGRATION_PLAN.md](../../REMAINING_CONTROLLERS_MIGRATION_PLAN.md). Эти документы служат историческим evidence, но не заменяют этап 0 и предрелизный аудит после будущих изменений.

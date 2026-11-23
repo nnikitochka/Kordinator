@@ -125,8 +125,6 @@ class RuntimeCompositionRootGraphTest {
         ServerInfoService serverInfoService = runtimeRoot.createServerInfoService(versionService, settingsService);
         assertSame(serverInfoService, runtimeRoot.createServerInfoService(versionService, settingsService));
         com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-        assertSame(runtimeRoot.createServerInfoController(serverInfoService, objectMapper, settingsService),
-                runtimeRoot.createServerInfoController(serverInfoService, objectMapper, settingsService));
 
         // MediaFolderService and PlayerDao
         assertNotNull(mediaFolderService);
