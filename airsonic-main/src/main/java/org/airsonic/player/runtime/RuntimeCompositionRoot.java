@@ -93,7 +93,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.search.SearchController subsonicSearchController;
     private org.airsonic.player.controller.rest.artists.ArtistsController subsonicArtistsController;
     private org.airsonic.player.controller.rest.albums.AlbumsController subsonicAlbumsController;
-    private org.airsonic.player.controller.rest.statistics.PathWatchersController pathWatchersController;
     private org.airsonic.player.controller.rest.statistics.CacheStatisticsController cacheStatisticsController;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
     private org.airsonic.player.controller.rest.admin.GeneralSettingsController generalSettingsController;
@@ -281,15 +280,6 @@ public final class RuntimeCompositionRoot {
                     ratingService, searchService, responseMapper, createSubsonicJaxbWriter());
         }
         return subsonicAlbumsController;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.statistics.PathWatchersController createPathWatchersController(
-            org.airsonic.player.service.PathWatcherService pathWatcherService) {
-        if (pathWatchersController == null) {
-            pathWatchersController = new org.airsonic.player.controller.rest.statistics.PathWatchersController(
-                    pathWatcherService, createSubsonicJaxbWriter());
-        }
-        return pathWatchersController;
     }
 
     public synchronized org.airsonic.player.health.StatusAggregator createStatusAggregator() {

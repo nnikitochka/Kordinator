@@ -423,8 +423,6 @@ class RuntimeCompositionRootGraphTest {
         org.airsonic.player.health.HealthContributorRegistry healthContributors =
                 runtimeRoot.createHealthContributorRegistry(dataSource);
         assertSame(healthContributors, runtimeRoot.createHealthContributorRegistry(dataSource));
-        assertSame(runtimeRoot.createPathWatchersController(pathWatcher),
-                runtimeRoot.createPathWatchersController(pathWatcher));
         assertSame(runtimeRoot.createStatusAggregator(), runtimeRoot.createStatusAggregator());
         io.micrometer.core.instrument.MeterRegistry meterRegistry = runtimeRoot.createMeterRegistry();
         assertSame(meterRegistry, runtimeRoot.createMeterRegistry());
