@@ -426,8 +426,6 @@ class RuntimeCompositionRootGraphTest {
         assertSame(runtimeRoot.createStatusAggregator(), runtimeRoot.createStatusAggregator());
         io.micrometer.core.instrument.MeterRegistry meterRegistry = runtimeRoot.createMeterRegistry();
         assertSame(meterRegistry, runtimeRoot.createMeterRegistry());
-        assertSame(runtimeRoot.createCacheStatisticsController(cacheManager),
-                runtimeRoot.createCacheStatisticsController(cacheManager));
 
         // Custom lifecycle items to verify ordering and shutdown
         AtomicBoolean customStarted = new AtomicBoolean(false);

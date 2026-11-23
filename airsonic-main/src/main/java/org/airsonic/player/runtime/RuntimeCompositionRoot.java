@@ -93,7 +93,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.rest.search.SearchController subsonicSearchController;
     private org.airsonic.player.controller.rest.artists.ArtistsController subsonicArtistsController;
     private org.airsonic.player.controller.rest.albums.AlbumsController subsonicAlbumsController;
-    private org.airsonic.player.controller.rest.statistics.CacheStatisticsController cacheStatisticsController;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
     private org.airsonic.player.controller.rest.admin.GeneralSettingsController generalSettingsController;
     private org.airsonic.player.controller.rest.admin.MusicFolderSettingsController musicFolderSettingsController;
@@ -287,15 +286,6 @@ public final class RuntimeCompositionRoot {
             statusAggregator = RuntimeHealthFactory.createStatusAggregator(configuration);
         }
         return statusAggregator;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.statistics.CacheStatisticsController
-            createCacheStatisticsController(javax.cache.CacheManager cacheManager) {
-        if (cacheStatisticsController == null) {
-            cacheStatisticsController = new org.airsonic.player.controller.rest.statistics.CacheStatisticsController(
-                    cacheManager, createMeterRegistry(), createSubsonicJaxbWriter());
-        }
-        return cacheStatisticsController;
     }
 
     public synchronized io.micrometer.core.instrument.MeterRegistry createMeterRegistry() {
