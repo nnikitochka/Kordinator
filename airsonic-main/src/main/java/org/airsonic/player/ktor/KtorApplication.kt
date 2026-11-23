@@ -4061,7 +4061,10 @@ fun main(args: Array<String>) {
     val trackNoteService = StandaloneTrackNoteService(standaloneDatabase.dataSource, mediaCatalogService)
     val passwordRecoveryService = StandalonePasswordRecoveryService(authService, StandalonePasswordRecoveryService.smtp(settingsService))
     val shareService = StandaloneShareService(standaloneDatabase.dataSource, mediaCatalogService)
-    val avatarService = StandaloneAvatarService(SettingsService.getAirsonicHome().resolve("avatars").resolve("accounts"))
+    val avatarRoot = SettingsService.getAirsonicHome().resolve("avatars")
+    val avatarService = StandaloneAvatarService(avatarRoot.resolve("accounts")).also {
+        it.migrateLegacyAvatars(runtime.createDataSource(), standaloneDatabase.dataSource, avatarRoot)
+    }
     val healthContributors = runtime.createHealthContributorRegistry(runtime.createDataSource())
     val healthStatusAggregator = runtime.createStatusAggregator()
     val pathWatcherService = runtime.createPathWatcherService()

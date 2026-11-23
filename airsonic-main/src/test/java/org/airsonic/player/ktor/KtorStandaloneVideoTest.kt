@@ -22,11 +22,15 @@ import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.service.StandaloneVideoPlaybackService
 import org.airsonic.player.service.StandaloneVideoBookmarkService
 import org.airsonic.player.service.StandalonePlaylistService
+import org.airsonic.player.service.StandaloneAvatarService
 import org.airsonic.player.service.TranscodingService
 import org.mockito.Mockito
 import java.nio.file.Path
 import java.nio.file.Files
 import java.time.Instant
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
+import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -115,6 +119,24 @@ class KtorStandaloneVideoTest {
                     setPresent(true)
                 }.also { mediaFileDao.createOrUpdateMediaFile(it) { } }
                 runtime.coreDataSource.connection.use { connection ->
+                    val legacyAvatarBytes = ByteArrayOutputStream().use { output ->
+                        ImageIO.write(BufferedImage(24, 12, BufferedImage.TYPE_INT_RGB), "png", output)
+                        output.toByteArray()
+                    }
+                    val legacyAvatarFolder = home.resolve("avatars").resolve("admin")
+                    Files.createDirectories(legacyAvatarFolder)
+                    Files.write(legacyAvatarFolder.resolve("legacy.png"), legacyAvatarBytes)
+                    connection.prepareStatement(
+                        "INSERT INTO custom_avatar (name, mime_type, width, height, username, path) VALUES (?, ?, ?, ?, ?, ?)",
+                    ).use { statement ->
+                        statement.setString(1, "legacy")
+                        statement.setString(2, "image/png")
+                        statement.setInt(3, 24)
+                        statement.setInt(4, 12)
+                        statement.setString(5, "admin")
+                        statement.setString(6, legacyAvatarFolder.resolve("legacy.png").toString())
+                        statement.executeUpdate()
+                    }
                     connection.prepareStatement(
                         "INSERT INTO bookmark (media_file_id, position_millis, username, comment, created, changed) " +
                             "VALUES (?, ?, ?, ?, ?, ?)",
@@ -205,6 +227,10 @@ class KtorStandaloneVideoTest {
                 }
                 val mediaCatalog = KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
                 val playlists = StandalonePlaylistService(dataSource, mediaCatalog)
+                val avatarService = StandaloneAvatarService(home.resolve("avatars").resolve("accounts"))
+                avatarService.migrateLegacyAvatars(runtime.coreDataSource, dataSource, home.resolve("avatars"))
+                assertEquals(24, avatarService.get(adminId)?.width)
+                assertEquals(12, avatarService.get(adminId)?.height)
                 val importedPlaylistId = dataSource.connection.use { connection ->
                     connection.prepareStatement(
                         "SELECT playlist_id FROM legacy_playlist_import WHERE legacy_playlist_id = ?",
@@ -289,6 +315,7 @@ class KtorStandaloneVideoTest {
                             mediaFileService = mediaFileService,
                             videoPlaybackService = playbackService,
                             videoBookmarkService = videoBookmarkService,
+                            avatarService = avatarService,
                         )
                     }
 
@@ -310,6 +337,7 @@ class KtorStandaloneVideoTest {
                     assertEquals("Concert A", firstBody.get("items")[0].get("title").asText())
                     assertEquals(1920, firstBody.get("items")[0].get("width").asInt())
                     assertTrue(firstBody.get("hasMore").asBoolean())
+                    assertEquals(HttpStatusCode.OK, client.get("/api/v1/me/avatar") { bearerAuth(adminToken) }.status)
 
                     assertTrue(auth.setAllowedLibraries(listenerId, setOf(library.id!!.toLong())))
                     val visible = client.get("/api/v1/videos") { bearerAuth(listenerToken) }
