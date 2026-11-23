@@ -85,8 +85,6 @@ public final class RuntimeCompositionRoot {
     private org.airsonic.player.controller.JAXBWriter subsonicJaxbWriter;
     private org.airsonic.player.controller.rest.SubsonicResponseMapper subsonicResponseMapper;
     private org.airsonic.player.controller.rest.RestPlayerResolver restPlayerResolver;
-    private org.airsonic.player.controller.rest.search.SearchService subsonicSearchService;
-    private org.airsonic.player.controller.rest.search.SearchController subsonicSearchController;
     private org.airsonic.player.health.StatusAggregator statusAggregator;
     private org.airsonic.player.controller.rest.admin.GeneralSettingsController generalSettingsController;
     private org.airsonic.player.controller.rest.admin.MusicFolderSettingsController musicFolderSettingsController;
@@ -180,26 +178,6 @@ public final class RuntimeCompositionRoot {
             restPlayerResolver = new org.airsonic.player.controller.rest.RestPlayerResolver(playerService);
         }
         return restPlayerResolver;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.search.SearchService createSubsonicSearchService(
-            org.airsonic.player.service.SearchService searchService,
-            org.airsonic.player.service.MediaFolderService mediaFolderService,
-            org.airsonic.player.controller.rest.SubsonicResponseMapper responseMapper) {
-        if (subsonicSearchService == null) {
-            subsonicSearchService = new org.airsonic.player.controller.rest.search.SearchService(
-                    searchService, mediaFolderService, responseMapper, createSubsonicJaxbWriter());
-        }
-        return subsonicSearchService;
-    }
-
-    public synchronized org.airsonic.player.controller.rest.search.SearchController createSubsonicSearchController(
-            org.airsonic.player.controller.rest.search.SearchService searchService) {
-        if (subsonicSearchController == null) {
-            subsonicSearchController = new org.airsonic.player.controller.rest.search.SearchController(
-                    searchService, createSubsonicJaxbWriter());
-        }
-        return subsonicSearchController;
     }
 
     public synchronized org.airsonic.player.health.StatusAggregator createStatusAggregator() {
