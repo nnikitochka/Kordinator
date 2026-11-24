@@ -10,6 +10,7 @@ import io.ktor.server.testing.testApplication
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.TaskSchedulingService
+import su.nnedition.kord.api.configureApiRouting
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -38,7 +39,7 @@ class KtorStandaloneScheduledTasksTest {
 
                 testApplication {
                     application {
-                        standaloneModule(authService = auth, taskSchedulingService = scheduler)
+                        configureApiRouting(authService = auth, taskSchedulingService = scheduler)
                     }
 
                     val response = client.get("/api/v1/admin/scheduled-tasks") { bearerAuth(adminToken) }

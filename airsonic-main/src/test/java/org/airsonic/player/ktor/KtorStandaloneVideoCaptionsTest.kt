@@ -18,6 +18,7 @@ import org.airsonic.player.service.CaptionService
 import org.airsonic.player.service.MediaFileService
 import org.junit.jupiter.api.io.TempDir
 import org.mockito.Mockito
+import su.nnedition.kord.api.configureApiRouting
 import java.io.ByteArrayInputStream
 import java.nio.file.Files
 import java.nio.file.Path
@@ -61,7 +62,7 @@ class KtorStandaloneVideoCaptionsTest {
                     mediaType = MediaFile.MediaType.VIDEO
                     title = "Live show"
                     parentPath = ""
-                    setPresent(true)
+                    present = true
                 }
                 val mediaFiles = Mockito.mock(MediaFileService::class.java)
                 Mockito.`when`(mediaFiles.getMediaFile(27)).thenReturn(video)
@@ -76,7 +77,7 @@ class KtorStandaloneVideoCaptionsTest {
 
                 testApplication {
                     application {
-                        standaloneModule(
+                        configureApiRouting(
                             authService = auth,
                             mediaFolderService = runtime.mediaFolderService,
                             mediaFileService = mediaFiles,

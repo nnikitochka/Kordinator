@@ -16,6 +16,7 @@ import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.SettingsService
 import org.airsonic.player.service.UPnPService
 import org.mockito.Mockito
+import su.nnedition.kord.api.configureApiRouting
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -42,7 +43,7 @@ class KtorStandaloneDlnaSettingsTest {
             val upnp = Mockito.mock(UPnPService::class.java)
 
             testApplication {
-                application { standaloneModule(authService = auth, settingsService = settings, upnpService = upnp) }
+                application { configureApiRouting(authService = auth, settingsService = settings, upnpService = upnp) }
 
                 assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/admin/settings/dlna") { bearerAuth(listenerToken) }.status)
                 val read = client.get("/api/v1/admin/settings/dlna") { bearerAuth(adminToken) }

@@ -15,6 +15,7 @@ import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.SettingsService
 import org.mockito.Mockito
+import su.nnedition.kord.api.configureApiRouting
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -41,7 +42,7 @@ class KtorStandaloneAdvancedSettingsTest {
             Mockito.`when`(settings.brand).thenReturn("Kordinator")
 
             testApplication {
-                application { standaloneModule(authService = auth, settingsService = settings) }
+                application { configureApiRouting(authService = auth, settingsService = settings) }
 
                 assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/admin/settings/advanced") { bearerAuth(listenerToken) }.status)
                 val read = client.get("/api/v1/admin/settings/advanced") { bearerAuth(adminToken) }

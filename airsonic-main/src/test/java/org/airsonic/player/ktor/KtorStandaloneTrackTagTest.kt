@@ -19,6 +19,7 @@ import org.airsonic.player.service.TagEditService
 import org.airsonic.player.service.TrackTagUpdate
 import org.junit.jupiter.api.io.TempDir
 import org.mockito.Mockito
+import su.nnedition.kord.api.configureApiRouting
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -67,7 +68,7 @@ class KtorStandaloneTrackTagTest {
 
             testApplication {
                 application {
-                    standaloneModule(
+                    configureApiRouting(
                         authService = auth,
                         mediaFileService = mediaFiles,
                         mediaFolderService = folders,

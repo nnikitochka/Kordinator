@@ -17,6 +17,7 @@ import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.service.TagEditService
 import org.airsonic.player.service.TrackTagUpdate
+import su.nnedition.kord.api.ApiError
 
 class KordinatorTrackTagRoutes(
     private val tags: TagEditService,

@@ -23,6 +23,7 @@ import org.airsonic.player.service.DatabaseService
 import org.airsonic.player.service.SettingsService
 import org.mockito.Mockito
 import org.junit.jupiter.api.io.TempDir
+import su.nnedition.kord.api.configureApiRouting
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -73,7 +74,7 @@ class KtorStandaloneDatabaseSettingsTest {
             System.setProperty("airsonic.home", home.toString())
             try {
                 testApplication {
-                application { standaloneModule(authService = auth, settingsService = settings, databaseService = database) }
+                application { configureApiRouting(authService = auth, settingsService = settings, databaseService = database) }
 
                 assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/admin/settings/database") { bearerAuth(listenerToken) }.status)
                 val read = client.get("/api/v1/admin/settings/database") { bearerAuth(adminToken) }

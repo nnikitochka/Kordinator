@@ -21,6 +21,7 @@ import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.service.CaptionService
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
+import su.nnedition.kord.api.ApiError
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest

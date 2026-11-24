@@ -37,6 +37,7 @@ import org.airsonic.player.service.LastFmService
 import org.airsonic.player.domain.RandomSearchCriteria
 import org.mockito.Mockito
 import org.junit.jupiter.api.io.TempDir
+import su.nnedition.kord.api.configureApiRouting
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -68,6 +69,7 @@ class KtorStandalonePlaylistTest {
                 val otherToken = auth.login("other", "another strong password")!!.token
                 val otherId = requireNotNull(auth.authenticate(otherToken)).id
                 val library = runtime.mediaFolderService.getAllMusicFolders(true, true).single()
+                val libraryId = requireNotNull(library.id)
                 val coreCatalog = mockCoreCatalog(
                     runtime,
                     library,
@@ -86,7 +88,7 @@ class KtorStandalonePlaylistTest {
                     coreCatalog.mediaScannerService,
                 )
                 val mediaCatalogService = org.airsonic.player.service.KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
-                val scan = scans.enqueue(library.id.toLong())
+                val scan = scans.enqueue(libraryId.toLong())
                 scans.run(scan.id)
                 val playlists = StandalonePlaylistService(dataSource, mediaCatalogService)
                 val playQueue = StandalonePlayQueueService(dataSource, mediaCatalogService)
@@ -105,8 +107,9 @@ class KtorStandalonePlaylistTest {
                 val artistDao = Mockito.mock(org.airsonic.player.dao.ArtistDao::class.java)
                 val coreTrackId = mediaCatalogService.tracks(null, null, 10, 0, null).single().id
                 val coreFile = runtime.runtime.createPersistenceGraph().daos.mediaFileDao.getMediaFile(coreTrackId.toInt())
+                    ?: error("Expected seeded track to be available in the media-file DAO")
                 Mockito.`when`(coreCatalog.mediaFileService.getMediaFile(coreTrackId.toInt())).thenReturn(coreFile)
-                Mockito.`when`(coreCatalog.mediaFileService.getMediaFile("track.mp3", library.id.toInt())).thenReturn(coreFile)
+                Mockito.`when`(coreCatalog.mediaFileService.getMediaFile("track.mp3", libraryId)).thenReturn(coreFile)
                 Mockito.`when`(randomSearch.getRandomSongs(Mockito.any(RandomSearchCriteria::class.java))).thenReturn(listOf(coreFile))
                 Mockito.`when`(topSongs.getTopSongs(Mockito.anyString(), Mockito.anyInt(), Mockito.anyList())).thenReturn(listOf(coreFile))
                 Mockito.`when`(topSongs.getSimilarSongs(
@@ -115,14 +118,14 @@ class KtorStandalonePlaylistTest {
                 Mockito.`when`(topSongs.getSimilarSongs(
                     Mockito.any(org.airsonic.player.domain.MediaFile::class.java), Mockito.anyInt(), Mockito.anyList(),
                 )).thenReturn(listOf(coreFile))
-                Mockito.`when`(artistDao.getArtist(Mockito.eq("Album Artist"), Mockito.anyList()))
+                Mockito.`when`(artistDao.getArtist(Mockito.anyString(), Mockito.anyList()))
                     .thenReturn(org.airsonic.player.domain.Artist().apply { name = "Album Artist" })
                 configureExternalMetadata(topSongs)
                 val mapper = jacksonObjectMapper()
 
                 testApplication {
                     application {
-                        standaloneModule(
+                        configureApiRouting(
                             authService = auth,
                             libraryScanService = scans,
                             playlistService = playlists,
@@ -144,10 +147,10 @@ class KtorStandalonePlaylistTest {
 
                 val tracksResponse = client.get("/api/v1/tracks") { bearerAuth(ownerToken) }
                 val trackId = mapper.readTree(tracksResponse.bodyAsText()).get("items")[0].get("id").asLong()
-                assertLibraryFolderList(client, mapper, ownerToken, library.id.toLong())
+                assertLibraryFolderList(client, mapper, ownerToken, libraryId.toLong())
                 assertTrackMetadata(client, mapper, ownerToken, otherToken, trackId)
                 assertIndependentMetadata(client, mapper, ownerToken, otherToken, auth, otherId)
-                assertEquals(true, auth.setAllowedLibraries(otherId, setOf(library.id.toLong())))
+                assertEquals(true, auth.setAllowedLibraries(otherId, setOf(libraryId.toLong())))
                 assertTrackNotes(client, mapper, ownerToken, otherToken, trackId)
                 assertEquals(true, auth.setAllowedLibraries(otherId, emptySet()))
                 assertEquals(0, mapper.readTree(client.get("/api/v1/library/folders") {
@@ -155,7 +158,7 @@ class KtorStandalonePlaylistTest {
                 }.bodyAsText()).size())
 
                 val randomTracks = mapper.readTree(client.get(
-                    "/api/v1/tracks/random?size=1&genre=Rock&fromYear=1990&toYear=2000&libraryId=${library.id}",
+                    "/api/v1/tracks/random?size=1&genre=Rock&fromYear=1990&toYear=2000&libraryId=$libraryId",
                 ) { bearerAuth(ownerToken) }.bodyAsText())
                 assertEquals(1, randomTracks.get("count").asInt())
                 assertEquals(trackId, randomTracks.get("items")[0].get("id").asLong())
@@ -257,11 +260,11 @@ class KtorStandalonePlaylistTest {
                     bearerAuth(ownerToken)
                 }.status.value)
 
-                val albums = client.get("/api/v1/albums?libraryId=${library.id}") { bearerAuth(ownerToken) }
+                val albums = client.get("/api/v1/albums?libraryId=$libraryId") { bearerAuth(ownerToken) }
                 val album = mapper.readTree(albums.bodyAsText()).get("items")[0]
                 val albumId = album.get("id").asText()
                 assertEquals("Test Album", album.get("name").asText())
-                val artists = client.get("/api/v1/artists?libraryId=${library.id}") { bearerAuth(ownerToken) }
+                val artists = client.get("/api/v1/artists?libraryId=$libraryId") { bearerAuth(ownerToken) }
                 val artist = mapper.readTree(artists.bodyAsText()).get("items")[0]
                 val artistId = artist.get("id").asText()
                 assertEquals("Album Artist", artist.get("name").asText())
@@ -306,7 +309,7 @@ class KtorStandalonePlaylistTest {
                 assertEquals(404, client.put("/api/v1/artists/$artistId/favorite") {
                     bearerAuth(otherToken)
                 }.status.value)
-                assertEquals(404, client.put("/api/v1/albums/${library.id}.bm9uZXhpc3RlbnQ/favorite") {
+                assertEquals(404, client.put("/api/v1/albums/${libraryId}.bm9uZXhpc3RlbnQ/favorite") {
                     bearerAuth(ownerToken)
                 }.status.value)
                 assertEquals(204, client.delete("/api/v1/albums/$albumId/favorite") { bearerAuth(ownerToken) }.status.value)
@@ -316,12 +319,12 @@ class KtorStandalonePlaylistTest {
                     bearerAuth(ownerToken)
                 }.bodyAsText()).get("total").asInt())
 
-                assertEquals(true, auth.setAllowedLibraries(otherId, setOf(library.id.toLong())))
+                assertEquals(true, auth.setAllowedLibraries(otherId, setOf(libraryId.toLong())))
                 assertEquals(204, client.put("/api/v1/albums/$albumId/favorite") { bearerAuth(otherToken) }.status.value)
                 assertEquals(204, client.put("/api/v1/artists/$artistId/favorite") { bearerAuth(otherToken) }.status.value)
-                val rescan = scans.enqueue(library.id.toLong())
+                val rescan = scans.enqueue(libraryId.toLong())
                 scans.run(rescan.id)
-                assertEquals("COMPLETED", scans.latestScan(library.id.toLong())?.state)
+                assertEquals("COMPLETED", scans.latestScan(libraryId.toLong())?.state)
                 assertEquals(1, mapper.readTree(client.get("/api/v1/favorites/albums") {
                     bearerAuth(otherToken)
                 }.bodyAsText()).get("total").asInt())
@@ -336,7 +339,7 @@ class KtorStandalonePlaylistTest {
                 assertEquals(0, mapper.readTree(client.get("/api/v1/favorites/artists") {
                     bearerAuth(otherToken)
                 }.bodyAsText()).get("total").asInt())
-                assertEquals(true, auth.setAllowedLibraries(otherId, setOf(library.id.toLong())))
+                assertEquals(true, auth.setAllowedLibraries(otherId, setOf(libraryId.toLong())))
                 assertEquals(1, mapper.readTree(client.get("/api/v1/favorites/albums") {
                     bearerAuth(otherToken)
                 }.bodyAsText()).get("total").asInt())
@@ -359,7 +362,7 @@ class KtorStandalonePlaylistTest {
                 val coreTrackId = runtime.coreDataSource.connection.use { connection ->
                     connection.prepareStatement("SELECT id FROM media_file WHERE path = ? AND folder_id = ?").use { statement ->
                         statement.setString(1, "track.mp3")
-                        statement.setInt(2, library.id)
+                        statement.setInt(2, libraryId)
                         statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
                     }
                 }

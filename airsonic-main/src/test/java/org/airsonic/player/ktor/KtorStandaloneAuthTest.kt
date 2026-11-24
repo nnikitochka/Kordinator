@@ -16,6 +16,7 @@ import io.ktor.server.testing.testApplication
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LastEnabledAdministratorException
 import org.airsonic.player.security.LocalAuthService
+import su.nnedition.kord.api.configureApiRouting
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -99,7 +100,7 @@ class KtorStandaloneAuthTest {
             }
 
             testApplication {
-                application { standaloneModule(auth) }
+                application { configureApiRouting(auth) }
 
                 assertEquals(HttpStatusCode.Forbidden, client.delete("/api/v1/admin/users/$victimId") {
                     bearerAuth(victimSession.token)
@@ -163,7 +164,7 @@ class KtorStandaloneAuthTest {
             val adminToken = auth.login("admin", "a strong password for tests")!!.token
 
             testApplication {
-                application { standaloneModule(auth) }
+                application { configureApiRouting(auth) }
 
                 assertEquals(HttpStatusCode.Forbidden, client.put("/api/v1/admin/users/$userId") {
                     bearerAuth(userSession.token)
@@ -231,7 +232,7 @@ class KtorStandaloneAuthTest {
             val userSession = auth.login("listener", "listener password for tests")!!
 
             testApplication {
-                application { standaloneModule(auth) }
+                application { configureApiRouting(auth) }
 
                 val adminLogin = client.post("/api/v1/auth/login") {
                     contentType(ContentType.Application.Json)
@@ -316,7 +317,7 @@ class KtorStandaloneAuthTest {
             }
 
             testApplication {
-                application { standaloneModule(auth) }
+                application { configureApiRouting(auth) }
 
                 assertEquals(HttpStatusCode.Unauthorized, client.get("/api/v1/me").status)
                 assertEquals(HttpStatusCode.Unauthorized, client.get("/api/v1/me?token=not-a-session").status)

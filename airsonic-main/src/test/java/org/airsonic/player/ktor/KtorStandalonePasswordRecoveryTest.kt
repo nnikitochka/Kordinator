@@ -10,7 +10,6 @@ import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.delay
@@ -21,6 +20,7 @@ import org.airsonic.player.security.StandalonePasswordRecoveryService
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import su.nnedition.kord.api.configureApiRouting
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.test.assertEquals
@@ -58,7 +58,7 @@ class KtorStandalonePasswordRecoveryTest {
             val mapper = jacksonObjectMapper()
 
             testApplication {
-                application { standaloneModule(authService = auth, passwordRecoveryService = recovery) }
+                application { configureApiRouting(authService = auth, passwordRecoveryService = recovery) }
 
                 val setEmail = client.put("/api/v1/admin/users/$userId/email") {
                     bearerAuth(adminToken)

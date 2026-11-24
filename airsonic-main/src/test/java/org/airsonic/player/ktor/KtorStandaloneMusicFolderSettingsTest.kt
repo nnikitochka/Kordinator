@@ -17,6 +17,7 @@ import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.MusicFolderAdministrationService
 import org.mockito.Mockito
+import su.nnedition.kord.api.configureApiRouting
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -50,7 +51,7 @@ class KtorStandaloneMusicFolderSettingsTest {
             Mockito.`when`(service.settings).thenReturn(settings)
 
             testApplication {
-                application { standaloneModule(authService = auth, musicFolderAdministrationService = service) }
+                application { configureApiRouting(authService = auth, musicFolderAdministrationService = service) }
 
                 assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/admin/settings/music-folders") { bearerAuth(listenerToken) }.status)
                 val read = client.get("/api/v1/admin/settings/music-folders") { bearerAuth(adminToken) }

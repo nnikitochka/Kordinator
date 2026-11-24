@@ -14,6 +14,7 @@ import org.airsonic.player.service.ServerInfoService
 import org.airsonic.player.service.SettingsService
 import org.airsonic.player.service.VersionService
 import org.mockito.Mockito
+import su.nnedition.kord.api.configureApiRouting
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -44,7 +45,7 @@ class KtorStandaloneServerInfoTest {
 
             testApplication {
                 application {
-                    standaloneModule(authService = auth, serverInfoService = serverInfo, settingsService = settings)
+                    configureApiRouting(authService = auth, serverInfoService = serverInfo, settingsService = settings)
                 }
 
                 assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/admin/server-info") { bearerAuth(listenerToken) }.status)

@@ -23,6 +23,7 @@ import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.StandaloneLibraryScanService
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.junit.jupiter.api.io.TempDir
+import su.nnedition.kord.api.configureApiRouting
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.nio.file.Files
@@ -63,6 +64,7 @@ class KtorStandaloneScanTest {
                 val listenerId = auth.createUser("listener", "listener password for tests")
                 val listenerToken = auth.login("listener", "listener password for tests")!!.token
                 val library = runtime.mediaFolderService.getAllMusicFolders(true, true).single()
+                val libraryId = requireNotNull(library.id)
                 val coreCatalog = mockCoreCatalog(
                     runtime,
                     library,
@@ -73,7 +75,7 @@ class KtorStandaloneScanTest {
                 val coreTrackId = runtime.coreDataSource.connection.use { connection ->
                     connection.prepareStatement("SELECT id FROM media_file WHERE path = ? AND folder_id = ?").use { statement ->
                         statement.setString(1, "01 - First Track.mp3")
-                        statement.setInt(2, library.id)
+                        statement.setInt(2, libraryId)
                         statement.executeQuery().use { rows -> rows.next(); rows.getLong(1) }
                     }
                 }
@@ -91,7 +93,7 @@ class KtorStandaloneScanTest {
                     }
                     connection.prepareStatement("INSERT INTO media_track (id, library_id, relative_path) VALUES (?, ?, ?)").use { statement ->
                         statement.setLong(1, legacyTrackId)
-                        statement.setInt(2, library.id)
+                        statement.setInt(2, libraryId)
                         statement.setString(3, "01 - First Track.mp3")
                         statement.executeUpdate()
                     }
@@ -137,7 +139,8 @@ class KtorStandaloneScanTest {
                     }
                 }
                 org.mockito.Mockito.`when`(coreCatalog.mediaFileService.getMediaFile(coreTrackId.toInt())).thenAnswer {
-                    runtime.runtime.createPersistenceGraph().daos.mediaFileDao.getMediaFile(coreTrackId.toInt()).apply { duration = 30.0 }
+                    (runtime.runtime.createPersistenceGraph().daos.mediaFileDao.getMediaFile(coreTrackId.toInt())
+                        ?: error("Expected seeded track to be available in the media-file DAO")).apply { duration = 30.0 }
                 }
                 val favoriteService = StandaloneFavoriteService(dataSource, mediaCatalogService)
                 val mapper = jacksonObjectMapper()
@@ -159,7 +162,7 @@ class KtorStandaloneScanTest {
 
                 testApplication {
                     application {
-                        standaloneModule(
+                        configureApiRouting(
                             authService = auth,
                             libraryScanService = scanService,
                             favoriteService = favoriteService,
@@ -170,14 +173,14 @@ class KtorStandaloneScanTest {
                         )
                     }
 
-                val started = client.post("/api/v1/admin/libraries/${library.id}/scan") { bearerAuth(token) }
+                val started = client.post("/api/v1/admin/libraries/$libraryId/scan") { bearerAuth(token) }
                 assertEquals(202, started.status.value)
                 org.mockito.Mockito.verify(coreCatalog.mediaScannerService).scanLibrary()
                 val scanId = mapper.readTree(started.bodyAsText()).get("id").asText()
 
                 var state = "QUEUED"
                 for (attempt in 0 until 100) {
-                    val status = client.get("/api/v1/admin/libraries/${library.id}/scan") { bearerAuth(token) }
+                    val status = client.get("/api/v1/admin/libraries/$libraryId/scan") { bearerAuth(token) }
                     state = mapper.readTree(status.bodyAsText()).get("state").asText()
                     if (state == "COMPLETED" || state == "FAILED") break
                     delay(25)
@@ -190,18 +193,18 @@ class KtorStandaloneScanTest {
                 val grantLibrary = client.put("/api/v1/admin/users/$listenerId/libraries") {
                     bearerAuth(token)
                     contentType(ContentType.Application.Json)
-                    setBody("""{"libraryIds":[${library.id}]}""")
+                    setBody("""{"libraryIds":[$libraryId]}""")
                 }
                 assertEquals(HttpStatusCode.NoContent, grantLibrary.status)
                 val userLibraries = client.get("/api/v1/admin/users/$listenerId/libraries") { bearerAuth(token) }
                 assertEquals(HttpStatusCode.OK, userLibraries.status)
-                assertEquals(listOf(library.id.toLong()), mapper.readTree(userLibraries.bodyAsText()).map { it.asLong() })
-                val listenerCatalog = client.get("/api/v1/tracks?libraryId=${library.id}") {
+                assertEquals(listOf(libraryId.toLong()), mapper.readTree(userLibraries.bodyAsText()).map { it.asLong() })
+                val listenerCatalog = client.get("/api/v1/tracks?libraryId=$libraryId") {
                     bearerAuth(listenerToken)
                 }
                 assertEquals(HttpStatusCode.OK, listenerCatalog.status)
                 assertEquals(1, mapper.readTree(listenerCatalog.bodyAsText()).get("total").asInt())
-                val deniedLibrary = client.get("/api/v1/tracks?libraryId=${library.id + 1}") {
+                val deniedLibrary = client.get("/api/v1/tracks?libraryId=${libraryId + 1}") {
                     bearerAuth(listenerToken)
                 }
                 assertEquals(HttpStatusCode.NotFound, deniedLibrary.status)
@@ -218,7 +221,7 @@ class KtorStandaloneScanTest {
                     bearerAuth(listenerToken)
                 }.status)
 
-                val catalog = client.get("/api/v1/tracks?libraryId=${library.id}&q=first&limit=10&offset=0") {
+                val catalog = client.get("/api/v1/tracks?libraryId=$libraryId&q=first&limit=10&offset=0") {
                     bearerAuth(token)
                 }
                 assertEquals(200, catalog.status.value)
@@ -244,12 +247,12 @@ class KtorStandaloneScanTest {
                         statement.setInt(7, 1997)
                         statement.setString(8, "Test Genre")
                         statement.setString(9, "01 - First Track.mp3")
-                        statement.setInt(10, library.id)
+                        statement.setInt(10, libraryId)
                         assertEquals(1, statement.executeUpdate())
                     }
                 }
 
-                val albums = client.get("/api/v1/albums?libraryId=${library.id}") { bearerAuth(token) }
+                val albums = client.get("/api/v1/albums?libraryId=$libraryId") { bearerAuth(token) }
                 assertEquals(200, albums.status.value)
                 val albumItems = mapper.readTree(albums.bodyAsText()).get("items")
                 assertEquals(1, albumItems.size())
@@ -270,7 +273,7 @@ class KtorStandaloneScanTest {
                 assertEquals(400, client.get("/api/v1/albums?limit=0") { bearerAuth(token) }.status.value)
                 assertEquals(400, client.get("/api/v1/albums/invalid") { bearerAuth(token) }.status.value)
 
-                val artists = client.get("/api/v1/artists?libraryId=${library.id}") { bearerAuth(token) }
+                val artists = client.get("/api/v1/artists?libraryId=$libraryId") { bearerAuth(token) }
                 assertEquals(200, artists.status.value)
                 val artistItems = mapper.readTree(artists.bodyAsText()).get("items")
                 assertEquals(1, artistItems.size())
@@ -421,20 +424,20 @@ class KtorStandaloneScanTest {
                 runtime.coreDataSource.connection.use { connection ->
                     connection.prepareStatement("UPDATE media_file SET present = false WHERE path = ? AND folder_id = ?").use { statement ->
                         statement.setString(1, "01 - First Track.mp3")
-                        statement.setInt(2, library.id)
+                        statement.setInt(2, libraryId)
                         assertEquals(1, statement.executeUpdate())
                     }
                 }
-                val rescan = client.post("/api/v1/admin/libraries/${library.id}/scan") { bearerAuth(token) }
+                val rescan = client.post("/api/v1/admin/libraries/$libraryId/scan") { bearerAuth(token) }
                 assertEquals(202, rescan.status.value)
                 for (attempt in 0 until 100) {
-                    val status = client.get("/api/v1/admin/libraries/${library.id}/scan") { bearerAuth(token) }
+                    val status = client.get("/api/v1/admin/libraries/$libraryId/scan") { bearerAuth(token) }
                     state = mapper.readTree(status.bodyAsText()).get("state").asText()
                     if (state == "COMPLETED" || state == "FAILED") break
                     delay(25)
                 }
                 assertEquals("COMPLETED", state)
-                val emptyCatalog = client.get("/api/v1/tracks?libraryId=${library.id}") { bearerAuth(token) }
+                val emptyCatalog = client.get("/api/v1/tracks?libraryId=$libraryId") { bearerAuth(token) }
                 assertEquals(0, mapper.readTree(emptyCatalog.bodyAsText()).get("count").asInt())
                 assertEquals(0, mapper.readTree(emptyCatalog.bodyAsText()).get("total").asInt())
                 }
@@ -460,7 +463,7 @@ class KtorStandaloneScanTest {
             ).also { opened.complete(it) }
         }.`when`(transcoding).openTranscodedInputStream(org.mockito.ArgumentMatchers.any())
         val server = io.ktor.server.engine.embeddedServer(io.ktor.server.netty.Netty, host = "127.0.0.1", port = 0) {
-            standaloneModule(authService = auth, libraryScanService = scanService,
+            configureApiRouting(authService = auth, libraryScanService = scanService,
                 mediaCatalogService = mediaCatalogService, mediaFileService = mediaFiles,
                 transcodingService = transcoding)
         }.start(wait = false)

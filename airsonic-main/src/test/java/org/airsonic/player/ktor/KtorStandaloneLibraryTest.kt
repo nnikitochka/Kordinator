@@ -20,6 +20,7 @@ import org.airsonic.player.service.StandaloneLibraryScanService
 import org.mockito.Mockito
 import java.nio.file.Files
 import org.junit.jupiter.api.io.TempDir
+import su.nnedition.kord.api.configureApiRouting
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -57,7 +58,7 @@ class KtorStandaloneLibraryTest {
                 val movedRoot = Files.createDirectories(musicRoot.resolveSibling("moved-${musicRoot.fileName}"))
 
                 testApplication {
-                    application { standaloneModule(authService = auth, mediaFolderService = runtime.mediaFolderService, libraryScanService = scans) }
+                    application { configureApiRouting(authService = auth, mediaFolderService = runtime.mediaFolderService, libraryScanService = scans) }
 
                     val created = client.post("/api/v1/admin/libraries") {
                     bearerAuth(adminToken)

@@ -12,6 +12,7 @@ import kotlinx.coroutines.withContext
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.service.StandaloneScrobbleService
+import su.nnedition.kord.api.ApiError
 import java.time.Instant
 
 data class ScrobbleTrackRequest(val time: String? = null, val submission: Boolean = true)

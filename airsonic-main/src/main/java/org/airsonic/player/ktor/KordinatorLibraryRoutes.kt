@@ -12,6 +12,7 @@ import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
 import org.airsonic.player.security.LocalUserPrincipal
+import su.nnedition.kord.api.ApiError
 
 data class KordinatorLibraryFolder(val id: Int, val name: String)
 

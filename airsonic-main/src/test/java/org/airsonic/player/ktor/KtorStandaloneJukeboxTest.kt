@@ -24,6 +24,7 @@ import org.airsonic.player.service.StandaloneJukeboxService
 import org.airsonic.player.service.StandaloneTrack
 import org.mockito.Mockito
 import org.junit.jupiter.api.io.TempDir
+import su.nnedition.kord.api.configureApiRouting
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -68,7 +69,7 @@ class KtorStandaloneJukeboxTest {
                 albumName = "Album"
                 format = "flac"
                 duration = 180.0
-                setPresent(true)
+                present = true
             }
             Mockito.`when`(mediaFiles.getMediaFile("album/track.flac", 1)).thenReturn(file)
             val jukebox = StandaloneJukeboxService(
@@ -78,7 +79,7 @@ class KtorStandaloneJukeboxTest {
 
             testApplication {
                 application {
-                    standaloneModule(
+                    configureApiRouting(
                         authService = auth,
                         mediaCatalogService = catalog,
                         mediaFileService = mediaFiles,

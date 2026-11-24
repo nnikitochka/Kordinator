@@ -36,6 +36,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import su.nnedition.kord.api.configureApiRouting
 
 class KtorStandaloneVideoTest {
     @TempDir
@@ -80,7 +81,7 @@ class KtorStandaloneVideoTest {
                         this.changed = changed
                         lastScanned = changed
                         childrenLastUpdated = changed
-                        setPresent(true)
+                        present = true
                     }.also { video -> runtime.runtime.createPersistenceGraph().daos.mediaFileDao.createOrUpdateMediaFile(video) { } }
                 }
                 val mediaFileDao = runtime.runtime.createPersistenceGraph().daos.mediaFileDao
@@ -102,7 +103,7 @@ class KtorStandaloneVideoTest {
                     this.changed = legacyTrackTime
                     lastScanned = legacyTrackTime
                     childrenLastUpdated = legacyTrackTime
-                    setPresent(true)
+                    present = true
                 }.also { mediaFileDao.createOrUpdateMediaFile(it) { } }
                 val legacyAlbum = MediaFile().apply {
                     path = "legacy-rated-album"
@@ -116,7 +117,7 @@ class KtorStandaloneVideoTest {
                     this.changed = legacyTrackTime
                     lastScanned = legacyTrackTime
                     childrenLastUpdated = legacyTrackTime
-                    setPresent(true)
+                    present = true
                 }.also { mediaFileDao.createOrUpdateMediaFile(it) { } }
                 runtime.coreDataSource.connection.use { connection ->
                     val legacyAvatarBytes = ByteArrayOutputStream().use { output ->
@@ -308,7 +309,7 @@ class KtorStandaloneVideoTest {
                 try {
                 testApplication {
                     application {
-                        standaloneModule(
+                        configureApiRouting(
                             authService = auth,
                             mediaFolderService = runtime.mediaFolderService,
                             mediaFileDao = mediaFileDao,

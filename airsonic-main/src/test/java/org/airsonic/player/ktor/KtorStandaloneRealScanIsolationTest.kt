@@ -28,6 +28,7 @@ import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandaloneRatingService
 import org.airsonic.player.service.StandaloneShareService
 import org.junit.jupiter.api.io.TempDir
+import su.nnedition.kord.api.configureApiRouting
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -109,7 +110,7 @@ class KtorStandaloneRealScanIsolationTest {
 
                 testApplication {
                     application {
-                        standaloneModule(
+                        configureApiRouting(
                             authService = auth,
                             libraryScanService = scanService,
                             mediaFolderService = runtime.mediaFolderService,

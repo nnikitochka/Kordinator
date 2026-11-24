@@ -13,6 +13,7 @@ import kotlinx.coroutines.withContext
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.service.StandaloneRatingService
+import su.nnedition.kord.api.ApiError
 
 data class SetTrackRatingRequest(val rating: Int)
 data class TrackRatingResponse(val rating: Int?)

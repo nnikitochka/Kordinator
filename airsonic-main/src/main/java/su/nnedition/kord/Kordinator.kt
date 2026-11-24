@@ -1,8 +1,8 @@
-package su.nnedition.kordinator
+package su.nnedition.kord
 
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import org.airsonic.player.ktor.standaloneModule
+import su.nnedition.kord.api.configureApiRouting
 import org.airsonic.player.runtime.LifecycleRegistry
 import org.airsonic.player.runtime.RuntimeCompositionRoot
 import org.airsonic.player.runtime.RuntimeConfigurationLoader
@@ -38,7 +38,7 @@ object Kordinator {
         val lifecycle = LifecycleRegistry()
         Runtime.getRuntime().addShutdownHook(Thread({ lifecycle.shutdown() }, "airsonic-shutdown"))
         val runtime = RuntimeCompositionRoot(configuration, lifecycle)
-        lateinit var standaloneDatabase: StandaloneDatabase
+        var standaloneDatabase: StandaloneDatabase
         try {
             standaloneDatabase = StandaloneDatabase.connect(configuration)
             lifecycle.registerShutdown("standaloneDatabase", standaloneDatabase)
@@ -193,7 +193,7 @@ object Kordinator {
             mediaScannerService,
         )
         val server = embeddedServer(Netty, host = host, port = port) {
-            standaloneModule(
+            configureApiRouting(
                 authService,
                 libraryScanService,
                 playlistService,

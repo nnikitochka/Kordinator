@@ -111,7 +111,7 @@ internal fun mockCoreCatalog(
         this.folderId = folderId
         mediaType = MediaFile.MediaType.DIRECTORY
         this.title = "Music"
-        setPresent(true)
+        present = true
     }
     val audio = MediaFile().apply {
         path = relativePath
@@ -124,7 +124,7 @@ internal fun mockCoreCatalog(
         this.genre = genre
         fileSize = sizeBytes
         changed = Instant.now()
-        setPresent(true)
+        present = true
     }
     val now = Instant.now()
     val persistedFile = MediaFile().apply {
@@ -144,7 +144,7 @@ internal fun mockCoreCatalog(
         changed = now
         lastScanned = now
         childrenLastUpdated = now
-        setPresent(true)
+        present = true
     }
     runtime.runtime.createPersistenceGraph().daos.mediaFileDao.createOrUpdateMediaFile(persistedFile) { }
     Mockito.`when`(mediaFiles.getMediaFile(Paths.get(""), folder, true)).thenReturn(root)

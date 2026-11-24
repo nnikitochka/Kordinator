@@ -1,6 +1,5 @@
 package org.airsonic.player.ktor
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.request.bearerAuth
@@ -19,6 +18,7 @@ import org.airsonic.player.service.ArtworkManagementService
 import org.airsonic.player.service.StandaloneArtworkSearchService
 import org.airsonic.player.service.StoredArtwork
 import org.junit.jupiter.api.io.TempDir
+import su.nnedition.kord.api.configureApiRouting
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -65,7 +65,7 @@ class KtorStandaloneArtworkTest {
 
             testApplication {
                 application {
-                    standaloneModule(
+                    configureApiRouting(
                         authService = auth,
                         artworkSearchService = search,
                         artworkManagementService = management,

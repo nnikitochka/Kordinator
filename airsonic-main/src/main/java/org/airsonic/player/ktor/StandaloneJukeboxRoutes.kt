@@ -6,7 +6,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.principal
-import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
@@ -23,6 +22,7 @@ import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.StandaloneJukeboxService
 import org.airsonic.player.service.JukeboxQueueTrack
+import su.nnedition.kord.api.ApiError
 
 class StandaloneJukeboxRoutes(
     private val catalog: KtorCoreMediaCatalogService,
@@ -75,11 +75,19 @@ class StandaloneJukeboxRoutes(
                         return@put call.respondJson(ApiError("invalid_request", "Expected a JSON trackIds array"), HttpStatusCode.BadRequest)
                     }
                     if (request.trackIds.size > MAX_QUEUE_SIZE || request.trackIds.any { it < 0 }) {
-                        call.respondJson(ApiError("invalid_request", "Queue must contain at most 5000 non-negative track IDs"), HttpStatusCode.BadRequest)
+                        call.respondJson(
+                            ApiError(
+                                "invalid_request",
+                                "Queue must contain at most 5000 non-negative track IDs"
+                            ), HttpStatusCode.BadRequest)
                         return@put
                     }
                     val result = loadAccessibleTracks(request.trackIds, user)
-                        ?: return@put call.respondJson(ApiError("track_not_found", "A track does not exist or is not accessible"), HttpStatusCode.NotFound)
+                        ?: return@put call.respondJson(
+                            ApiError(
+                                "track_not_found",
+                                "A track does not exist or is not accessible"
+                            ), HttpStatusCode.NotFound)
                     try {
                         call.respondJson(jukebox.replaceQueue(user.id, user.username, result))
                     } catch (failure: IllegalArgumentException) {
@@ -98,7 +106,11 @@ class StandaloneJukeboxRoutes(
                     try {
                         call.respondJson(jukebox.command(user.id, request.action, request.index, request.offsetSeconds, request.gain))
                     } catch (_: NoSuchElementException) {
-                        call.respondJson(ApiError("jukebox_not_found", "Create a jukebox queue before sending commands"), HttpStatusCode.NotFound)
+                        call.respondJson(
+                            ApiError(
+                                "jukebox_not_found",
+                                "Create a jukebox queue before sending commands"
+                            ), HttpStatusCode.NotFound)
                     } catch (failure: IllegalArgumentException) {
                         call.respondJson(ApiError("invalid_request", failure.message ?: "Invalid jukebox command"), HttpStatusCode.BadRequest)
                     } catch (_: IllegalStateException) {

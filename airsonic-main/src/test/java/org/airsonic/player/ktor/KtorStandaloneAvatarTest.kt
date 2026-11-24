@@ -20,6 +20,7 @@ import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.StandaloneAvatarService
 import org.junit.jupiter.api.io.TempDir
+import su.nnedition.kord.api.configureApiRouting
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.nio.file.Path
@@ -61,7 +62,7 @@ class KtorStandaloneAvatarTest {
             }
 
             testApplication {
-                application { standaloneModule(authService = auth, avatarService = avatarService) }
+                application { configureApiRouting(authService = auth, avatarService = avatarService) }
 
                 assertEquals(HttpStatusCode.Unauthorized, client.get("/api/v1/me/avatar").status)
                 assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/me/avatar") { bearerAuth(userToken) }.status)

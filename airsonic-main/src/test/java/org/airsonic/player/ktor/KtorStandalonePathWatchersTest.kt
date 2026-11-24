@@ -10,9 +10,9 @@ import io.ktor.server.testing.testApplication
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.PathWatcherService
+import su.nnedition.kord.api.configureApiRouting
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class KtorStandalonePathWatchersTest {
     @Test
@@ -36,7 +36,7 @@ class KtorStandalonePathWatchersTest {
 
                 testApplication {
                     application {
-                        standaloneModule(authService = auth, pathWatcherService = watchers)
+                        configureApiRouting(authService = auth, pathWatcherService = watchers)
                     }
 
                     val response = client.get("/api/v1/admin/path-watchers") { bearerAuth(adminToken) }

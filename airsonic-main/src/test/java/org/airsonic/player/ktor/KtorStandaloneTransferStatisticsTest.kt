@@ -15,6 +15,7 @@ import org.airsonic.player.service.StatusService
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.mockito.Mockito
+import su.nnedition.kord.api.configureApiRouting
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -54,7 +55,7 @@ class KtorStandaloneTransferStatisticsTest {
             }))
 
             testApplication {
-                application { standaloneModule(authService = auth, statusService = statuses, securityService = security) }
+                application { configureApiRouting(authService = auth, statusService = statuses, securityService = security) }
 
                 val transfers = client.get("/api/v1/admin/transfer-statistics") { bearerAuth(token) }
                 assertEquals(HttpStatusCode.OK, transfers.status)

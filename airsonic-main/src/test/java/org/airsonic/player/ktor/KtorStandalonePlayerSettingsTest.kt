@@ -22,6 +22,7 @@ import org.airsonic.player.service.JukeboxService
 import org.airsonic.player.service.PlayerService
 import org.airsonic.player.service.TranscodingService
 import org.mockito.Mockito
+import su.nnedition.kord.api.configureApiRouting
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -65,7 +66,7 @@ class KtorStandalonePlayerSettingsTest {
 
             testApplication {
                 application {
-                    standaloneModule(
+                    configureApiRouting(
                         authService = auth,
                         playerService = players,
                         transcodingService = transcoding,

@@ -28,6 +28,7 @@ import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaScannerService
 import org.junit.jupiter.api.io.TempDir
 import org.mockito.Mockito
+import su.nnedition.kord.api.configureApiRouting
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -76,7 +77,7 @@ class KtorStandaloneLibraryCreationTest {
 
                 testApplication {
                     application {
-                        standaloneModule(
+                        configureApiRouting(
                             authService = auth,
                             libraryScanService = scanService,
                             mediaFolderService = runtime.mediaFolderService,

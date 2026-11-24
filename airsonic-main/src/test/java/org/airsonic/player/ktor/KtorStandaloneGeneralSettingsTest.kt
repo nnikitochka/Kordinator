@@ -17,6 +17,7 @@ import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.GeneralSettingsAdministrationService
 import org.mockito.Mockito
+import su.nnedition.kord.api.configureApiRouting
 import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -48,7 +49,7 @@ class KtorStandaloneGeneralSettingsTest {
             Mockito.`when`(service.availableLocales).thenReturn(arrayOf(Locale.US))
 
             testApplication {
-                application { standaloneModule(authService = auth, generalSettingsService = service) }
+                application { configureApiRouting(authService = auth, generalSettingsService = service) }
 
                 assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/admin/settings/general") { bearerAuth(listenerToken) }.status)
                 val read = client.get("/api/v1/admin/settings/general") { bearerAuth(adminToken) }

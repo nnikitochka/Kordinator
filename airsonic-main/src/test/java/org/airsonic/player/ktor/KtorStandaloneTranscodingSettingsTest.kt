@@ -16,6 +16,7 @@ import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.SettingsService
 import org.airsonic.player.service.TranscodingService
 import org.mockito.Mockito
+import su.nnedition.kord.api.configureApiRouting
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -47,7 +48,7 @@ class KtorStandaloneTranscodingSettingsTest {
 
             try {
               testApplication {
-                application { standaloneModule(authService = auth, transcodingService = transcoding, settingsService = settings) }
+                application { configureApiRouting(authService = auth, transcodingService = transcoding, settingsService = settings) }
 
                 assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/admin/settings/transcoding") { bearerAuth(listenerToken) }.status)
                 val read = client.get("/api/v1/admin/settings/transcoding") { bearerAuth(adminToken) }

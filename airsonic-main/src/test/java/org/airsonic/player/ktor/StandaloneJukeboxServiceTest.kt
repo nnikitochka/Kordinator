@@ -47,6 +47,6 @@ class StandaloneJukeboxServiceTest {
         albumName = "Album"
         folderId = 1
         mediaType = MediaFile.MediaType.MUSIC
-        setPresent(true)
+        present = true
     }
 }

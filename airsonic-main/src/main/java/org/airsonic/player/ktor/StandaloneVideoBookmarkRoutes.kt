@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.service.StandaloneVideoBookmark
 import org.airsonic.player.service.StandaloneVideoBookmarkService
+import su.nnedition.kord.api.ApiError
 
 data class VideoBookmarkPage(val items: List<VideoBookmarkResponse>, val count: Int)
 data class VideoBookmarkResponse(
@@ -74,7 +75,11 @@ class StandaloneVideoBookmarkRoutes(
             )
             val user = call.principal<LocalUserPrincipal>() ?: return@delete call.respond(HttpStatusCode.Unauthorized)
             val videoId = call.parameters["id"]?.toIntOrNull()?.takeIf { it >= 0 }
-                ?: return@delete call.respondJson(ApiError("invalid_request", "Video ID must be a non-negative integer"), HttpStatusCode.BadRequest)
+                ?: return@delete call.respondJson(
+                    ApiError(
+                        "invalid_request",
+                        "Video ID must be a non-negative integer"
+                    ), HttpStatusCode.BadRequest)
             val deleted = withContext(databaseDispatcher) { bookmarkService.delete(user.id, videoId, user.libraryScope()) }
             if (deleted) call.respond(HttpStatusCode.NoContent) else call.respond(HttpStatusCode.NotFound)
         }

@@ -5,7 +5,6 @@ import com.zaxxer.hikari.HikariDataSource
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
 import org.airsonic.player.health.DefaultHealthContributorRegistry
@@ -13,6 +12,7 @@ import org.airsonic.player.health.Health
 import org.airsonic.player.health.SimpleStatusAggregator
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
+import su.nnedition.kord.api.configureApiRouting
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -44,7 +44,7 @@ class KtorStandaloneHealthTest {
 
             testApplication {
                 application {
-                    standaloneModule(
+                    configureApiRouting(
                         authService = auth,
                         healthContributors = contributors,
                         healthStatusAggregator = SimpleStatusAggregator(listOf("DOWN", "UP", "UNKNOWN")),
