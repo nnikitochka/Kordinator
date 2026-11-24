@@ -33,7 +33,7 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 45 файлов
+### Production: 43 файла
 
 - `airsonic-main/src/main/java/org/airsonic/player/service/CoverArtImageService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
@@ -51,8 +51,6 @@
 - `airsonic-main/src/main/java/org/airsonic/player/service/VersionService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/hls/HlsSession.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/jukebox/AudioPlayer.java`
-- `airsonic-main/src/main/java/org/airsonic/player/service/playlist/DefaultPlaylistExportHandler.java`
-- `airsonic-main/src/main/java/org/airsonic/player/service/playlist/XspfPlaylistExportHandler.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/scrobbler/LastFMScrobbler.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/scrobbler/ListenBrainzScrobbler.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/AlbumUpnpProcessor.java`
@@ -167,3 +165,4 @@
 - `JaudiotaggerParser` переведён на Kotlin; запись, чтение и удаление тегов на копии MP3, scanner, API тегов и обложки: 14 тестов прошли.
 - `MetaDataParser` переведён на Kotlin; fallback метаданных, номера/годы, парсеры, scanner и редактирование: 14 тестов прошли.
 - `PlaylistImportHandler`, `DefaultPlaylistImportHandler`, `XspfPlaylistImportHandler` переведены на Kotlin; импорт M3U/PLS, порядок обработчиков, разрешение путей и Ktor API: 9 тестов прошли.
+- `DefaultPlaylistExportHandler` и `XspfPlaylistExportHandler` переведены на Kotlin; M3U/XSPF, порядок обработчиков и Ktor: 7 тестов прошли.
