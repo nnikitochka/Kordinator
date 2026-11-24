@@ -25,21 +25,20 @@ class MusicFolderAdministrationService(
     val settings: MusicFolderSettingsCommand
         get() {
             val command = MusicFolderSettingsCommand()
-            command.setInterval(settingsService.indexCreationInterval.toString())
-            command.setHour(settingsService.indexCreationHour.toString())
-            command.setFastCache(settingsService.isFastCacheEnabled())
-            command.setOrganizeByFolderStructure(settingsService.isOrganizeByFolderStructure())
-            command.setScanning(mediaScannerService.isScanning())
-            command.setMusicFolders(wrap(mediaFolderService.getAllMusicFolders(true, true)))
-            command.setNewMusicFolder(MusicFolderInfo())
-            command.setDeletedMusicFolders(wrap(mediaFolderService.getDeletedMusicFolders()))
-            command.setUploadsFolder(settingsService.uploadsFolder)
-            command.setExcludePatternString(settingsService.excludePatternString)
-            command.setIgnoreSymLinks(settingsService.ignoreSymLinks)
-            command.setFullScan(settingsService.fullScan)
-            command.setClearFullScanSettingAfterScan(
-                if (!settingsService.fullScan) settingsService.fullScan else settingsService.clearFullScanSettingAfterScan,
-            )
+            command.interval = settingsService.indexCreationInterval.toString()
+            command.hour = settingsService.indexCreationHour.toString()
+            command.isFastCache = settingsService.isFastCacheEnabled()
+            command.isOrganizeByFolderStructure = settingsService.isOrganizeByFolderStructure()
+            command.isScanning = mediaScannerService.isScanning()
+            command.musicFolders = wrap(mediaFolderService.getAllMusicFolders(true, true))
+            command.newMusicFolder = MusicFolderInfo()
+            command.deletedMusicFolders = wrap(mediaFolderService.getDeletedMusicFolders())
+            command.uploadsFolder = settingsService.uploadsFolder
+            command.excludePatternString = settingsService.excludePatternString
+            command.ignoreSymLinks = settingsService.ignoreSymLinks
+            command.fullScan = settingsService.fullScan
+            command.clearFullScanSettingAfterScan =
+                if (!settingsService.fullScan) settingsService.fullScan else settingsService.clearFullScanSettingAfterScan
             return command
         }
 
@@ -88,7 +87,7 @@ class MusicFolderAdministrationService(
         }.sortedWith(compareBy<MusicFolderInfo> { it.type }.thenBy { it.id })
 
     fun save(command: MusicFolderSettingsCommand) {
-        for (musicFolderInfo in command.musicFolders) {
+        for (musicFolderInfo in command.musicFolders!!) {
             if (musicFolderInfo.delete) {
                 mediaFolderService.deleteMusicFolder(musicFolderInfo.id)
             } else {
@@ -96,19 +95,19 @@ class MusicFolderAdministrationService(
                 if (musicFolder != null) mediaFolderService.updateMusicFolder(musicFolder)
             }
         }
-        val newMusicFolder = command.newMusicFolder.toMusicFolder()
+        val newMusicFolder = command.newMusicFolder!!.toMusicFolder()
         if (newMusicFolder != null) mediaFolderService.createMusicFolder(newMusicFolder)
 
-        settingsService.setIndexCreationInterval(command.interval.toInt())
-        settingsService.setIndexCreationHour(command.hour.toInt())
-        settingsService.setFastCacheEnabled(command.isFastCache())
-        settingsService.setOrganizeByFolderStructure(command.isOrganizeByFolderStructure())
+        settingsService.setIndexCreationInterval(command.interval!!.toInt())
+        settingsService.setIndexCreationHour(command.hour!!.toInt())
+        settingsService.setFastCacheEnabled(command.isFastCache)
+        settingsService.setOrganizeByFolderStructure(command.isOrganizeByFolderStructure)
         settingsService.setUploadsFolder(command.uploadsFolder)
         settingsService.setExcludePatternString(command.excludePatternString)
-        settingsService.setIgnoreSymLinks(command.getIgnoreSymLinks())
-        settingsService.setFullScan(command.getFullScan())
+        settingsService.setIgnoreSymLinks(command.ignoreSymLinks)
+        settingsService.setFullScan(command.fullScan)
         settingsService.setClearFullScanSettingAfterScan(
-            if (!command.getFullScan()) command.getFullScan() else command.getClearFullScanSettingAfterScan(),
+            if (command.fullScan != true) command.fullScan else command.clearFullScanSettingAfterScan,
         )
         settingsService.save()
         mediaScannerService.schedule()
