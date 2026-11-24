@@ -33,7 +33,7 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 38 файлов
+### Production: 36 файлов
 
 - `airsonic-main/src/main/java/org/airsonic/player/service/CoverArtImageService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
@@ -55,12 +55,10 @@
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/DispatchingContentDirectory.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/FolderBasedContentDirectory.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/GenreUpnpProcessor.java`
-- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/MSMediaReceiverRegistrarService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/MediaFileUpnpProcessor.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/NATPMPRouter.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/PlaylistUpnpProcessor.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/RecentAlbumUpnpProcessor.java`
-- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/RootUpnpProcessor.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/Router.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/UpnpContentProcessor.java`
 - `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/AddMediaFileIdToPodcastChannels.java`
@@ -166,3 +164,4 @@
 - `ListenBrainzScrobbler` переведён на Kotlin; payload и HTTP-заголовок проверены локальным сервером, API и runtime graph: 6 тестов прошли.
 - `LastFMScrobbler` переведён на Kotlin; локальным HTTP-сервером проверены handshake, подпись и формы submission/now playing, runtime и API: 7 тестов прошли.
 - `LambdaUtils` переведён на Kotlin; адаптеры исключений, конкурентная проверка ключей, database API и runtime: 7 тестов прошли. Java-вызовы этих интерфейсов в проекте используют `Exception`; Kotlin не сохраняет `throws E` в JVM-сигнатуре, объявляется `throws Exception`.
+- `RootUpnpProcessor` и DLNA media receiver registrar переведены на Kotlin; свойства корня, шесть категорий, URL и настройки DLNA: 9 тестов прошли.
