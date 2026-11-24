@@ -6,15 +6,16 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
+import java.nio.file.Path
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
+import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.service.MediaFileService
 import org.airsonic.player.service.MediaFolderService
-import org.airsonic.player.security.LocalUserPrincipal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
-import java.nio.file.Path
+import su.nnedition.kord.api.module.library.libraryRoutes
 
 class KordinatorLibraryRoutesTest {
     @Test
@@ -50,8 +51,7 @@ class KordinatorLibraryRoutesTest {
         val mapper = jacksonObjectMapper()
         application {
             routing {
-                KordinatorLibraryRoutes(mediaFiles, folders).routes(
-                    this,
+                libraryRoutes(mediaFiles, folders,
                     currentUser = { call -> if (call.request.headers["X-Test-User"] == "alice") LocalUserPrincipal(1, "alice", "USER", setOf(3)) else null },
                     objectMapper = mapper,
                 )
@@ -91,8 +91,7 @@ class KordinatorLibraryRoutesTest {
         Mockito.`when`(folders.getAllMusicFolders(false, false)).thenReturn(listOf(folder))
         application {
             routing {
-                KordinatorLibraryRoutes(mediaFiles, folders).routes(
-                    this,
+                libraryRoutes(mediaFiles, folders,
                     currentUser = { call -> if (call.request.headers["X-Test-User"] == "alice") LocalUserPrincipal(1, "alice", "USER", setOf(3)) else null },
                     objectMapper = jacksonObjectMapper(),
                 )

@@ -4,13 +4,13 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
+import java.util.Base64
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
-import org.airsonic.player.ktor.respondJson
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.service.StandaloneFavoriteService
 import su.nnedition.kord.api.ApiError
-import java.util.Base64
+import su.nnedition.kord.api.support.respondJson
 
 internal fun parsePage(limitValue: String?, offsetValue: String?): Pair<Int, Int>? {
     val limit = limitValue?.toIntOrNull() ?: if (limitValue == null) 50 else null

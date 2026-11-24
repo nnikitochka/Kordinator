@@ -1,16 +1,15 @@
 package su.nnedition.kord.api.module.track
 
-import io.ktor.server.routing.Route
-
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import kotlinx.coroutines.withContext
-import org.airsonic.player.ktor.catalogLibraryScope
-import org.airsonic.player.ktor.respondJson
 import su.nnedition.kord.api.ApiContext
 import su.nnedition.kord.api.ApiError
 import su.nnedition.kord.api.scanDispatcher
+import su.nnedition.kord.api.support.catalogLibraryScope
+import su.nnedition.kord.api.support.respondJson
 
 fun Route.trackRoutes(
     context: ApiContext

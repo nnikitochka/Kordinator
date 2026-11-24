@@ -12,14 +12,14 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import io.ktor.utils.io.jvm.javaio.toInputStream
+import java.nio.file.Paths
+import kotlin.collections.orEmpty
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import su.nnedition.kord.api.ApiError
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.service.StandalonePlaylistService
-import java.nio.file.Paths
-import kotlin.collections.orEmpty
+import su.nnedition.kord.api.ApiError
 
 /** Imports an M3U playlist using only tracks visible to the authenticated account. */
 fun Route.playlistImportRoutes(
@@ -81,7 +81,7 @@ fun Route.playlistImportRoutes(
 
     suspend fun import(call: ApplicationCall) {
         val user = call.principal<LocalUserPrincipal>()
-            ?: return call.respondText("", status = HttpStatusCode.Unauthorized)
+                ?: return call.respondText("", status = HttpStatusCode.Unauthorized)
         val (fileName, bytes) = try {
             receiveFile(call)
         } catch (failure: IllegalArgumentException) {

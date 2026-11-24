@@ -1,27 +1,26 @@
 package su.nnedition.kord.api.module.playlist
 
-import io.ktor.server.routing.Route
-
 import io.ktor.http.ContentType
-import io.ktor.server.auth.principal
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.principal
+import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
-import io.ktor.server.request.receiveText
-import io.ktor.server.routing.post
-import io.ktor.server.routing.put
+import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import kotlinx.coroutines.withContext
-import su.nnedition.kord.api.ApiError
-import su.nnedition.kord.api.ApiContext
-import org.airsonic.player.ktor.catalogLibraryScope
-import org.airsonic.player.ktor.jsonMapper
-import org.airsonic.player.ktor.respondJson
-import su.nnedition.kord.api.scanDispatcher
-import org.airsonic.player.ktor.toResponse
 import org.airsonic.player.security.LocalUserPrincipal
+import su.nnedition.kord.api.ApiContext
+import su.nnedition.kord.api.ApiError
+import su.nnedition.kord.api.scanDispatcher
+import su.nnedition.kord.api.support.catalogLibraryScope
+import su.nnedition.kord.api.support.jsonMapper
+import su.nnedition.kord.api.support.respondJson
+import su.nnedition.kord.api.support.toResponse
 
 fun Route.playlistRoutes(
     context: ApiContext,
@@ -31,7 +30,7 @@ fun Route.playlistRoutes(
     }
     get("/playlists") {
         val user = call.principal<LocalUserPrincipal>()
-            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                ?: return@get call.respond(HttpStatusCode.Unauthorized)
         if (context.playlistService == null) {
             call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
             return@get
@@ -48,7 +47,7 @@ fun Route.playlistRoutes(
     }
     post("/playlists") {
         val user = call.principal<LocalUserPrincipal>()
-            ?: return@post call.respond(HttpStatusCode.Unauthorized)
+                ?: return@post call.respond(HttpStatusCode.Unauthorized)
         if (context.playlistService == null) {
             call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
             return@post
@@ -72,7 +71,7 @@ fun Route.playlistRoutes(
     }
     get("/playlists/{id}/export") {
         val user = call.principal<LocalUserPrincipal>()
-            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                ?: return@get call.respond(HttpStatusCode.Unauthorized)
         val service = context.playlistService
         if (service == null) {
             call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -108,11 +107,11 @@ fun Route.playlistRoutes(
     }
     get("/playlists/{id}/readers") {
         val user = call.principal<LocalUserPrincipal>()
-            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                ?: return@get call.respond(HttpStatusCode.Unauthorized)
         val service = context.playlistService
-            ?: return@get call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                ?: return@get call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
         val playlistId = call.parameters["id"]?.toLongOrNull()?.takeIf { it >= 0 }
-            ?: return@get call.respondJson(ApiError("invalid_request", "Playlist ID must be non-negative"), HttpStatusCode.BadRequest)
+                ?: return@get call.respondJson(ApiError("invalid_request", "Playlist ID must be non-negative"), HttpStatusCode.BadRequest)
         val readers = withContext(scanDispatcher) { service.readers(user.id, playlistId) }
         if (readers == null) call.respond(HttpStatusCode.NotFound) else call.respondJson(
             PlaylistReadersResponse(
@@ -122,11 +121,11 @@ fun Route.playlistRoutes(
     }
     put("/playlists/{id}/readers") {
         val user = call.principal<LocalUserPrincipal>()
-            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                ?: return@put call.respond(HttpStatusCode.Unauthorized)
         val service = context.playlistService
-            ?: return@put call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                ?: return@put call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
         val playlistId = call.parameters["id"]?.toLongOrNull()?.takeIf { it >= 0 }
-            ?: return@put call.respondJson(ApiError("invalid_request", "Playlist ID must be non-negative"), HttpStatusCode.BadRequest)
+                ?: return@put call.respondJson(ApiError("invalid_request", "Playlist ID must be non-negative"), HttpStatusCode.BadRequest)
         val request = try {
             jsonMapper.readValue(call.receiveText(), SetPlaylistReadersRequest::class.java)
         } catch (_: Exception) {
@@ -145,7 +144,7 @@ fun Route.playlistRoutes(
     }
     get("/playlists/{id}") {
         val user = call.principal<LocalUserPrincipal>()
-            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                ?: return@get call.respond(HttpStatusCode.Unauthorized)
         val service = context.playlistService
         if (service == null) {
             call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)
@@ -163,7 +162,7 @@ fun Route.playlistRoutes(
     }
     put("/playlists/{id}") {
         val user = call.principal<LocalUserPrincipal>()
-            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                ?: return@put call.respond(HttpStatusCode.Unauthorized)
         val playlistId = call.parameters["id"]?.toLongOrNull()
         if (playlistId == null || playlistId < 0) {
             call.respondJson(ApiError("invalid_request", "Playlist ID must be a non-negative number"), HttpStatusCode.BadRequest)
@@ -194,7 +193,7 @@ fun Route.playlistRoutes(
     }
     delete("/playlists/{id}") {
         val user = call.principal<LocalUserPrincipal>()
-            ?: return@delete call.respond(HttpStatusCode.Unauthorized)
+                ?: return@delete call.respond(HttpStatusCode.Unauthorized)
         val service = context.playlistService
         if (service == null) {
             call.respondJson(ApiError("unavailable", "Playlist storage is not configured"), HttpStatusCode.ServiceUnavailable)

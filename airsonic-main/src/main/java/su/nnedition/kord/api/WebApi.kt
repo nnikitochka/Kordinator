@@ -8,79 +8,81 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.bearer
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
-import kotlinx.coroutines.Dispatchers
+import io.micrometer.core.instrument.MeterRegistry
+import javax.cache.CacheManager
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
-import org.airsonic.player.security.LocalAuthService
-import org.airsonic.player.security.StandalonePasswordRecoveryService
-import org.airsonic.player.security.LoginRateLimiter
-import org.airsonic.player.service.StandaloneLibraryScanService
-import org.airsonic.player.service.StandaloneArtworkSearchService
-import org.airsonic.player.service.ArtworkManagementService
-import org.airsonic.player.service.CaptionService
-import org.airsonic.player.service.StandalonePlaylistService
-import org.airsonic.player.service.StandalonePlayQueueService
-import org.airsonic.player.service.StandaloneVideoPlaybackService
-import org.airsonic.player.service.StandaloneAudioTranscodingService
-import org.airsonic.player.service.StandaloneJukeboxService
-import org.airsonic.player.service.StandaloneFavoriteService
-import org.airsonic.player.service.StandaloneBookmarkService
-import org.airsonic.player.service.StandaloneVideoBookmarkService
-import org.airsonic.player.service.StandaloneTrackNoteService
-import org.airsonic.player.service.TagEditService
-import org.airsonic.player.service.StandaloneShareService
-import org.airsonic.player.service.StandaloneAvatarService
-import org.airsonic.player.service.SettingsService
-import org.airsonic.player.service.PathWatcherService
-import org.airsonic.player.service.TaskSchedulingService
-import org.airsonic.player.health.HealthContributorRegistry
-import org.airsonic.player.health.StatusAggregator
-import io.micrometer.core.instrument.MeterRegistry
-import javax.cache.CacheManager
-import org.airsonic.player.service.StatusService
-import org.airsonic.player.service.SecurityService
-import org.airsonic.player.service.ServerInfoService
-import org.airsonic.player.service.GeneralSettingsAdministrationService
-import org.airsonic.player.service.TranscodingService
-import org.airsonic.player.service.UPnPService
-import org.airsonic.player.service.MusicFolderAdministrationService
-import org.airsonic.player.service.PlayerService
-import org.airsonic.player.service.JukeboxService
-import org.airsonic.player.service.DatabaseService
-import org.airsonic.player.service.StandaloneRatingService
-import org.airsonic.player.service.StandaloneScrobbleService
-import org.airsonic.player.service.LyricsService
-import org.airsonic.player.service.SearchService
-import org.airsonic.player.service.LastFmService
-import org.airsonic.player.service.MediaFolderService
-import org.airsonic.player.service.MediaFileService
-import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.dao.ArtistDao
 import org.airsonic.player.dao.MediaFileDao
-import org.airsonic.player.ktor.KordinatorAdminLibraryRoutes
-import org.airsonic.player.ktor.KordinatorAdminPlayerDatabaseRoutes
-import org.airsonic.player.ktor.KordinatorAdminSettingsRoutes
-import org.airsonic.player.ktor.KordinatorAdminStatusRoutes
-import org.airsonic.player.ktor.KordinatorAdminUserLibrariesRoutes
-import org.airsonic.player.ktor.KordinatorAdminUserRoutes
-import org.airsonic.player.ktor.KordinatorCatalogUtilityRoutes
-import su.nnedition.kord.api.module.favorite.favoriteRoutes
-import org.airsonic.player.ktor.KordinatorLibraryScanRoutes
-import org.airsonic.player.ktor.KordinatorMediaRoutes
-import org.airsonic.player.ktor.KordinatorMetadataRoutes
-import org.airsonic.player.ktor.KordinatorUserPlaybackRoutes
-import org.airsonic.player.ktor.KordinatorUserProfileRoutes
-import org.airsonic.player.ktor.PublicKordinatorRoutes
+import org.airsonic.player.health.HealthContributorRegistry
+import org.airsonic.player.health.StatusAggregator
+import org.airsonic.player.security.LocalAuthService
+import org.airsonic.player.security.LoginRateLimiter
+import org.airsonic.player.security.StandalonePasswordRecoveryService
+import org.airsonic.player.service.ArtworkManagementService
+import org.airsonic.player.service.CaptionService
+import org.airsonic.player.service.DatabaseService
+import org.airsonic.player.service.GeneralSettingsAdministrationService
+import org.airsonic.player.service.JukeboxService
+import org.airsonic.player.service.KtorCoreMediaCatalogService
+import org.airsonic.player.service.LastFmService
+import org.airsonic.player.service.LyricsService
+import org.airsonic.player.service.MediaFileService
+import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.MusicFolderAdministrationService
+import org.airsonic.player.service.PathWatcherService
+import org.airsonic.player.service.PlayerService
+import org.airsonic.player.service.SearchService
+import org.airsonic.player.service.SecurityService
+import org.airsonic.player.service.ServerInfoService
+import org.airsonic.player.service.SettingsService
+import org.airsonic.player.service.StandaloneArtworkSearchService
+import org.airsonic.player.service.StandaloneAudioTranscodingService
+import org.airsonic.player.service.StandaloneAvatarService
+import org.airsonic.player.service.StandaloneBookmarkService
+import org.airsonic.player.service.StandaloneFavoriteService
+import org.airsonic.player.service.StandaloneJukeboxService
+import org.airsonic.player.service.StandaloneLibraryScanService
+import org.airsonic.player.service.StandalonePlayQueueService
+import org.airsonic.player.service.StandalonePlaylistService
+import org.airsonic.player.service.StandaloneRatingService
+import org.airsonic.player.service.StandaloneScrobbleService
+import org.airsonic.player.service.StandaloneShareService
+import org.airsonic.player.service.StandaloneTrackNoteService
+import org.airsonic.player.service.StandaloneVideoBookmarkService
+import org.airsonic.player.service.StandaloneVideoPlaybackService
+import org.airsonic.player.service.StatusService
+import org.airsonic.player.service.TagEditService
+import org.airsonic.player.service.TaskSchedulingService
+import org.airsonic.player.service.TranscodingService
+import org.airsonic.player.service.UPnPService
+import su.nnedition.kord.api.module.admin.library.adminLibraryRoutes
+import su.nnedition.kord.api.module.admin.library.libraryScanRoutes
+import su.nnedition.kord.api.module.admin.player.adminPlayerRoutes
+import su.nnedition.kord.api.module.admin.database.databaseRoutes
+import su.nnedition.kord.api.module.admin.settings.adminSettingsRoutes
+import su.nnedition.kord.api.module.admin.status.adminStatusRoutes
+import su.nnedition.kord.api.module.admin.user.adminUserLibrariesRoutes
+import su.nnedition.kord.api.module.admin.user.adminUserManagementRoutes
+import su.nnedition.kord.api.module.admin.user.adminUserRoutes
 import su.nnedition.kord.api.module.album.albumRoutes
 import su.nnedition.kord.api.module.artist.artistRoutes
 import su.nnedition.kord.api.module.artwork.artworkRoutes
 import su.nnedition.kord.api.module.auth.authRoutes
+import su.nnedition.kord.api.module.catalog.catalogRoutes
+import su.nnedition.kord.api.module.favorite.favoriteRoutes
+import su.nnedition.kord.api.module.media.mediaRoutes
+import su.nnedition.kord.api.module.metadata.metadataRoutes
 import su.nnedition.kord.api.module.playlist.playlistRoutes
+import su.nnedition.kord.api.module.public.publicRoutes
 import su.nnedition.kord.api.module.search.searchRoutes
 import su.nnedition.kord.api.module.share.shareRoutes
 import su.nnedition.kord.api.module.track.trackRoutes
+import su.nnedition.kord.api.module.user.playback.userPlaybackRoutes
+import su.nnedition.kord.api.module.user.profile.userProfileRoutes
 
 internal val authDispatcher = Dispatchers.IO.limitedParallelism(4)
 internal val scanDispatcher = Dispatchers.IO.limitedParallelism(2)
@@ -202,7 +204,7 @@ fun Application.configureApiRouting(
         scanScope = scanScope,
     )
     routing {
-        PublicKordinatorRoutes(api).routes(this)
+        publicRoutes(api)
         if (authService != null) {
             route("/api/v1") {
                 authenticate("server-session") {
@@ -210,25 +212,27 @@ fun Application.configureApiRouting(
                     searchRoutes(api)
                     albumRoutes(api)
                     artistRoutes(api)
-                    KordinatorCatalogUtilityRoutes(api).routes(this)
+                    catalogRoutes(api)
                     trackRoutes(api)
-                    KordinatorMetadataRoutes(api).routes(this)
-                    KordinatorMediaRoutes(api).routes(this)
+                    metadataRoutes(api)
+                    mediaRoutes(api)
                 }
                 authRoutes(api)
                 authenticate("server-session") {
                     shareRoutes(api)
                     playlistRoutes(api)
-                    KordinatorUserProfileRoutes(api).routes(this)
-                    KordinatorUserPlaybackRoutes(api).routes(this)
+                    userProfileRoutes(api)
+                    userPlaybackRoutes(api)
                     favoriteRoutes(api)
-                    KordinatorAdminStatusRoutes(api).routes(this)
-                    KordinatorAdminSettingsRoutes(api).routes(this)
-                    KordinatorAdminPlayerDatabaseRoutes(api).routes(this)
-                    KordinatorAdminUserRoutes(api).routes(this)
-                    KordinatorAdminUserLibrariesRoutes(api).routes(this)
-                    KordinatorAdminLibraryRoutes(api).routes(this)
-                    KordinatorLibraryScanRoutes(api).routes(this)
+                    adminStatusRoutes(api)
+                    adminSettingsRoutes(api)
+                    adminPlayerRoutes(api)
+                    databaseRoutes(api)
+                    adminUserRoutes(api)
+                    adminUserManagementRoutes(api)
+                    adminUserLibrariesRoutes(api)
+                    adminLibraryRoutes(api)
+                    libraryScanRoutes(api)
                 }
             }
         }

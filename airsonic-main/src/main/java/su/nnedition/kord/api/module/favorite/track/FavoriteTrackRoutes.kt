@@ -10,7 +10,6 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.put
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
-import org.airsonic.player.ktor.respondJson
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.StandaloneTrack
@@ -18,6 +17,7 @@ import su.nnedition.kord.api.ApiError
 import su.nnedition.kord.api.module.favorite.libraryScope
 import su.nnedition.kord.api.module.favorite.parsePage
 import su.nnedition.kord.api.module.track.TrackResponse
+import su.nnedition.kord.api.support.respondJson
 
 fun Route.favoriteTrackRoutes(
     favoriteService: StandaloneFavoriteService?,

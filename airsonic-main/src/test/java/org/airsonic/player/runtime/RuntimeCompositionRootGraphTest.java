@@ -286,8 +286,6 @@ class RuntimeCompositionRootGraphTest {
                 runtimeRoot.createKordinatorSessionService(securityService, credentialEncoders, settingsService);
         assertSame(sessionService, runtimeRoot.createKordinatorSessionService(
                 securityService, credentialEncoders, settingsService));
-        assertSame(runtimeRoot.createKordinatorLibraryRoutes(mediaFileService, mediaFolderService),
-                runtimeRoot.createKordinatorLibraryRoutes(mediaFileService, mediaFolderService));
         org.airsonic.player.health.HealthContributorRegistry healthContributors =
                 runtimeRoot.createHealthContributorRegistry(dataSource);
         assertSame(healthContributors, runtimeRoot.createHealthContributorRegistry(dataSource));

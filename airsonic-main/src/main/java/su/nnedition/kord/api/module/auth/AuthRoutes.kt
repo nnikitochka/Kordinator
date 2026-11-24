@@ -1,20 +1,19 @@
 package su.nnedition.kord.api.module.auth
 
-import io.ktor.server.routing.Route
-
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.response.respond
 import io.ktor.server.request.receiveText
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.airsonic.player.ktor.MAX_PASSWORD_LENGTH
-import org.airsonic.player.ktor.jsonMapper
-import org.airsonic.player.ktor.respondJson
-import su.nnedition.kord.api.ApiError
 import su.nnedition.kord.api.ApiContext
+import su.nnedition.kord.api.ApiError
 import su.nnedition.kord.api.authDispatcher
+import su.nnedition.kord.api.support.MAX_PASSWORD_LENGTH
+import su.nnedition.kord.api.support.jsonMapper
+import su.nnedition.kord.api.support.respondJson
 
 fun Route.authRoutes(
     context: ApiContext

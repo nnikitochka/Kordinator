@@ -1,23 +1,22 @@
 package su.nnedition.kord.api.module.artwork
 
-import io.ktor.server.routing.Route
-
-import io.ktor.server.auth.principal
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.response.respond
-import io.ktor.server.request.receiveText
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receiveChannel
-import io.ktor.server.routing.put
+import io.ktor.server.request.receiveText
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.put
 import io.ktor.utils.io.jvm.javaio.toInputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.airsonic.player.ktor.jsonMapper
-import org.airsonic.player.ktor.respondJson
 import org.airsonic.player.security.LocalUserPrincipal
 import su.nnedition.kord.api.ApiContext
 import su.nnedition.kord.api.ApiError
+import su.nnedition.kord.api.support.jsonMapper
+import su.nnedition.kord.api.support.respondJson
 
 fun Route.artworkRoutes(
     context: ApiContext,
@@ -25,7 +24,7 @@ fun Route.artworkRoutes(
     get("/artwork/search") {
         if (call.principal<LocalUserPrincipal>() == null) return@get call.respond(HttpStatusCode.Unauthorized)
         val service = context.artworkSearchService
-            ?: return@get call.respondJson(ApiError("unavailable", "Artwork search is not configured"), HttpStatusCode.ServiceUnavailable)
+                ?: return@get call.respondJson(ApiError("unavailable", "Artwork search is not configured"), HttpStatusCode.ServiceUnavailable)
         val artist = call.request.queryParameters["artist"]?.takeIf(String::isNotBlank)
         val album = call.request.queryParameters["album"]?.takeIf(String::isNotBlank)
         if ((artist == null && album == null) || (artist?.length ?: 0) > 200 || (album?.length ?: 0) > 200) {
@@ -40,16 +39,16 @@ fun Route.artworkRoutes(
     }
     put("/library/directories/{id}/artwork/from-search") {
         val actor = call.principal<LocalUserPrincipal>()
-            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                ?: return@put call.respond(HttpStatusCode.Unauthorized)
         if (actor.role != "ADMIN") {
             return@put call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
         }
         val searchService = context.artworkSearchService
-            ?: return@put call.respondJson(ApiError("unavailable", "Artwork search is not configured"), HttpStatusCode.ServiceUnavailable)
+                ?: return@put call.respondJson(ApiError("unavailable", "Artwork search is not configured"), HttpStatusCode.ServiceUnavailable)
         val managementService = context.artworkManagementService
-            ?: return@put call.respondJson(ApiError("unavailable", "Artwork storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                ?: return@put call.respondJson(ApiError("unavailable", "Artwork storage is not configured"), HttpStatusCode.ServiceUnavailable)
         val id = call.parameters["id"]?.toIntOrNull()?.takeIf { it > 0 }
-            ?: return@put call.respondJson(
+                ?: return@put call.respondJson(
                 ApiError(
                     "invalid_request",
                     "Directory ID must be a positive number"
@@ -78,14 +77,14 @@ fun Route.artworkRoutes(
     }
     put("/library/directories/{id}/artwork") {
         val actor = call.principal<LocalUserPrincipal>()
-            ?: return@put call.respond(HttpStatusCode.Unauthorized)
+                ?: return@put call.respond(HttpStatusCode.Unauthorized)
         if (actor.role != "ADMIN") {
             return@put call.respondJson(ApiError("forbidden", "Administrator role required"), HttpStatusCode.Forbidden)
         }
         val service = context.artworkManagementService
-            ?: return@put call.respondJson(ApiError("unavailable", "Artwork storage is not configured"), HttpStatusCode.ServiceUnavailable)
+                ?: return@put call.respondJson(ApiError("unavailable", "Artwork storage is not configured"), HttpStatusCode.ServiceUnavailable)
         val id = call.parameters["id"]?.toIntOrNull()?.takeIf { it > 0 }
-            ?: return@put call.respondJson(
+                ?: return@put call.respondJson(
                 ApiError(
                     "invalid_request",
                     "Directory ID must be a positive number"

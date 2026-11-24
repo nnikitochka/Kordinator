@@ -5,9 +5,9 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
-import org.airsonic.player.ktor.respondJson
 import org.airsonic.player.service.LyricsService
 import su.nnedition.kord.api.ApiError
+import su.nnedition.kord.api.support.respondJson
 
 /** Exposes lyrics lookup through the authenticated Kordinator API. */
 fun Route.lyricsRoutes(

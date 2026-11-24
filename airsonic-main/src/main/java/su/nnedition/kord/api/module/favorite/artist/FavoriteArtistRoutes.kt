@@ -9,7 +9,6 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.put
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
-import org.airsonic.player.ktor.respondJson
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.service.StandaloneArtist
 import org.airsonic.player.service.StandaloneFavoriteService
@@ -19,6 +18,7 @@ import su.nnedition.kord.api.module.favorite.catalogId
 import su.nnedition.kord.api.module.favorite.libraryScope
 import su.nnedition.kord.api.module.favorite.parsePage
 import su.nnedition.kord.api.module.favorite.updateCatalogFavorite
+import su.nnedition.kord.api.support.respondJson
 
 fun Route.favoriteArtistRoutes(
     favoriteService: StandaloneFavoriteService?,
@@ -31,7 +31,7 @@ fun Route.favoriteArtistRoutes(
         )
 
         val page = parsePage(call.request.queryParameters["limit"], call.request.queryParameters["offset"])
-            ?: return@get call.respondJson(
+                ?: return@get call.respondJson(
                 ApiError("invalid_request", "Limit must be between 1 and 100 and offset non-negative"),
                 HttpStatusCode.BadRequest,
             )

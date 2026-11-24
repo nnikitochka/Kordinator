@@ -1,15 +1,16 @@
 package org.airsonic.player.ktor
 
-import org.airsonic.player.domain.UserCredential
-import org.airsonic.player.security.CredentialEncoderRegistry
-import org.airsonic.player.security.UserIdentity
-import org.airsonic.player.service.SecurityService
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.util.Base64
+import org.airsonic.player.domain.UserCredential
+import org.airsonic.player.security.CredentialEncoderRegistry
+import org.airsonic.player.security.UserIdentity
+import org.airsonic.player.service.SecurityService
+import su.nnedition.kord.api.support.MAX_PASSWORD_LENGTH
 
 data class KordinatorSessionToken(val accessToken: String, val expiresAt: Instant)
 data class KordinatorUserPrincipal(val username: String, val roles: Set<String>)

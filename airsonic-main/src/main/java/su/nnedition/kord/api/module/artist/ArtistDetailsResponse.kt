@@ -1,7 +1,7 @@
 package su.nnedition.kord.api.module.artist
 
-import su.nnedition.kord.api.module.track.TrackResponse
 import su.nnedition.kord.api.module.album.AlbumSummaryResponse
+import su.nnedition.kord.api.module.track.TrackResponse
 
 data class ArtistDetailsResponse(
     val id: String,

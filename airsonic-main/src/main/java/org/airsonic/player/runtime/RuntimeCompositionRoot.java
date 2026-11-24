@@ -94,7 +94,6 @@ public final class RuntimeCompositionRoot {
     private io.micrometer.core.instrument.MeterRegistry meterRegistry;
     private StatusAggregator statusAggregator;
     private org.airsonic.player.ktor.KordinatorSessionService kordinatorSessionService;
-    private org.airsonic.player.ktor.KordinatorLibraryRoutes kordinatorLibraryRoutes;
 
     public RuntimeCompositionRoot() {
         this(new RuntimeConfiguration(RuntimeConfiguration.DEFAULT_HEALTH_STATUS_ORDER), new LifecycleRegistry());
@@ -149,16 +148,6 @@ public final class RuntimeCompositionRoot {
                     settingsService.getNonDecodablePasswordEncoder());
         }
         return kordinatorSessionService;
-    }
-
-    public synchronized org.airsonic.player.ktor.KordinatorLibraryRoutes createKordinatorLibraryRoutes(
-            MediaFileService mediaFileService,
-            MediaFolderService mediaFolderService) {
-        if (kordinatorLibraryRoutes == null) {
-            kordinatorLibraryRoutes = new org.airsonic.player.ktor.KordinatorLibraryRoutes(
-                    mediaFileService, mediaFolderService);
-        }
-        return kordinatorLibraryRoutes;
     }
 
     public synchronized DataSource createDataSource() {

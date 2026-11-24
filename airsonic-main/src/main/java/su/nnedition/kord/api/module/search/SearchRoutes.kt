@@ -1,23 +1,22 @@
 package su.nnedition.kord.api.module.search
 
-import io.ktor.server.routing.Route
-
-import io.ktor.server.auth.principal
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import kotlinx.coroutines.withContext
-import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.domain.RandomSearchCriteria
-import org.airsonic.player.ktor.catalogLibraryScope
-import org.airsonic.player.ktor.decodeKordinatorCatalogId
-import org.airsonic.player.ktor.respondJson
-import org.airsonic.player.ktor.toResponse
+import org.airsonic.player.security.LocalUserPrincipal
 import su.nnedition.kord.api.ApiContext
-import su.nnedition.kord.api.authDispatcher
 import su.nnedition.kord.api.ApiError
+import su.nnedition.kord.api.authDispatcher
 import su.nnedition.kord.api.module.track.TrackResponse
 import su.nnedition.kord.api.scanDispatcher
+import su.nnedition.kord.api.support.catalogLibraryScope
+import su.nnedition.kord.api.support.decodeKordinatorCatalogId
+import su.nnedition.kord.api.support.respondJson
+import su.nnedition.kord.api.support.toResponse
 
 fun Route.searchRoutes(
     context: ApiContext,
@@ -61,7 +60,7 @@ fun Route.searchRoutes(
             return@get
         }
         val user = call.principal<LocalUserPrincipal>()
-            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                ?: return@get call.respond(HttpStatusCode.Unauthorized)
         val parameters = call.request.queryParameters
         val rawSize = parameters["size"]
         val size = rawSize?.toIntOrNull() ?: if (rawSize == null) 10 else null
@@ -105,7 +104,7 @@ fun Route.searchRoutes(
             return@get
         }
         val user = call.principal<LocalUserPrincipal>()
-            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                ?: return@get call.respond(HttpStatusCode.Unauthorized)
         val artist = call.parameters["id"]?.decodeKordinatorCatalogId()
         if (artist == null || user.catalogLibraryScope()?.contains(artist.first) == false) {
             call.respond(HttpStatusCode.NotFound)
@@ -142,7 +141,7 @@ fun Route.searchRoutes(
             return@get
         }
         val user = call.principal<LocalUserPrincipal>()
-            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                ?: return@get call.respond(HttpStatusCode.Unauthorized)
         val artist = call.parameters["id"]?.decodeKordinatorCatalogId()
         val scope = user.catalogLibraryScope()
         if (artist == null || scope?.contains(artist.first) == false) {
@@ -166,7 +165,7 @@ fun Route.searchRoutes(
             }
         }
         val coreArtist = withContext(scanDispatcher) { dao.getArtist(artist.second, allowedFolders) }
-            ?: return@get call.respond(HttpStatusCode.NotFound)
+                ?: return@get call.respond(HttpStatusCode.NotFound)
         val similar = withContext(scanDispatcher) {
             recommendations.getSimilarSongs(coreArtist, count, allowedFolders)
         }
@@ -185,7 +184,7 @@ fun Route.searchRoutes(
             return@get
         }
         val user = call.principal<LocalUserPrincipal>()
-            ?: return@get call.respond(HttpStatusCode.Unauthorized)
+                ?: return@get call.respond(HttpStatusCode.Unauthorized)
         val trackId = call.parameters["id"]?.toLongOrNull()
         if (trackId == null || trackId !in 0..Int.MAX_VALUE.toLong()) {
             call.respondJson(ApiError("invalid_request", "Track ID must be a non-negative integer"), HttpStatusCode.BadRequest)
@@ -209,7 +208,7 @@ fun Route.searchRoutes(
             }
         }
         val mediaFile = withContext(scanDispatcher) { files.getMediaFile(trackId.toInt()) }
-            ?: return@get call.respond(HttpStatusCode.NotFound)
+                ?: return@get call.respond(HttpStatusCode.NotFound)
         val similar = withContext(scanDispatcher) {
             recommendations.getSimilarSongs(mediaFile, count, allowedFolders)
         }
