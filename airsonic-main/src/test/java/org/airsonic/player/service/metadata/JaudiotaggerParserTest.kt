@@ -41,8 +41,8 @@ class JaudiotaggerParserTest {
         val cleared = parser.getRawMetaData(copy)
         assertNull(cleared.trackNumber)
         assertNull(cleared.year)
-        assertTrue(parser.isEditingSupported)
-        assertEquals(0, parser.order)
+        assertTrue(parser.isEditingSupported())
+        assertEquals(0, parser.getOrder())
     }
 
     @Test

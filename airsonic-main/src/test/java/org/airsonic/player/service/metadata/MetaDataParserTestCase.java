@@ -34,7 +34,7 @@ public class MetaDataParserTestCase {
             }
 
             @Override
-            MediaFolderService getMediaFolderService() {
+            public MediaFolderService getMediaFolderService() {
                 return null;
             }
 

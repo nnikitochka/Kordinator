@@ -9,7 +9,7 @@ class MetaDataParserFactory(
     parsers: MutableList<MetaDataParser>
 ) {
     private val parsers: List<MetaDataParser> = parsers.stream()
-        .sorted(Comparator.comparingInt { it.order })
+        .sorted(Comparator.comparingInt { it.getOrder() })
         .toList()
 
     /**
@@ -20,7 +20,7 @@ class MetaDataParserFactory(
      */
     fun getParser(path: Path?): MetaDataParser? {
         return parsers.stream()
-            .filter { parser -> parser.isApplicable(path) }
+            .filter { parser -> parser.isApplicable(path!!) }
             .findFirst().orElse(null)
     }
 }

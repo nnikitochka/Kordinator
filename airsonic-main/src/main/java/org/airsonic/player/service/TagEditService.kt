@@ -30,7 +30,7 @@ open class TagEditService(
             val folder: MusicFolder = mediaFolderService.getMusicFolderById(file.folderId)
             val filePath = file.getFullPath(folder.path)
             val parser: MetaDataParser? = metaDataParserFactory.getParser(filePath)
-            if (parser == null || !parser.isEditingSupported) {
+            if (parser == null || !parser.isEditingSupported()) {
                 return "Tag editing of ${FilenameUtils.getExtension(file.path)} files is not supported."
             }
 
