@@ -1,56 +1,171 @@
-# Перенос контроллеров на Ktor: инструкция исполнителю
+# План Kotlin rewrite Kordinator
 
-Снимок состояния: 14 ноября 2026 года. Перед началом каждого задания перепроверь код и историю: проект продолжает меняться. Это рабочая инструкция для поэтапного переноса HTTP-функциональности, а не утверждение, что все перечисленные ниже маршруты ещё нуждаются в переносе.
+Актуальное состояние: 24 ноября 2026. Этот существующий документ переиспользован для текущей цели; прежние указания о JSP, Spring servlet и совместимости Subsonic больше не применяются. Три удалённых пользователем документа миграции не восстанавливаются.
 
-## Цель и границы
+## Цель и ограничения
 
-Единый REST API на Ktor должен обслуживать встроенный сайт и внешние приложения. Поведение Subsonic/OpenSubsonic, включая авторизацию, параметры, форматы ответов и потоковое воспроизведение, сохраняется. Функциональность сайта можно предоставлять отдельными REST-маршрутами, когда стандартного контракта недостаточно. Пример: сохранённая очередь Subsonic и активная очередь веб-плеера — разные сущности; не объединять их семантику.
+Полностью перевести собственный поддерживаемый код на Kotlin в основном модуле `airsonic-main`, сохранив работающие сценарии музыкального бэкенда. HTTP API оформляется как функции `Route.…Routes` в `su.nnedition.kord.api.module`, DTO лежат в отдельных файлах. Новые и переработанные классы не превышают 300 строк. Параллельное приложение не создаётся.
 
-На текущем этапе Ktor работает внутри сервлетного окружения Spring. Использование существующих Spring-сервисов допустимо; делегирование HTTP-обработки старому Spring MVC-контроллеру — нет. Полное удаление Spring, Tomcat или JSP, смена движка Ktor и переписывание всех сервисов не входят автоматически в задачу переноса одного контроллера. Старый сайт должен работать во время перехода. Не добавлять WebSocket: обновления сайта используют существующие REST-маршруты и обычный периодический опрос.
+Совместимость Subsonic/Airsonic и импорт их старых БД не требуются. Интернет-радио и подкасты исключены. Сохранённые иконки остаются в проекте. Существующий код миграции схемы пока участвует в создании рабочей БД: его нельзя удалить без готовой замены схемы и проверки новой установки.
 
-В `KTOR_MIGRATION_PLAN.md` есть противоречивые предложения вернуть WebSocket. Не применять их без отдельного решения пользователя. Любые утверждения старых планов о готовности проверять по исходникам и тестам.
+Каждый срез: прочитать исходную реализацию и потребителей, перенести поведение и обработку ошибок, подключить Kotlin-замену, удалить Java-дубликат, выполнить чистую компиляцию и подходящие тесты, проверить diff и закоммитить. Изменения поведения согласовываются отдельно. Firefox не используется.
 
-## Порядок работы: один контроллер за подход
+## Порядок оставшейся работы
 
-1. Прочитать инструкции репозитория, `git status` и последние коммиты. Не изменять и не добавлять в коммит чужие изменения. Не повторять уже выполненный перенос: например, `GettingStartedController` перенесён в `301bec2`, страница очереди — в `f387616`.
-2. Выбрать **один** Spring-контроллер. Найти его маршруты, методы, вызывающие JSP/JS и сервисы, ограничения доступа, побочные эффекты и существующие тесты. Выяснить, какие части уже обслуживает Ktor. Отдельно проверить ссылки извне и совместимость старых адресов; наличие класса само по себе не доказывает, что его можно удалить.
-3. Зафиксировать таблицу сценариев «запрос/пользователь → результат/побочные эффекты» и выбрать минимальный контракт. Для нестандартных возможностей использовать проектные REST-соглашения; не менять стандартный Subsonic-маршрут ради удобства сайта. Изменение существующего поведения или прав должно быть обосновано и явно отражено в результате.
-4. Реализовать маршрут на Ktor с вызовом сервисов и явными DTO/полями ответа. Не сериализовать целиком доменные объекты с лишними данными. Сохранить контекст приложения, корректную обработку ошибок и необходимые старые URL страниц. В `KtorConfiguration.java` зарегистрировать маршрут и зависимости; в `AirsonicKtorServlet.kt` передавать необходимые данные запроса и безопасности до перехода в корутину, следуя соседним реализациям. Проверить сопоставление сервлета и пути с `.view` и без него.
-5. Если нужна страница, оставить JSP как оболочку и подключить REST-клиент. Динамические данные вставлять как текст, адреса и права проверять. Не выполнять изменения состояния через GET. Для изменений применять соответствующий метод, существующую CSRF-защиту и проверку роли; не расширять исключения CSRF ради удобства. При изменении существующего долго кешируемого JS обновлять версию в URL.
-6. Удалить старый контроллер только после переноса всех его необходимых сценариев. Найти оставшиеся ссылки и убедиться, что маршрут не делегирует Spring MVC. Удалить устаревшие `.class` удалённого контроллера из `target/classes`, иначе инкрементальная сборка может подхватить старый Spring bean. Не удалять пользовательские файлы или данные приложения.
-7. Написать осмысленные тесты ниже, запустить необходимые проверки, изучить ошибки и исправить их. Затем проверить diff и создать отдельный коммит **только с файлами этого переноса**. Сообщить, что изменилось, что проверено, ограничения и хеш коммита; предложить следующий контроллер.
+1. **Composition root — завершён.** Перенести `RuntimeCompositionRoot` на Kotlin, разделив infrastructure, security, settings, media, search/scanner, playlists, playback, UPnP и application services. Сохранить singleton identity, ленивый PlayerService supplier, общий reentrant lock, проверки порядка сборки графа и регистрацию lifecycle ровно один раз. Проверки: runtime graph, конкурентное создание компонентов, JDBC/Liquibase, запуск API и реальное сканирование.
+2. **Метаданные и малые зависимости.** Перенести `MetaData`, parser contract и parser implementations; затем playlist import/export contracts и handlers, HLS session, audio player, scrobbler adapters и утилиты. Сохранить nullable поля, сортировки, ошибки чтения файлов, закрытие потоков и транскодирующих процессов. Проверки: существующие parser, playlist, HLS/transcoding и streaming tests.
+3. **Каталог и сканирование.** Разделить и перенести `MediaFolderService`, `MediaFileService`, `MediaScannerService`, `CoverArtImageService`, `LastFmService`. Проверки: сканирование реальной папки, повторное сканирование, удалённые файлы, изоляция библиотек, каталог/поиск и обложки.
+4. **Настройки и безопасность.** Разделить и перенести `SettingsService`, `SecurityService`, `DatabaseService`, `VersionService`; сохранить права, кеши, обновления credentials, настройки и backup/import/export. Проверки: security/settings suites и соответствующие admin API.
+5. **Воспроизведение и плейлисты.** Перенести `PlaylistService`, `TranscodingService`, `DownloadService`, `JukeboxLegacySubsonicService`. Сохранить порядок треков, доступ аккаунтов, streaming/Range/HEAD, параметры ffmpeg, завершение процессов и ресурсы jukebox. Проверки: playlist, streaming/transcoding, jukebox и download suites.
+6. **DLNA/UPnP.** Перенести processors, content directories, router и registration service, не отключая действующий DLNA. Проверки: URL generation, дерево каталога, запуск/остановка UPnP.
+7. **Создание схемы и оставшиеся тесты.** Перенести нужные Liquibase custom changes и оставшиеся Java-тесты/fixtures вместе с их областями. Старые миграционные названия не означают активную зависимость от Spring; проверять реальные импорты и загрузку changesets. Не удалять действующую схему без замены.
+8. **Завершающий аудит.** Сверить список Java-файлов, выполнить полную сборку и автоматические проверки, запустить packaged JAR с изолированным home, проверить поддерживаемые сценарии и отсутствие Spring/Servlet/Tomcat в runtime. Удалить ненужные Java-specific build steps после исчезновения потребителей. Завершить коммиты.
 
-## Какие проверки нужны
+## Критерии завершения
 
-Выбирать сценарии по реальному поведению контроллера, а не создавать тесты, повторяющие строки реализации.
+- Поддерживаемые собственные production/test/helper исходники на Kotlin; исключения согласованы явно.
+- Основной модуль запускается на Kotlin/Ktor без Spring, Servlet API и Tomcat в цепочке выполнения.
+- Сохранены библиотека/сканирование, каталог/поиск, streaming/transcoding, плейлисты/очереди, пользователи/права, настройки и остальные действующие возможности.
+- Нет активных Java-дубликатов и ссылок на удалённые реализации; новые/переработанные классы до 300 строк.
+- Итоговая сборка и необходимые тесты проходят; непроверенные сценарии перечислены. План актуален, изменения закоммичены.
 
-* **Интеграционные HTTP-тесты**: запросы через настоящую цепочку приложения подтверждают регистрацию Ktor, авторизацию и формат ответа. Проверять успешные и ошибочные сценарии, роли, отсутствие доступа без авторизации, CSRF для изменений, корректные методы, старые адреса, контекст приложения и отсутствие старого Spring bean — где применимо. Для существующего Subsonic API проверять XML/JSON и фактическую версию протокола через `TestCaseUtils.restApiVersion()`, а не фиксировать предполагаемую версию.
-* **Тесты бизнес-логики**: важные граничные случаи, порядок действий и ошибки зависимостей; для файлов или БД использовать изолированные фикстуры. Они должны показывать, что реальные данные и побочные эффекты корректны, а не только что вызван mock.
-* **JS-тесты**, если меняется клиент: загрузка, рендеринг, ошибки и повторная попытка, авторизация/CSRF и предотвращение опасной вставки данных; дополнительно важные действия страницы. Существующая команда: `node --test airsonic-main/src/test/javascript/*.test.cjs`.
-* **Регрессии по затронутой области**: например, при изменении очереди или плеера отдельно проверить выбор плеера, воспроизведение и сохранённую очередь Subsonic; при изменении медиаданных — поля, которые требуют таблицы DataTables, включая `discNumber`.
-* **Firefox не запускать**: пользователь явно попросил обойтись без него. Для проверки маршрутов и интерфейсной логики использовать интеграционные и JS-тесты. В отчёте не выдавать их за полноценную ручную проверку браузера.
+## Инвентаризация Java
 
-Пример Maven-команды из корня (подставить имена нужных тестов и доступный исполняемый Maven):
+Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-```sh
-mvn -o -pl airsonic-main -am -Dcheckstyle.skip \
-  -Dkotlin.compiler.daemon=false -Dmaven.compiler.useIncrementalCompilation=false \
-  -Dtest=ExampleIntegrationTest,ExampleServiceTest \
-  -Dsurefire.failIfNoSpecifiedTests=false test
-```
+### Production: 53 файлов
 
-Проверить итоговую сводку Maven, а не только код запуска. Не менять исходники во время сборки. Если проверка не запустилась или упала по внешней причине, явно указать это; не объявлять работу проверенной. Не отключать дополнительные проверки без причины.
+- `airsonic-main/src/main/java/org/airsonic/player/service/CoverArtImageService.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/DownloadService.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/JukeboxLegacySubsonicService.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/LastFmService.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/MediaFileService.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/MediaFolderService.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/MediaScannerService.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/PlaylistService.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/SecurityService.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/SettingsService.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/TranscodingService.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/UPnPService.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/VersionService.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/hls/HlsSession.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/jukebox/AudioPlayer.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/metadata/DefaultMetaDataParser.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/metadata/FFmpegParser.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/metadata/JaudiotaggerParser.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/metadata/MetaData.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/metadata/MetaDataParser.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/playlist/DefaultPlaylistExportHandler.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/playlist/DefaultPlaylistImportHandler.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/playlist/PlaylistImportHandler.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/playlist/XspfPlaylistExportHandler.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/playlist/XspfPlaylistImportHandler.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/scrobbler/LastFMScrobbler.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/scrobbler/ListenBrainzScrobbler.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/AlbumUpnpProcessor.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/ArtistUpnpProcessor.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/CustomContentDirectory.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/DispatchingContentDirectory.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/FolderBasedContentDirectory.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/GenreUpnpProcessor.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/MSMediaReceiverRegistrarService.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/MediaFileUpnpProcessor.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/NATPMPRouter.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/PlaylistUpnpProcessor.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/RecentAlbumUpnpProcessor.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/RootUpnpProcessor.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/Router.java`
+- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/UpnpContentProcessor.java`
+- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/AddMediaFileIdToPodcastChannels.java`
+- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/AddPodcastMediaFolderUsers.java`
+- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/AddUnknownMediaFolders.java`
+- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/DropConstraintWithoutName.java`
+- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/ExtractCustomAvatars.java`
+- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/UniqueMediaFolders.java`
+- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/UserRolesJsonColumnPopulation.java`
+- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/UserSettingsJsonTablePopulation.java`
+- `airsonic-main/src/main/java/org/airsonic/player/util/LambdaUtils.java`
+- `airsonic-main/src/main/java/org/airsonic/player/util/LegacyHsqlMigrationUtil.java`
+- `airsonic-main/src/main/java/org/airsonic/player/util/Util.java`
 
-## Следующий конкретный кандидат: `NowPlayingController`
+### Тесты и fixtures: 73 файла
 
-Не путать Spring-контроллер страницы с существующим Ktor-контроллером стандартного `getNowPlaying`. Текущий Spring-контроллер по запросу `/nowPlaying` выбирает плеер через `PlayerService`, берёт первый активный поток или неактивный статус этого плеера, определяет медиафайл (в том числе внешний), находит родительскую папку и перенаправляет на `main.view?id=...`, если родитель не корень; иначе на `home.view`.
+- `airsonic-main/src/test/java/org/airsonic/player/TestCaseUtils.java`
+- `airsonic-main/src/test/java/org/airsonic/player/api/ScanningTestUtils.java`
+- `airsonic-main/src/test/java/org/airsonic/player/dao/BookmarkDaoTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/dao/DaoTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/dao/JdbcHelperTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/dao/MusicFolderDaoTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/dao/PlayerDaoTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/dao/TranscodingDaoTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/dao/UserDaoTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/domain/MediaFileComparatorTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/domain/PlayQueueTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/domain/SortableArtistTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/domain/TranscodeSchemeTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/domain/VersionTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/filter/ParameterDecodingPolicyTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/filter/RequestEncodingPolicyTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/filter/StaticResponseHeadersTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/health/HealthFrameworkTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/runtime/LifecycleRegistryTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/runtime/RuntimeCompositionRootGraphTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/runtime/RuntimeCompositionRootTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/runtime/RuntimeConfigurationLoaderTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/security/AesGcmPasswordEncoderTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/security/AuthorizationPolicyTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/security/CallerContextTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/security/CredentialCompatibilityBaselineTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/security/JndiLdapDirectoryAuthenticatorTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/security/JwtTokenVerifierTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/security/JwtTokenVerifierUriTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/security/LdapAuthenticatorTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/security/SubsonicAuthenticatorTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/security/UserIdentityTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/CoverArtImageServiceTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/CoverArtServiceAccentColorTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/DatabaseStatusTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/JWTSecurityServiceTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/JukeboxServiceUnitTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/LegacyDatabaseStartupTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/LyricsServiceTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/MediaScannerServiceTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/MediaScannerServiceUnitTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/MusicIndexServiceTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/PlaylistServiceHandlerOrderTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/PlaylistServiceTestExport.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/PlaylistServiceTestImport.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/ScheduledTaskSnapshotTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/SecurityServiceTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/ServerInfoServiceTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/SettingsServiceTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/StatusServiceTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/TagEditServiceTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/TaskSchedulingServiceTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/TranscodingServiceIntTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/metadata/MetaDataFactoryTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/metadata/MetaDataParserTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/search/AbstractAirsonicHomeTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/search/AnalyzerFactoryTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/search/IndexManagerTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/search/QueryFactoryTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/search/SearchServiceSpecialGenreTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/search/SearchServiceSpecialPathTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/search/SearchServiceStartWithStopwardsTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/search/SearchServiceTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/upnp/AlbumUpnpProcessorUrlTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/upnp/CustomContentDirectoryUrlTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/upnp/DispatchingContentDirectoryUrlTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/service/upnp/FolderBasedContentDirectoryUrlTest.java`
+- `airsonic-main/src/test/java/org/airsonic/player/util/EmbeddedTestCategory.java`
+- `airsonic-main/src/test/java/org/airsonic/player/util/FileUtils.java`
+- `airsonic-main/src/test/java/org/airsonic/player/util/HomeRule.java`
+- `airsonic-main/src/test/java/org/airsonic/player/util/MusicFolderTestData.java`
+- `airsonic-main/src/test/java/org/airsonic/player/util/StringUtilTestCase.java`
+- `airsonic-main/src/test/java/org/airsonic/player/util/UtilTest.java`
 
-Перед реализацией проверить маршрутизацию `/nowPlaying` и `/nowPlaying.view`, вызовы в `top.jsp`, `index.jsp` и настройках, правила выбора плеера, влияние контекстного пути и текущие тесты. Спроектировать Ktor REST-ответ с данными, достаточными для навигации, без подмены стандартного `getNowPlaying`. Совместимость ссылок старого сайта обеспечить Ktor-обработчиком или оболочкой, исходя из фактической маршрутизации. Не возвращать клиенту произвольный URL из внешнего ввода.
+## Результаты текущей работы
 
-Минимальные сценарии проверки: активный поток имеет приоритет; неактивный используется при отсутствии активного; обычный и внешний медиафайл; родительская папка и корень; отсутствие статуса; привязка к правильному плееру; авторизация; оба старых адреса и контекст приложения; отсутствие старого Spring bean. Проверять только применимые сценарии и дополнить найденными в ходе анализа. Убедиться, что ссылки настройки «Отмена», кнопка верхней панели и первоначальное содержимое iframe сохраняют назначение.
-
-## Последующие кандидаты и готовность
-
-После каждого коммита заново выбирать один контроллер. На момент снимка среди оставшихся есть `MoreController`, `LeftController`, `MainController`, `PlaylistController`, `BookmarksController` и другие контроллеры страниц. У некоторых логика уже частично вынесена в REST; сначала исследовать каждый, а не механически переносить все классы. `ProxyController` оставлен с журналированием использования: отсутствие записей в неполных логах не доказывает отсутствие внешних клиентов, поэтому удаление требует отдельного решения.
-
-Работа по контроллеру завершена, когда все его нужные пользовательские сценарии обслуживаются Ktor и соответствующими сервисами, существующие контракты и права проверены, сайт продолжает работать по проверенным маршрутам, старый контроллер и делегирование убраны либо явно описана причина остатка, необходимые тесты прошли, diff проверен и создан отдельный коммит. Любой непройденный тест или непроверенный сценарий указывать явно; незавершённую миграцию не называть завершённой.
+- `ec23534`: все оставшиеся HTTP routes и DTO перенесены из `org.airsonic.player.ktor` в функциональные API-модули. Чистая сборка и 38 тестов прошли; после финального разделения admin player/database повторно прошли 2 теста. В старом пакете остались только session services.
+- Kotlin composition root: Java-класс заменён Kotlin-фасадом и компонентами по областям. Чистая компиляция прошла; 53 теста runtime, конкурентного доступа, lifecycle, БД и Ktor API прошли. Следующий срез — модели и парсеры метаданных.
