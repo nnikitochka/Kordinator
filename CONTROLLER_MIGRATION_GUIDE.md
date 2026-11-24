@@ -33,7 +33,7 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 50 файлов
+### Production: 49 файлов
 
 - `airsonic-main/src/main/java/org/airsonic/player/service/CoverArtImageService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
@@ -51,7 +51,6 @@
 - `airsonic-main/src/main/java/org/airsonic/player/service/VersionService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/hls/HlsSession.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/jukebox/AudioPlayer.java`
-- `airsonic-main/src/main/java/org/airsonic/player/service/metadata/JaudiotaggerParser.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/metadata/MetaDataParser.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/playlist/DefaultPlaylistExportHandler.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/playlist/DefaultPlaylistImportHandler.java`
@@ -169,3 +168,4 @@
 - `MetaData` переведён на Kotlin: сохранены Java getters/setters, live read-only список дорожек и выборки потоков; 6 тестов metadata, scanner и captions прошли.
 - `DefaultMetaDataParser` переведён на Kotlin; порядок выбора парсера, scanner и runtime graph проверены: 11 тестов прошли.
 - `FFmpegParser` переведён на Kotlin; parsing ffprobe JSON, выбор parser, scanner и captions: 8 тестов прошли.
+- `JaudiotaggerParser` переведён на Kotlin; запись, чтение и удаление тегов на копии MP3, scanner, API тегов и обложки: 14 тестов прошли.
