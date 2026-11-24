@@ -16,7 +16,7 @@ open class ShareService(
     private var shareDao: ShareDao,
     private var mediaFileService: MediaFileService
 ) {
-    open fun getAllShares(): List<Share> = shareDao.allShares
+    open fun getAllShares(): List<Share> = shareDao.getAllShares()
 
     open fun getSharesForUser(user: User): List<Share> = getAllShares()
         .filter { user.isAdminRole || ObjectUtils.equals(user.username, it.username) }
