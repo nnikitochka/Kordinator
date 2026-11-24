@@ -33,7 +33,7 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 39 файлов
+### Production: 38 файлов
 
 - `airsonic-main/src/main/java/org/airsonic/player/service/CoverArtImageService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
@@ -71,7 +71,6 @@
 - `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/UniqueMediaFolders.java`
 - `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/UserRolesJsonColumnPopulation.java`
 - `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/UserSettingsJsonTablePopulation.java`
-- `airsonic-main/src/main/java/org/airsonic/player/util/LambdaUtils.java`
 - `airsonic-main/src/main/java/org/airsonic/player/util/LegacyHsqlMigrationUtil.java`
 - `airsonic-main/src/main/java/org/airsonic/player/util/Util.java`
 
@@ -166,3 +165,4 @@
 - `AudioPlayer` переведён на Kotlin; состояния, полный/частичный аудиобуфер, завершение, закрытие ресурсов и jukebox: 7 тестов прошли.
 - `ListenBrainzScrobbler` переведён на Kotlin; payload и HTTP-заголовок проверены локальным сервером, API и runtime graph: 6 тестов прошли.
 - `LastFMScrobbler` переведён на Kotlin; локальным HTTP-сервером проверены handshake, подпись и формы submission/now playing, runtime и API: 7 тестов прошли.
+- `LambdaUtils` переведён на Kotlin; адаптеры исключений, конкурентная проверка ключей, database API и runtime: 7 тестов прошли. Java-вызовы этих интерфейсов в проекте используют `Exception`; Kotlin не сохраняет `throws E` в JVM-сигнатуре, объявляется `throws Exception`.
