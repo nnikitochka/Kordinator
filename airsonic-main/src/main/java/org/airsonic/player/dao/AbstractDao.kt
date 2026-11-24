@@ -33,12 +33,12 @@ open class AbstractDao {
         ?: throw IllegalStateException("JdbcHelper is not initialized for ${javaClass.name}")
 
     protected open fun <T> inTransaction(action: TransactionManager.TransactionCallback<T>): T =
-        getJdbcHelper().transactionManager.execute(action)
+        getJdbcHelper().getTransactionManager().execute(action)
 
     protected open fun <T> inTransaction(
         isolationLevel: Int,
         action: TransactionManager.TransactionCallback<T>
-    ): T = getJdbcHelper().transactionManager.execute(
+    ): T = getJdbcHelper().getTransactionManager().execute(
         TransactionManager.TransactionDefinition(TransactionManager.PROPAGATION_REQUIRED, isolationLevel), action
     )
 

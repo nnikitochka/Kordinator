@@ -12,13 +12,13 @@ class DatabaseDao(jdbcHelper: JdbcHelper) : AbstractDao(jdbcHelper) {
     fun exportDB(
         tempWorkingDir: Path,
         exportFunction: ThrowingBiFunction<Path, Connection, Boolean, Exception>
-    ): Boolean = getJdbcHelper().dataSource.connection.use { connection ->
+    ): Boolean = getJdbcHelper().getDataSource().connection.use { connection ->
         exportFunction.apply(tempWorkingDir, connection)
     }
 
     fun importDB(importFunction: Consumer<Connection>) {
         try {
-            getJdbcHelper().dataSource.connection.use(importFunction::accept)
+            getJdbcHelper().getDataSource().connection.use(importFunction::accept)
         } catch (e: Exception) {
             LOG.info("DB Import failed!", e)
         }
