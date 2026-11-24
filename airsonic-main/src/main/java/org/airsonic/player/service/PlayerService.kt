@@ -28,7 +28,7 @@ open class PlayerService(
     open fun getPlayersForUserAndClientId(username: String?, clientId: String?): List<Player> =
         playerDao.getPlayersForUserAndClientId(username, clientId)
 
-    open fun getAllPlayers(): List<Player> = playerDao.allPlayers
+    open fun getAllPlayers(): List<Player> = playerDao.getAllPlayers()
 
     @Synchronized
     open fun removePlayerById(id: Int) {
