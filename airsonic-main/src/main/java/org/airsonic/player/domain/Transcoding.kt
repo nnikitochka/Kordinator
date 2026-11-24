@@ -6,10 +6,10 @@ import kotlin.jvm.JvmName
 /** Configuration describing up to three steps used to transcode a media format. */
 class Transcoding(
     var id: Int?,
-    var name: String,
-    var sourceFormats: String,
-    var targetFormat: String,
-    var step1: String,
+    var name: String?,
+    var sourceFormats: String?,
+    var targetFormat: String?,
+    var step1: String?,
     var step2: String?,
     var step3: String?,
     @get:JvmName("isDefaultActive")

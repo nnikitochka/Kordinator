@@ -25,7 +25,7 @@ class StandaloneAudioTranscodingService(private val transcoding: TranscodingServ
         }
         val downsample = profile == null && target == "mp3" && file.format.equals("mp3", ignoreCase = true)
         if (profile == null && !downsample) return null
-        val command = if (downsample) transcoding.audioDownsamplingCommand else profile!!.step1
+        val command = if (downsample) transcoding.audioDownsamplingCommand else requireNotNull(profile!!.step1)
         if (startSeconds > 0 && !supportsSeeking(command)) return null
         val parameters = TranscodingService.Parameters(file, null, bitrateKbps).apply {
             setTranscoding(profile)
