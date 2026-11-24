@@ -33,7 +33,7 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 41 файл
+### Production: 40 файлов
 
 - `airsonic-main/src/main/java/org/airsonic/player/service/CoverArtImageService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
@@ -50,7 +50,6 @@
 - `airsonic-main/src/main/java/org/airsonic/player/service/UPnPService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/VersionService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/scrobbler/LastFMScrobbler.java`
-- `airsonic-main/src/main/java/org/airsonic/player/service/scrobbler/ListenBrainzScrobbler.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/AlbumUpnpProcessor.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/ArtistUpnpProcessor.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/CustomContentDirectory.java`
@@ -166,3 +165,4 @@
 - `DefaultPlaylistExportHandler` и `XspfPlaylistExportHandler` переведены на Kotlin; M3U/XSPF, порядок обработчиков и Ktor: 7 тестов прошли.
 - `HlsSession` переведён на Kotlin; проверены короткоживущий процесс, повторное получение сегмента и очистка, video и captions API: 3 теста прошли.
 - `AudioPlayer` переведён на Kotlin; состояния, полный/частичный аудиобуфер, завершение, закрытие ресурсов и jukebox: 7 тестов прошли.
+- `ListenBrainzScrobbler` переведён на Kotlin; payload и HTTP-заголовок проверены локальным сервером, API и runtime graph: 6 тестов прошли.
