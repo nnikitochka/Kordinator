@@ -33,7 +33,7 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 53 файлов
+### Production: 52 файла
 
 - `airsonic-main/src/main/java/org/airsonic/player/service/CoverArtImageService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
@@ -54,7 +54,6 @@
 - `airsonic-main/src/main/java/org/airsonic/player/service/metadata/DefaultMetaDataParser.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/metadata/FFmpegParser.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/metadata/JaudiotaggerParser.java`
-- `airsonic-main/src/main/java/org/airsonic/player/service/metadata/MetaData.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/metadata/MetaDataParser.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/playlist/DefaultPlaylistExportHandler.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/playlist/DefaultPlaylistImportHandler.java`
@@ -169,3 +168,4 @@
 
 - `ec23534`: все оставшиеся HTTP routes и DTO перенесены из `org.airsonic.player.ktor` в функциональные API-модули. Чистая сборка и 38 тестов прошли; после финального разделения admin player/database повторно прошли 2 теста. В старом пакете остались только session services.
 - Kotlin composition root: Java-класс заменён Kotlin-фасадом и компонентами по областям. Чистая компиляция прошла; 53 теста runtime, конкурентного доступа, lifecycle, БД и Ktor API прошли. Следующий срез — модели и парсеры метаданных.
+- `MetaData` переведён на Kotlin: сохранены Java getters/setters, live read-only список дорожек и выборки потоков; 6 тестов metadata, scanner и captions прошли.
