@@ -26,7 +26,6 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -205,9 +204,6 @@ public class SettingsService {
 
     private static final Logger LOG = LoggerFactory.getLogger(SettingsService.class);
     private static final String LOG_FILE_NAME_PROPERTY = "logging.file.name";
-    private static final Pattern CONTEXT_KEY_EXPRESSION = Pattern.compile(
-            "^(?:\\[['\"]([A-Za-z0-9_]+)['\"]]|([A-Za-z0-9_]+))(?:\\[(\\d+)])?$");
-
 
     // Array of obsolete properties. Used to clean property file.
     private static final List<String> OBSOLETE_KEYS = Arrays.asList("PortForwardingPublicPort", "PortForwardingLocalPort",
@@ -565,42 +561,7 @@ public class SettingsService {
     }
 
     public String resolveContextualString(String s, Supplier<Map<String, Object>> contextSupplier) {
-        String[] contextuals = StringUtils.substringsBetween(s, "%{", "}");
-        if (contextuals == null || contextuals.length == 0) {
-            // if no context eval is needed, then short-circuit
-            return s;
-        }
-
-        Map<String, Object> context = contextSupplier.get();
-        return StringUtils.replaceEach(s,
-                Stream.of(contextuals).map(x -> "%{" + x + "}").toArray(String[]::new),
-                Stream.of(contextuals)
-                        .map(x -> resolveContextKeyExpression(x, context))
-                        .toArray(String[]::new));
-    }
-
-    private static String resolveContextKeyExpression(String expression, Map<String, Object> context) {
-        Matcher matcher = CONTEXT_KEY_EXPRESSION.matcher(expression.trim());
-        if (!matcher.matches()) {
-            throw new IllegalArgumentException("Unsupported contextual setting expression: " + expression);
-        }
-        String key = matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
-        Object value = context.get(key);
-        String indexText = matcher.group(3);
-        if (indexText != null) {
-            int index = Integer.parseInt(indexText);
-            if (value instanceof List<?> values && index < values.size()) {
-                value = values.get(index);
-            } else if (value instanceof Object[] values && index < values.length) {
-                value = values[index];
-            } else {
-                throw new IllegalArgumentException("Context value '" + key + "' has no item at index " + index);
-            }
-        }
-        if (value == null) {
-            throw new IllegalArgumentException("Context value is missing: " + key);
-        }
-        return value.toString();
+        return SettingsContextExpressionResolver.resolve(s, contextSupplier);
     }
 
     public String getGenreSeparators() {
