@@ -9,17 +9,17 @@ import java.nio.file.Paths
 class ServerInfoService(private val versions: VersionService, private val settings: SettingsService) {
     fun snapshot(serverInfo: String): Map<String, Any?> {
         val latest = when {
-            versions.isNewFinalVersionAvailable -> versions.latestFinalVersion
-            versions.isNewBetaVersionAvailable -> versions.latestBetaVersion
+            versions.isNewFinalVersionAvailable() -> versions.getLatestFinalVersion()
+            versions.isNewBetaVersionAvailable() -> versions.getLatestBetaVersion()
             else -> null
         }
         val runtime = Runtime.getRuntime()
         val total = runtime.totalMemory()
         return linkedMapOf(
             "brand" to settings.brand,
-            "localVersion" to versions.localVersion?.toString(),
-            "buildDate" to versions.localBuildDate?.toString(),
-            "buildNumber" to versions.localBuildNumber,
+            "localVersion" to versions.getLocalVersion()?.toString(),
+            "buildDate" to versions.getLocalBuildDate()?.toString(),
+            "buildNumber" to versions.getLocalBuildNumber(),
             "newVersionAvailable" to (latest != null),
             "latestVersion" to latest?.toString(),
             "latestVersionUrl" to latest?.url,
