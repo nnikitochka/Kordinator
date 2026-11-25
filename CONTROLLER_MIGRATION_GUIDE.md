@@ -18,7 +18,7 @@
 4. **Настройки и безопасность — завершены.** `VersionService`, `DatabaseService`, `SecurityService` и `SettingsService` перенесены на Kotlin с разбиением настроек на компоненты до 300 строк. Сохранены права, кеши, обновления credentials, конфигурация и backup/import/export. Проверки: security/settings suites и соответствующие admin API.
 5. **Воспроизведение и плейлисты — завершено.** `DownloadService`, `PlaylistService`, `JukeboxLegacySubsonicService` и декомпозированный `TranscodingService` перенесены. Сохранены порядок треков, доступ аккаунтов, streaming/Range/HEAD, параметры ffmpeg, завершение процессов и ресурсы jukebox. Проверены playlist import/export, handlers и автоимпорт, UPnP playlist, legacy/standalone jukebox, transcoding policy/commands, HLS, video artwork и регистрация профилей в runtime.
 6. **DLNA/UPnP — завершён.** Перенесены processors, content directories, NAT-PMP router и регистрация media server. Проверены URL generation, дерево каталога, NAT-PMP параметры, lifecycle и DLNA API.
-7. **Создание схемы и оставшиеся тесты.** Перенести нужные Liquibase custom changes и оставшиеся Java-тесты/fixtures вместе с их областями. Старые миграционные названия не означают активную зависимость от Spring; проверять реальные импорты и загрузку changesets. Не удалять действующую схему без замены.
+7. **Схема Kordinator и оставшиеся тесты — активный этап.** В `Kordinator.main` ещё создаётся legacy `RuntimeCompositionRoot`, вызывается `migrateDatabase()` и поднимается legacy DAO-граф рядом с `StandaloneDatabase`; при smoke-запуске legacy changelog выполнил 297 changesets. Это не зависимость от Spring, но это ненужная для Kordinator миграция старой схемы и фактическая связь каталога с Airsonic-хранилищем. Переводить каталог, сканирование и потребителей на схему `StandaloneDatabase` по областям, затем удалить legacy datasource/changelog из Kordinator запуска. Оставшиеся Java-тесты/fixtures переносить вместе с поддерживаемыми областями; не удалять функциональные проверки без причины.
 8. **Завершающий аудит.** Сверить список Java-файлов, выполнить полную сборку и автоматические проверки, запустить packaged JAR с изолированным home, проверить поддерживаемые сценарии и отсутствие Spring/Servlet/Tomcat в runtime. Удалить ненужные Java-specific build steps после исчезновения потребителей. Завершить коммиты.
 
 ## Критерии завершения
@@ -35,7 +35,7 @@
 
 ### Production: 0 Java-файлов
 
-### Тесты и fixtures: 68 файлов
+### Тесты и fixtures: 67 файлов
 
 - `airsonic-main/src/test/java/org/airsonic/player/TestCaseUtils.java`
 - `airsonic-main/src/test/java/org/airsonic/player/api/ScanningTestUtils.java`
@@ -64,7 +64,6 @@
 - `airsonic-main/src/test/java/org/airsonic/player/security/JwtTokenVerifierUriTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/security/LdapAuthenticatorTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/security/SubsonicAuthenticatorTest.java`
-- `airsonic-main/src/test/java/org/airsonic/player/security/UserIdentityTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/service/CoverArtImageServiceTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/service/CoverArtServiceAccentColorTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/service/DatabaseStatusTest.java`
@@ -159,3 +158,5 @@
 - На Kotlin переведены два оставшихся небольших Java test-класса (`RequestEncodingPolicyTest`, `TranscodeSchemeTestCase`) и JUnit category marker `EmbeddedTestCategory`, который продолжает использоваться из Java fixture. Количество Java test/fixture-файлов уменьшено с 73 до 70.
 - `AuthorizationPolicyTest` переведён на Kotlin без изменения проверок анонимного доступа, ролей, прав к папкам и reserved admin username. Чистая сборка целевого теста прошла: 4 теста.
 - `AesGcmPasswordEncoderTest` переведён на Kotlin, сохранив проверки дешифровки, случайного nonce, совпадения пароля и отказа при несовпадающем пароле/соли. Чистая сборка и все 6 тестов прошли.
+- `UserIdentityTest` переведён на Kotlin; сохранены проверки snapshot-семантики credentials/roles и Java-конструктора на null-входы через reflection. Чистая сборка и оба теста прошли.
+- Runtime-аудит: Maven `dependency:tree` для runtime scope не содержит Spring, Servlet API или Tomcat; production-исходники не импортируют эти framework API. Собранный `kordinator.jar` запускается с `su.nnedition.kord.Kordinator`, `/api/v1/health` вернул HTTP 200 и `{"status":"UP"}`, процесс завершился штатным shutdown hook. При этом сам старт пока всё ещё выполняет legacy changelog/DAO-граф, что должно быть устранено на этапе 7.
