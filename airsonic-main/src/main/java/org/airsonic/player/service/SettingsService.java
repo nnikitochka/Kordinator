@@ -9,7 +9,6 @@ import org.airsonic.player.dao.UserDao;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.service.settings.*;
 import org.airsonic.player.util.Util;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,14 +42,10 @@ public class SettingsService {
     private static final String KEY_EXPORT_PLAYLIST_FORMAT = "PlaylistExportFormat";
 
     // Database Settings
-    private static final String KEY_DATABASE_DRIVER = RuntimeConfiguration.DATABASE_DRIVER_KEY;
     public static final String KEY_DATABASE_URL = RuntimeConfiguration.DATABASE_URL_KEY;
     public static final String KEY_DATABASE_USERNAME = RuntimeConfiguration.DATABASE_USERNAME_KEY;
     public static final String KEY_DATABASE_PASSWORD = RuntimeConfiguration.DATABASE_PASSWORD_KEY;
     public static final String KEY_DATABASE_JNDI_NAME = RuntimeConfiguration.DATABASE_JNDI_NAME_KEY;
-    private static final String KEY_DATABASE_MIGRATION_ROLLBACK_FILE = RuntimeConfiguration.DATABASE_MIGRATION_ROLLBACK_FILE_KEY;
-    private static final String KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH = RuntimeConfiguration.DATABASE_MIGRATION_MYSQL_VARCHAR_LIMIT_KEY;
-    private static final String KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_MUSIC_FOLDER = RuntimeConfiguration.DATABASE_MIGRATION_DEFAULT_MUSIC_FOLDER_KEY;
     public static final String KEY_PROPERTIES_FILE_RETAIN_OBSOLETE_KEYS = "PropertiesFileRetainObsoleteKeys";
 
     // Default values.
@@ -65,17 +60,6 @@ public class SettingsService {
 
     private static final Logger LOG = LoggerFactory.getLogger(SettingsService.class);
     private static final String LOG_FILE_NAME_PROPERTY = "logging.file.name";
-
-    // Array of obsolete properties. Used to clean property file.
-    private static final List<String> OBSOLETE_KEYS = Arrays.asList("PortForwardingPublicPort", "PortForwardingLocalPort",
-            "DownsamplingCommand", "DownsamplingCommand2", "DownsamplingCommand3", "AutoCoverBatch", "MusicMask",
-            "VideoMask", "CoverArtMask", "HlsCommand", "HlsCommand2", "HlsCommand3", "JukeboxCommand",
-            "CoverArtFileTypes", "UrlRedirectCustomHost", "CoverArtLimit", "StreamPort",
-            "PortForwardingEnabled", "RewriteUrl", "UrlRedirectCustomUrl", "UrlRedirectContextPath",
-            "UrlRedirectFrom", "UrlRedirectionEnabled", "UrlRedirectType", "Port", "HttpsPort",
-            "MediaLibraryStatistics", "LastScanned", "database.config.type", "DatabaseConfigType",
-            "database.usertable.quote", "DatabaseUsertableQuote", "spring.liquibase.parameters.userTableQuote"
-            );
 
     private final SettingsUserPreferences userPreferences;
     private final SettingsPresentationPreferences presentationPreferences;
@@ -115,116 +99,20 @@ public class SettingsService {
     }
 
     public static Map<String, String> getMigratedPropertyKeys() {
-        Map<String, String> keyMaps = new LinkedHashMap<>();
-        OBSOLETE_KEYS.forEach(x -> keyMaps.put(x, null));
-
-        keyMaps.put("database.config.embed.driver", "DatabaseConfigEmbedDriver");
-        keyMaps.put("DatabaseConfigEmbedDriver", KEY_DATABASE_DRIVER);
-        keyMaps.put("spring.datasource.driver-class-name", KEY_DATABASE_DRIVER);
-
-        keyMaps.put("database.config.embed.url", "DatabaseConfigEmbedUrl");
-        keyMaps.put("DatabaseConfigEmbedUrl", KEY_DATABASE_URL);
-        keyMaps.put("spring.datasource.url", KEY_DATABASE_URL);
-
-        keyMaps.put("database.config.embed.username", "DatabaseConfigEmbedUsername");
-        keyMaps.put("DatabaseConfigEmbedUsername", KEY_DATABASE_USERNAME);
-        keyMaps.put("spring.datasource.username", KEY_DATABASE_USERNAME);
-
-        keyMaps.put("database.config.embed.password", "DatabaseConfigEmbedPassword");
-        keyMaps.put("DatabaseConfigEmbedPassword", KEY_DATABASE_PASSWORD);
-        keyMaps.put("spring.datasource.password", KEY_DATABASE_PASSWORD);
-
-        keyMaps.put("database.config.jndi.name", "DatabaseConfigJNDIName");
-        keyMaps.put("DatabaseConfigJNDIName", KEY_DATABASE_JNDI_NAME);
-        keyMaps.put("spring.datasource.jndi-name", KEY_DATABASE_JNDI_NAME);
-
-        keyMaps.put("spring.liquibase.rollback-file", KEY_DATABASE_MIGRATION_ROLLBACK_FILE);
-        keyMaps.put("spring.liquibase.parameters.mysqlVarcharLimit", KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH);
-        keyMaps.put("spring.liquibase.parameters.defaultMusicFolder", KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_MUSIC_FOLDER);
-        keyMaps.put("spring.liquibase.enabled", RuntimeConfiguration.DATABASE_MIGRATION_ENABLED_KEY);
-        keyMaps.put("spring.liquibase.change-log", RuntimeConfiguration.DATABASE_MIGRATION_CHANGELOG_KEY);
-        keyMaps.put("spring.liquibase.contexts", RuntimeConfiguration.DATABASE_MIGRATION_CONTEXTS_KEY);
-        keyMaps.put("spring.liquibase.label-filter", RuntimeConfiguration.DATABASE_MIGRATION_LABEL_FILTER_KEY);
-
-        keyMaps.put("database.varchar.maxlength", "DatabaseMysqlMaxlength");
-        keyMaps.put("DatabaseMysqlMaxlength", KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH);
-
-        keyMaps.put("airsonic.rememberMeKey", KEY_REMEMBER_ME_KEY);
-        keyMaps.put("IgnoreFileTimestamps", "FullScan");
-
-        return keyMaps;
+        return SettingsPropertyMigration.getMigratedPropertyKeys();
     }
 
     public static void migrateKeys(Map<String, String> keyMaps, Function<String, Object> propertyLookup, String sourceName, Map<String, Object> migrated) {
-        Map<String, Object> temp = new HashMap<>();
-        // needs to be processed serially
-        keyMaps.entrySet().stream()
-                // we're not migrating to null, i.e. trying to delete the property
-                .filter(e -> e.getValue() != null)
-                // ps has the property we're trying to migrate (either directly or migrated earlier within the chain)
-                .filter(e -> StringUtils.isNotBlank(Optional.ofNullable(propertyLookup.apply(e.getKey())).map(Object::toString).orElse(temp.getOrDefault(e.getKey(), "").toString())))
-                // we're not migrating to a property that is already occupied
-                .filter(e -> StringUtils.isBlank(Optional.ofNullable(propertyLookup.apply(e.getValue())).map(Object::toString).orElse(temp.getOrDefault(e.getValue(), "").toString())))
-                .forEach(e -> {
-                    Object val = Optional.ofNullable(propertyLookup.apply(e.getKey())).orElse(temp.get(e.getKey()));
-                    temp.put(e.getValue(), val);
-                    if (migrated.containsKey(e.getValue())) {
-                        LOG.info("Skipping migrating property [{}] to [{}] in {} (already migrated)", e.getKey(), e.getValue(), sourceName);
-                    } else {
-                        LOG.info("Migrating property [{}] to [{}] in {}", e.getKey(), e.getValue(), sourceName);
-                        migrated.put(e.getValue(), val);
-                    }
-                });
+        SettingsPropertyMigration.migrateKeys(keyMaps, propertyLookup, sourceName, migrated);
     }
 
     public static void migratePropFileKeys(Map<String, String> keyMaps, ConfigurationPropertiesService cps) {
-        Boolean retainObsoleteKeys = Optional.ofNullable(cps.getProperty(KEY_PROPERTIES_FILE_RETAIN_OBSOLETE_KEYS)).map(x -> Boolean.valueOf((String) x)).orElse(true);
-
-        // needs to be processed serially
-        keyMaps.entrySet().stream().filter(e -> cps.containsKey(e.getKey())).forEach(e -> {
-            if (e.getValue() != null && !cps.containsKey(e.getValue())) {
-                LOG.info("Migrating property [{}] to [{}] in properties file", e.getKey(), e.getValue());
-                cps.setProperty(e.getValue(), cps.getProperty(e.getKey()));
-            }
-
-            // delete old property
-            if (!retainObsoleteKeys) {
-                LOG.info("Removing obsolete property [{}] in properties file", e.getKey());
-                cps.clearProperty(e.getKey());
-            }
-        });
-
-        cps.save();
+        SettingsPropertyMigration.migratePropertyFileKeys(keyMaps, cps);
     }
 
     public static void setDefaultConstants(Function<String, String> propertyLookup,
                                            Map<String, Object> defaultConstants) {
-        // if jndi is set, everything datasource-related is ignored
-        if (StringUtils.isBlank(propertyLookup.apply(KEY_DATABASE_URL))) {
-            defaultConstants.put(KEY_DATABASE_URL, getDefaultJDBCUrl());
-        }
-        if (StringUtils.isBlank(propertyLookup.apply(KEY_DATABASE_USERNAME))) {
-            defaultConstants.put(KEY_DATABASE_USERNAME, getDefaultJDBCUsername());
-        }
-        if (StringUtils.isBlank(propertyLookup.apply(KEY_DATABASE_PASSWORD))) {
-            defaultConstants.put(KEY_DATABASE_PASSWORD, getDefaultJDBCPassword());
-        }
-        if (StringUtils.isBlank(propertyLookup.apply(KEY_DATABASE_MIGRATION_ROLLBACK_FILE))) {
-            defaultConstants.put(
-                    KEY_DATABASE_MIGRATION_ROLLBACK_FILE,
-                    getAirsonicHome().toAbsolutePath().resolve("rollback.sql").toFile());
-        }
-        if (StringUtils.isBlank(propertyLookup.apply(KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH))) {
-            defaultConstants.put(
-                    KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH,
-                    DEFAULT_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH.toString());
-        }
-        if (StringUtils.isBlank(propertyLookup.apply(KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_MUSIC_FOLDER))) {
-            defaultConstants.put(KEY_DATABASE_MIGRATION_PARAMETER_DEFAULT_MUSIC_FOLDER, Util.getDefaultMusicFolder());
-        }
-        if (StringUtils.isBlank(propertyLookup.apply(LOG_FILE_NAME_PROPERTY))) {
-            defaultConstants.put(LOG_FILE_NAME_PROPERTY, getDefaultLogFile());
-        }
+        SettingsPropertyMigration.setDefaultConstants(propertyLookup, defaultConstants);
     }
 
     public static Path getAirsonicHome() {
