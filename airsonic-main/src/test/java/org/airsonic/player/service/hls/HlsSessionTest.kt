@@ -25,7 +25,7 @@ class HlsSessionTest {
             val media = MediaFile()
             val transcoding = mock(TranscodingService::class.java)
             val parameters = TranscodingService.Parameters(media, null)
-            `when`(transcoding.getParameters(eq(media), isNull(), eq(800), eq("ts"), any())).thenReturn(parameters)
+            `when`(transcoding.getParameters(eq(media) ?: media, isNull(), eq(800), eq("ts") ?: "ts", any())).thenReturn(parameters)
             `when`(transcoding.getTranscodedInputStream(parameters)).thenAnswer {
                 val directory = home.resolve("hls").resolve(key.id())
                 Files.createDirectories(directory)

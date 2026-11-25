@@ -28,9 +28,9 @@ class StandaloneAudioTranscodingService(private val transcoding: TranscodingServ
         val command = if (downsample) transcoding.audioDownsamplingCommand else requireNotNull(profile!!.step1)
         if (startSeconds > 0 && !supportsSeeking(command)) return null
         val parameters = TranscodingService.Parameters(file, null, bitrateKbps).apply {
-            setTranscoding(profile)
-            setDownsample(downsample)
-            setAudioStartSeconds(startSeconds)
+            transcoding = profile
+            isDownsample = downsample
+            audioStartSeconds = startSeconds
         }
         return Plan(contentType, parameters)
     }

@@ -149,11 +149,11 @@ class KtorStandaloneScanTest {
                 org.mockito.Mockito.`when`(transcoding.allTranscodings).thenReturn(listOf(profile))
                 val starts = mutableListOf<Double>()
                 val closedTranscodes = java.util.concurrent.atomic.AtomicInteger()
-                org.mockito.Mockito.`when`(transcoding.openTranscodedInputStream(org.mockito.ArgumentMatchers.any())).thenAnswer { invocation ->
+                org.mockito.Mockito.`when`(transcoding.openTranscodedInputStream(anyTranscodingParameters())).thenAnswer { invocation ->
                     val parameters = invocation.getArgument<org.airsonic.player.service.TranscodingService.Parameters>(0)
                     assertEquals(128, parameters.maxBitRate)
                     assertEquals(profile, parameters.transcoding)
-                    starts.add(parameters.audioStartSeconds)
+                    starts.add(parameters.audioStartSeconds!!)
                     object : java.io.ByteArrayInputStream("encoded audio".toByteArray()) {
                         override fun close() { closedTranscodes.incrementAndGet(); super.close() }
                     }
@@ -326,7 +326,7 @@ class KtorStandaloneScanTest {
                 assertEquals(HttpStatusCode.Unauthorized, client.get(encodedUrl).status)
                 assertEquals(HttpStatusCode.NotFound, client.get(encodedUrl) { bearerAuth(listenerToken) }.status)
                 assertEquals(HttpStatusCode.OK, client.head(encodedUrl) { bearerAuth(token) }.status)
-                org.mockito.Mockito.verify(transcoding, org.mockito.Mockito.never()).openTranscodedInputStream(org.mockito.ArgumentMatchers.any())
+                org.mockito.Mockito.verify(transcoding, org.mockito.Mockito.never()).openTranscodedInputStream(anyTranscodingParameters())
                 val encoded = client.get(encodedUrl) { bearerAuth(token); header("If-None-Match", fullStream.headers["ETag"]!!) }
                 assertEquals(HttpStatusCode.OK, encoded.status)
                 assertEquals("audio/ogg", encoded.headers["Content-Type"]?.substringBefore(';'))
@@ -352,10 +352,10 @@ class KtorStandaloneScanTest {
                 assertDisconnectStopsTranscoder(encodedUrl, token, auth, scanService, mediaCatalogService,
                     coreCatalog.mediaFileService, transcoding)
                 org.mockito.Mockito.doReturn(java.io.ByteArrayInputStream(byteArrayOf())).`when`(transcoding)
-                    .openTranscodedInputStream(org.mockito.ArgumentMatchers.any())
+                    .openTranscodedInputStream(anyTranscodingParameters())
                 assertEquals(HttpStatusCode.ServiceUnavailable, client.get(encodedUrl) { bearerAuth(token) }.status)
                 org.mockito.Mockito.doThrow(java.io.IOException("missing executable")).`when`(transcoding)
-                    .openTranscodedInputStream(org.mockito.ArgumentMatchers.any())
+                    .openTranscodedInputStream(anyTranscodingParameters())
                 assertEquals(HttpStatusCode.ServiceUnavailable, client.get(encodedUrl) { bearerAuth(token) }.status)
                 val streamEtag = requireNotNull(fullStream.headers["ETag"])
                 val streamModified = requireNotNull(fullStream.headers["Last-Modified"])
@@ -446,6 +446,10 @@ class KtorStandaloneScanTest {
             runtime.close()
         }
     }
+    private fun anyTranscodingParameters(): org.airsonic.player.service.TranscodingService.Parameters =
+        org.mockito.ArgumentMatchers.any(org.airsonic.player.service.TranscodingService.Parameters::class.java)
+            ?: org.airsonic.player.service.TranscodingService.Parameters(org.airsonic.player.domain.MediaFile(), null)
+
     private suspend fun assertDisconnectStopsTranscoder(
         encodedUrl: String,
         token: String,
@@ -461,7 +465,7 @@ class KtorStandaloneScanTest {
             org.airsonic.player.io.TranscodeInputStream(
                 ProcessBuilder("/usr/bin/tail", "-f", "/dev/null"), null, null,
             ).also { opened.complete(it) }
-        }.`when`(transcoding).openTranscodedInputStream(org.mockito.ArgumentMatchers.any())
+        }.`when`(transcoding).openTranscodedInputStream(anyTranscodingParameters())
         val server = io.ktor.server.engine.embeddedServer(io.ktor.server.netty.Netty, host = "127.0.0.1", port = 0) {
             configureApiRouting(authService = auth, libraryScanService = scanService,
                 mediaCatalogService = mediaCatalogService, mediaFileService = mediaFiles,
