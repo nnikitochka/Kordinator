@@ -38,20 +38,6 @@ public class SettingsService {
     private static final Path AIRSONIC_HOME_OTHER = Paths.get("/var/airsonic");
 
     // Global settings.
-    private static final String KEY_WELCOME_TITLE = "WelcomeTitle";
-    private static final String KEY_WELCOME_SUBTITLE = "WelcomeSubtitle";
-    private static final String KEY_WELCOME_MESSAGE = "WelcomeMessage2";
-    private static final String KEY_LOGIN_MESSAGE = "LoginMessage";
-    private static final String KEY_SESSION_DURATION = "server.servlet.session.timeout";
-    private static final String KEY_INDEX_CREATION_INTERVAL = "IndexCreationInterval";
-    private static final String KEY_INDEX_CREATION_HOUR = "IndexCreationHour";
-    private static final String KEY_FAST_CACHE_ENABLED = "FastCacheEnabled";
-    private static final String KEY_FULL_SCAN = "FullScan";
-    private static final String KEY_CLEAR_FULL_SCAN_SETTING_AFTER_SCAN = "ClearFullScanSettingAfterScan";
-    private static final String KEY_TRANSCODE_ESTIMATE_TIME_PADDING = "TranscodeEstimateTimePadding";
-    private static final String KEY_TRANSCODE_ESTIMATE_BYTE_PADDING = "TranscodeEstimateBytePadding";
-    private static final String KEY_DB_BACKUP_INTERVAL = "DbBackupUpdateInterval";
-    private static final String KEY_DB_BACKUP_RETENTION_COUNT = "DbBackupRetentionCount";
     private static final String KEY_DOWNLOAD_BITRATE_LIMIT = "DownloadBitrateLimit";
     private static final String KEY_UPLOAD_BITRATE_LIMIT = "UploadBitrateLimit";
     private static final String KEY_DOWNSAMPLING_COMMAND = "DownsamplingCommand4";
@@ -65,10 +51,6 @@ public class SettingsService {
     private static final String KEY_LDAP_MANAGER_PASSWORD = "LdapManagerPassword";
     private static final String KEY_LDAP_SEARCH_FILTER = "LdapSearchFilter";
     private static final String KEY_LDAP_AUTO_SHADOWING = "LdapAutoShadowing";
-    private static final String KEY_GETTING_STARTED_ENABLED = "GettingStartedEnabled";
-    private static final String KEY_SETTINGS_CHANGED = "SettingsChanged";
-    private static final String KEY_ORGANIZE_BY_FOLDER_STRUCTURE = "OrganizeByFolderStructure";
-    private static final String KEY_SORT_ALBUMS_BY_YEAR = "SortAlbumsByYear";
     private static final String KEY_DLNA_ENABLED = "DlnaEnabled";
     private static final String KEY_DLNA_SERVER_NAME = "DlnaServerName";
     private static final String KEY_DLNA_SERVER_ID = "DlnaServerId";
@@ -89,8 +71,6 @@ public class SettingsService {
     private static final String KEY_SMTP_PASSWORD = "SmtpPassword";
     private static final String KEY_SMTP_FROM = "SmtpFrom";
     private static final String KEY_EXPORT_PLAYLIST_FORMAT = "PlaylistExportFormat";
-    private static final String KEY_IGNORE_SYMLINKS = "IgnoreSymLinks";
-    private static final String KEY_EXCLUDE_PATTERN_STRING = "ExcludePattern";
 
     private static final String KEY_CAPTCHA_ENABLED = "CaptchaEnabled";
     private static final String KEY_RECAPTCHA_SITE_KEY = "ReCaptchaSiteKey";
@@ -109,27 +89,6 @@ public class SettingsService {
 
     // Default values.
     private static final String DEFAULT_JWT_KEY = null;
-    private static final String DEFAULT_WELCOME_TITLE = "Welcome to Airsonic!";
-    private static final String DEFAULT_WELCOME_SUBTITLE = null;
-    private static final String DEFAULT_WELCOME_MESSAGE = "__Welcome to Airsonic!__\n" +
-            "\\\\ \\\\\n" +
-            "Airsonic is a free, web-based media streamer, providing ubiquitous access to your music. \n" +
-            "\\\\ \\\\\n" +
-            "Use it to share your music with friends, or to listen to your own music while at work. You can stream to multiple " +
-            "players simultaneously, for instance to one player in your kitchen and another in your living room.\n" +
-            "\\\\ \\\\\n" +
-            "To change or remove this message, log in with administrator rights and go to <a href='settings.view'>Settings</a> > <a href='generalSettings.view'>General</a>.";
-    private static final String DEFAULT_LOGIN_MESSAGE = null;
-    private static final String DEFAULT_SESSION_TIMEOUT_DURATION = "30m";
-    private static final int DEFAULT_INDEX_CREATION_INTERVAL = 1;
-    private static final int DEFAULT_INDEX_CREATION_HOUR = 3;
-    private static final boolean DEFAULT_FAST_CACHE_ENABLED = false;
-    private static final boolean DEFAULT_FULL_SCAN = false;
-    private static final boolean DEFAULT_CLEAR_FULL_SCAN_SETTING_AFTER_SCAN = false;
-    private static final long DEFAULT_TRANSCODE_ESTIMATE_TIME_PADDING = 2000;
-    private static final long DEFAULT_TRANSCODE_ESTIMATE_BYTE_PADDING = 0;
-    private static final int DEFAULT_DB_BACKUP_INTERVAL = -1;
-    private static final int DEFAULT_DB_BACKUP_RETENTION_COUNT = 2;
     private static final long DEFAULT_DOWNLOAD_BITRATE_LIMIT = 0;
     private static final long DEFAULT_UPLOAD_BITRATE_LIMIT = 0;
     private static final String DEFAULT_DOWNSAMPLING_COMMAND = "ffmpeg -i %s -map 0:0 -b:a %bk -v 0 -f mp3 -";
@@ -143,18 +102,12 @@ public class SettingsService {
     private static final String DEFAULT_LDAP_MANAGER_PASSWORD = null;
     private static final String DEFAULT_LDAP_SEARCH_FILTER = "(sAMAccountName={0})";
     private static final boolean DEFAULT_LDAP_AUTO_SHADOWING = false;
-    private static final boolean DEFAULT_GETTING_STARTED_ENABLED = true;
-    private static final long DEFAULT_SETTINGS_CHANGED = 0L;
-    private static final boolean DEFAULT_ORGANIZE_BY_FOLDER_STRUCTURE = true;
-    private static final boolean DEFAULT_SORT_ALBUMS_BY_YEAR = true;
     private static final boolean DEFAULT_DLNA_ENABLED = false;
     private static final String DEFAULT_DLNA_SERVER_NAME = "Airsonic";
     private static final String DEFAULT_DLNA_SERVER_ID = null;
     private static final String DEFAULT_DLNA_BASE_LAN_URL = null;
     private static final int DEFAULT_UPNP_PORT = 4041;
     private static final String DEFAULT_EXPORT_PLAYLIST_FORMAT = "m3u";
-    private static final boolean DEFAULT_IGNORE_SYMLINKS = false;
-    private static final String DEFAULT_EXCLUDE_PATTERN_STRING = null;
     private static final String DEFAULT_PREFERRED_NONDECODABLE_PASSWORD_ENCODER = "bcrypt";
     private static final String DEFAULT_PREFERRED_DECODABLE_PASSWORD_ENCODER = "encrypted-AES-GCM";
     private static final boolean DEFAULT_PREFER_NONDECODABLE_PASSWORDS = true;
@@ -194,6 +147,7 @@ public class SettingsService {
     private final SettingsUserPreferences userPreferences;
     private final SettingsPresentationPreferences presentationPreferences;
     private final SettingsCatalogPreferences catalogPreferences;
+    private final SettingsOperationalPreferences operationalPreferences;
     private final ConfigurationPropertiesService properties;
 
     public SettingsService(UserDao userDao, AvatarDao avatarDao, RuntimeConfiguration configuration,
@@ -207,6 +161,7 @@ public class SettingsService {
         this.valueStore = new SettingsValueStore(properties, Objects.requireNonNull(propertyLookup));
         this.presentationPreferences = new SettingsPresentationPreferences(valueStore);
         this.catalogPreferences = new SettingsCatalogPreferences(valueStore);
+        this.operationalPreferences = new SettingsOperationalPreferences(valueStore);
         Cache<String, UserSettings> userSettingsCache = cacheManager != null
                 ? cacheManager.getCache("userSettingsCache", String.class, UserSettings.class) : null;
         this.userPreferences = new SettingsUserPreferences(userDao, avatarDao, userSettingsCache);
@@ -248,7 +203,7 @@ public class SettingsService {
         keyMaps.put("DatabaseMysqlMaxlength", KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH);
 
         keyMaps.put("airsonic.rememberMeKey", KEY_REMEMBER_ME_KEY);
-        keyMaps.put("IgnoreFileTimestamps", KEY_FULL_SCAN);
+        keyMaps.put("IgnoreFileTimestamps", "FullScan");
 
         return keyMaps;
     }
@@ -436,7 +391,7 @@ public class SettingsService {
     }
 
     public void save() {
-        this.setLong(KEY_SETTINGS_CHANGED, System.currentTimeMillis());
+        operationalPreferences.setSettingsChanged(System.currentTimeMillis());
         properties.save();
     }
 
@@ -632,43 +587,43 @@ public class SettingsService {
     }
 
     public String getWelcomeTitle() {
-        return StringUtils.trimToNull(getProperty(KEY_WELCOME_TITLE, DEFAULT_WELCOME_TITLE));
+        return operationalPreferences.getWelcomeTitle();
     }
 
     public void setWelcomeTitle(String title) {
-        setProperty(KEY_WELCOME_TITLE, title);
+        operationalPreferences.setWelcomeTitle(title);
     }
 
     public String getWelcomeSubtitle() {
-        return StringUtils.trimToNull(getProperty(KEY_WELCOME_SUBTITLE, DEFAULT_WELCOME_SUBTITLE));
+        return operationalPreferences.getWelcomeSubtitle();
     }
 
     public void setWelcomeSubtitle(String subtitle) {
-        setProperty(KEY_WELCOME_SUBTITLE, subtitle);
+        operationalPreferences.setWelcomeSubtitle(subtitle);
     }
 
     public String getWelcomeMessage() {
-        return StringUtils.trimToNull(getProperty(KEY_WELCOME_MESSAGE, DEFAULT_WELCOME_MESSAGE));
+        return operationalPreferences.getWelcomeMessage();
     }
 
     public void setWelcomeMessage(String message) {
-        setProperty(KEY_WELCOME_MESSAGE, message);
+        operationalPreferences.setWelcomeMessage(message);
     }
 
     public String getLoginMessage() {
-        return StringUtils.trimToNull(getProperty(KEY_LOGIN_MESSAGE, DEFAULT_LOGIN_MESSAGE));
+        return operationalPreferences.getLoginMessage();
     }
 
     public void setLoginMessage(String message) {
-        setProperty(KEY_LOGIN_MESSAGE, message);
+        operationalPreferences.setLoginMessage(message);
     }
 
     public String getSessionDuration() {
-        return getProperty(KEY_SESSION_DURATION, DEFAULT_SESSION_TIMEOUT_DURATION);
+        return operationalPreferences.getSessionDuration();
     }
 
     public void setSessionDuration(String sessionTimeout) {
-        setProperty(KEY_SESSION_DURATION, sessionTimeout);
+        operationalPreferences.setSessionDuration(sessionTimeout);
     }
 
     /**
@@ -676,7 +631,7 @@ public class SettingsService {
      * creation is disabled.
      */
     public int getIndexCreationInterval() {
-        return getInt(KEY_INDEX_CREATION_INTERVAL, DEFAULT_INDEX_CREATION_INTERVAL);
+        return operationalPreferences.getIndexCreationInterval();
     }
 
     /**
@@ -684,77 +639,77 @@ public class SettingsService {
      * creation is disabled.
      */
     public void setIndexCreationInterval(int days) {
-        setInt(KEY_INDEX_CREATION_INTERVAL, days);
+        operationalPreferences.setIndexCreationInterval(days);
     }
 
     /**
      * Returns the hour of day (0 - 23) when automatic index creation should run.
      */
     public int getIndexCreationHour() {
-        return getInt(KEY_INDEX_CREATION_HOUR, DEFAULT_INDEX_CREATION_HOUR);
+        return operationalPreferences.getIndexCreationHour();
     }
 
     /**
      * Sets the hour of day (0 - 23) when automatic index creation should run.
      */
     public void setIndexCreationHour(int hour) {
-        setInt(KEY_INDEX_CREATION_HOUR, hour);
+        operationalPreferences.setIndexCreationHour(hour);
     }
 
     public boolean isFastCacheEnabled() {
-        return getBoolean(KEY_FAST_CACHE_ENABLED, DEFAULT_FAST_CACHE_ENABLED);
+        return operationalPreferences.isFastCacheEnabled();
     }
 
     public void setFastCacheEnabled(boolean enabled) {
-        setBoolean(KEY_FAST_CACHE_ENABLED, enabled);
+        operationalPreferences.setFastCacheEnabled(enabled);
     }
 
     public boolean getFullScan() {
-        return getBoolean(KEY_FULL_SCAN, DEFAULT_FULL_SCAN);
+        return operationalPreferences.getFullScan();
     }
 
     public void setFullScan(Boolean fullscan) {
-        setBoolean(KEY_FULL_SCAN, fullscan);
+        operationalPreferences.setFullScan(fullscan);
     }
 
     public boolean getClearFullScanSettingAfterScan() {
-        return getBoolean(KEY_CLEAR_FULL_SCAN_SETTING_AFTER_SCAN, DEFAULT_CLEAR_FULL_SCAN_SETTING_AFTER_SCAN);
+        return operationalPreferences.getClearFullScanSettingAfterScan();
     }
 
     public void setClearFullScanSettingAfterScan(Boolean clear) {
-        setBoolean(KEY_CLEAR_FULL_SCAN_SETTING_AFTER_SCAN, clear);
+        operationalPreferences.setClearFullScanSettingAfterScan(clear);
     }
 
     public long getTranscodeEstimateTimePadding() {
-        return getLong(KEY_TRANSCODE_ESTIMATE_TIME_PADDING, DEFAULT_TRANSCODE_ESTIMATE_TIME_PADDING);
+        return operationalPreferences.getTranscodeEstimateTimePadding();
     }
 
     public void setTranscodeEstimateTimePadding(Long timeInMillis) {
-        setLong(KEY_TRANSCODE_ESTIMATE_TIME_PADDING, timeInMillis);
+        operationalPreferences.setTranscodeEstimateTimePadding(timeInMillis);
     }
 
     public long getTranscodeEstimateBytePadding() {
-        return getLong(KEY_TRANSCODE_ESTIMATE_BYTE_PADDING, DEFAULT_TRANSCODE_ESTIMATE_BYTE_PADDING);
+        return operationalPreferences.getTranscodeEstimateBytePadding();
     }
 
     public void setTranscodeEstimateBytePadding(Long bytes) {
-        setLong(KEY_TRANSCODE_ESTIMATE_BYTE_PADDING, bytes);
+        operationalPreferences.setTranscodeEstimateBytePadding(bytes);
     }
 
     public int getDbBackupInterval() {
-        return getInt(KEY_DB_BACKUP_INTERVAL, DEFAULT_DB_BACKUP_INTERVAL);
+        return operationalPreferences.getDbBackupInterval();
     }
 
     public void setDbBackupInterval(int hours) {
-        setInt(KEY_DB_BACKUP_INTERVAL, hours);
+        operationalPreferences.setDbBackupInterval(hours);
     }
 
     public int getDbBackupRetentionCount() {
-        return getInt(KEY_DB_BACKUP_RETENTION_COUNT, DEFAULT_DB_BACKUP_RETENTION_COUNT);
+        return operationalPreferences.getDbBackupRetentionCount();
     }
 
     public void setDbBackupRetentionCount(int count) {
-        setInt(KEY_DB_BACKUP_RETENTION_COUNT, count);
+        operationalPreferences.setDbBackupRetentionCount(count);
     }
 
     /**
@@ -909,54 +864,51 @@ public class SettingsService {
     }
 
     public boolean isGettingStartedEnabled() {
-        return getBoolean(KEY_GETTING_STARTED_ENABLED, DEFAULT_GETTING_STARTED_ENABLED);
+        return operationalPreferences.isGettingStartedEnabled();
     }
 
     public void setGettingStartedEnabled(boolean isGettingStartedEnabled) {
-        setBoolean(KEY_GETTING_STARTED_ENABLED, isGettingStartedEnabled);
+        operationalPreferences.setGettingStartedEnabled(isGettingStartedEnabled);
     }
 
     public long getSettingsChanged() {
-        return getLong(KEY_SETTINGS_CHANGED, DEFAULT_SETTINGS_CHANGED);
+        return operationalPreferences.getSettingsChanged();
     }
 
     public boolean isOrganizeByFolderStructure() {
-        return getBoolean(KEY_ORGANIZE_BY_FOLDER_STRUCTURE, DEFAULT_ORGANIZE_BY_FOLDER_STRUCTURE);
+        return operationalPreferences.isOrganizeByFolderStructure();
     }
 
     public void setOrganizeByFolderStructure(boolean b) {
-        setBoolean(KEY_ORGANIZE_BY_FOLDER_STRUCTURE, b);
+        operationalPreferences.setOrganizeByFolderStructure(b);
     }
 
     public boolean isSortAlbumsByYear() {
-        return getBoolean(KEY_SORT_ALBUMS_BY_YEAR, DEFAULT_SORT_ALBUMS_BY_YEAR);
+        return operationalPreferences.isSortAlbumsByYear();
     }
 
     public void setSortAlbumsByYear(boolean b) {
-        setBoolean(KEY_SORT_ALBUMS_BY_YEAR, b);
+        operationalPreferences.setSortAlbumsByYear(b);
     }
 
     public boolean getIgnoreSymLinks() {
-        return getBoolean(KEY_IGNORE_SYMLINKS, DEFAULT_IGNORE_SYMLINKS);
+        return operationalPreferences.getIgnoreSymLinks();
     }
 
     public void setIgnoreSymLinks(boolean b) {
-        setBoolean(KEY_IGNORE_SYMLINKS, b);
+        operationalPreferences.setIgnoreSymLinks(b);
     }
 
     public String getExcludePatternString() {
-        return getString(KEY_EXCLUDE_PATTERN_STRING, DEFAULT_EXCLUDE_PATTERN_STRING);
+        return operationalPreferences.getExcludePatternString();
     }
 
     public void setExcludePatternString(String s) {
-        setString(KEY_EXCLUDE_PATTERN_STRING, s);
-        valueStore.invalidateDerived(KEY_EXCLUDE_PATTERN_STRING);
+        operationalPreferences.setExcludePatternString(s);
     }
 
-    @SuppressWarnings("unchecked")
     public Pattern getExcludePattern() {
-        return ((Optional<Pattern>) valueStore.derived(KEY_EXCLUDE_PATTERN_STRING,
-            k -> Optional.ofNullable(getExcludePatternString()).map(StringUtils::trimToNull).map(Pattern::compile))).orElse(null);
+        return operationalPreferences.getExcludePattern();
     }
 
     /**
