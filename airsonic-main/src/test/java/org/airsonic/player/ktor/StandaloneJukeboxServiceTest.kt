@@ -1,6 +1,7 @@
 package org.airsonic.player.ktor
 
 import org.airsonic.player.domain.MediaFile
+import org.airsonic.player.domain.Player
 import org.airsonic.player.service.JukeboxLegacySubsonicService
 import org.airsonic.player.service.JukeboxQueueTrack
 import org.airsonic.player.service.MediaFolderService
@@ -30,7 +31,7 @@ class StandaloneJukeboxServiceTest {
 
         val paused = service.command(7, "pause", null, null, null)
         assertEquals("PAUSED", paused.status)
-        Mockito.verify(audio).updateStandaloneJukebox(Mockito.any(org.airsonic.player.domain.Player::class.java), Mockito.eq(0))
+        Mockito.verify(audio).updateStandaloneJukebox(Mockito.any(Player::class.java) ?: Player(), Mockito.eq(0))
         val gain = service.command(7, "gain", null, null, 0.4f)
         assertEquals(0.4f, gain.gain)
         Mockito.verify(audio).setGain(0.4f)
