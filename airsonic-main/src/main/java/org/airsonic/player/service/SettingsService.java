@@ -19,7 +19,6 @@ import javax.cache.Cache;
 import javax.cache.CacheManager;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -58,10 +57,6 @@ public class SettingsService {
     private static final String KEY_WELCOME_MESSAGE = "WelcomeMessage2";
     private static final String KEY_LOGIN_MESSAGE = "LoginMessage";
     private static final String KEY_SESSION_DURATION = "server.servlet.session.timeout";
-    private static final String KEY_LOCALE_LANGUAGE = "LocaleLanguage";
-    private static final String KEY_LOCALE_COUNTRY = "LocaleCountry";
-    private static final String KEY_LOCALE_VARIANT = "LocaleVariant";
-    private static final String KEY_THEME_ID = "Theme";
     private static final String KEY_INDEX_CREATION_INTERVAL = "IndexCreationInterval";
     private static final String KEY_INDEX_CREATION_HOUR = "IndexCreationHour";
     private static final String KEY_FAST_CACHE_ENABLED = "FastCacheEnabled";
@@ -152,10 +147,6 @@ public class SettingsService {
             "To change or remove this message, log in with administrator rights and go to <a href='settings.view'>Settings</a> > <a href='generalSettings.view'>General</a>.";
     private static final String DEFAULT_LOGIN_MESSAGE = null;
     private static final String DEFAULT_SESSION_TIMEOUT_DURATION = "30m";
-    private static final String DEFAULT_LOCALE_LANGUAGE = "en";
-    private static final String DEFAULT_LOCALE_COUNTRY = "";
-    private static final String DEFAULT_LOCALE_VARIANT = "";
-    private static final String DEFAULT_THEME_ID = "default";
     private static final int DEFAULT_INDEX_CREATION_INTERVAL = 1;
     private static final int DEFAULT_INDEX_CREATION_HOUR = 3;
     private static final boolean DEFAULT_FAST_CACHE_ENABLED = false;
@@ -212,16 +203,11 @@ public class SettingsService {
     private static final String DEFAULT_DATABASE_JNDI_NAME = null;
     private static final Integer DEFAULT_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH = 384;
 
-    private static final String LOCALES_FILE = "/org/airsonic/player/i18n/locales.txt";
-    private static final String THEMES_FILE = "/org/airsonic/player/theme/themes.txt";
-
     private static final Logger LOG = LoggerFactory.getLogger(SettingsService.class);
     private static final String LOG_FILE_NAME_PROPERTY = "logging.file.name";
     private static final Pattern CONTEXT_KEY_EXPRESSION = Pattern.compile(
             "^(?:\\[['\"]([A-Za-z0-9_]+)['\"]]|([A-Za-z0-9_]+))(?:\\[(\\d+)])?$");
 
-    private List<Theme> themes;
-    private List<Locale> locales;
 
     // Array of obsolete properties. Used to clean property file.
     private static final List<String> OBSOLETE_KEYS = Arrays.asList("PortForwardingPublicPort", "PortForwardingLocalPort",
@@ -235,6 +221,7 @@ public class SettingsService {
             );
 
     private final SettingsUserPreferences userPreferences;
+    private final SettingsPresentationPreferences presentationPreferences;
     private final ConfigurationPropertiesService properties;
 
     public SettingsService(UserDao userDao, AvatarDao avatarDao, RuntimeConfiguration configuration,
@@ -246,6 +233,7 @@ public class SettingsService {
                             CacheManager cacheManager, ConfigurationPropertiesService properties) {
         this.properties = Objects.requireNonNull(properties);
         this.valueStore = new SettingsValueStore(properties, Objects.requireNonNull(propertyLookup));
+        this.presentationPreferences = new SettingsPresentationPreferences(valueStore);
         Cache<String, UserSettings> userSettingsCache = cacheManager != null
                 ? cacheManager.getCache("userSettingsCache", String.class, UserSettings.class) : null;
         this.userPreferences = new SettingsUserPreferences(userDao, avatarDao, userSettingsCache);
@@ -1068,11 +1056,7 @@ public class SettingsService {
      * @return The locale.
      */
     public Locale getLocale() {
-        String language = getProperty(KEY_LOCALE_LANGUAGE, DEFAULT_LOCALE_LANGUAGE);
-        String country = getProperty(KEY_LOCALE_COUNTRY, DEFAULT_LOCALE_COUNTRY);
-        String variant = getProperty(KEY_LOCALE_VARIANT, DEFAULT_LOCALE_VARIANT);
-
-        return Locale.of(language, country, variant);
+        return presentationPreferences.getLocale();
     }
 
     /**
@@ -1081,9 +1065,7 @@ public class SettingsService {
      * @param locale The locale.
      */
     public void setLocale(Locale locale) {
-        setProperty(KEY_LOCALE_LANGUAGE, locale.getLanguage());
-        setProperty(KEY_LOCALE_COUNTRY, locale.getCountry());
-        setProperty(KEY_LOCALE_VARIANT, locale.getVariant());
+        presentationPreferences.setLocale(locale);
     }
 
     /**
@@ -1092,7 +1074,7 @@ public class SettingsService {
      * @return The theme ID.
      */
     public String getThemeId() {
-        return getProperty(KEY_THEME_ID, DEFAULT_THEME_ID);
+        return presentationPreferences.getThemeId();
     }
 
     /**
@@ -1101,7 +1083,7 @@ public class SettingsService {
      * @param themeId The theme ID
      */
     public void setThemeId(String themeId) {
-        setProperty(KEY_THEME_ID, themeId);
+        presentationPreferences.setThemeId(themeId);
     }
 
     /**
@@ -1110,27 +1092,7 @@ public class SettingsService {
      * @return A list of available themes.
      */
     public synchronized Theme[] getAvailableThemes() {
-        if (themes == null) {
-            themes = new ArrayList<>();
-            try {
-                InputStream in = SettingsService.class.getResourceAsStream(THEMES_FILE);
-                String[] lines = StringUtil.readLines(in);
-                for (String line : lines) {
-                    String[] elements = StringUtil.split(line);
-                    if (elements.length == 2) {
-                        themes.add(new Theme(elements[0], elements[1]));
-                    } else if (elements.length == 3) {
-                        themes.add(new Theme(elements[0], elements[1], elements[2]));
-                    } else {
-                        LOG.warn("Failed to parse theme from line: [{}].", line);
-                    }
-                }
-            } catch (IOException x) {
-                LOG.error("Failed to resolve list of themes.", x);
-                themes.add(new Theme("default", "Airsonic default"));
-            }
-        }
-        return themes.toArray(new Theme[themes.size()]);
+        return presentationPreferences.getAvailableThemes();
     }
 
     /**
@@ -1139,22 +1101,7 @@ public class SettingsService {
      * @return A list of available locales.
      */
     public synchronized Locale[] getAvailableLocales() {
-        if (locales == null) {
-            locales = new ArrayList<>();
-            try {
-                InputStream in = SettingsService.class.getResourceAsStream(LOCALES_FILE);
-                String[] lines = StringUtil.readLines(in);
-
-                for (String line : lines) {
-                    locales.add(StringUtil.parseLocale(line));
-                }
-
-            } catch (IOException x) {
-                LOG.error("Failed to resolve list of locales.", x);
-                locales.add(Locale.ENGLISH);
-            }
-        }
-        return locales.toArray(new Locale[locales.size()]);
+        return presentationPreferences.getAvailableLocales();
     }
 
     /**
@@ -1163,7 +1110,7 @@ public class SettingsService {
      * @return The brand name.
      */
     public String getBrand() {
-        return "Airsonic";
+        return presentationPreferences.getBrand();
     }
 
     /**
