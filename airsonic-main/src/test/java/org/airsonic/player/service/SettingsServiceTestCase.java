@@ -103,6 +103,27 @@ public class SettingsServiceTestCase {
     }
 
     @Test
+    public void transcodingCommandDefaultsAndOverridesArePreserved() {
+        assertEquals("ffmpeg -i %s -map 0:0 -b:a %bk -v 0 -f mp3 -", settingsService.getDownsamplingCommand());
+        assertTrue(settingsService.getHlsCommand().contains("-hls_time %d -hls_list_size 0"));
+        assertEquals("ffmpeg -ss %o -i %s -map 0:0 -v 0 -ar 44100 -ac 2 -f s16be -", settingsService.getJukeboxCommand());
+        assertEquals("ffmpeg -r 1 -ss %o -t 1 -i %s -s %wx%h -v 0 -f mjpeg -", settingsService.getVideoImageCommand());
+        assertEquals("ffmpeg -i %s -map 0:%i -f %f -", settingsService.getSubtitlesExtractionCommand());
+
+        settingsService.setDownsamplingCommand("audio %s %bk");
+        settingsService.setHlsCommand("hls %s %p");
+        settingsService.setJukeboxCommand("jukebox %s");
+        settingsService.setVideoImageCommand("image %s");
+        settingsService.setSubtitlesExtractionCommand("captions %i %f");
+
+        assertEquals("audio %s %bk", settingsService.getDownsamplingCommand());
+        assertEquals("hls %s %p", settingsService.getHlsCommand());
+        assertEquals("jukebox %s", settingsService.getJukeboxCommand());
+        assertEquals("image %s", settingsService.getVideoImageCommand());
+        assertEquals("captions %i %f", settingsService.getSubtitlesExtractionCommand());
+    }
+
+    @Test
     public void contextualUploadPathResolvesContextKeysAndListIndexes() {
         Map<String, Object> context = new LinkedHashMap<>();
         context.put("USER_NAME", "alice");

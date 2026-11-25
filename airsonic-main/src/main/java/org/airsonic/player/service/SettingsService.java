@@ -38,11 +38,6 @@ public class SettingsService {
     private static final Path AIRSONIC_HOME_OTHER = Paths.get("/var/airsonic");
 
     // Global settings.
-    private static final String KEY_DOWNSAMPLING_COMMAND = "DownsamplingCommand4";
-    private static final String KEY_HLS_COMMAND = "HlsCommand4";
-    private static final String KEY_JUKEBOX_COMMAND = "JukeboxCommand2";
-    private static final String KEY_VIDEO_IMAGE_COMMAND = "VideoImageCommand";
-    private static final String KEY_SUBTITLES_EXTRACTION_COMMAND = "SubtitlesExtractionCommand";
     private static final String KEY_REMEMBER_ME_KEY = "RememberMeKey";
 
     private static final String KEY_EXPORT_PLAYLIST_FORMAT = "PlaylistExportFormat";
@@ -59,11 +54,6 @@ public class SettingsService {
     public static final String KEY_PROPERTIES_FILE_RETAIN_OBSOLETE_KEYS = "PropertiesFileRetainObsoleteKeys";
 
     // Default values.
-    private static final String DEFAULT_DOWNSAMPLING_COMMAND = "ffmpeg -i %s -map 0:0 -b:a %bk -v 0 -f mp3 -";
-    private static final String DEFAULT_HLS_COMMAND = "ffmpeg -ss %o -i %s -s %wx%h -async 1 -c:v libx264 -flags +cgop -b:v %vk -maxrate %bk -preset superfast -copyts -b:a %rk -bufsize 256k -map 0:0 -map 0:%i -ac 2 -ar 44100 -v 0 -threads 0 -force_key_frames expr:gte(t,n_forced*10) -start_number %j -hls_time %d -hls_list_size 0 -hls_segment_filename %n %p";
-    private static final String DEFAULT_JUKEBOX_COMMAND = "ffmpeg -ss %o -i %s -map 0:0 -v 0 -ar 44100 -ac 2 -f s16be -";
-    private static final String DEFAULT_VIDEO_IMAGE_COMMAND = "ffmpeg -r 1 -ss %o -t 1 -i %s -s %wx%h -v 0 -f mjpeg -";
-    private static final String DEFAULT_SUBTITLES_EXTRACTION_COMMAND = "ffmpeg -i %s -map 0:%i -f %f -";
     private static final String DEFAULT_EXPORT_PLAYLIST_FORMAT = "m3u";
 
     private static final String DEFAULT_DATABASE_DRIVER = null;
@@ -97,6 +87,7 @@ public class SettingsService {
     private final SettingsDlnaPreferences dlnaPreferences;
     private final SettingsCredentialPreferences credentialPreferences;
     private final SettingsDatabasePreferences databasePreferences;
+    private final SettingsTranscodingPreferences transcodingPreferences;
     private final ConfigurationPropertiesService properties;
 
     public SettingsService(UserDao userDao, AvatarDao avatarDao, RuntimeConfiguration configuration,
@@ -117,6 +108,7 @@ public class SettingsService {
         this.dlnaPreferences = new SettingsDlnaPreferences(valueStore);
         this.credentialPreferences = new SettingsCredentialPreferences(valueStore);
         this.databasePreferences = new SettingsDatabasePreferences(valueStore);
+        this.transcodingPreferences = new SettingsTranscodingPreferences(valueStore);
         Cache<String, UserSettings> userSettingsCache = cacheManager != null
                 ? cacheManager.getCache("userSettingsCache", String.class, UserSettings.class) : null;
         this.userPreferences = new SettingsUserPreferences(userDao, avatarDao, userSettingsCache);
@@ -704,43 +696,43 @@ public class SettingsService {
     }
 
     public String getDownsamplingCommand() {
-        return getProperty(KEY_DOWNSAMPLING_COMMAND, DEFAULT_DOWNSAMPLING_COMMAND);
+        return transcodingPreferences.getDownsamplingCommand();
     }
 
     public void setDownsamplingCommand(String command) {
-        setProperty(KEY_DOWNSAMPLING_COMMAND, command);
+        transcodingPreferences.setDownsamplingCommand(command);
     }
 
     public String getHlsCommand() {
-        return getProperty(KEY_HLS_COMMAND, DEFAULT_HLS_COMMAND);
+        return transcodingPreferences.getHlsCommand();
     }
 
     public void setHlsCommand(String command) {
-        setProperty(KEY_HLS_COMMAND, command);
+        transcodingPreferences.setHlsCommand(command);
     }
 
     public String getJukeboxCommand() {
-        return getProperty(KEY_JUKEBOX_COMMAND, DEFAULT_JUKEBOX_COMMAND);
+        return transcodingPreferences.getJukeboxCommand();
     }
 
     public void setJukeboxCommand(String command) {
-        setProperty(KEY_JUKEBOX_COMMAND, command);
+        transcodingPreferences.setJukeboxCommand(command);
     }
 
     public String getVideoImageCommand() {
-        return getProperty(KEY_VIDEO_IMAGE_COMMAND, DEFAULT_VIDEO_IMAGE_COMMAND);
+        return transcodingPreferences.getVideoImageCommand();
     }
 
     public void setVideoImageCommand(String command) {
-        setProperty(KEY_VIDEO_IMAGE_COMMAND, command);
+        transcodingPreferences.setVideoImageCommand(command);
     }
 
     public String getSubtitlesExtractionCommand() {
-        return getProperty(KEY_SUBTITLES_EXTRACTION_COMMAND, DEFAULT_SUBTITLES_EXTRACTION_COMMAND);
+        return transcodingPreferences.getSubtitlesExtractionCommand();
     }
 
     public void setSubtitlesExtractionCommand(String command) {
-        setProperty(KEY_SUBTITLES_EXTRACTION_COMMAND, command);
+        transcodingPreferences.setSubtitlesExtractionCommand(command);
     }
 
     public boolean isLdapEnabled() {
