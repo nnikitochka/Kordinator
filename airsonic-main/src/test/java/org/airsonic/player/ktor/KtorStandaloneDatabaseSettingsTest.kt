@@ -115,7 +115,7 @@ class KtorStandaloneDatabaseSettingsTest {
                     }))
                 }
                 assertEquals(HttpStatusCode.Accepted, imported.status, imported.bodyAsText())
-                Mockito.verify(database).importDB(org.mockito.ArgumentMatchers.any(Path::class.java))
+                Mockito.verify(database).importDB(anyPath())
                 val unsafeHeaders = Headers.build {
                     append(HttpHeaders.ContentDisposition, "form-data; name=\"file\"; filename=\"../outside.xml\"")
                 }
@@ -126,7 +126,7 @@ class KtorStandaloneDatabaseSettingsTest {
                     }))
                 }
                 assertEquals(HttpStatusCode.BadRequest, traversal.status)
-                Mockito.verify(database, Mockito.times(1)).importDB(org.mockito.ArgumentMatchers.any(Path::class.java))
+                Mockito.verify(database, Mockito.times(1)).importDB(anyPath())
                 }
             } finally {
                 if (previousHome == null) System.clearProperty("airsonic.home") else System.setProperty("airsonic.home", previousHome)
@@ -134,3 +134,5 @@ class KtorStandaloneDatabaseSettingsTest {
         }
     }
 }
+
+private fun anyPath(): Path = Mockito.any(Path::class.java) ?: Path.of(".")

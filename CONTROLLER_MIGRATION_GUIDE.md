@@ -15,7 +15,7 @@
 1. **Composition root — завершён.** Перенести `RuntimeCompositionRoot` на Kotlin, разделив infrastructure, security, settings, media, search/scanner, playlists, playback, UPnP и application services. Сохранить singleton identity, ленивый PlayerService supplier, общий reentrant lock, проверки порядка сборки графа и регистрацию lifecycle ровно один раз. Проверки: runtime graph, конкурентное создание компонентов, JDBC/Liquibase, запуск API и реальное сканирование.
 2. **Метаданные и малые зависимости.** Перенести `MetaData`, parser contract и parser implementations; затем playlist import/export contracts и handlers, HLS session, audio player, scrobbler adapters и оставшиеся утилиты (`Util` и `LegacyHsqlMigrationUtil` уже перенесены). Сохранить nullable поля, сортировки, ошибки чтения файлов, закрытие потоков и транскодирующих процессов. Проверки: существующие parser, playlist, HLS/transcoding и streaming tests.
 3. **Каталог и сканирование — завершён.** Перенесены `CoverArtImageService`, `MediaFolderService`, `MediaFileService`, `MediaScannerService` и `LastFmService`; крупные сервисы разделены на небольшие Kotlin-классы. Проверки: реальное сканирование, изоляция библиотек, каталог/поиск, обложки, Last.fm metadata и playlist API.
-4. **Настройки и безопасность.** Перенести `VersionService` (завершён), затем разделить и перенести `SettingsService`, `SecurityService`, `DatabaseService`; сохранить права, кеши, обновления credentials, настройки и backup/import/export. Проверки: security/settings suites и соответствующие admin API.
+4. **Настройки и безопасность.** Перенести `VersionService` и `DatabaseService` (завершены), затем разделить и перенести `SettingsService` и `SecurityService`; сохранить права, кеши, обновления credentials, настройки и backup/import/export. Проверки: security/settings suites и соответствующие admin API.
 5. **Воспроизведение и плейлисты — завершено.** `DownloadService`, `PlaylistService`, `JukeboxLegacySubsonicService` и декомпозированный `TranscodingService` перенесены. Сохранены порядок треков, доступ аккаунтов, streaming/Range/HEAD, параметры ffmpeg, завершение процессов и ресурсы jukebox. Проверены playlist import/export, handlers и автоимпорт, UPnP playlist, legacy/standalone jukebox, transcoding policy/commands, HLS, video artwork и регистрация профилей в runtime.
 6. **DLNA/UPnP — завершён.** Перенесены processors, content directories, NAT-PMP router и регистрация media server. Проверены URL generation, дерево каталога, NAT-PMP параметры, lifecycle и DLNA API.
 7. **Создание схемы и оставшиеся тесты.** Перенести нужные Liquibase custom changes и оставшиеся Java-тесты/fixtures вместе с их областями. Старые миграционные названия не означают активную зависимость от Spring; проверять реальные импорты и загрузку changesets. Не удалять действующую схему без замены.
@@ -33,9 +33,8 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 11 файлов
+### Production: 10 файлов
 
-- `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/SecurityService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/SettingsService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/AddMediaFileIdToPodcastChannels.java`
@@ -160,3 +159,4 @@
 - `MediaScannerService` переведён на Kotlin и разделён на coordinator, scan state, traversal worker, entity aggregation и persistence; проверены полный scan fixture, асинхронный статус, изоляция библиотек, каталог/search/status/runtime: 16 тестов прошли.
 - `LastFmService` переведён на Kotlin и разделён на facade, recommendations, metadata client и cache initialization; проверены metadata normalization, playlist API stubs, scrobblers и runtime wiring: 11 тестов прошли.
 - `DownloadService` переведён на Kotlin; сохранены caller context/access checks, selection snapshot, monitored single-file streams и stored ZIP generation. Проверены file/ZIP contents и runtime graph: 5 тестов прошли.
+- `DatabaseService` переведён на Kotlin с сохранением backup scheduling, HSQL backup retention, Liquibase export/import, zip cleanup, operation status и Java accessor API. DB status, Ktor database settings/import/export, HSQL copy, standalone database и Liquibase startup: 7 тестов прошли.
