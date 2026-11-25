@@ -35,7 +35,7 @@
 
 ### Production: 0 Java-файлов
 
-### Тесты и fixtures: 59 файлов
+### Тесты и fixtures: 55 файлов
 
 - `airsonic-main/src/test/java/org/airsonic/player/dao/BookmarkDaoTestCase.java`
 - `airsonic-main/src/test/java/org/airsonic/player/dao/DaoTestCase.java`
@@ -45,10 +45,6 @@
 - `airsonic-main/src/test/java/org/airsonic/player/dao/TranscodingDaoTestCase.java`
 - `airsonic-main/src/test/java/org/airsonic/player/dao/UserDaoTestCase.java`
 - `airsonic-main/src/test/java/org/airsonic/player/domain/PlayQueueTestCase.java`
-- `airsonic-main/src/test/java/org/airsonic/player/filter/ParameterDecodingPolicyTest.java`
-- `airsonic-main/src/test/java/org/airsonic/player/filter/StaticResponseHeadersTest.java`
-- `airsonic-main/src/test/java/org/airsonic/player/health/HealthFrameworkTest.java`
-- `airsonic-main/src/test/java/org/airsonic/player/runtime/LifecycleRegistryTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/runtime/RuntimeCompositionRootGraphTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/runtime/RuntimeCompositionRootTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/runtime/RuntimeConfigurationLoaderTest.java`
@@ -153,4 +149,5 @@
 - `UserIdentityTest` переведён на Kotlin; сохранены проверки snapshot-семантики credentials/roles и Java-конструктора на null-входы через reflection. Чистая сборка и оба теста прошли.
 - Три небольших доменных Java-теста (`VersionTestCase`, `SortableArtistTestCase`, `MediaFileComparatorTestCase`) переведены на Kotlin без изменения проверок сравнения версий, collation и порядка альбомов/треков. Чистая сборка с 7 целевыми тестами прошла. Осталось 64 Java test/fixture-файла.
 - Общая Java test-инфраструктура (`TestCaseUtils`, `ScanningTestUtils`, `FileUtils`, `HomeRule`, `MusicFolderTestData`) переведена на Kotlin с сохранением static-вызовов из Java, сценария очистки домашнего каталога, сканирования и копирования фикстур. Чистая компиляция прошла; 31 связанный тест прошёл, включая повторный headless-запуск тестов обложек. Осталось 59 Java test/fixture-файлов.
+- Тесты политик параметров/заголовков, health-компонентов и lifecycle переведены на Kotlin без изменения покрываемых сценариев. Чистая сборка и все 21 тест прошли; осталось 55 Java test/fixture-файлов.
 - Runtime-аудит: Maven `dependency:tree` для runtime scope не содержит Spring, Servlet API или Tomcat; production-исходники не импортируют эти framework API. Собранный `kordinator.jar` запускается с `su.nnedition.kord.Kordinator`, `/api/v1/health` вернул HTTP 200 и `{"status":"UP"}`, процесс завершился штатным shutdown hook. При этом сам старт пока всё ещё выполняет legacy changelog/DAO-граф, что должно быть устранено на этапе 7.
