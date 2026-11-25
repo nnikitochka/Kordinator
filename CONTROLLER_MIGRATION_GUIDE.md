@@ -33,7 +33,7 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 31 файла
+### Production: 30 файла
 
 - `airsonic-main/src/main/java/org/airsonic/player/service/CoverArtImageService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
@@ -52,7 +52,6 @@
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/CustomContentDirectory.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/DispatchingContentDirectory.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/FolderBasedContentDirectory.java`
-- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/MediaFileUpnpProcessor.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/NATPMPRouter.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/Router.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/UpnpContentProcessor.java`
@@ -164,3 +163,4 @@
 - `AlbumUpnpProcessor` переведён на Kotlin; URL обложки с подписью, DLNA-контейнеры, граф runtime и standalone DLNA settings: 8 тестов прошли.
 - `GenreUpnpProcessor` переведён на Kotlin; проверены индексация контейнеров, получение жанра, выборка треков и DLNA API: 7 тестов прошли.
 - `PlaylistUpnpProcessor` переведён на Kotlin; контейнеры и получение треков, composition root и playlist API: 12 тестов прошли.
+- `MediaFileUpnpProcessor` переведён на Kotlin; нормализация сортировки дочерних путей, композиция и связанные DLNA/API сценарии: 13 тестов прошли.
