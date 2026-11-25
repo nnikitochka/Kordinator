@@ -29,7 +29,7 @@ class MusicFolderAdministrationService(
             command.hour = settingsService.indexCreationHour.toString()
             command.isFastCache = settingsService.isFastCacheEnabled()
             command.isOrganizeByFolderStructure = settingsService.isOrganizeByFolderStructure()
-            command.isScanning = mediaScannerService.isScanning()
+            command.isScanning = mediaScannerService.isScanning
             command.musicFolders = wrap(mediaFolderService.getAllMusicFolders(true, true))
             command.newMusicFolder = MusicFolderInfo()
             command.deletedMusicFolders = wrap(mediaFolderService.getDeletedMusicFolders())
