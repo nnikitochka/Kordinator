@@ -56,7 +56,7 @@ fun Route.videoPlaybackRoutes(
                     ), HttpStatusCode.BadRequest)
             }
             try {
-                val session = playback.create(user.id, file, request.bitrateKbps, request.width, request.height, request.audioTrack)
+                val session = playback.create(user.id, file!!, request.bitrateKbps, request.width, request.height, request.audioTrack)
                 call.respondJson(session, HttpStatusCode.Created)
             } catch (failure: IllegalArgumentException) {
                 call.respondJson(ApiError("invalid_request", failure.message ?: "Invalid playback settings"), HttpStatusCode.BadRequest)

@@ -14,7 +14,7 @@
 
 1. **Composition root — завершён.** Перенести `RuntimeCompositionRoot` на Kotlin, разделив infrastructure, security, settings, media, search/scanner, playlists, playback, UPnP и application services. Сохранить singleton identity, ленивый PlayerService supplier, общий reentrant lock, проверки порядка сборки графа и регистрацию lifecycle ровно один раз. Проверки: runtime graph, конкурентное создание компонентов, JDBC/Liquibase, запуск API и реальное сканирование.
 2. **Метаданные и малые зависимости.** Перенести `MetaData`, parser contract и parser implementations; затем playlist import/export contracts и handlers, HLS session, audio player, scrobbler adapters и оставшиеся утилиты (`Util` и `LegacyHsqlMigrationUtil` уже перенесены). Сохранить nullable поля, сортировки, ошибки чтения файлов, закрытие потоков и транскодирующих процессов. Проверки: существующие parser, playlist, HLS/transcoding и streaming tests.
-3. **Каталог и сканирование.** Перенесены `CoverArtImageService` и `MediaFolderService`; далее разделить и перенести `MediaFileService`, `MediaScannerService`, `LastFmService`. Проверки: сканирование реальной папки, повторное сканирование, удалённые файлы, изоляция библиотек, каталог/поиск и обложки.
+3. **Каталог и сканирование.** Перенесены `CoverArtImageService`, `MediaFolderService` и `MediaFileService` (последний разделён на facade и lookup/children/metadata/catalog helpers); далее перенести `MediaScannerService` и `LastFmService`. Проверки: сканирование реальной папки, повторное сканирование, удалённые файлы, изоляция библиотек, каталог/поиск и обложки.
 4. **Настройки и безопасность.** Перенести `VersionService` (завершён), затем разделить и перенести `SettingsService`, `SecurityService`, `DatabaseService`; сохранить права, кеши, обновления credentials, настройки и backup/import/export. Проверки: security/settings suites и соответствующие admin API.
 5. **Воспроизведение и плейлисты.** Перенести `PlaylistService`, `TranscodingService`, `DownloadService`, `JukeboxLegacySubsonicService`. Сохранить порядок треков, доступ аккаунтов, streaming/Range/HEAD, параметры ffmpeg, завершение процессов и ресурсы jukebox. Проверки: playlist, streaming/transcoding, jukebox и download suites.
 6. **DLNA/UPnP — завершён.** Перенесены processors, content directories, NAT-PMP router и регистрация media server. Проверены URL generation, дерево каталога, NAT-PMP параметры, lifecycle и DLNA API.
@@ -33,13 +33,12 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 18 файлов
+### Production: 17 файлов
 
 - `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/DownloadService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/JukeboxLegacySubsonicService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/LastFmService.java`
-- `airsonic-main/src/main/java/org/airsonic/player/service/MediaFileService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/MediaScannerService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/PlaylistService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/SecurityService.java`
@@ -163,3 +162,4 @@
 - `FolderBasedContentDirectory` переведён на Kotlin; корневой и playlist browse, статистика библиотеки, подписанный artwork URL и runtime: 22 теста прошли.
 - `Util` переведён на Kotlin с сохранением Java static API; URL-маскирование, JSON conversion, validation, sublist, daemon thread factory и Kotlin/Java consumers: 22 теста прошли.
 - `LegacyHsqlMigrationUtil` переведён на Kotlin с сохранением статического Java API, backup и HSQL version checks; targeted suite и runtime composition: 20 тестов прошли.
+- `MediaFileService` переведён на Kotlin и разделён на пять классов до 300 строк; lookup, дерево каталога, метаданные, подборки и обновление media file проверены через scanner/library/artwork/search/playlist/status/UPnP suites: 18 тестов прошли.

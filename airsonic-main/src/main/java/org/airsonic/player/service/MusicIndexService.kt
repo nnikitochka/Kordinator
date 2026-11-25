@@ -34,7 +34,7 @@ open class MusicIndexService(
     private fun getSingleSongs(folders: List<MusicFolder>, refresh: Boolean): List<MediaFile> =
         folders.stream().flatMap { folder ->
             mediaFileService.getChildrenOf(
-                mediaFileService.getMediaFile(Paths.get(""), folder, !refresh),
+                mediaFileService.getMediaFile(Paths.get(""), folder, !refresh)!!,
                 true, false, true, !refresh
             ).stream()
         }.collect(Collectors.toList())
@@ -46,6 +46,7 @@ open class MusicIndexService(
             }
             .map { pair -> mediaFileService.getMediaFile(pair.left, pair.right, true) }
             .filter(Objects::nonNull)
+            .map { it!! }
             .collect(Collectors.toList())
 
     private fun <T : SortableArtist> sortArtists(artists: List<T>): SortedMap<MusicIndex, MutableList<T>> {
@@ -97,7 +98,7 @@ open class MusicIndexService(
         val collator = createCollator()
 
         for (folder in folders) {
-            val root = mediaFileService.getMediaFile(Paths.get(""), folder, !refresh)
+            val root = mediaFileService.getMediaFile(Paths.get(""), folder, !refresh)!!
             val children = mediaFileService.getChildrenOf(root, false, true, true, !refresh)
             for (child in children) {
                 if (shortcutSet.contains(child.name)) continue

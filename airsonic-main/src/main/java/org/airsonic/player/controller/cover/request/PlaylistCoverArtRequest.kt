@@ -41,8 +41,10 @@ open class PlaylistCoverArtRequest(
 
     private fun getRepresentativeAlbums(): List<MediaFile> = imageService.playlistService.getFilesInPlaylist(playlist.id)
         .parallelStream()
-        .map(imageService.mediaFileService::getParentOf)
-        .filter { album -> album != null && !imageService.mediaFileService.isRoot(album) }
+        .map { file: MediaFile -> imageService.mediaFileService.getParentOf(file) }
+        .filter { it != null }
+        .map { it!! }
+        .filter { album -> !imageService.mediaFileService.isRoot(album) }
         .distinct()
         .toList()
 }

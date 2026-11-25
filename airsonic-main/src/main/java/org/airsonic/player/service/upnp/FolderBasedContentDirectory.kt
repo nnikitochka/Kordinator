@@ -72,7 +72,7 @@ class FolderBasedContentDirectory(
             }
 
             val mediaFileId = objectId.replace(CONTAINER_ID_FOLDER_PREFIX, "").toInt()
-            val mediaFile = mediaFileService!!.getMediaFile(mediaFileId)
+            val mediaFile = mediaFileService!!.getMediaFile(mediaFileId)!!
             return if (browseFlag == BrowseFlag.METADATA) {
                 browseMediaFileMetadata(mediaFile)
             } else {
@@ -138,7 +138,7 @@ class FolderBasedContentDirectory(
         val allFolders = mediaFolderService!!.getAllMusicFolders()
         val selectedFolders = Util.subList(allFolders, firstResult, maxResults)
         selectedFolders.forEach { folder ->
-            val mediaFile = mediaFileService!!.getMediaFile("", folder)
+            val mediaFile = mediaFileService!!.getMediaFile("", folder)!!
             addContainerOrItem(didl, mediaFile)
         }
         if (maxResults > selectedFolders.size) {

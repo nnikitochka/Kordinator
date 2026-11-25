@@ -66,7 +66,7 @@ class MediaFileUpnpProcessor : UpnpContentProcessor<MediaFile, MediaFile>() {
     override fun getItemById(id: String): MediaFile? = getMediaFileService().getMediaFile(id.toInt())
 
     override fun getChildren(item: MediaFile): List<MediaFile> =
-        getMediaFileService().getChildrenOf(item, true, true, true).apply {
+        getMediaFileService().getChildrenOf(item, true, true, true).toMutableList().apply {
             sortWith { first, second ->
                 first.path!!.replace(Regex("\\W"), "").compareTo(second.path!!.replace(Regex("\\W"), ""), ignoreCase = true)
             }

@@ -132,7 +132,7 @@ class CoverArtImageService(
             return VideoCoverArtRequest(this, mediaFile, parsedOffset)
         }
         val directory = if (mediaFile.isDirectory) mediaFile else mediaFileService.getParentOf(mediaFile)
-        return MediaFileCoverArtRequest(this, directory, if (mediaFile.isDirectory) null else mediaFile.id)
+        return MediaFileCoverArtRequest(this, directory!!, if (mediaFile.isDirectory) null else mediaFile.id)
     }
 
     @Throws(IOException::class)

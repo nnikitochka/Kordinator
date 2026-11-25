@@ -102,7 +102,7 @@ open class StatusService(
     }
 
     open fun getPlayStatus(status: TransferStatus): PlayStatus {
-        val file: MediaFile? = status.mediaFile ?: mediaFileService.getMediaFile(status.externalFile)
+        val file: MediaFile? = status.mediaFile ?: mediaFileService.getMediaFile(status.externalFile!!)
         return PlayStatus(status.id, file, status.player, status.millisSinceLastUpdate)
     }
 

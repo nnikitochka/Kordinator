@@ -60,7 +60,7 @@ open class TagEditService(
             parser.setMetaData(file, newMetaData)
 
             mediaFileService.refreshMediaFile(file, folder)
-            mediaFileService.refreshMediaFile(mediaFileService.getParentOf(file), folder)
+            mediaFileService.refreshMediaFile(mediaFileService.getParentOf(file)!!, folder)
             return "UPDATED"
         } catch (exception: SecurityException) {
             throw exception

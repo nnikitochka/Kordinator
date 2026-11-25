@@ -14,7 +14,7 @@ class RatingService(
     fun getHighestRatedAlbums(offset: Int, count: Int, musicFolders: List<MusicFolder>): List<MediaFile> =
         ratingDao.getHighestRatedAlbums(offset, count, musicFolders)
             .parallelStream()
-            .map(mediaFileService::getMediaFile)
+            .map { mediaFileService.getMediaFile(it)!! }
             .filter { securityService.isReadAllowed(it, true) }
             .collect(Collectors.toList())
 
