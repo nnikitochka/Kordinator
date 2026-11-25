@@ -21,6 +21,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -76,6 +77,11 @@ public class SettingsServiceTestCase {
         assertNull("Wrong default LDAP manager password.", settingsService.getLdapManagerPassword());
         assertEquals("Wrong default LDAP search filter.", "(sAMAccountName={0})", settingsService.getLdapSearchFilter());
         assertEquals("Wrong default LDAP auto-shadowing.", false, settingsService.isLdapAutoShadowing());
+        assertNull("Wrong default SMTP server.", settingsService.getSmtpServer());
+        assertEquals("Wrong default SMTP port.", "25", settingsService.getSmtpPort());
+        assertEquals("Wrong default SMTP encryption.", "None", settingsService.getSmtpEncryption());
+        assertEquals("Wrong default SMTP from address.", "airsonic@airsonic.org", settingsService.getSmtpFrom());
+        assertFalse("Wrong default CAPTCHA setting.", settingsService.isCaptchaEnabled());
         assertEquals("30m", settingsService.getSessionDuration());
     }
 
@@ -129,6 +135,15 @@ public class SettingsServiceTestCase {
         settingsService.setLdapManagerPassword("secret");
         settingsService.setLdapSearchFilter("newLdapSearchFilter");
         settingsService.setLdapAutoShadowing(true);
+        settingsService.setSmtpServer("smtp.example.test");
+        settingsService.setSmtpPort("587");
+        settingsService.setSmtpEncryption("STARTTLS");
+        settingsService.setSmtpUser("mailer");
+        settingsService.setSmtpPassword("smtp-secret");
+        settingsService.setSmtpFrom("music@example.test");
+        settingsService.setCaptchaEnabled(true);
+        settingsService.setRecaptchaSiteKey("site-key");
+        settingsService.setRecaptchaSecretKey("secret-key");
 
         verifySettings(settingsService);
 
@@ -162,6 +177,15 @@ public class SettingsServiceTestCase {
         assertEquals("Wrong LDAP manager password.", "secret", settingsService.getLdapManagerPassword());
         assertEquals("Wrong LDAP search filter.", "newLdapSearchFilter", settingsService.getLdapSearchFilter());
         assertTrue("Wrong LDAP auto-shadowing.", settingsService.isLdapAutoShadowing());
+        assertEquals("Wrong SMTP server.", "smtp.example.test", ss.getSmtpServer());
+        assertEquals("Wrong SMTP port.", "587", ss.getSmtpPort());
+        assertEquals("Wrong SMTP encryption.", "STARTTLS", ss.getSmtpEncryption());
+        assertEquals("Wrong SMTP user.", "mailer", ss.getSmtpUser());
+        assertEquals("Wrong SMTP password.", "smtp-secret", ss.getSmtpPassword());
+        assertEquals("Wrong SMTP from address.", "music@example.test", ss.getSmtpFrom());
+        assertTrue("Wrong CAPTCHA setting.", ss.isCaptchaEnabled());
+        assertEquals("Wrong reCAPTCHA site key.", "site-key", ss.getRecaptchaSiteKey());
+        assertEquals("Wrong reCAPTCHA secret key.", "secret-key", ss.getRecaptchaSecretKey());
     }
 
     @Test

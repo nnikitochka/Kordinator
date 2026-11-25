@@ -8,7 +8,6 @@ import org.airsonic.player.dao.AvatarDao;
 import org.airsonic.player.dao.UserDao;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.service.settings.*;
-import org.airsonic.player.util.StringUtil;
 import org.airsonic.player.util.Util;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -44,12 +43,6 @@ public class SettingsService {
     private static final String KEY_JUKEBOX_COMMAND = "JukeboxCommand2";
     private static final String KEY_VIDEO_IMAGE_COMMAND = "VideoImageCommand";
     private static final String KEY_SUBTITLES_EXTRACTION_COMMAND = "SubtitlesExtractionCommand";
-    private static final String KEY_LDAP_ENABLED = "LdapEnabled";
-    private static final String KEY_LDAP_URL = "LdapUrl";
-    private static final String KEY_LDAP_MANAGER_DN = "LdapManagerDn";
-    private static final String KEY_LDAP_MANAGER_PASSWORD = "LdapManagerPassword";
-    private static final String KEY_LDAP_SEARCH_FILTER = "LdapSearchFilter";
-    private static final String KEY_LDAP_AUTO_SHADOWING = "LdapAutoShadowing";
     private static final String KEY_DLNA_ENABLED = "DlnaEnabled";
     private static final String KEY_DLNA_SERVER_NAME = "DlnaServerName";
     private static final String KEY_DLNA_SERVER_ID = "DlnaServerId";
@@ -63,17 +56,7 @@ public class SettingsService {
     private static final String KEY_PREFERRED_NONDECODABLE_PASSWORD_ENCODER = "NonDecodablePasswordEncoder";
     private static final String KEY_PREFER_NONDECODABLE_PASSWORDS = "PreferNonDecodablePasswords";
 
-    private static final String KEY_SMTP_SERVER = "SmtpServer";
-    private static final String KEY_SMTP_ENCRYPTION = "SmtpEncryption";
-    private static final String KEY_SMTP_PORT = "SmtpPort";
-    private static final String KEY_SMTP_USER = "SmtpUser";
-    private static final String KEY_SMTP_PASSWORD = "SmtpPassword";
-    private static final String KEY_SMTP_FROM = "SmtpFrom";
     private static final String KEY_EXPORT_PLAYLIST_FORMAT = "PlaylistExportFormat";
-
-    private static final String KEY_CAPTCHA_ENABLED = "CaptchaEnabled";
-    private static final String KEY_RECAPTCHA_SITE_KEY = "ReCaptchaSiteKey";
-    private static final String KEY_RECAPTCHA_SECRET_KEY = "ReCaptchaSecretKey";
 
     // Database Settings
     private static final String KEY_DATABASE_DRIVER = RuntimeConfiguration.DATABASE_DRIVER_KEY;
@@ -93,12 +76,6 @@ public class SettingsService {
     private static final String DEFAULT_JUKEBOX_COMMAND = "ffmpeg -ss %o -i %s -map 0:0 -v 0 -ar 44100 -ac 2 -f s16be -";
     private static final String DEFAULT_VIDEO_IMAGE_COMMAND = "ffmpeg -r 1 -ss %o -t 1 -i %s -s %wx%h -v 0 -f mjpeg -";
     private static final String DEFAULT_SUBTITLES_EXTRACTION_COMMAND = "ffmpeg -i %s -map 0:%i -f %f -";
-    private static final boolean DEFAULT_LDAP_ENABLED = false;
-    private static final String DEFAULT_LDAP_URL = "ldap://host.domain.com:389/cn=Users,dc=domain,dc=com";
-    private static final String DEFAULT_LDAP_MANAGER_DN = null;
-    private static final String DEFAULT_LDAP_MANAGER_PASSWORD = null;
-    private static final String DEFAULT_LDAP_SEARCH_FILTER = "(sAMAccountName={0})";
-    private static final boolean DEFAULT_LDAP_AUTO_SHADOWING = false;
     private static final boolean DEFAULT_DLNA_ENABLED = false;
     private static final String DEFAULT_DLNA_SERVER_NAME = "Airsonic";
     private static final String DEFAULT_DLNA_SERVER_ID = null;
@@ -108,17 +85,6 @@ public class SettingsService {
     private static final String DEFAULT_PREFERRED_NONDECODABLE_PASSWORD_ENCODER = "bcrypt";
     private static final String DEFAULT_PREFERRED_DECODABLE_PASSWORD_ENCODER = "encrypted-AES-GCM";
     private static final boolean DEFAULT_PREFER_NONDECODABLE_PASSWORDS = true;
-
-    private static final String DEFAULT_SMTP_SERVER = null;
-    private static final String DEFAULT_SMTP_ENCRYPTION = "None";
-    private static final String DEFAULT_SMTP_PORT = "25";
-    private static final String DEFAULT_SMTP_USER = null;
-    private static final String DEFAULT_SMTP_PASSWORD = null;
-    private static final String DEFAULT_SMTP_FROM = "airsonic@airsonic.org";
-
-    private static final boolean DEFAULT_CAPTCHA_ENABLED = false;
-    private static final String DEFAULT_RECAPTCHA_SITE_KEY = "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI";
-    private static final String DEFAULT_RECAPTCHA_SECRET_KEY = "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe";
 
     private static final String DEFAULT_DATABASE_DRIVER = null;
     private static final String DEFAULT_DATABASE_URL = null;
@@ -146,6 +112,8 @@ public class SettingsService {
     private final SettingsCatalogPreferences catalogPreferences;
     private final SettingsOperationalPreferences operationalPreferences;
     private final SettingsRateLimitPreferences rateLimitPreferences;
+    private final SettingsLdapPreferences ldapPreferences;
+    private final SettingsMailPreferences mailPreferences;
     private final ConfigurationPropertiesService properties;
 
     public SettingsService(UserDao userDao, AvatarDao avatarDao, RuntimeConfiguration configuration,
@@ -161,6 +129,8 @@ public class SettingsService {
         this.catalogPreferences = new SettingsCatalogPreferences(valueStore);
         this.operationalPreferences = new SettingsOperationalPreferences(valueStore);
         this.rateLimitPreferences = new SettingsRateLimitPreferences(valueStore);
+        this.ldapPreferences = new SettingsLdapPreferences(valueStore);
+        this.mailPreferences = new SettingsMailPreferences(valueStore);
         Cache<String, UserSettings> userSettingsCache = cacheManager != null
                 ? cacheManager.getCache("userSettingsCache", String.class, UserSettings.class) : null;
         this.userPreferences = new SettingsUserPreferences(userDao, avatarDao, userSettingsCache);
@@ -788,62 +758,51 @@ public class SettingsService {
     }
 
     public boolean isLdapEnabled() {
-        return getBoolean(KEY_LDAP_ENABLED, DEFAULT_LDAP_ENABLED);
+        return ldapPreferences.isLdapEnabled();
     }
 
     public void setLdapEnabled(boolean ldapEnabled) {
-        setBoolean(KEY_LDAP_ENABLED, ldapEnabled);
+        ldapPreferences.setLdapEnabled(ldapEnabled);
     }
 
     public String getLdapUrl() {
-        return getProperty(KEY_LDAP_URL, DEFAULT_LDAP_URL);
+        return ldapPreferences.getLdapUrl();
     }
 
     public void setLdapUrl(String ldapUrl) {
-        setProperty(KEY_LDAP_URL, ldapUrl);
+        ldapPreferences.setLdapUrl(ldapUrl);
     }
 
     public String getLdapSearchFilter() {
-        return getProperty(KEY_LDAP_SEARCH_FILTER, DEFAULT_LDAP_SEARCH_FILTER);
+        return ldapPreferences.getLdapSearchFilter();
     }
 
     public void setLdapSearchFilter(String ldapSearchFilter) {
-        setProperty(KEY_LDAP_SEARCH_FILTER, ldapSearchFilter);
+        ldapPreferences.setLdapSearchFilter(ldapSearchFilter);
     }
 
     public String getLdapManagerDn() {
-        return getProperty(KEY_LDAP_MANAGER_DN, DEFAULT_LDAP_MANAGER_DN);
+        return ldapPreferences.getLdapManagerDn();
     }
 
     public void setLdapManagerDn(String ldapManagerDn) {
-        setProperty(KEY_LDAP_MANAGER_DN, ldapManagerDn);
+        ldapPreferences.setLdapManagerDn(ldapManagerDn);
     }
 
     public String getLdapManagerPassword() {
-        String s = getProperty(KEY_LDAP_MANAGER_PASSWORD, DEFAULT_LDAP_MANAGER_PASSWORD);
-        try {
-            return StringUtil.utf8HexDecode(s);
-        } catch (Exception x) {
-            LOG.warn("Failed to decode LDAP manager password.", x);
-            return s;
-        }
+        return ldapPreferences.getLdapManagerPassword();
     }
 
     public void setLdapManagerPassword(String ldapManagerPassword) {
-        try {
-            ldapManagerPassword = StringUtil.utf8HexEncode(ldapManagerPassword);
-        } catch (Exception x) {
-            LOG.warn("Failed to encode LDAP manager password.", x);
-        }
-        setProperty(KEY_LDAP_MANAGER_PASSWORD, ldapManagerPassword);
+        ldapPreferences.setLdapManagerPassword(ldapManagerPassword);
     }
 
     public boolean isLdapAutoShadowing() {
-        return getBoolean(KEY_LDAP_AUTO_SHADOWING, DEFAULT_LDAP_AUTO_SHADOWING);
+        return ldapPreferences.isLdapAutoShadowing();
     }
 
     public void setLdapAutoShadowing(boolean ldapAutoShadowing) {
-        setBoolean(KEY_LDAP_AUTO_SHADOWING, ldapAutoShadowing);
+        ldapPreferences.setLdapAutoShadowing(ldapAutoShadowing);
     }
 
     public boolean isGettingStartedEnabled() {
@@ -1074,86 +1033,75 @@ public class SettingsService {
     }
 
     public String getSmtpServer() {
-        return getProperty(KEY_SMTP_SERVER, DEFAULT_SMTP_SERVER);
+        return mailPreferences.getSmtpServer();
     }
 
     public void setSmtpServer(String smtpServer) {
-        setString(KEY_SMTP_SERVER, smtpServer);
+        mailPreferences.setSmtpServer(smtpServer);
     }
 
     public String getSmtpPort() {
-        return getString(KEY_SMTP_PORT, DEFAULT_SMTP_PORT);
+        return mailPreferences.getSmtpPort();
     }
 
     public void setSmtpPort(String smtpPort) {
-        setString(KEY_SMTP_PORT, smtpPort);
+        mailPreferences.setSmtpPort(smtpPort);
     }
 
     public String getSmtpEncryption() {
-        return getProperty(KEY_SMTP_ENCRYPTION, DEFAULT_SMTP_ENCRYPTION);
+        return mailPreferences.getSmtpEncryption();
     }
 
     public void setSmtpEncryption(String encryptionMethod) {
-        setString(KEY_SMTP_ENCRYPTION, encryptionMethod);
+        mailPreferences.setSmtpEncryption(encryptionMethod);
     }
 
     public String getSmtpUser() {
-        return getProperty(KEY_SMTP_USER, DEFAULT_SMTP_USER);
+        return mailPreferences.getSmtpUser();
     }
 
     public void setSmtpUser(String smtpUser) {
-        setString(KEY_SMTP_USER, smtpUser);
+        mailPreferences.setSmtpUser(smtpUser);
     }
 
     public String getSmtpPassword() {
-        String s = getProperty(KEY_SMTP_PASSWORD, DEFAULT_SMTP_PASSWORD);
-        try {
-            return StringUtil.utf8HexDecode(s);
-        } catch (Exception x) {
-            LOG.warn("Failed to decode Smtp password.", x);
-            return s;
-        }
+        return mailPreferences.getSmtpPassword();
     }
 
     public void setSmtpPassword(String smtpPassword) {
-        try {
-            smtpPassword = StringUtil.utf8HexEncode(smtpPassword);
-        } catch (Exception x) {
-            LOG.warn("Failed to encode Smtp password.", x);
-        }
-        setProperty(KEY_SMTP_PASSWORD, smtpPassword);
+        mailPreferences.setSmtpPassword(smtpPassword);
     }
 
     public String getSmtpFrom() {
-        return getProperty(KEY_SMTP_FROM, DEFAULT_SMTP_FROM);
+        return mailPreferences.getSmtpFrom();
     }
 
     public void setSmtpFrom(String smtpFrom) {
-        setString(KEY_SMTP_FROM, smtpFrom);
+        mailPreferences.setSmtpFrom(smtpFrom);
     }
 
     public boolean isCaptchaEnabled() {
-        return getBoolean(KEY_CAPTCHA_ENABLED, DEFAULT_CAPTCHA_ENABLED);
+        return mailPreferences.isCaptchaEnabled();
     }
 
     public void setCaptchaEnabled(boolean captchaEnabled) {
-        setBoolean(KEY_CAPTCHA_ENABLED, captchaEnabled);
+        mailPreferences.setCaptchaEnabled(captchaEnabled);
     }
 
     public String getRecaptchaSiteKey() {
-        return getProperty(KEY_RECAPTCHA_SITE_KEY, DEFAULT_RECAPTCHA_SITE_KEY);
+        return mailPreferences.getRecaptchaSiteKey();
     }
 
     public void setRecaptchaSiteKey(String recaptchaSiteKey) {
-        setString(KEY_RECAPTCHA_SITE_KEY, recaptchaSiteKey);
+        mailPreferences.setRecaptchaSiteKey(recaptchaSiteKey);
     }
 
     public String getRecaptchaSecretKey() {
-        return getProperty(KEY_RECAPTCHA_SECRET_KEY, DEFAULT_RECAPTCHA_SECRET_KEY);
+        return mailPreferences.getRecaptchaSecretKey();
     }
 
     public void setRecaptchaSecretKey(String recaptchaSecretKey) {
-        setString(KEY_RECAPTCHA_SECRET_KEY, recaptchaSecretKey);
+        mailPreferences.setRecaptchaSecretKey(recaptchaSecretKey);
     }
 
     public String getDatabaseDriver() {
