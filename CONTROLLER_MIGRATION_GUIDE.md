@@ -33,16 +33,7 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 8 файлов
-
-- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/AddMediaFileIdToPodcastChannels.java`
-- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/AddPodcastMediaFolderUsers.java`
-- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/AddUnknownMediaFolders.java`
-- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/DropConstraintWithoutName.java`
-- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/ExtractCustomAvatars.java`
-- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/UniqueMediaFolders.java`
-- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/UserRolesJsonColumnPopulation.java`
-- `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/UserSettingsJsonTablePopulation.java`
+### Production: 0 Java-файлов
 
 ### Тесты и fixtures: 73 файла
 
@@ -169,3 +160,4 @@
 - `SettingsPropertyMigration.kt` перенесла карту старых ключей свойств, последовательную миграцию, очистку устаревших ключей и установку значений по умолчанию из Java в Kotlin; Java static entry points пока делегируют ей для текущих загрузчиков конфигурации. Сборка и `SettingsServiceTestCase` вместе с `RuntimeConfigurationLoaderTest`: 37 тестов прошли.
 - `SettingsEnvironment.kt` перенесла выбор и создание домашнего каталога, каталог transcoder, кеш обнаружения исполняемых файлов и default database/log/property paths. Статические вызовы `SettingsService` сохранены как делегаты. `SettingsServiceTestCase`, `RuntimeConfigurationLoaderTest`, `StandaloneAudioTranscodingServiceTest` и `MetaDataParsingTest`: 42 теста прошли.
 - `SettingsService` заменён Kotlin-фасадом из 185 строк. Его операции делегированы тематическим компонентам через интерфейсы; Java API статических функций и настроек сохранён для потребителей. Конструктор продолжает принимать `null` для необязательного `CacheManager`. Обновлены обращения в Kotlin production-коде и тестах. Чистый `test-compile` прошёл; 53 целевых теста настроек, runtime-конфигурации, DLNA, БД, транскодирования, плейлистов и загрузок прошли.
+- Остальные Liquibase custom changes перенесены в Kotlin-пакет `org.airsonic.player.runtime.migrations`; два custom changes, работавшие только с данными podcast-таблиц, удалены вместе с вызовами. Ссылки в Liquibase XML обновлены. Чистая компиляция прошла, `RuntimeLiquibaseMigratorTest` и `StandaloneDatabaseTest` прошли (4 теста); production Java-файлов больше нет. Исторические XML changesets ещё содержат удаляемые podcast schema changes, но итоговая схема продолжает удалять podcast-таблицы; их полное упрощение остаётся отдельным пунктом аудита базы/схемы.

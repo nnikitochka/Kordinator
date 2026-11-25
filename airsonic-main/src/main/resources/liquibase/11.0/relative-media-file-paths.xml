@@ -25,7 +25,6 @@
             <column name="type" value="PODCAST"/>
             <column name="enabled" valueBoolean="true" />
         </insert>
-        <customChange class="org.airsonic.player.spring.migrations.AddPodcastMediaFolderUsers"></customChange>
         <rollback>
         </rollback>
     </changeSet>
@@ -34,7 +33,7 @@
             <columnExists tableName="music_folder" columnName="path"/>
             <columnExists tableName="media_file" columnName="folder"/>
         </preConditions>
-        <customChange class="org.airsonic.player.spring.migrations.AddUnknownMediaFolders"></customChange>
+        <customChange class="org.airsonic.player.runtime.migrations.AddUnknownMediaFolders"></customChange>
         <rollback>
         </rollback>
     </changeSet>
@@ -42,7 +41,7 @@
         <preConditions onFail="MARK_RAN">
             <tableExists tableName="music_folder"/>
         </preConditions>
-        <customChange class="org.airsonic.player.spring.migrations.UniqueMediaFolders"></customChange>
+        <customChange class="org.airsonic.player.runtime.migrations.UniqueMediaFolders"></customChange>
         <rollback>
         </rollback>
     </changeSet>
@@ -78,7 +77,6 @@
             <columnExists tableName="music_folder" columnName="path"/>
             <columnExists tableName="podcast_channel" columnName="media_file_id"/>
         </preConditions>
-        <customChange class="org.airsonic.player.spring.migrations.AddMediaFileIdToPodcastChannels"></customChange>
         <rollback>
         </rollback>
     </changeSet>
@@ -168,7 +166,7 @@
             </not>
         </preConditions>
         <!-- for mysql -->
-        <customChange class="org.airsonic.player.spring.migrations.DropConstraintWithoutName">
+        <customChange class="org.airsonic.player.runtime.migrations.DropConstraintWithoutName">
             <param name="tableName" value="user_rating"/>
             <param name="columns" value="username"/>
             <param name="constraintType" value="foreign key"/>
@@ -381,7 +379,7 @@
                 </sqlCheck>
             </not>
         </preConditions>
-        <customChange class="org.airsonic.player.spring.migrations.DropConstraintWithoutName">
+        <customChange class="org.airsonic.player.runtime.migrations.DropConstraintWithoutName">
             <param name="tableName" value="media_file"/>
             <param name="columns" value="path"/>
             <param name="constraintType" value="unique"/>

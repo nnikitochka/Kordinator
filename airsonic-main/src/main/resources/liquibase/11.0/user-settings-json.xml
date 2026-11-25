@@ -20,7 +20,7 @@
         <preConditions onFail="MARK_RAN">
             <tableExists tableName="user_settings2"/>
         </preConditions>
-        <customChange class="org.airsonic.player.spring.migrations.UserSettingsJsonTablePopulation"></customChange>
+        <customChange class="org.airsonic.player.runtime.migrations.UserSettingsJsonTablePopulation"></customChange>
         <rollback>
             <delete tableName="user_settings2"></delete>
         </rollback>

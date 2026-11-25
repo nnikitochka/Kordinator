@@ -17,7 +17,7 @@
         <preConditions onFail="MARK_RAN">
             <columnExists tableName="user" columnName="roles"/>
         </preConditions>
-        <customChange class="org.airsonic.player.spring.migrations.UserRolesJsonColumnPopulation"></customChange>
+        <customChange class="org.airsonic.player.runtime.migrations.UserRolesJsonColumnPopulation"></customChange>
         <rollback>
             <update tableName="user">
                 <column name="roles"></column>

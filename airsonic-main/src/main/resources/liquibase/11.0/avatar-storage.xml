@@ -47,7 +47,7 @@
         <preConditions onFail="MARK_RAN">
             <columnExists tableName="custom_avatar" columnName="data"/>
         </preConditions>
-        <customChange class="org.airsonic.player.spring.migrations.ExtractCustomAvatars"></customChange>
+        <customChange class="org.airsonic.player.runtime.migrations.ExtractCustomAvatars"></customChange>
         <rollback>
         </rollback>
     </changeSet>

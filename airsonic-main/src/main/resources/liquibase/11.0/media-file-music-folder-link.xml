@@ -10,7 +10,7 @@
                 </sqlCheck>
             </not>
         </preConditions>
-        <customChange class="org.airsonic.player.spring.migrations.DropConstraintWithoutName">
+        <customChange class="org.airsonic.player.runtime.migrations.DropConstraintWithoutName">
             <param name="tableName" value="music_folder_user"/>
             <param name="columns" value="music_folder_id"/>
             <param name="constraintType" value="foreign key"/>
