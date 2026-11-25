@@ -63,7 +63,7 @@ class FolderBasedContentDirectory(
             }
             if (objectId!!.startsWith(CONTAINER_ID_PLAYLIST_PREFIX)) {
                 val playlistId = objectId.replace(CONTAINER_ID_PLAYLIST_PREFIX, "").toInt()
-                val playlist = playlistService!!.getPlaylist(playlistId)
+                val playlist = playlistService!!.getPlaylist(playlistId)!!
                 return if (browseFlag == BrowseFlag.METADATA) {
                     browsePlaylistMetadata(playlist)
                 } else {

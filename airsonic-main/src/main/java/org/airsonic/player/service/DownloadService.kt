@@ -117,7 +117,7 @@ class DownloadService(
         } else if (playlist != null) {
             val files = selection ?: playlistService.getFilesInPlaylist(playlist)
             response = prepareResponse(files, indices, statusSupplier, statusCloser, additionalFiles)
-            defaultDownloadName = playlistService.getPlaylist(playlist).name + ".zip"
+            defaultDownloadName = playlistService.getPlaylist(playlist)!!.name + ".zip"
         } else if (player != null) {
             val files = selection ?: transferPlayer.playQueue!!.files
             response = prepareResponse(files, indices, statusSupplier, statusCloser, additionalFiles)

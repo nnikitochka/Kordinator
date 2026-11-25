@@ -16,7 +16,7 @@
 2. **Метаданные и малые зависимости.** Перенести `MetaData`, parser contract и parser implementations; затем playlist import/export contracts и handlers, HLS session, audio player, scrobbler adapters и оставшиеся утилиты (`Util` и `LegacyHsqlMigrationUtil` уже перенесены). Сохранить nullable поля, сортировки, ошибки чтения файлов, закрытие потоков и транскодирующих процессов. Проверки: существующие parser, playlist, HLS/transcoding и streaming tests.
 3. **Каталог и сканирование — завершён.** Перенесены `CoverArtImageService`, `MediaFolderService`, `MediaFileService`, `MediaScannerService` и `LastFmService`; крупные сервисы разделены на небольшие Kotlin-классы. Проверки: реальное сканирование, изоляция библиотек, каталог/поиск, обложки, Last.fm metadata и playlist API.
 4. **Настройки и безопасность.** Перенести `VersionService` (завершён), затем разделить и перенести `SettingsService`, `SecurityService`, `DatabaseService`; сохранить права, кеши, обновления credentials, настройки и backup/import/export. Проверки: security/settings suites и соответствующие admin API.
-5. **Воспроизведение и плейлисты.** `DownloadService` перенесён; далее перенести `PlaylistService`, `TranscodingService` и `JukeboxLegacySubsonicService`. Сохранить порядок треков, доступ аккаунтов, streaming/Range/HEAD, параметры ffmpeg, завершение процессов и ресурсы jukebox. Проверки: playlist, streaming/transcoding, jukebox и download suites.
+5. **Воспроизведение и плейлисты.** `DownloadService` и `PlaylistService` перенесены; далее перенести `TranscodingService` и `JukeboxLegacySubsonicService`. Сохранить порядок треков, доступ аккаунтов, streaming/Range/HEAD, параметры ffmpeg, завершение процессов и ресурсы jukebox. Проверены playlist import/export, выбор специализированных handlers, автоимпорт из папки (включая передачу исходного пути), UPnP playlist и runtime graph; далее проверить streaming/transcoding, jukebox и download suites.
 6. **DLNA/UPnP — завершён.** Перенесены processors, content directories, NAT-PMP router и регистрация media server. Проверены URL generation, дерево каталога, NAT-PMP параметры, lifecycle и DLNA API.
 7. **Создание схемы и оставшиеся тесты.** Перенести нужные Liquibase custom changes и оставшиеся Java-тесты/fixtures вместе с их областями. Старые миграционные названия не означают активную зависимость от Spring; проверять реальные импорты и загрузку changesets. Не удалять действующую схему без замены.
 8. **Завершающий аудит.** Сверить список Java-файлов, выполнить полную сборку и автоматические проверки, запустить packaged JAR с изолированным home, проверить поддерживаемые сценарии и отсутствие Spring/Servlet/Tomcat в runtime. Удалить ненужные Java-specific build steps после исчезновения потребителей. Завершить коммиты.
@@ -33,11 +33,10 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 14 файлов
+### Production: 13 файлов
 
 - `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/JukeboxLegacySubsonicService.java`
-- `airsonic-main/src/main/java/org/airsonic/player/service/PlaylistService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/SecurityService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/SettingsService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/TranscodingService.java`
