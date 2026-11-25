@@ -1,18 +1,23 @@
-package org.airsonic.player.service
+package org.airsonic.player.service.media
 
 import org.airsonic.player.dao.AlbumDao
 import org.airsonic.player.dao.ArtistDao
 import org.airsonic.player.dao.MediaFileDao
+import org.airsonic.player.domain.MediaLibraryStatistics
+import org.airsonic.player.service.CoverArtService
+import org.airsonic.player.service.PlaylistService
+import org.airsonic.player.service.SettingsService
+import org.airsonic.player.service.TaskSchedulingService
 import org.airsonic.player.service.search.IndexManager
 import org.slf4j.LoggerFactory
 import java.io.IOException
+import java.nio.file.Paths
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ForkJoinPool
-import java.util.concurrent.ForkJoinWorkerThread
 import java.util.concurrent.atomic.AtomicInteger
 
 /** Coordinates scheduled and asynchronous scans of the media library. */
@@ -90,7 +95,7 @@ class MediaScannerService(
 
     private fun doScanLibrary(pool: ForkJoinPool) {
         log.info("Starting to scan media library.")
-        val statistics = org.airsonic.player.domain.MediaLibraryStatistics()
+        val statistics = MediaLibraryStatistics()
         log.debug("New last scan date is {}", statistics.getScanDate())
         try {
         scanCounter.set(0)
@@ -104,7 +109,7 @@ class MediaScannerService(
                 mediaFiles, indexManager, settings, coverArtService, albumsDao, artistsDao, scanCounter
             )
             folders.parallelStream().forEach { folder ->
-                val root = mediaFiles.getMediaFile(java.nio.file.Paths.get(""), folder, false)!!
+                val root = mediaFiles.getMediaFile(Paths.get(""), folder, false)!!
                 worker.scan(root, folder, state)
             }
 

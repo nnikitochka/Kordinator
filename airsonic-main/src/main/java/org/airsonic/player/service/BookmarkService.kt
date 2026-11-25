@@ -2,6 +2,7 @@ package org.airsonic.player.service
 
 import org.airsonic.player.dao.BookmarkDao
 import org.airsonic.player.domain.Bookmark
+import org.airsonic.player.service.media.MediaFileService
 import org.slf4j.LoggerFactory
 import java.time.Instant
 

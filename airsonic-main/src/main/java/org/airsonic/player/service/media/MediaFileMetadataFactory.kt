@@ -1,4 +1,4 @@
-package org.airsonic.player.service
+package org.airsonic.player.service.media
 
 import com.google.common.io.MoreFiles
 import org.airsonic.player.domain.CoverArt
@@ -6,7 +6,9 @@ import org.airsonic.player.domain.CoverArt.EntityType
 import org.airsonic.player.domain.CoverArtSource
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
+import org.airsonic.player.service.metadata.JaudiotaggerParser
 import org.airsonic.player.service.metadata.MetaData
+import org.airsonic.player.util.FileUtil
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.lang.StringUtils
 import org.slf4j.LoggerFactory
@@ -39,7 +41,7 @@ internal class MediaFileMetadataFactory(private val service: MediaFileService) {
         }
 
         val mediaFile = MediaFile()
-        val lastModified = org.airsonic.player.util.FileUtil.lastModified(file)
+        val lastModified = FileUtil.lastModified(file)
         mediaFile.path = relativePath.toString()
         mediaFile.folderId = folder.id
         val actualFolder = service.securityService.getMusicFolderForFile(file, true, true)!!
@@ -71,7 +73,7 @@ internal class MediaFileMetadataFactory(private val service: MediaFileService) {
             val parser = service.metaDataParserFactory.getParser(file)
             if (parser != null) applyMetadata(mediaFile, parser.getMetaData(file))
             mediaFile.format = StringUtils.trimToNull(StringUtils.lowerCase(FilenameUtils.getExtension(mediaFile.path)))
-            mediaFile.fileSize = org.airsonic.player.util.FileUtil.size(file)
+            mediaFile.fileSize = FileUtil.size(file)
             mediaFile.mediaType = getMediaType(mediaFile)
         } else if (!service.children.isRoot(mediaFile)) {
             createDirectoryMetadata(mediaFile, file, folder)
@@ -196,7 +198,7 @@ internal class MediaFileMetadataFactory(private val service: MediaFileService) {
 
     private fun findTagCover(candidates: Collection<Path>): Path? = candidates.stream()
         .filter(service.parser::isApplicable)
-        .filter(org.airsonic.player.service.metadata.JaudiotaggerParser::isImageAvailable)
+        .filter(JaudiotaggerParser::isImageAvailable)
         .findFirst()
         .orElse(null)
 

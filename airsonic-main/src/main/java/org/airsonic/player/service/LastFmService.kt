@@ -6,6 +6,7 @@ import org.airsonic.player.domain.AlbumNotes
 import org.airsonic.player.domain.ArtistBio
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
+import org.airsonic.player.service.media.MediaFileService
 import java.util.Locale
 
 /** Provides recommendation and artist/album metadata through Last.fm. */

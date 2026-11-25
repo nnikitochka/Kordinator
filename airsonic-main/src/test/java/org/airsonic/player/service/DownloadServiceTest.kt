@@ -7,6 +7,8 @@ import org.airsonic.player.domain.Player
 import org.airsonic.player.domain.TransferStatus
 import org.airsonic.player.domain.User
 import org.airsonic.player.security.CallerContext
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir

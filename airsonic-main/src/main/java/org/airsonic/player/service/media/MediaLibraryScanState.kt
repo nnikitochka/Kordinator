@@ -1,4 +1,4 @@
-package org.airsonic.player.service
+package org.airsonic.player.service.media
 
 import org.airsonic.player.domain.Album
 import org.airsonic.player.domain.Artist

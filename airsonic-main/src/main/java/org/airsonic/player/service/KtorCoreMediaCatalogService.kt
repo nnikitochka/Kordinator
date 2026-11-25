@@ -1,5 +1,8 @@
 package org.airsonic.player.service
 
+import org.airsonic.player.service.library.scan.StandaloneAlbum
+import org.airsonic.player.service.library.scan.StandaloneArtist
+import org.airsonic.player.service.library.scan.StandaloneTrack
 import java.sql.Timestamp
 import java.time.Instant
 import javax.sql.DataSource

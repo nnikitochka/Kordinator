@@ -4,9 +4,9 @@ import org.airsonic.player.dao.AlbumDao
 import org.airsonic.player.dao.ArtistDao
 import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.service.CoverArtService
-import org.airsonic.player.service.MediaFileService
-import org.airsonic.player.service.MediaFolderService
-import org.airsonic.player.service.MediaScannerService
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
+import org.airsonic.player.service.media.MediaScannerService
 import org.airsonic.player.service.PlaylistService
 import org.airsonic.player.service.SettingsService
 import org.airsonic.player.service.TaskSchedulingService

@@ -5,6 +5,8 @@ import chameleon.playlist.SpecificPlaylist;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.dao.PlaylistDao;
 import org.airsonic.player.domain.Playlist;
+import org.airsonic.player.service.media.MediaFileService;
+import org.airsonic.player.service.media.MediaFolderService;
 import org.airsonic.player.service.playlist.DefaultPlaylistExportHandler;
 import org.airsonic.player.service.playlist.DefaultPlaylistImportHandler;
 import org.airsonic.player.service.playlist.XspfPlaylistExportHandler;

@@ -1,11 +1,10 @@
-package org.airsonic.player.service
+package org.airsonic.player.service.media
 
 import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.dao.MusicFolderDao
 import org.airsonic.player.domain.MusicFolder
 import org.apache.commons.lang3.tuple.Triple
 import java.nio.file.Files
-import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 import javax.cache.CacheManager
 

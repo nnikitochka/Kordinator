@@ -1,6 +1,7 @@
 package org.airsonic.player.service;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.RateLimiter;
 import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.dao.AvatarDao;
 import org.airsonic.player.dao.UserDao;
@@ -21,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -86,6 +88,24 @@ public class SettingsServiceTestCase {
         assertEquals("/incoming/alice/from-/music/alice",
                 settingsService.resolveContextualString("/incoming/%{['USER_NAME']}/from-%{['USER_MUSIC_FOLDERS'][0]}",
                         () -> context));
+    }
+
+    @Test
+    public void bitrateLimitsUpdateCachedLimitersAndZeroMeansUnlimited() {
+        RateLimiter downloadLimiter = settingsService.getDownloadBitrateLimiter();
+        RateLimiter uploadLimiter = settingsService.getUploadBitrateLimiter();
+
+        settingsService.setDownloadBitrateLimit(3);
+        settingsService.setUploadBitrateLimit(5);
+        assertSame(downloadLimiter, settingsService.getDownloadBitrateLimiter());
+        assertSame(uploadLimiter, settingsService.getUploadBitrateLimiter());
+        assertEquals(3 * 1024.0, downloadLimiter.getRate(), 0.01);
+        assertEquals(5 * 1024.0, uploadLimiter.getRate(), 0.01);
+
+        settingsService.setDownloadBitrateLimit(0);
+        settingsService.setUploadBitrateLimit(0);
+        assertTrue(Double.isInfinite(downloadLimiter.getRate()));
+        assertTrue(Double.isInfinite(uploadLimiter.getRate()));
     }
 
     @Test

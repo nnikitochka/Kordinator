@@ -3,9 +3,10 @@ package org.airsonic.player.service
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.lang.ObjectUtils
 import org.apache.commons.lang.StringUtils
-import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
 import org.airsonic.player.security.CallerContext
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.service.metadata.MetaData
 import org.airsonic.player.service.metadata.MetaDataParser
 import org.airsonic.player.service.metadata.MetaDataParserFactory

@@ -21,7 +21,7 @@ import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.domain.AlbumNotes
 import org.airsonic.player.domain.ArtistBio
 import org.airsonic.player.security.LocalAuthService
-import org.airsonic.player.service.StandaloneLibraryScanService
+import org.airsonic.player.service.library.scan.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandalonePlayQueueService
 import org.airsonic.player.service.StandaloneFavoriteService

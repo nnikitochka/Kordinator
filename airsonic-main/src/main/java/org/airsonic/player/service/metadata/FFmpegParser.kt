@@ -2,7 +2,7 @@ package org.airsonic.player.service.metadata
 
 import com.fasterxml.jackson.databind.JsonNode
 import org.airsonic.player.domain.MediaFile
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.service.SettingsService
 import org.airsonic.player.util.Util
 import org.apache.commons.lang3.math.NumberUtils

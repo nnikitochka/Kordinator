@@ -6,7 +6,7 @@ import chameleon.playlist.Playlist
 import chameleon.playlist.SpecificPlaylist
 import chameleon.playlist.SpecificPlaylistProvider
 import org.airsonic.player.dao.MediaFileDao
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.util.StringUtil
 
 open class DefaultPlaylistExportHandler(

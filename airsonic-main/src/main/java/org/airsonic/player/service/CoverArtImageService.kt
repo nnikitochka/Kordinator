@@ -9,14 +9,12 @@ import org.airsonic.player.controller.cover.request.PlaylistCoverArtRequest
 import org.airsonic.player.controller.cover.request.VideoCoverArtRequest
 import org.airsonic.player.dao.AlbumDao
 import org.airsonic.player.dao.ArtistDao
-import org.airsonic.player.domain.Album
-import org.airsonic.player.domain.Artist
 import org.airsonic.player.domain.CoverArt
 import org.airsonic.player.domain.CoverArtScheme
 import org.airsonic.player.domain.MediaFile
-import org.airsonic.player.domain.Playlist
 import org.airsonic.player.domain.Transcoding
 import org.airsonic.player.domain.VideoTranscodingSettings
+import org.airsonic.player.service.media.MediaFileService
 import org.airsonic.player.service.metadata.JaudiotaggerParser
 import org.airsonic.player.util.FileUtil
 import org.airsonic.player.util.StringUtil

@@ -7,6 +7,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import org.airsonic.player.dao.AvatarDao;
 import org.airsonic.player.dao.UserDao;
 import org.airsonic.player.domain.*;
+import org.airsonic.player.service.settings.*;
 import org.airsonic.player.util.StringUtil;
 import org.airsonic.player.util.Util;
 import org.apache.commons.lang3.StringUtils;
@@ -38,8 +39,6 @@ public class SettingsService {
     private static final Path AIRSONIC_HOME_OTHER = Paths.get("/var/airsonic");
 
     // Global settings.
-    private static final String KEY_DOWNLOAD_BITRATE_LIMIT = "DownloadBitrateLimit";
-    private static final String KEY_UPLOAD_BITRATE_LIMIT = "UploadBitrateLimit";
     private static final String KEY_DOWNSAMPLING_COMMAND = "DownsamplingCommand4";
     private static final String KEY_HLS_COMMAND = "HlsCommand4";
     private static final String KEY_JUKEBOX_COMMAND = "JukeboxCommand2";
@@ -89,8 +88,6 @@ public class SettingsService {
 
     // Default values.
     private static final String DEFAULT_JWT_KEY = null;
-    private static final long DEFAULT_DOWNLOAD_BITRATE_LIMIT = 0;
-    private static final long DEFAULT_UPLOAD_BITRATE_LIMIT = 0;
     private static final String DEFAULT_DOWNSAMPLING_COMMAND = "ffmpeg -i %s -map 0:0 -b:a %bk -v 0 -f mp3 -";
     private static final String DEFAULT_HLS_COMMAND = "ffmpeg -ss %o -i %s -s %wx%h -async 1 -c:v libx264 -flags +cgop -b:v %vk -maxrate %bk -preset superfast -copyts -b:a %rk -bufsize 256k -map 0:0 -map 0:%i -ac 2 -ar 44100 -v 0 -threads 0 -force_key_frames expr:gte(t,n_forced*10) -start_number %j -hls_time %d -hls_list_size 0 -hls_segment_filename %n %p";
     private static final String DEFAULT_JUKEBOX_COMMAND = "ffmpeg -ss %o -i %s -map 0:0 -v 0 -ar 44100 -ac 2 -f s16be -";
@@ -148,6 +145,7 @@ public class SettingsService {
     private final SettingsPresentationPreferences presentationPreferences;
     private final SettingsCatalogPreferences catalogPreferences;
     private final SettingsOperationalPreferences operationalPreferences;
+    private final SettingsRateLimitPreferences rateLimitPreferences;
     private final ConfigurationPropertiesService properties;
 
     public SettingsService(UserDao userDao, AvatarDao avatarDao, RuntimeConfiguration configuration,
@@ -162,6 +160,7 @@ public class SettingsService {
         this.presentationPreferences = new SettingsPresentationPreferences(valueStore);
         this.catalogPreferences = new SettingsCatalogPreferences(valueStore);
         this.operationalPreferences = new SettingsOperationalPreferences(valueStore);
+        this.rateLimitPreferences = new SettingsRateLimitPreferences(valueStore);
         Cache<String, UserSettings> userSettingsCache = cacheManager != null
                 ? cacheManager.getCache("userSettingsCache", String.class, UserSettings.class) : null;
         this.userPreferences = new SettingsUserPreferences(userDao, avatarDao, userSettingsCache);
@@ -558,7 +557,7 @@ public class SettingsService {
     }
 
     @SuppressWarnings("unchecked")
-    Set<String> getCoverArtFileTypesSet() {
+    public Set<String> getCoverArtFileTypesSet() {
         return catalogPreferences.getCoverArtFileTypesSet();
     }
 
@@ -716,52 +715,36 @@ public class SettingsService {
      * @return The download bitrate limit in Kbit/s. Zero if unlimited.
      */
     public long getDownloadBitrateLimit() {
-        return getLong(KEY_DOWNLOAD_BITRATE_LIMIT, DEFAULT_DOWNLOAD_BITRATE_LIMIT);
+        return rateLimitPreferences.getDownloadBitrateLimit();
     }
 
     public RateLimiter getDownloadBitrateLimiter() {
-        return (RateLimiter) valueStore.derived(KEY_DOWNLOAD_BITRATE_LIMIT,
-            k -> RateLimiter.create(adjustBitrateLimit(getDownloadBitrateLimit())));
-    }
-
-    /**
-     * Convert rate given in KB to bytes and accounts for 0 (meaning no bitrate)
-     */
-    private static Double adjustBitrateLimit(double rate) {
-        double rateLimitInBytes = rate * 1024.0;
-        if (rate == 0) {
-            rateLimitInBytes = Double.POSITIVE_INFINITY;
-        }
-
-        return rateLimitInBytes;
+        return rateLimitPreferences.getDownloadBitrateLimiter();
     }
 
     /**
      * @param limit The download bitrate limit in Kbit/s. Zero if unlimited.
      */
     public void setDownloadBitrateLimit(long limit) {
-        setLong(KEY_DOWNLOAD_BITRATE_LIMIT, limit);
-        getDownloadBitrateLimiter().setRate(adjustBitrateLimit(limit));
+        rateLimitPreferences.setDownloadBitrateLimit(limit);
     }
 
     /**
      * @return The upload bitrate limit in Kbit/s. Zero if unlimited.
      */
     public long getUploadBitrateLimit() {
-        return getLong(KEY_UPLOAD_BITRATE_LIMIT, DEFAULT_UPLOAD_BITRATE_LIMIT);
+        return rateLimitPreferences.getUploadBitrateLimit();
     }
 
     public RateLimiter getUploadBitrateLimiter() {
-        return (RateLimiter) valueStore.derived(KEY_UPLOAD_BITRATE_LIMIT,
-            k -> RateLimiter.create(adjustBitrateLimit(getUploadBitrateLimit())));
+        return rateLimitPreferences.getUploadBitrateLimiter();
     }
 
     /**
      * @param limit The upload bitrate limit in Kbit/s. Zero if unlimited.
      */
     public void setUploadBitrateLimit(long limit) {
-        setLong(KEY_UPLOAD_BITRATE_LIMIT, limit);
-        getUploadBitrateLimiter().setRate(adjustBitrateLimit(limit));
+        rateLimitPreferences.setUploadBitrateLimit(limit);
     }
 
     public String getDownsamplingCommand() {

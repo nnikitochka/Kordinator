@@ -2,7 +2,7 @@ package org.airsonic.player;
 
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
-import org.airsonic.player.service.MediaScannerService;
+import org.airsonic.player.service.media.MediaScannerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

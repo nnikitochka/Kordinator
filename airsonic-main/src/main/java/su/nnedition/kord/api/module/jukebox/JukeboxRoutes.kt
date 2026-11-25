@@ -18,17 +18,17 @@ import io.ktor.server.routing.route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.airsonic.player.security.LocalUserPrincipal
-import org.airsonic.player.service.JukeboxQueueTrack
+import org.airsonic.player.service.jukebox.JukeboxQueueTrack
 import org.airsonic.player.service.KtorCoreMediaCatalogService
-import org.airsonic.player.service.MediaFileService
-import org.airsonic.player.service.StandaloneJukeboxService
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.jukebox.JukeboxService
 import su.nnedition.kord.api.ApiError
 import su.nnedition.kord.api.support.respondJson
 
 fun Route.jukeboxRoutes(
     catalog: KtorCoreMediaCatalogService,
     mediaFiles: MediaFileService,
-    jukebox: StandaloneJukeboxService,
+    jukebox: JukeboxService,
 ) {
     val MAX_QUEUE_SIZE = 5_000
 

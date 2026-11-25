@@ -3,7 +3,8 @@ package org.airsonic.player.service
 import de.umass.lastfm.Album as LastFmAlbum
 import de.umass.lastfm.ImageSize
 import org.airsonic.player.domain.CoverArt
-import org.airsonic.player.domain.MediaFile
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.nio.file.AtomicMoveNotSupportedException

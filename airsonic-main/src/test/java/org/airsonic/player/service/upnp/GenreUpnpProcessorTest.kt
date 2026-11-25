@@ -4,8 +4,8 @@ import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.domain.Genre
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
-import org.airsonic.player.service.MediaFileService
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
 import org.fourthline.cling.support.model.container.GenreContainer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull

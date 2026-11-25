@@ -1,12 +1,13 @@
 package org.airsonic.player.service;
 
+import org.airsonic.player.service.media.MediaScannerService;
+
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.google.common.io.Resources;
 import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.api.ScanningTestUtils;
-import org.airsonic.player.dao.*;
 import org.airsonic.player.domain.Album;
 import org.airsonic.player.domain.Artist;
 import org.airsonic.player.domain.MediaFile;
@@ -15,6 +16,8 @@ import org.airsonic.player.domain.MusicFolder.Type;
 import org.airsonic.player.runtime.DaoGraph;
 import org.airsonic.player.runtime.MediaRuntimeFixture;
 import org.airsonic.player.runtime.RuntimeDatabaseRule;
+import org.airsonic.player.service.media.MediaFileService;
+import org.airsonic.player.service.media.MediaFolderService;
 import org.airsonic.player.util.MusicFolderTestData;
 import org.junit.After;
 import org.junit.Assert;

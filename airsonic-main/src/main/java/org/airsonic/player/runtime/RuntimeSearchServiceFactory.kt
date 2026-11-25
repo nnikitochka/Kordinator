@@ -3,7 +3,7 @@ package org.airsonic.player.runtime
 import org.airsonic.player.dao.AlbumDao
 import org.airsonic.player.dao.ArtistDao
 import org.airsonic.player.dao.MediaFileDao
-import org.airsonic.player.service.MediaFileService
+import org.airsonic.player.service.media.MediaFileService
 import org.airsonic.player.service.search.AnalyzerFactory
 import org.airsonic.player.service.search.DocumentFactory
 import org.airsonic.player.service.search.IndexManager

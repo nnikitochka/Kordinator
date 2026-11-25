@@ -10,7 +10,7 @@ import io.ktor.server.routing.put
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import org.airsonic.player.security.LocalUserPrincipal
-import org.airsonic.player.service.StandaloneAlbum
+import org.airsonic.player.service.library.scan.StandaloneAlbum
 import org.airsonic.player.service.StandaloneFavoriteService
 import su.nnedition.kord.api.ApiError
 import su.nnedition.kord.api.module.album.AlbumSummaryResponse

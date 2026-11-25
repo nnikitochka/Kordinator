@@ -6,8 +6,8 @@ import org.airsonic.player.dao.TranscodingDao
 import org.airsonic.player.service.AudioScrobblerService
 import org.airsonic.player.service.JukeboxLegacySubsonicService
 import org.airsonic.player.service.JukeboxService
-import org.airsonic.player.service.MediaFileService
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.service.PlayerService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.SettingsService

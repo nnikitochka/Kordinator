@@ -4,6 +4,7 @@ import com.google.common.io.MoreFiles
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.Transcoding
 import org.airsonic.player.io.TranscodeInputStream
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.util.Util
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory

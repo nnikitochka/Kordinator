@@ -2,7 +2,7 @@ package org.airsonic.player.service.upnp
 
 import org.airsonic.player.domain.MusicFolder
 import org.airsonic.player.domain.ParamSearchResult
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.service.SearchService
 import org.fourthline.cling.support.model.DIDLContent
 import org.fourthline.cling.support.model.container.Container

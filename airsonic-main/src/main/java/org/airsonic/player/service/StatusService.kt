@@ -4,6 +4,8 @@ import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.PlayStatus
 import org.airsonic.player.domain.Player
 import org.airsonic.player.domain.TransferStatus
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit

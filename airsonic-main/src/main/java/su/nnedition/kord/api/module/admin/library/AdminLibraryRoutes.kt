@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.airsonic.player.domain.MusicFolder
 import org.airsonic.player.security.LocalUserPrincipal
-import org.airsonic.player.service.LibraryScan
+import org.airsonic.player.service.library.scan.LibraryScan
 import su.nnedition.kord.api.ApiContext
 import su.nnedition.kord.api.ApiError
 import su.nnedition.kord.api.authDispatcher

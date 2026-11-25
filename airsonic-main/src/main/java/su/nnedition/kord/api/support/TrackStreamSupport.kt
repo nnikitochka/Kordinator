@@ -17,9 +17,9 @@ import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.airsonic.player.service.KtorCoreMediaCatalogService
-import org.airsonic.player.service.MediaFileService
+import org.airsonic.player.service.media.MediaFileService
 import org.airsonic.player.service.StandaloneAudioTranscodingService
-import org.airsonic.player.service.StandaloneLibraryScanService
+import org.airsonic.player.service.library.scan.StandaloneLibraryScanService
 import org.airsonic.player.service.StandaloneShareService
 import su.nnedition.kord.api.ApiError
 import su.nnedition.kord.api.authDispatcher

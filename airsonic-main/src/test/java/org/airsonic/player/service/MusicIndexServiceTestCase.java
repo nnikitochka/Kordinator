@@ -2,6 +2,7 @@ package org.airsonic.player.service;
 
 import junit.framework.TestCase;
 import org.airsonic.player.domain.MusicIndex;
+import org.airsonic.player.service.media.MediaFileService;
 
 import java.util.List;
 

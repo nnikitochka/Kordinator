@@ -2,6 +2,7 @@ package org.airsonic.player.service
 
 import org.airsonic.player.domain.*
 import org.airsonic.player.domain.MusicIndex.SortableArtist
+import org.airsonic.player.service.media.MediaFileService
 import org.apache.commons.lang3.tuple.Pair
 import java.io.Serializable
 import java.nio.file.Paths

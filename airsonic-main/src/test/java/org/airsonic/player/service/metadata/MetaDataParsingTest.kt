@@ -1,7 +1,7 @@
 package org.airsonic.player.service.metadata
 
 import org.airsonic.player.domain.MusicFolder
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFolderService
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.*

@@ -3,6 +3,7 @@ package org.airsonic.player.service
 import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.dao.MusicFolderDao
 import org.airsonic.player.domain.MusicFolder
+import org.airsonic.player.service.media.MediaFolderService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test

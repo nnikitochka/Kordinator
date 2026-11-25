@@ -4,8 +4,8 @@ import org.airsonic.player.dao.AlbumDao
 import org.airsonic.player.dao.ArtistDao
 import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.service.JWTSecurityService
-import org.airsonic.player.service.MediaFileService
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.service.MusicIndexService
 import org.airsonic.player.service.PlayerService
 import org.airsonic.player.service.PlaylistService

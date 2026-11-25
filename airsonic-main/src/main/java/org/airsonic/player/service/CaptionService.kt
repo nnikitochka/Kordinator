@@ -6,6 +6,8 @@ import org.apache.commons.lang3.StringUtils
 import org.airsonic.player.controller.captions.CaptionInfo
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.io.InputStreamReaderThread
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.service.metadata.MetaData
 import org.airsonic.player.service.metadata.MetaDataParser
 import org.airsonic.player.service.metadata.MetaDataParserFactory

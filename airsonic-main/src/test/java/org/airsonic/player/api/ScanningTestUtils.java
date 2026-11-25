@@ -2,8 +2,8 @@ package org.airsonic.player.api;
 
 import org.airsonic.player.TestCaseUtils;
 import org.airsonic.player.domain.MusicFolder;
-import org.airsonic.player.service.MediaFolderService;
-import org.airsonic.player.service.MediaScannerService;
+import org.airsonic.player.service.media.MediaFolderService;
+import org.airsonic.player.service.media.MediaScannerService;
 
 import java.util.Collections;
 import java.util.List;

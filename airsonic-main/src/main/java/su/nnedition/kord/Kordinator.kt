@@ -10,13 +10,13 @@ import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.security.StandalonePasswordRecoveryService
 import org.airsonic.player.security.LegacyCredentialEncoderRegistry
-import org.airsonic.player.service.StandaloneLibraryScanService
+import org.airsonic.player.service.library.scan.StandaloneLibraryScanService
 import org.airsonic.player.service.StandaloneArtworkSearchService
 import org.airsonic.player.service.StandaloneArtworkManagementService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandalonePlayQueueService
 import org.airsonic.player.service.StandaloneVideoPlaybackService
-import org.airsonic.player.service.StandaloneJukeboxService
+import org.airsonic.player.service.jukebox.JukeboxService
 import org.airsonic.player.service.StandaloneFavoriteService
 import org.airsonic.player.service.StandaloneBookmarkService
 import org.airsonic.player.service.StandaloneVideoBookmarkService
@@ -154,7 +154,7 @@ object Kordinator {
             mediaFileService,
         )
         val legacyJukeboxService = runtime.createJukeboxService(legacyJukeboxEngine)
-        val standaloneJukeboxService = StandaloneJukeboxService(mediaFolderService, legacyJukeboxEngine)
+        val jukeboxService = JukeboxService(mediaFolderService, legacyJukeboxEngine)
         val upnpContentDirectory = runtime.createFolderBasedContentDirectory(
             mediaFileService,
             mediaFolderService,
@@ -232,7 +232,7 @@ object Kordinator {
                 legacyJukeboxService,
                 databaseService,
                 videoPlaybackService,
-                standaloneJukeboxService,
+                jukeboxService,
                 trackNoteService,
                 passwordRecoveryService,
                 tagEditService,

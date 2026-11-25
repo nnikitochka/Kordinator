@@ -1,10 +1,11 @@
-package org.airsonic.player.service
+package org.airsonic.player.service.settings
 
+import org.airsonic.player.service.ConfigurationPropertiesService
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Function
 
-/** Reads, writes, and caches configured values shared by [SettingsService]. */
+/** Reads, writes, and caches configured values shared by [org.airsonic.player.service.SettingsService]. */
 internal class SettingsValueStore(
     private val properties: ConfigurationPropertiesService,
     propertyLookup: Function<String, String>,

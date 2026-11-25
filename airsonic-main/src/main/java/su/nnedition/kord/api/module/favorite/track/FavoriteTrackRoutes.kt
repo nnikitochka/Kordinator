@@ -12,7 +12,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.service.StandaloneFavoriteService
-import org.airsonic.player.service.StandaloneTrack
+import org.airsonic.player.service.library.scan.StandaloneTrack
 import su.nnedition.kord.api.ApiError
 import su.nnedition.kord.api.module.favorite.libraryScope
 import su.nnedition.kord.api.module.favorite.parsePage

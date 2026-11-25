@@ -6,6 +6,7 @@ import org.airsonic.player.dao.ArtistDao
 import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
+import org.airsonic.player.service.media.MediaFileService
 import org.slf4j.LoggerFactory
 import java.util.Collections
 

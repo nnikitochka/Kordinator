@@ -11,6 +11,8 @@ import org.airsonic.player.io.PipeStreams.PipedInputStream
 import org.airsonic.player.io.PipeStreams.PipedOutputStream
 import org.airsonic.player.security.AuthorizationDeniedException
 import org.airsonic.player.security.CallerContext
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.util.FileUtil
 import org.airsonic.player.util.StringUtil
 import org.apache.commons.io.FilenameUtils

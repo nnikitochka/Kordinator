@@ -1,4 +1,4 @@
-package org.airsonic.player.service
+package org.airsonic.player.service.settings
 
 import java.util.Optional
 import java.util.function.Function

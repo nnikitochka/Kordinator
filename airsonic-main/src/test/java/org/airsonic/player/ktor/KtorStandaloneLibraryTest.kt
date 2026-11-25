@@ -15,13 +15,14 @@ import io.ktor.http.contentType
 import io.ktor.server.testing.testApplication
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
-import org.airsonic.player.service.LibraryScan
-import org.airsonic.player.service.StandaloneLibraryScanService
+import org.airsonic.player.service.library.scan.LibraryScan
+import org.airsonic.player.service.library.scan.StandaloneLibraryScanService
 import org.mockito.Mockito
 import java.nio.file.Files
 import org.junit.jupiter.api.io.TempDir
 import su.nnedition.kord.api.configureApiRouting
 import java.nio.file.Path
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -114,7 +115,7 @@ class KtorStandaloneLibraryTest {
                     assertEquals(setOf(createdId.toLong()), auth.allowedLibraries(listenerId))
 
                     Mockito.`when`(scans.enqueue(createdId.toLong())).thenReturn(
-                        LibraryScan("path-change-scan", createdId.toLong(), "QUEUED", 0, 0, java.time.Instant.now(), null),
+                        LibraryScan("path-change-scan", createdId.toLong(), "QUEUED", 0, 0, Instant.now(), null),
                     )
                     val moved = client.put("/api/v1/admin/libraries/$createdId") {
                         bearerAuth(adminToken)

@@ -5,6 +5,8 @@ import org.airsonic.player.domain.PlayStatus;
 import org.airsonic.player.domain.Player;
 import org.airsonic.player.domain.TransferStatus;
 import org.airsonic.player.domain.UserSettings;
+import org.airsonic.player.service.media.MediaFileService;
+import org.airsonic.player.service.media.MediaFolderService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

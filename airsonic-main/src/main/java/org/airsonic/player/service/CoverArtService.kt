@@ -9,6 +9,7 @@ import org.airsonic.player.domain.CoverArt
 import org.airsonic.player.domain.CoverArt.EntityType
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.service.metadata.JaudiotaggerParser
 import org.jaudiotagger.tag.images.Artwork
 import org.slf4j.LoggerFactory

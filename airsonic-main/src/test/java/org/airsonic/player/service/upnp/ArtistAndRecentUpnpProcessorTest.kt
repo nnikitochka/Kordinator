@@ -5,7 +5,7 @@ import org.airsonic.player.dao.ArtistDao
 import org.airsonic.player.domain.Album
 import org.airsonic.player.domain.Artist
 import org.airsonic.player.domain.MusicFolder
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFolderService
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.*

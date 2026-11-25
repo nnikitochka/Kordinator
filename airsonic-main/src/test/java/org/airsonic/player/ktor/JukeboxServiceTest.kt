@@ -3,9 +3,9 @@ package org.airsonic.player.ktor
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.Player
 import org.airsonic.player.service.JukeboxLegacySubsonicService
-import org.airsonic.player.service.JukeboxQueueTrack
-import org.airsonic.player.service.MediaFolderService
-import org.airsonic.player.service.StandaloneJukeboxService
+import org.airsonic.player.service.jukebox.JukeboxQueueTrack
+import org.airsonic.player.service.media.MediaFolderService
+import org.airsonic.player.service.jukebox.JukeboxService
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import kotlin.test.assertEquals
@@ -13,11 +13,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-class StandaloneJukeboxServiceTest {
+class JukeboxServiceTest {
     @Test
     fun queueIsBearerOwnerScopedAndSupportsQueueCommands() {
         val audio = Mockito.mock(JukeboxLegacySubsonicService::class.java)
-        val service = StandaloneJukeboxService(Mockito.mock(MediaFolderService::class.java), audio)
+        val service = JukeboxService(Mockito.mock(MediaFolderService::class.java), audio)
         val tracks = listOf(
             JukeboxQueueTrack(101, mediaFile(1, "First")),
             JukeboxQueueTrack(202, mediaFile(2, "Second")),

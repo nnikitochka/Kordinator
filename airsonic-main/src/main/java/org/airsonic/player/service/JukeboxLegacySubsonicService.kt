@@ -6,10 +6,10 @@ import org.airsonic.player.domain.PlayStatus
 import org.airsonic.player.domain.Player
 import org.airsonic.player.domain.Transcoding
 import org.airsonic.player.domain.TransferStatus
-import org.airsonic.player.domain.User
 import org.airsonic.player.domain.VideoTranscodingSettings
 import org.airsonic.player.service.jukebox.AudioPlayer
 import org.airsonic.player.service.jukebox.AudioPlayerFactory
+import org.airsonic.player.service.media.MediaFileService
 import org.airsonic.player.util.FileUtil
 import org.slf4j.LoggerFactory
 import java.io.InputStream

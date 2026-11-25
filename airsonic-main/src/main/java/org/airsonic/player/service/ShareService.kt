@@ -7,6 +7,7 @@ import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
 import org.airsonic.player.domain.Share
 import org.airsonic.player.domain.User
+import org.airsonic.player.service.media.MediaFileService
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.temporal.ChronoUnit

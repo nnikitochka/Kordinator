@@ -16,7 +16,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.airsonic.player.service.MediaFileService
+import org.airsonic.player.service.media.MediaFileService
 import org.airsonic.player.service.StandaloneAudioTranscodingService
 import su.nnedition.kord.api.ApiError
 

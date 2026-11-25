@@ -7,7 +7,7 @@ import org.airsonic.player.domain.Artist
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.ParamSearchResult
 import org.airsonic.player.domain.SearchResult
-import org.airsonic.player.service.MediaFileService
+import org.airsonic.player.service.media.MediaFileService
 import org.apache.commons.collections4.CollectionUtils
 import org.apache.lucene.document.Document
 import java.util.function.BiConsumer

@@ -3,7 +3,7 @@ package org.airsonic.player.service.upnp
 import org.airsonic.player.domain.MediaLibraryStatistics
 import org.airsonic.player.domain.MusicFolder
 import org.airsonic.player.domain.Playlist
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.service.PlaylistService
 import org.airsonic.player.service.search.IndexManager
 import org.fourthline.cling.support.model.BrowseFlag

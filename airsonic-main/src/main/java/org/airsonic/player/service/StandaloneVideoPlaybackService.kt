@@ -2,6 +2,7 @@ package org.airsonic.player.service
 
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.service.hls.HlsSession
+import org.airsonic.player.service.media.MediaFileService
 import java.io.InputStream
 import java.time.Duration
 import java.time.Instant
@@ -16,7 +17,10 @@ data class VideoPlaybackSession(
     val expiresAt: String,
 )
 
-data class VideoPlaybackSegment(val stream: InputStream, val contentLength: Long)
+data class VideoPlaybackSegment(
+    val stream: InputStream,
+    val contentLength: Long,
+)
 
 /** Owns bearer-scoped, short lived HLS sessions for standalone video playback. */
 class StandaloneVideoPlaybackService(

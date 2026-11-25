@@ -20,6 +20,7 @@ import org.airsonic.player.security.AuthorizationPolicy
 import org.airsonic.player.security.CallerContext
 import org.airsonic.player.security.CredentialEncoderRegistry
 import org.airsonic.player.security.UserIdentity
+import org.airsonic.player.service.media.MediaFolderService
 import org.apache.commons.io.FilenameUtils
 import org.slf4j.LoggerFactory
 

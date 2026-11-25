@@ -4,6 +4,7 @@ import java.sql.Timestamp
 import java.time.Instant
 import javax.sql.DataSource
 import org.airsonic.player.domain.MediaFile
+import org.airsonic.player.service.media.MediaFileService
 
 data class StandaloneVideoBookmark(
     val videoId: Int,

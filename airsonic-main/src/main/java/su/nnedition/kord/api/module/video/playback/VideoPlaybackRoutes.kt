@@ -16,7 +16,7 @@ import io.ktor.server.routing.route
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.airsonic.player.security.LocalUserPrincipal
-import org.airsonic.player.service.MediaFileService
+import org.airsonic.player.service.media.MediaFileService
 import org.airsonic.player.service.StandaloneVideoPlaybackService
 import su.nnedition.kord.api.ApiError
 import su.nnedition.kord.api.support.respondJson

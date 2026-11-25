@@ -1,7 +1,7 @@
 package org.airsonic.player.service.metadata
 
 import org.airsonic.player.domain.MediaFile
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFolderService
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.lang.StringUtils
 import org.jaudiotagger.tag.reference.GenreTypes

@@ -30,8 +30,8 @@ import org.airsonic.player.service.JukeboxService
 import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.service.LastFmService
 import org.airsonic.player.service.LyricsService
-import org.airsonic.player.service.MediaFileService
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.service.MusicFolderAdministrationService
 import org.airsonic.player.service.PathWatcherService
 import org.airsonic.player.service.PlayerService
@@ -44,8 +44,7 @@ import org.airsonic.player.service.StandaloneAudioTranscodingService
 import org.airsonic.player.service.StandaloneAvatarService
 import org.airsonic.player.service.StandaloneBookmarkService
 import org.airsonic.player.service.StandaloneFavoriteService
-import org.airsonic.player.service.StandaloneJukeboxService
-import org.airsonic.player.service.StandaloneLibraryScanService
+import org.airsonic.player.service.library.scan.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlayQueueService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandaloneRatingService
@@ -130,7 +129,7 @@ fun Application.configureApiRouting(
     jukeboxService: JukeboxService? = null,
     databaseService: DatabaseService? = null,
     videoPlaybackService: StandaloneVideoPlaybackService? = null,
-    standaloneJukeboxService: StandaloneJukeboxService? = null,
+    standaloneJukeboxService: org.airsonic.player.service.jukebox.JukeboxService? = null,
     trackNoteService: StandaloneTrackNoteService? = null,
     passwordRecoveryService: StandalonePasswordRecoveryService? = null,
     tagEditService: TagEditService? = null,

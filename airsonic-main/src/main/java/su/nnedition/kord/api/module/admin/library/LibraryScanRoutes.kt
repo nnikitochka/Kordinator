@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.airsonic.player.security.LocalUserPrincipal
+import org.airsonic.player.service.library.scan.StandaloneUploadedFile
 import su.nnedition.kord.api.ApiContext
 import su.nnedition.kord.api.ApiError
 import su.nnedition.kord.api.scanDispatcher
@@ -46,7 +47,7 @@ fun Route.libraryScanRoutes(
             return@post
         }
         try {
-            var uploaded: org.airsonic.player.service.StandaloneUploadedFile? = null
+            var uploaded: StandaloneUploadedFile? = null
             call.receiveMultipart(formFieldLimit = 1024L).forEachPart { part ->
                 try {
                     if (part is PartData.FileItem) {

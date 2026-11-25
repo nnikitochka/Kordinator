@@ -1,5 +1,6 @@
-package org.airsonic.player.service
+package org.airsonic.player.service.media
 
+import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
 import org.airsonic.player.util.FileUtil
@@ -90,7 +91,7 @@ internal class MediaFileLookup(private val service: MediaFileService) {
             return mediaFile
         }
 
-        if (mediaFile.getVersion() >= org.airsonic.player.dao.MediaFileDao.VERSION &&
+        if (mediaFile.getVersion() >= MediaFileDao.VERSION &&
             !service.settingsService.fullScan &&
             mediaFile.changed!!.compareTo(FileUtil.lastModified(mediaFile.getFullPath(actualFolder.path))) > -1
         ) {

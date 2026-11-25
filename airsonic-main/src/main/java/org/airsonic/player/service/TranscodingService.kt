@@ -5,6 +5,7 @@ import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.Player
 import org.airsonic.player.domain.Transcoding
 import org.airsonic.player.domain.VideoTranscodingSettings
+import org.airsonic.player.service.media.MediaFolderService
 import org.slf4j.LoggerFactory
 import java.awt.Dimension
 import java.io.IOException

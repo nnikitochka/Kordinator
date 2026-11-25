@@ -17,12 +17,12 @@ import org.airsonic.player.domain.PlayStatus
 import org.airsonic.player.domain.TransferStatus
 import org.airsonic.player.security.LocalUserPrincipal
 import org.airsonic.player.service.KtorCoreMediaCatalogService
-import org.airsonic.player.service.StandaloneAlbum
-import org.airsonic.player.service.StandaloneArtist
-import org.airsonic.player.service.StandaloneLibraryScanService
+import org.airsonic.player.service.library.scan.StandaloneAlbum
+import org.airsonic.player.service.library.scan.StandaloneArtist
+import org.airsonic.player.service.library.scan.StandaloneLibraryScanService
 import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandaloneShare
-import org.airsonic.player.service.StandaloneTrack
+import org.airsonic.player.service.library.scan.StandaloneTrack
 import su.nnedition.kord.api.ApiError
 import su.nnedition.kord.api.module.admin.status.NowPlayingResponse
 import su.nnedition.kord.api.module.admin.status.TransferSampleResponse

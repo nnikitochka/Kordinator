@@ -1,4 +1,4 @@
-package org.airsonic.player.service
+package org.airsonic.player.service.media
 
 import org.airsonic.player.dao.AlbumDao
 import org.airsonic.player.dao.MediaFileDao
@@ -6,6 +6,9 @@ import org.airsonic.player.domain.Genre
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
 import org.airsonic.player.domain.RandomSearchCriteria
+import org.airsonic.player.service.CoverArtService
+import org.airsonic.player.service.SecurityService
+import org.airsonic.player.service.SettingsService
 import org.airsonic.player.service.metadata.JaudiotaggerParser
 import org.airsonic.player.service.metadata.MetaDataParserFactory
 import java.nio.file.Path

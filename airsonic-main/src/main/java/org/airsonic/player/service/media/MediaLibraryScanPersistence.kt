@@ -1,9 +1,10 @@
-package org.airsonic.player.service
+package org.airsonic.player.service.media
 
 import org.airsonic.player.dao.AlbumDao
 import org.airsonic.player.dao.ArtistDao
 import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.domain.MusicFolder
+import org.airsonic.player.service.CoverArtService
 import org.airsonic.player.service.search.IndexManager
 import org.slf4j.LoggerFactory
 import java.util.concurrent.CompletableFuture

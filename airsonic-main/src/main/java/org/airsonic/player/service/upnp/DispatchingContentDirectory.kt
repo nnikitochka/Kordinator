@@ -4,8 +4,8 @@ import org.airsonic.player.domain.CoverArtScheme
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.User
 import org.airsonic.player.service.JWTSecurityService
-import org.airsonic.player.service.MediaFileService
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.service.MusicIndexService
 import org.airsonic.player.service.PlaylistService
 import org.airsonic.player.service.SearchService

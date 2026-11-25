@@ -1,4 +1,4 @@
-package org.airsonic.player.service
+package org.airsonic.player.service.media
 
 import org.airsonic.player.domain.Album
 import org.airsonic.player.domain.Genre
@@ -9,7 +9,9 @@ import java.time.Instant
 import java.util.Collections
 
 /** Album, genre, play-history and recommendation queries for media files. */
-internal class MediaFileCatalog(private val service: MediaFileService) {
+internal class MediaFileCatalog(
+    private val service: MediaFileService
+) {
     fun getGenres(sortByAlbum: Boolean): List<Genre> = service.mediaFileDao.getGenres(sortByAlbum)
 
     fun getMostFrequentlyPlayedAlbums(offset: Int, count: Int, folders: List<MusicFolder>): List<MediaFile> =

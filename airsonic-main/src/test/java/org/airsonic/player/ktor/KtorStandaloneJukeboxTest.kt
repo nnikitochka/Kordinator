@@ -18,10 +18,10 @@ import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.JukeboxLegacySubsonicService
 import org.airsonic.player.service.KtorCoreMediaCatalogService
-import org.airsonic.player.service.MediaFileService
-import org.airsonic.player.service.MediaFolderService
-import org.airsonic.player.service.StandaloneJukeboxService
-import org.airsonic.player.service.StandaloneTrack
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
+import org.airsonic.player.service.jukebox.JukeboxService
+import org.airsonic.player.service.library.scan.StandaloneTrack
 import org.mockito.Mockito
 import org.junit.jupiter.api.io.TempDir
 import su.nnedition.kord.api.configureApiRouting
@@ -72,7 +72,7 @@ class KtorStandaloneJukeboxTest {
                 present = true
             }
             Mockito.`when`(mediaFiles.getMediaFile("album/track.flac", 1)).thenReturn(file)
-            val jukebox = StandaloneJukeboxService(
+            val jukebox = JukeboxService(
                 Mockito.mock(MediaFolderService::class.java),
                 Mockito.mock(JukeboxLegacySubsonicService::class.java),
             )

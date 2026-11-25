@@ -3,6 +3,8 @@ package org.airsonic.player.service
 import org.airsonic.player.domain.CoverArt
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
 import org.junit.jupiter.api.io.TempDir
 import org.mockito.Mockito
 import java.awt.image.BufferedImage

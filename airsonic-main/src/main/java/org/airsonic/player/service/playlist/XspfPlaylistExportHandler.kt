@@ -10,7 +10,7 @@ import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.dao.PlaylistDao
 import org.airsonic.player.domain.CoverArt.EntityType
 import org.airsonic.player.service.CoverArtService
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFolderService
 import java.time.Instant
 import java.util.Date
 

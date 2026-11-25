@@ -4,7 +4,7 @@ import org.airsonic.player.dao.UserDao
 import org.airsonic.player.security.CredentialEncoderRegistry
 import org.airsonic.player.security.SubsonicCredentialAuthenticationService
 import org.airsonic.player.service.JWTSecurityService
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.SettingsService
 

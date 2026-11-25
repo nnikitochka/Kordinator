@@ -1,9 +1,13 @@
 package org.airsonic.player.service;
 
+import org.airsonic.player.service.media.MediaScannerService;
+
 import org.airsonic.player.dao.AlbumDao;
 import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.dao.MediaFileDao;
 import org.airsonic.player.domain.MediaLibraryStatistics;
+import org.airsonic.player.service.media.MediaFileService;
+import org.airsonic.player.service.media.MediaFolderService;
 import org.airsonic.player.service.search.IndexManager;
 import org.junit.Before;
 import org.junit.Test;

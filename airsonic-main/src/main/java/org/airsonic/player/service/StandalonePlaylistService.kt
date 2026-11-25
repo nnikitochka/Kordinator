@@ -1,5 +1,6 @@
 package org.airsonic.player.service
 
+import org.airsonic.player.service.library.scan.StandaloneTrack
 import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant

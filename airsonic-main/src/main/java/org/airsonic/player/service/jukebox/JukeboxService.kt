@@ -1,30 +1,14 @@
-package org.airsonic.player.service
+package org.airsonic.player.service.jukebox
 
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.PlayQueue
 import org.airsonic.player.domain.Player
 import org.airsonic.player.domain.PlayerTechnology
-
-data class JukeboxQueueTrack(val trackId: Long, val mediaFile: MediaFile)
-
-data class StandaloneJukeboxState(
-    val status: String,
-    val currentIndex: Int,
-    val positionSeconds: Int,
-    val gain: Float,
-    val tracks: List<JukeboxQueueTrackResponse>,
-)
-
-data class JukeboxQueueTrackResponse(
-    val trackId: Long,
-    val title: String,
-    val artist: String?,
-    val album: String?,
-    val durationSeconds: Int?,
-)
+import org.airsonic.player.service.JukeboxLegacySubsonicService
+import org.airsonic.player.service.media.MediaFolderService
 
 /** Owns the single server audio output and its live queue through bearer-authenticated Ktor commands. */
-class StandaloneJukeboxService(
+class JukeboxService(
     private val folders: MediaFolderService,
     private val audio: JukeboxLegacySubsonicService,
 ) : AutoCloseable {
@@ -39,7 +23,7 @@ class StandaloneJukeboxService(
     private var session: Session? = null
 
     @Synchronized
-    fun replaceQueue(ownerId: Long, username: String, tracks: List<JukeboxQueueTrack>): StandaloneJukeboxState {
+    fun replaceQueue(ownerId: Long, username: String, tracks: List<JukeboxQueueTrack>): JukeboxState {
         require(ownerId > 0) { "Invalid queue owner" }
         require(tracks.size <= MAX_QUEUE_SIZE) { "Queue contains too many tracks" }
         val current = session
@@ -65,7 +49,7 @@ class StandaloneJukeboxService(
     }
 
     @Synchronized
-    fun command(ownerId: Long, action: String, index: Int?, offsetSeconds: Int?, gain: Float?): StandaloneJukeboxState {
+    fun command(ownerId: Long, action: String, index: Int?, offsetSeconds: Int?, gain: Float?): JukeboxState {
         val active = session?.takeIf { it.ownerId == ownerId } ?: throw NoSuchElementException("Jukebox queue not found")
         val queue = active.player.playQueue!!
         require(queue.size() > 0 || action in setOf("clear", "stop")) { "Jukebox queue is empty" }
@@ -123,8 +107,8 @@ class StandaloneJukeboxService(
     }
 
     @Synchronized
-    fun state(ownerId: Long): StandaloneJukeboxState {
-        val current = session ?: return StandaloneJukeboxState("IDLE", -1, 0, 0.75f, emptyList())
+    fun state(ownerId: Long): JukeboxState {
+        val current = session ?: return JukeboxState("IDLE", -1, 0, 0.75f, emptyList())
         if (current.ownerId != ownerId) throw IllegalStateException("Server audio output is in use by another user")
         val queue = current.player.playQueue!!
         val index = queue.index
@@ -133,7 +117,7 @@ class StandaloneJukeboxService(
                 JukeboxQueueTrackResponse(id, file.title.orEmpty(), file.artist, file.albumName, file.duration?.toInt())
             }
         }
-        return StandaloneJukeboxState(
+        return JukeboxState(
             if (queue.status == PlayQueue.Status.PLAYING && index in queue.files.indices) "PLAYING" else "PAUSED",
             index,
             if (queue.status == PlayQueue.Status.PLAYING) audio.position else 0,

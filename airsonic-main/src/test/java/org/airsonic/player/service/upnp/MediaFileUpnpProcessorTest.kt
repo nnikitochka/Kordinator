@@ -1,7 +1,7 @@
 package org.airsonic.player.service.upnp
 
 import org.airsonic.player.domain.MediaFile
-import org.airsonic.player.service.MediaFileService
+import org.airsonic.player.service.media.MediaFileService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock

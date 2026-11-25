@@ -7,7 +7,7 @@ import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respondText
 import kotlinx.coroutines.withContext
 import org.airsonic.player.service.KtorCoreMediaCatalogService
-import org.airsonic.player.service.LibraryScan
+import org.airsonic.player.service.library.scan.LibraryScan
 import org.airsonic.player.service.StandalonePlayQueue
 import org.airsonic.player.service.StandalonePlaylist
 import su.nnedition.kord.api.module.admin.library.ScanResponse

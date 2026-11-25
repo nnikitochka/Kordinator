@@ -7,8 +7,8 @@ import org.airsonic.player.service.ConfigurationPropertiesService
 import org.airsonic.player.service.CoverArtAccentColorBackfill
 import org.airsonic.player.service.CoverArtService
 import org.airsonic.player.service.GeneralSettingsAdministrationService
-import org.airsonic.player.service.MediaFolderService
-import org.airsonic.player.service.MediaScannerService
+import org.airsonic.player.service.media.MediaFolderService
+import org.airsonic.player.service.media.MediaScannerService
 import org.airsonic.player.service.MusicFolderAdministrationService
 import org.airsonic.player.service.PlaylistService
 import org.airsonic.player.service.SettingsService

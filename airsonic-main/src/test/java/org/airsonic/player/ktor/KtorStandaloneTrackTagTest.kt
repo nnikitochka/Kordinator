@@ -13,8 +13,8 @@ import org.airsonic.player.domain.MusicFolder
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.CallerContext
 import org.airsonic.player.security.LocalAuthService
-import org.airsonic.player.service.MediaFileService
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.service.TagEditService
 import org.airsonic.player.service.TrackTagUpdate
 import org.junit.jupiter.api.io.TempDir

@@ -3,6 +3,7 @@ package org.airsonic.player.service
 import org.airsonic.player.dao.RatingDao
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
+import org.airsonic.player.service.media.MediaFileService
 import java.util.stream.Collectors
 
 /** Provides services for user ratings. */

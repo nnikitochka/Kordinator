@@ -1,4 +1,4 @@
-package org.airsonic.player.service
+package org.airsonic.player.service.media
 
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MediaFileComparator
@@ -8,7 +8,6 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.Arrays
-import java.util.Collections
 import java.util.function.Function
 import java.util.stream.Collectors
 
@@ -26,7 +25,7 @@ internal class MediaFileChildren(private val service: MediaFileService) {
         sort: Boolean,
         minimizeDiskAccess: Boolean,
     ): MutableList<MediaFile> {
-        if (!parent.isDirectory) return Collections.emptyList()
+        if (!parent.isDirectory) return mutableListOf()
 
         var resultStream = if (!minimizeDiskAccess) updateChildren(parent)?.parallelStream() else null
         if (resultStream == null) {
@@ -64,7 +63,7 @@ internal class MediaFileChildren(private val service: MediaFileService) {
             .collect(
                 Collectors.toConcurrentMap(
                     Function<MediaFile, String> { it.path!! },
-                    Function.identity<MediaFile>(),
+                    Function.identity(),
                 ),
             )
         val folder = service.mediaFolderService.getMusicFolderById(parent.folderId)!!
@@ -93,12 +92,12 @@ internal class MediaFileChildren(private val service: MediaFileService) {
                 return result
             }
         } catch (exception: IOException) {
-            log.warn("Could not retrieve and update all the children for {} in folder {}. Will skip", parent.path, folder.id, exception)
+            logger.warn("Could not retrieve and update all the children for {} in folder {}. Will skip", parent.path, folder.id, exception)
             return null
         }
     }
 
     private companion object {
-        val log = LoggerFactory.getLogger(MediaFileChildren::class.java)
+        val logger = LoggerFactory.getLogger(MediaFileChildren::class.java)!!
     }
 }

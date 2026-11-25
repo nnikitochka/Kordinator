@@ -6,6 +6,8 @@ import org.airsonic.player.dao.PlaylistDao;
 import org.airsonic.player.domain.MediaFile;
 import org.airsonic.player.domain.MusicFolder;
 import org.airsonic.player.domain.Playlist;
+import org.airsonic.player.service.media.MediaFileService;
+import org.airsonic.player.service.media.MediaFolderService;
 import org.airsonic.player.service.playlist.DefaultPlaylistExportHandler;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;

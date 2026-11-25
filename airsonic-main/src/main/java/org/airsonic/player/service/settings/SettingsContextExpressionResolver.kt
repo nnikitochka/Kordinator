@@ -1,4 +1,4 @@
-package org.airsonic.player.service
+package org.airsonic.player.service.settings
 
 import java.util.function.Supplier
 import java.util.regex.Pattern

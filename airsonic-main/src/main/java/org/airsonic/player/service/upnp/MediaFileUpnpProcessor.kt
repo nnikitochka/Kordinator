@@ -3,7 +3,7 @@ package org.airsonic.player.service.upnp
 import org.airsonic.player.dao.MediaFileDao
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
-import org.airsonic.player.service.MediaFileService
+import org.airsonic.player.service.media.MediaFileService
 import org.fourthline.cling.support.model.BrowseResult
 import org.fourthline.cling.support.model.DIDLContent
 import org.fourthline.cling.support.model.DIDLObject
@@ -11,7 +11,6 @@ import org.fourthline.cling.support.model.container.Container
 import org.fourthline.cling.support.model.container.MusicAlbum
 import org.fourthline.cling.support.model.item.Item
 import org.fourthline.cling.support.model.item.MusicTrack
-import java.net.URI
 
 /** DLNA folders, albums, and track items. */
 class MediaFileUpnpProcessor : UpnpContentProcessor<MediaFile, MediaFile>() {

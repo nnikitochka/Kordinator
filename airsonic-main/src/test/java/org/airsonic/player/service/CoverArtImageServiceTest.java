@@ -4,6 +4,7 @@ import org.airsonic.player.dao.AlbumDao;
 import org.airsonic.player.dao.ArtistDao;
 import org.airsonic.player.domain.CoverArt;
 import org.airsonic.player.domain.MediaFile;
+import org.airsonic.player.service.media.MediaFileService;
 import org.airsonic.player.service.metadata.JaudiotaggerParser;
 import org.airsonic.player.util.HomeRule;
 import org.jaudiotagger.tag.images.Artwork;

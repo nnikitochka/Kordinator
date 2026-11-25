@@ -2,8 +2,8 @@ package org.airsonic.player.service.search;
 
 import org.airsonic.player.api.ScanningTestUtils;
 import org.airsonic.player.domain.MusicFolder;
-import org.airsonic.player.service.MediaFolderService;
-import org.airsonic.player.service.MediaScannerService;
+import org.airsonic.player.service.media.MediaFolderService;
+import org.airsonic.player.service.media.MediaScannerService;
 import org.airsonic.player.runtime.DaoGraph;
 import org.airsonic.player.runtime.MediaRuntimeFixture;
 import org.airsonic.player.runtime.RuntimeDatabaseRule;

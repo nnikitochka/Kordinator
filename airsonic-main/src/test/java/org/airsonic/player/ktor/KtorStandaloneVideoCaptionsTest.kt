@@ -15,7 +15,7 @@ import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.CaptionService
-import org.airsonic.player.service.MediaFileService
+import org.airsonic.player.service.media.MediaFileService
 import org.junit.jupiter.api.io.TempDir
 import org.mockito.Mockito
 import su.nnedition.kord.api.configureApiRouting

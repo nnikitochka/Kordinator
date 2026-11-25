@@ -12,8 +12,8 @@ import org.airsonic.player.service.CaptionService
 import org.airsonic.player.service.DatabaseService
 import org.airsonic.player.service.LastFmService
 import org.airsonic.player.service.LyricsService
-import org.airsonic.player.service.MediaFileService
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
 import org.airsonic.player.service.RatingService
 import org.airsonic.player.service.SecurityService
 import org.airsonic.player.service.ServerInfoService
@@ -21,7 +21,6 @@ import org.airsonic.player.service.SettingsService
 import org.airsonic.player.service.ShareService
 import org.airsonic.player.service.StatusService
 import org.airsonic.player.service.TaskSchedulingService
-import org.airsonic.player.service.TranscodingService
 
 /** Constructors for application services outside the persistence, media and playback factories. */
 object RuntimeApplicationServiceFactory {

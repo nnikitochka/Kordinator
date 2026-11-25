@@ -1,8 +1,9 @@
-package org.airsonic.player.service
+package org.airsonic.player.service.settings
 
 import java.io.IOException
 import java.util.Locale
 import org.airsonic.player.domain.Theme
+import org.airsonic.player.service.SettingsService
 import org.airsonic.player.util.StringUtil
 import org.slf4j.LoggerFactory
 

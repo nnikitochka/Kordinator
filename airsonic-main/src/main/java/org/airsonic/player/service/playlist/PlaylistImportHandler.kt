@@ -2,7 +2,7 @@ package org.airsonic.player.service.playlist
 
 import chameleon.playlist.SpecificPlaylist
 import org.airsonic.player.domain.MediaFile
-import org.airsonic.player.service.MediaFileService
+import org.airsonic.player.service.media.MediaFileService
 import org.airsonic.player.service.SettingsService
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.tuple.Pair

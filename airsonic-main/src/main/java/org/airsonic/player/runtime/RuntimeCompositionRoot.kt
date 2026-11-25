@@ -2,7 +2,7 @@ package org.airsonic.player.runtime
 
 import org.airsonic.player.dao.PlayerDao
 import org.airsonic.player.service.CoverArtService
-import org.airsonic.player.service.MediaFileService
+import org.airsonic.player.service.media.MediaFileService
 import org.airsonic.player.service.PathWatcherService
 import org.airsonic.player.service.PlaylistService
 import org.airsonic.player.service.SecurityService

@@ -3,6 +3,9 @@ package org.airsonic.player.runtime;
 import org.airsonic.player.dao.*;
 import org.airsonic.player.service.*;
 import org.airsonic.player.monitor.MetricsManager;
+import org.airsonic.player.service.media.MediaFileService;
+import org.airsonic.player.service.media.MediaFolderService;
+import org.airsonic.player.service.media.MediaScannerService;
 import org.hsqldb.jdbc.JDBCDataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,7 +14,6 @@ import org.junit.jupiter.api.io.TempDir;
 
 import javax.cache.CacheManager;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 

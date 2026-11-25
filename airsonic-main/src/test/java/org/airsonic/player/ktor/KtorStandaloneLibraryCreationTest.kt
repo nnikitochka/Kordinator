@@ -23,9 +23,9 @@ import kotlinx.coroutines.delay
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
 import org.airsonic.player.service.KtorCoreMediaCatalogService
-import org.airsonic.player.service.StandaloneLibraryScanService
-import org.airsonic.player.service.MediaFileService
-import org.airsonic.player.service.MediaScannerService
+import org.airsonic.player.service.library.scan.StandaloneLibraryScanService
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaScannerService
 import org.junit.jupiter.api.io.TempDir
 import org.mockito.Mockito
 import su.nnedition.kord.api.configureApiRouting

@@ -1,8 +1,9 @@
-package org.airsonic.player.service
+package org.airsonic.player.service.library.scan
 
 import org.airsonic.player.domain.MediaFile
-import org.airsonic.player.service.MediaFileService
-import org.airsonic.player.service.MediaScannerService
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
+import org.airsonic.player.service.media.MediaScannerService
 import org.airsonic.player.service.metadata.JaudiotaggerParser
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
@@ -10,21 +11,14 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.io.ByteArrayInputStream
 import java.io.InputStream
+import java.nio.file.FileAlreadyExistsException
+import java.nio.file.LinkOption
+import java.sql.ResultSet
 import javax.imageio.ImageIO
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 import javax.sql.DataSource
-
-data class LibraryScan(
-    val id: String,
-    val libraryId: Long,
-    val state: String,
-    val tracksScanned: Long,
-    val errorCount: Long,
-    val startedAt: Instant,
-    val finishedAt: Instant?,
-)
 
 data class StandaloneTrack(
     val id: Long,
@@ -210,8 +204,8 @@ class StandaloneLibraryScanService(
         val parentSegments = requestedPath.parent?.toList().orEmpty()
         parentSegments.forEach { segment ->
             parent = parent.resolve(segment.toString())
-            if (Files.exists(parent, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
-                require(!Files.isSymbolicLink(parent) && Files.isDirectory(parent, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+            if (Files.exists(parent, LinkOption.NOFOLLOW_LINKS)) {
+                require(!Files.isSymbolicLink(parent) && Files.isDirectory(parent, LinkOption.NOFOLLOW_LINKS)) {
                     "Upload path contains a non-directory or symbolic link"
                 }
             } else {
@@ -221,8 +215,8 @@ class StandaloneLibraryScanService(
         }
         val target = parent.resolve(requestedPath.fileName.toString()).normalize()
         require(target.startsWith(root) && !Files.isSymbolicLink(target)) { "Upload path is outside the library" }
-        if (Files.exists(target, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
-            throw java.nio.file.FileAlreadyExistsException(target.toString())
+        if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+            throw FileAlreadyExistsException(target.toString())
         }
         val temporary = Files.createTempFile(parent, ".kordinator-upload-", ".tmp")
         try {
@@ -342,7 +336,7 @@ class StandaloneLibraryScanService(
         }
     }
 
-    private fun java.sql.ResultSet.toScan() = LibraryScan(
+    private fun ResultSet.toScan() = LibraryScan(
         getString("id"), getLong("library_id"), getString("state"), getLong("tracks_scanned"), getLong("error_count"),
         getTimestamp("started_at").toInstant(), getTimestamp("finished_at")?.toInstant(),
     )

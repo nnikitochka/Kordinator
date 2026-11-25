@@ -5,6 +5,7 @@ import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.domain.MusicFolder
 import org.airsonic.player.domain.Transcoding
 import org.airsonic.player.io.TranscodeInputStream
+import org.airsonic.player.service.media.MediaFolderService
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir

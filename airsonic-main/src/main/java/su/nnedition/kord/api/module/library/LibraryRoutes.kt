@@ -10,8 +10,8 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import org.airsonic.player.domain.MediaFile
 import org.airsonic.player.security.LocalUserPrincipal
-import org.airsonic.player.service.MediaFileService
-import org.airsonic.player.service.MediaFolderService
+import org.airsonic.player.service.media.MediaFileService
+import org.airsonic.player.service.media.MediaFolderService
 import su.nnedition.kord.api.ApiError
 
 fun Route.libraryRoutes(

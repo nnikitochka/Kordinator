@@ -20,8 +20,9 @@ import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.delay
 import org.airsonic.player.runtime.StandaloneDatabase
 import org.airsonic.player.security.LocalAuthService
-import org.airsonic.player.service.StandaloneLibraryScanService
+import org.airsonic.player.service.library.scan.StandaloneLibraryScanService
 import org.airsonic.player.service.StandaloneFavoriteService
+import org.airsonic.player.service.media.MediaFileService
 import org.junit.jupiter.api.io.TempDir
 import su.nnedition.kord.api.configureApiRouting
 import java.awt.image.BufferedImage
@@ -456,7 +457,7 @@ class KtorStandaloneScanTest {
         auth: LocalAuthService,
         scanService: StandaloneLibraryScanService,
         mediaCatalogService: org.airsonic.player.service.KtorCoreMediaCatalogService,
-        mediaFiles: org.airsonic.player.service.MediaFileService,
+        mediaFiles: MediaFileService,
         transcoding: org.airsonic.player.service.TranscodingService,
     ) {
         if (!Files.isExecutable(Path.of("/usr/bin/tail"))) return
