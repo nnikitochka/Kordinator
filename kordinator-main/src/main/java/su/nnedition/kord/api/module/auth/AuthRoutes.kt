@@ -6,6 +6,7 @@ import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
+import io.ktor.server.routing.get
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import su.nnedition.kord.api.ApiContext
@@ -19,6 +20,37 @@ fun Route.authRoutes(
     context: ApiContext
 ) {
     val authService = requireNotNull(context.authService)
+    get("/auth/setup") {
+        call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+        val required = withContext(authDispatcher) { authService.requiresInitialAdmin() }
+        call.respondJson(mapOf("setupRequired" to required))
+    }
+    post("/auth/setup") {
+        call.response.headers.append(HttpHeaders.CacheControl, "no-store")
+        val request = try {
+            jsonMapper.readValue(call.receiveText(), LoginRequest::class.java)
+        } catch (_: Exception) {
+            call.respondJson(ApiError("invalid_request", "Expected username and password"), HttpStatusCode.BadRequest)
+            return@post
+        }
+        try {
+            withContext(authDispatcher) { authService.createInitialAdmin(request.username, request.password) }
+            call.respond(HttpStatusCode.Created)
+        } catch (_: IllegalArgumentException) {
+            call.respondJson(
+                ApiError("invalid_account", "Username must be 3–64 letters, digits, dots, underscores or hyphens; password must be 12–1024 characters"),
+                HttpStatusCode.BadRequest,
+            )
+        } catch (failure: IllegalStateException) {
+            if (failure.message !in setOf(
+                    "Initial administrator has already been created",
+                    "Initial administrator can only be created before any user account",
+                    "Initial administrator setup conflicted with another request",
+                )
+            ) throw failure
+            call.respondJson(ApiError("setup_complete", "An administrator has already been created"), HttpStatusCode.Conflict)
+        }
+    }
     post("/auth/login") {
         val request = try {
             jsonMapper.readValue(call.receiveText(), LoginRequest::class.java)

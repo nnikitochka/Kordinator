@@ -552,4 +552,22 @@
             <column name="track_id"/>
         </createIndex>
     </changeSet>
+    <changeSet id="standalone-initial-setup-1" author="kordinator">
+        <createTable tableName="initial_setup">
+            <column name="id" type="INT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_initial_setup"/>
+            </column>
+            <column name="completed" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <insert tableName="initial_setup">
+            <column name="id" valueNumeric="1"/>
+            <column name="completed" valueBoolean="false"/>
+        </insert>
+        <update tableName="initial_setup">
+            <column name="completed" valueBoolean="true"/>
+            <where>EXISTS (SELECT 1 FROM local_user)</where>
+        </update>
+    </changeSet>
 </databaseChangeLog>

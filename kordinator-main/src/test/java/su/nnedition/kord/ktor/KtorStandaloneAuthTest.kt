@@ -28,6 +28,116 @@ import kotlin.test.assertTrue
 
 class KtorStandaloneAuthTest {
     @Test
+    fun firstAccountSetupIsAvailableOnlyBeforeAnyAccount() {
+        val dataSource = HikariDataSource(HikariConfig().apply {
+            jdbcUrl = "jdbc:hsqldb:mem:standalone_first_setup;hsqldb.tx=mvcc"
+            driverClassName = "org.hsqldb.jdbc.JDBCDriver"
+            username = "sa"
+            password = ""
+            maximumPoolSize = 4
+        })
+        dataSource.use {
+            StandaloneDatabase.migrate(dataSource)
+            val auth = LocalAuthService(dataSource)
+            testApplication {
+                application { configureApiRouting(auth) }
+                val initial = client.get("/api/v1/auth/setup")
+                assertEquals(HttpStatusCode.OK, initial.status)
+                assertTrue(initial.bodyAsText().contains("\"setupRequired\":true"))
+                assertEquals(HttpStatusCode.BadRequest, client.post("/api/v1/auth/setup") {
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"owner","password":"short"}""")
+                }.status)
+                assertEquals(HttpStatusCode.Created, client.post("/api/v1/auth/setup") {
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"owner","password":"secure password 123"}""")
+                }.status)
+                assertEquals("ADMIN", auth.users().single().role)
+                assertEquals("owner", auth.users().single().username)
+                assertTrue(client.get("/api/v1/auth/setup").bodyAsText().contains("\"setupRequired\":false"))
+                assertEquals(HttpStatusCode.Conflict, client.post("/api/v1/auth/setup") {
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"other","password":"secure password 456"}""")
+                }.status)
+                assertEquals(1, auth.users().size)
+                assertEquals(HttpStatusCode.OK, client.post("/api/v1/auth/login") {
+                    contentType(ContentType.Application.Json)
+                    setBody("""{"username":"owner","password":"secure password 123"}""")
+                }.status)
+            }
+        }
+    }
+
+    @Test
+    fun concurrentFirstAccountSetupCreatesOnlyOneAdministrator() {
+        repeat(6) { iteration ->
+            val dataSource = HikariDataSource(HikariConfig().apply {
+                jdbcUrl = "jdbc:hsqldb:mem:standalone_first_setup_concurrent_$iteration;hsqldb.tx=mvcc"
+                driverClassName = "org.hsqldb.jdbc.JDBCDriver"
+                username = "sa"
+                password = ""
+                maximumPoolSize = 4
+            })
+            dataSource.use {
+                StandaloneDatabase.migrate(dataSource)
+                val first = LocalAuthService(dataSource)
+                val second = LocalAuthService(dataSource)
+                val start = java.util.concurrent.CountDownLatch(1)
+                val executor = java.util.concurrent.Executors.newFixedThreadPool(2)
+                try {
+                    val attempts = listOf(first to "first", second to "second").map { (auth, username) ->
+                        executor.submit<String> {
+                            start.await()
+                            try {
+                                auth.createInitialAdmin(username, "secure password 123")
+                                "created"
+                            } catch (_: IllegalStateException) {
+                                "conflict"
+                            }
+                        }
+                    }
+                    start.countDown()
+                    val results = attempts.map { it.get(30, java.util.concurrent.TimeUnit.SECONDS) }.sorted()
+                    assertEquals(listOf("conflict", "created"), results)
+                    assertEquals(1, first.users().size)
+                    assertEquals("ADMIN", first.users().single().role)
+                } finally {
+                    executor.shutdownNow()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun migrationClosesSetupForExistingAccounts() {
+        val dataSource = HikariDataSource(HikariConfig().apply {
+            jdbcUrl = "jdbc:hsqldb:mem:standalone_existing_accounts;hsqldb.tx=mvcc"
+            driverClassName = "org.hsqldb.jdbc.JDBCDriver"
+            username = "sa"
+            password = ""
+            maximumPoolSize = 4
+        })
+        dataSource.use {
+            StandaloneDatabase.migrate(dataSource)
+            val auth = LocalAuthService(dataSource)
+            auth.createUser("existing", "secure password 123")
+            dataSource.connection.use { connection ->
+                connection.createStatement().use { statement ->
+                    statement.execute("DROP TABLE initial_setup")
+                    statement.execute("DELETE FROM DATABASECHANGELOG WHERE ID = 'standalone-initial-setup-1'")
+                }
+            }
+            StandaloneDatabase.migrate(dataSource)
+            assertEquals(false, auth.requiresInitialAdmin())
+            dataSource.connection.use { connection ->
+                connection.createStatement().use { it.execute("DELETE FROM local_user") }
+            }
+            assertEquals(false, auth.requiresInitialAdmin())
+            assertFailsWith<IllegalStateException> { auth.createInitialAdmin("owner", "secure password 123") }
+        }
+    }
+
+    @Test
     fun deletingUserRemovesOwnedDataAndRevokesSessions() {
         val dataSource = HikariDataSource(HikariConfig().apply {
             jdbcUrl = "jdbc:hsqldb:mem:standalone_user_delete"

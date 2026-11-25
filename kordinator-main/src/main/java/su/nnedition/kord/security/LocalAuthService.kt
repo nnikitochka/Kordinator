@@ -57,15 +57,63 @@ class LocalAuthService(
         }
     }
 
-    fun createInitialAdmin(username: String, password: String): Long {
-        dataSource.connection.use { connection ->
-            connection.prepareStatement("SELECT COUNT(*) FROM local_user").use { statement ->
-                statement.executeQuery().use { rows ->
-                    check(rows.next() && rows.getLong(1) == 0L) { "Initial administrator can only be created before any user account" }
-                }
+    fun requiresInitialAdmin(): Boolean = dataSource.connection.use { connection ->
+        connection.prepareStatement(
+            "SELECT completed, (SELECT COUNT(*) FROM local_user) AS user_count FROM initial_setup WHERE id = 1",
+        ).use { statement ->
+            statement.executeQuery().use { rows ->
+                check(rows.next()) { "Initial setup state is missing" }
+                !rows.getBoolean("completed") && rows.getLong("user_count") == 0L
             }
         }
-        return createUser(username, password, "ADMIN")
+    }
+
+    @Synchronized
+    fun createInitialAdmin(username: String, password: String): Long {
+        require(username.matches(USERNAME_PATTERN)) { "Username must be 3–64 letters, digits, dots, underscores or hyphens" }
+        require(password.length in MIN_PASSWORD_LENGTH..MAX_PASSWORD_LENGTH) {
+            "Password must contain between $MIN_PASSWORD_LENGTH and $MAX_PASSWORD_LENGTH characters"
+        }
+        val passwordHash = hashPassword(password)
+        return dataSource.connection.use { connection ->
+            connection.transactionIsolation = java.sql.Connection.TRANSACTION_SERIALIZABLE
+            connection.autoCommit = false
+            try {
+                connection.prepareStatement(
+                    "UPDATE initial_setup SET completed = TRUE WHERE id = 1 AND completed = FALSE",
+                ).use { statement ->
+                    check(statement.executeUpdate() == 1) { "Initial administrator has already been created" }
+                }
+                connection.prepareStatement("SELECT COUNT(*) FROM local_user").use { statement ->
+                    statement.executeQuery().use { rows ->
+                        check(rows.next() && rows.getLong(1) == 0L) {
+                            "Initial administrator can only be created before any user account"
+                        }
+                    }
+                }
+                val id = connection.prepareStatement(
+                    "INSERT INTO local_user (username, password_hash, role, enabled, created_at, email) VALUES (?, ?, 'ADMIN', TRUE, ?, NULL)",
+                    arrayOf("id"),
+                ).use { statement ->
+                    statement.setString(1, username)
+                    statement.setString(2, passwordHash)
+                    statement.setTimestamp(3, Timestamp.from(clock.instant()))
+                    statement.executeUpdate()
+                    statement.generatedKeys.use { keys ->
+                        check(keys.next()) { "Database did not return a user ID" }
+                        keys.getLong(1)
+                    }
+                }
+                connection.commit()
+                id
+            } catch (failure: Exception) {
+                connection.rollback()
+                if (failure is java.sql.SQLException && failure.sqlState?.startsWith("40") == true) {
+                    throw IllegalStateException("Initial administrator setup conflicted with another request", failure)
+                }
+                throw failure
+            }
+        }
     }
 
     fun changePassword(userId: Long, currentPassword: String, newPassword: String): Boolean {

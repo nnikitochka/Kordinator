@@ -93,6 +93,7 @@ dependencies {
     implementation("org.apache.httpcomponents:httpcore:4.4.16")
     implementation("org.apache.httpcomponents:httpclient:4.5.14")
     runtimeOnly("org.hsqldb:hsqldb:2.5.0")
+    testImplementation("org.hsqldb:hsqldb:2.5.0")
     implementation("net.jthink:jaudiotagger:3.0.1")
     implementation("org.jdom:jdom:2.0.2")
     implementation("jakarta.mail:jakarta.mail-api:2.1.3")
