@@ -1,6 +1,6 @@
 # План Kotlin rewrite Kordinator
 
-Актуальное состояние: 24 ноября 2026. Этот существующий документ переиспользован для текущей цели; прежние указания о JSP, Spring servlet и совместимости Subsonic больше не применяются. Три удалённых пользователем документа миграции не восстанавливаются.
+Актуальное состояние: 25 ноября 2026. Этот существующий документ переиспользован для текущей цели; прежние указания о JSP, Spring servlet и совместимости Subsonic больше не применяются. Три удалённых пользователем документа миграции не восстанавливаются.
 
 ## Цель и ограничения
 
@@ -17,7 +17,7 @@
 3. **Каталог и сканирование.** Разделить и перенести `MediaFolderService`, `MediaFileService`, `MediaScannerService`, `CoverArtImageService`, `LastFmService`. Проверки: сканирование реальной папки, повторное сканирование, удалённые файлы, изоляция библиотек, каталог/поиск и обложки.
 4. **Настройки и безопасность.** Разделить и перенести `SettingsService`, `SecurityService`, `DatabaseService`, `VersionService`; сохранить права, кеши, обновления credentials, настройки и backup/import/export. Проверки: security/settings suites и соответствующие admin API.
 5. **Воспроизведение и плейлисты.** Перенести `PlaylistService`, `TranscodingService`, `DownloadService`, `JukeboxLegacySubsonicService`. Сохранить порядок треков, доступ аккаунтов, streaming/Range/HEAD, параметры ffmpeg, завершение процессов и ресурсы jukebox. Проверки: playlist, streaming/transcoding, jukebox и download suites.
-6. **DLNA/UPnP.** Перенести processors, content directories, router и registration service, не отключая действующий DLNA. Проверки: URL generation, дерево каталога, запуск/остановка UPnP.
+6. **DLNA/UPnP — завершён.** Перенесены processors, content directories, NAT-PMP router и регистрация media server. Проверены URL generation, дерево каталога, NAT-PMP параметры, lifecycle и DLNA API.
 7. **Создание схемы и оставшиеся тесты.** Перенести нужные Liquibase custom changes и оставшиеся Java-тесты/fixtures вместе с их областями. Старые миграционные названия не означают активную зависимость от Spring; проверять реальные импорты и загрузку changesets. Не удалять действующую схему без замены.
 8. **Завершающий аудит.** Сверить список Java-файлов, выполнить полную сборку и автоматические проверки, запустить packaged JAR с изолированным home, проверить поддерживаемые сценарии и отсутствие Spring/Servlet/Tomcat в runtime. Удалить ненужные Java-specific build steps после исчезновения потребителей. Завершить коммиты.
 
@@ -33,7 +33,7 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 24 файла
+### Production: 23 файла
 
 - `airsonic-main/src/main/java/org/airsonic/player/service/CoverArtImageService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
@@ -47,7 +47,6 @@
 - `airsonic-main/src/main/java/org/airsonic/player/service/SecurityService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/SettingsService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/TranscodingService.java`
-- `airsonic-main/src/main/java/org/airsonic/player/service/UPnPService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/VersionService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/AddMediaFileIdToPodcastChannels.java`
 - `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/AddPodcastMediaFolderUsers.java`
@@ -162,4 +161,5 @@
 - `DispatchingContentDirectory` переведён на Kotlin; выбор DLNA processors, browse/search-разбор, UPnP ошибки, URL и runtime: 19 тестов прошли.
 - `UpnpContentProcessor` переведён на Kotlin; общий browse/metadata, pagination и generic name-search: 2 focused теста прошли.
 - `Router` и `NATPMPRouter` переведены на Kotlin; проверены NAT-PMP add/delete, срок аренды и ожидание завершения запросов: 2 теста прошли.
+- `UPnPService` переведён на Kotlin; проверены конфигурация устройства и иконки, выключенный DLNA при старте, идемпотентная остановка, composition root и DLNA API: 17 тестов прошли.
 - `FolderBasedContentDirectory` переведён на Kotlin; корневой и playlist browse, статистика библиотеки, подписанный artwork URL и runtime: 22 теста прошли.
