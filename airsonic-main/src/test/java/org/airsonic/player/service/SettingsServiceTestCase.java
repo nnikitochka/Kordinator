@@ -87,6 +87,12 @@ public class SettingsServiceTestCase {
         assertNull("Wrong default DLNA server ID.", settingsService.getDlnaServerId());
         assertNull("Wrong default DLNA base URL.", settingsService.getDlnaBaseLANURL());
         assertEquals("Wrong default UPnP port.", 4041, settingsService.getUPnpPort());
+        assertNull("Wrong default JWT key.", settingsService.getJWTKey());
+        assertNull("Wrong default encryption password.", settingsService.getEncryptionPassword());
+        assertNull("Wrong default encryption salt.", settingsService.getEncryptionSalt());
+        assertEquals("Wrong default decodable password encoder.", "encrypted-AES-GCM", settingsService.getDecodablePasswordEncoder());
+        assertEquals("Wrong default non-decodable password encoder.", "bcrypt", settingsService.getNonDecodablePasswordEncoder());
+        assertTrue("Wrong default password encoder preference.", settingsService.getPreferNonDecodablePasswords());
         assertEquals("30m", settingsService.getSessionDuration());
     }
 
@@ -153,6 +159,12 @@ public class SettingsServiceTestCase {
         settingsService.setDlnaServerName("Kordinator");
         settingsService.setDlnaServerId("server-id");
         settingsService.setDlnaBaseLANURL("http://music.example.test/");
+        settingsService.setJWTKey("jwt-signing-key");
+        settingsService.setEncryptionPassword("encryption-password");
+        settingsService.setEncryptionSalt("encryption-salt");
+        settingsService.setDecodablePasswordEncoder("custom-decodable");
+        settingsService.setNonDecodablePasswordEncoder("custom-hash");
+        settingsService.setPreferNonDecodablePasswords(false);
 
         verifySettings(settingsService);
 
@@ -199,6 +211,12 @@ public class SettingsServiceTestCase {
         assertEquals("Wrong DLNA server name.", "Kordinator", ss.getDlnaServerName());
         assertEquals("Wrong DLNA server ID.", "server-id", ss.getDlnaServerId());
         assertEquals("Wrong DLNA base URL.", "http://music.example.test/", ss.getDlnaBaseLANURL());
+        assertEquals("Wrong JWT key.", "jwt-signing-key", ss.getJWTKey());
+        assertEquals("Wrong encryption password.", "encryption-password", ss.getEncryptionPassword());
+        assertEquals("Wrong encryption salt.", "encryption-salt", ss.getEncryptionSalt());
+        assertEquals("Wrong decodable password encoder.", "custom-decodable", ss.getDecodablePasswordEncoder());
+        assertEquals("Wrong non-decodable password encoder.", "custom-hash", ss.getNonDecodablePasswordEncoder());
+        assertFalse("Wrong password encoder preference.", ss.getPreferNonDecodablePasswords());
     }
 
     @Test

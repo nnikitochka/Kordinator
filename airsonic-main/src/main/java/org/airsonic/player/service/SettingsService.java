@@ -43,13 +43,7 @@ public class SettingsService {
     private static final String KEY_JUKEBOX_COMMAND = "JukeboxCommand2";
     private static final String KEY_VIDEO_IMAGE_COMMAND = "VideoImageCommand";
     private static final String KEY_SUBTITLES_EXTRACTION_COMMAND = "SubtitlesExtractionCommand";
-    private static final String KEY_JWT_KEY = "JWTKey";
     private static final String KEY_REMEMBER_ME_KEY = "RememberMeKey";
-    private static final String KEY_ENCRYPTION_PASSWORD = "EncryptionKeyPassword";
-    private static final String KEY_ENCRYPTION_SALT = "EncryptionKeySalt";
-    private static final String KEY_PREFERRED_DECODABLE_PASSWORD_ENCODER = "DecodablePasswordEncoder";
-    private static final String KEY_PREFERRED_NONDECODABLE_PASSWORD_ENCODER = "NonDecodablePasswordEncoder";
-    private static final String KEY_PREFER_NONDECODABLE_PASSWORDS = "PreferNonDecodablePasswords";
 
     private static final String KEY_EXPORT_PLAYLIST_FORMAT = "PlaylistExportFormat";
 
@@ -65,16 +59,12 @@ public class SettingsService {
     public static final String KEY_PROPERTIES_FILE_RETAIN_OBSOLETE_KEYS = "PropertiesFileRetainObsoleteKeys";
 
     // Default values.
-    private static final String DEFAULT_JWT_KEY = null;
     private static final String DEFAULT_DOWNSAMPLING_COMMAND = "ffmpeg -i %s -map 0:0 -b:a %bk -v 0 -f mp3 -";
     private static final String DEFAULT_HLS_COMMAND = "ffmpeg -ss %o -i %s -s %wx%h -async 1 -c:v libx264 -flags +cgop -b:v %vk -maxrate %bk -preset superfast -copyts -b:a %rk -bufsize 256k -map 0:0 -map 0:%i -ac 2 -ar 44100 -v 0 -threads 0 -force_key_frames expr:gte(t,n_forced*10) -start_number %j -hls_time %d -hls_list_size 0 -hls_segment_filename %n %p";
     private static final String DEFAULT_JUKEBOX_COMMAND = "ffmpeg -ss %o -i %s -map 0:0 -v 0 -ar 44100 -ac 2 -f s16be -";
     private static final String DEFAULT_VIDEO_IMAGE_COMMAND = "ffmpeg -r 1 -ss %o -t 1 -i %s -s %wx%h -v 0 -f mjpeg -";
     private static final String DEFAULT_SUBTITLES_EXTRACTION_COMMAND = "ffmpeg -i %s -map 0:%i -f %f -";
     private static final String DEFAULT_EXPORT_PLAYLIST_FORMAT = "m3u";
-    private static final String DEFAULT_PREFERRED_NONDECODABLE_PASSWORD_ENCODER = "bcrypt";
-    private static final String DEFAULT_PREFERRED_DECODABLE_PASSWORD_ENCODER = "encrypted-AES-GCM";
-    private static final boolean DEFAULT_PREFER_NONDECODABLE_PASSWORDS = true;
 
     private static final String DEFAULT_DATABASE_DRIVER = null;
     private static final String DEFAULT_DATABASE_URL = null;
@@ -105,6 +95,7 @@ public class SettingsService {
     private final SettingsLdapPreferences ldapPreferences;
     private final SettingsMailPreferences mailPreferences;
     private final SettingsDlnaPreferences dlnaPreferences;
+    private final SettingsCredentialPreferences credentialPreferences;
     private final ConfigurationPropertiesService properties;
 
     public SettingsService(UserDao userDao, AvatarDao avatarDao, RuntimeConfiguration configuration,
@@ -123,6 +114,7 @@ public class SettingsService {
         this.ldapPreferences = new SettingsLdapPreferences(valueStore);
         this.mailPreferences = new SettingsMailPreferences(valueStore);
         this.dlnaPreferences = new SettingsDlnaPreferences(valueStore);
+        this.credentialPreferences = new SettingsCredentialPreferences(valueStore);
         Cache<String, UserSettings> userSettingsCache = cacheManager != null
                 ? cacheManager.getCache("userSettingsCache", String.class, UserSettings.class) : null;
         this.userPreferences = new SettingsUserPreferences(userDao, avatarDao, userSettingsCache);
@@ -1145,51 +1137,51 @@ public class SettingsService {
     }
 
     public String getJWTKey() {
-        return getString(KEY_JWT_KEY, DEFAULT_JWT_KEY);
+        return credentialPreferences.getJwtKey();
     }
 
     public void setJWTKey(String jwtKey) {
-        setString(KEY_JWT_KEY, jwtKey);
+        credentialPreferences.setJwtKey(jwtKey);
     }
 
     public String getEncryptionPassword() {
-        return getString(KEY_ENCRYPTION_PASSWORD, null);
+        return credentialPreferences.getEncryptionPassword();
     }
 
     public void setEncryptionPassword(String key) {
-        setString(KEY_ENCRYPTION_PASSWORD, key);
+        credentialPreferences.setEncryptionPassword(key);
     }
 
     public String getEncryptionSalt() {
-        return getString(KEY_ENCRYPTION_SALT, null);
+        return credentialPreferences.getEncryptionSalt();
     }
 
     public void setEncryptionSalt(String salt) {
-        setString(KEY_ENCRYPTION_SALT, salt);
+        credentialPreferences.setEncryptionSalt(salt);
     }
 
     public String getDecodablePasswordEncoder() {
-        return getString(KEY_PREFERRED_DECODABLE_PASSWORD_ENCODER, DEFAULT_PREFERRED_DECODABLE_PASSWORD_ENCODER);
+        return credentialPreferences.getDecodablePasswordEncoder();
     }
 
     public void setDecodablePasswordEncoder(String encoder) {
-        setString(KEY_PREFERRED_DECODABLE_PASSWORD_ENCODER, encoder);
+        credentialPreferences.setDecodablePasswordEncoder(encoder);
     }
 
     public String getNonDecodablePasswordEncoder() {
-        return getString(KEY_PREFERRED_NONDECODABLE_PASSWORD_ENCODER, DEFAULT_PREFERRED_NONDECODABLE_PASSWORD_ENCODER);
+        return credentialPreferences.getNonDecodablePasswordEncoder();
     }
 
     public void setNonDecodablePasswordEncoder(String encoder) {
-        setString(KEY_PREFERRED_NONDECODABLE_PASSWORD_ENCODER, encoder);
+        credentialPreferences.setNonDecodablePasswordEncoder(encoder);
     }
 
     public boolean getPreferNonDecodablePasswords() {
-        return getBoolean(KEY_PREFER_NONDECODABLE_PASSWORDS, DEFAULT_PREFER_NONDECODABLE_PASSWORDS);
+        return credentialPreferences.getPreferNonDecodablePasswords();
     }
 
     public void setPreferNonDecodablePasswords(boolean preference) {
-        setBoolean(KEY_PREFER_NONDECODABLE_PASSWORDS, preference);
+        credentialPreferences.setPreferNonDecodablePasswords(preference);
     }
 
     public void setPropertyLookup(Function<String, String> propertyLookup) {
