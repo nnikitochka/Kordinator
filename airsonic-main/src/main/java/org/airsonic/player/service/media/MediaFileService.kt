@@ -44,7 +44,7 @@ class MediaFileService @JvmOverloads constructor(
 
     fun getMediaFile(pathName: String): MediaFile? = getMediaFile(Paths.get(pathName))
 
-    fun getMediaFile(fullPath: Path): MediaFile? = lookup.getMediaFile(fullPath, settingsService.isFastCacheEnabled)
+    fun getMediaFile(fullPath: Path): MediaFile? = lookup.getMediaFile(fullPath, settingsService.isFastCacheEnabled())
 
     fun getMediaFile(fullPath: Path, minimizeDiskAccess: Boolean): MediaFile? =
         lookup.getMediaFile(fullPath, minimizeDiskAccess)
@@ -55,7 +55,7 @@ class MediaFileService @JvmOverloads constructor(
     fun getMediaFile(relativePath: String, folder: MusicFolder): MediaFile? = getMediaFile(Paths.get(relativePath), folder)
 
     fun getMediaFile(relativePath: Path, folder: MusicFolder): MediaFile? =
-        getMediaFile(relativePath, folder, settingsService.isFastCacheEnabled)
+        getMediaFile(relativePath, folder, settingsService.isFastCacheEnabled())
 
     fun getMediaFile(relativePath: String, folderId: Int?, minimizeDiskAccess: Boolean): MediaFile? =
         getMediaFile(Paths.get(relativePath), mediaFolderService.getMusicFolderById(folderId)!!, minimizeDiskAccess)
@@ -68,13 +68,13 @@ class MediaFileService @JvmOverloads constructor(
     fun getMediaFilesByRelativePath(relativePath: Path): List<MediaFile> =
         mediaFileDao.getMediaFilesByRelativePath(relativePath.toString())
 
-    fun getParentOf(mediaFile: MediaFile): MediaFile? = children.getParentOf(mediaFile, settingsService.isFastCacheEnabled)
+    fun getParentOf(mediaFile: MediaFile): MediaFile? = children.getParentOf(mediaFile, settingsService.isFastCacheEnabled())
 
     fun getParentOf(mediaFile: MediaFile, minimizeDiskAccess: Boolean): MediaFile? =
         children.getParentOf(mediaFile, minimizeDiskAccess)
 
     fun getChildrenOf(parent: MediaFile, includeFiles: Boolean, includeDirectories: Boolean, sort: Boolean): List<MediaFile> =
-        children.getChildrenOf(parent, includeFiles, includeDirectories, sort, settingsService.isFastCacheEnabled)
+        children.getChildrenOf(parent, includeFiles, includeDirectories, sort, settingsService.isFastCacheEnabled())
 
     fun getChildrenOf(
         parent: MediaFile,

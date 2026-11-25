@@ -4,20 +4,20 @@ import org.airsonic.player.util.StringUtil
 import org.slf4j.LoggerFactory
 
 /** Owns LDAP connection, manager credential, and shadow-account preferences. */
-internal class SettingsLdapPreferences(private val values: SettingsValueStore) {
-    fun isLdapEnabled(): Boolean = values.getBoolean(KEY_LDAP_ENABLED, false)
-    fun setLdapEnabled(enabled: Boolean) = values.setProperty(KEY_LDAP_ENABLED, enabled)
+internal class SettingsLdapPreferences(private val values: SettingsValueStore) : SettingsLdapAccess {
+    override fun isLdapEnabled(): Boolean = values.getBoolean(KEY_LDAP_ENABLED, false)
+    override fun setLdapEnabled(enabled: Boolean) = values.setProperty(KEY_LDAP_ENABLED, enabled)
 
-    fun getLdapUrl(): String? = values.getString(KEY_LDAP_URL, DEFAULT_LDAP_URL)
-    fun setLdapUrl(url: String?) = values.setProperty(KEY_LDAP_URL, url)
+    override fun getLdapUrl(): String? = values.getString(KEY_LDAP_URL, DEFAULT_LDAP_URL)
+    override fun setLdapUrl(url: String?) = values.setProperty(KEY_LDAP_URL, url)
 
-    fun getLdapSearchFilter(): String? = values.getString(KEY_LDAP_SEARCH_FILTER, DEFAULT_LDAP_SEARCH_FILTER)
-    fun setLdapSearchFilter(filter: String?) = values.setProperty(KEY_LDAP_SEARCH_FILTER, filter)
+    override fun getLdapSearchFilter(): String = requireNotNull(values.getString(KEY_LDAP_SEARCH_FILTER, DEFAULT_LDAP_SEARCH_FILTER))
+    override fun setLdapSearchFilter(filter: String?) = values.setProperty(KEY_LDAP_SEARCH_FILTER, filter)
 
-    fun getLdapManagerDn(): String? = values.getString(KEY_LDAP_MANAGER_DN, null)
-    fun setLdapManagerDn(dn: String?) = values.setProperty(KEY_LDAP_MANAGER_DN, dn)
+    override fun getLdapManagerDn(): String? = values.getString(KEY_LDAP_MANAGER_DN, null)
+    override fun setLdapManagerDn(dn: String?) = values.setProperty(KEY_LDAP_MANAGER_DN, dn)
 
-    fun getLdapManagerPassword(): String? {
+    override fun getLdapManagerPassword(): String? {
         val password = values.getString(KEY_LDAP_MANAGER_PASSWORD, null)
         return try {
             StringUtil.utf8HexDecode(password)
@@ -27,7 +27,7 @@ internal class SettingsLdapPreferences(private val values: SettingsValueStore) {
         }
     }
 
-    fun setLdapManagerPassword(password: String?) {
+    override fun setLdapManagerPassword(password: String?) {
         val encoded = try {
             StringUtil.utf8HexEncode(password)
         } catch (failure: Exception) {
@@ -37,8 +37,8 @@ internal class SettingsLdapPreferences(private val values: SettingsValueStore) {
         values.setProperty(KEY_LDAP_MANAGER_PASSWORD, encoded)
     }
 
-    fun isLdapAutoShadowing(): Boolean = values.getBoolean(KEY_LDAP_AUTO_SHADOWING, false)
-    fun setLdapAutoShadowing(enabled: Boolean) = values.setProperty(KEY_LDAP_AUTO_SHADOWING, enabled)
+    override fun isLdapAutoShadowing(): Boolean = values.getBoolean(KEY_LDAP_AUTO_SHADOWING, false)
+    override fun setLdapAutoShadowing(enabled: Boolean) = values.setProperty(KEY_LDAP_AUTO_SHADOWING, enabled)
 
     private companion object {
         val LOG = LoggerFactory.getLogger(SettingsLdapPreferences::class.java)

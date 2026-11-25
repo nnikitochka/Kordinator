@@ -12,55 +12,55 @@ import org.airsonic.player.util.StringUtil
 import org.airsonic.player.util.Util
 
 /** Owns library indexing, file type, playlist-folder, and cover-art preferences. */
-internal class SettingsCatalogPreferences(private val values: SettingsValueStore) {
-    fun getIndexString(): String = string(KEY_INDEX_STRING, DEFAULT_INDEX_STRING)
-    fun setIndexString(value: String?) = values.setProperty(KEY_INDEX_STRING, value)
+internal class SettingsCatalogPreferences(private val values: SettingsValueStore) : SettingsCatalogAccess {
+    override fun getIndexString(): String = string(KEY_INDEX_STRING, DEFAULT_INDEX_STRING)
+    override fun setIndexString(value: String?) = values.setProperty(KEY_INDEX_STRING, value)
 
-    fun getIgnoredArticles(): String = string(KEY_IGNORED_ARTICLES, DEFAULT_IGNORED_ARTICLES)
-    fun getIgnoredArticlesAsArray(): Array<String> = derived(KEY_IGNORED_ARTICLES) {
+    override fun getIgnoredArticles(): String = string(KEY_IGNORED_ARTICLES, DEFAULT_IGNORED_ARTICLES)
+    override fun getIgnoredArticlesAsArray(): Array<String> = derived(KEY_IGNORED_ARTICLES) {
         whitespace.split(getIgnoredArticles())
     }
-    fun setIgnoredArticles(value: String?) {
+    override fun setIgnoredArticles(value: String?) {
         values.setProperty(KEY_IGNORED_ARTICLES, value)
         values.invalidateDerived(KEY_IGNORED_ARTICLES)
     }
 
-    fun getUploadsFolder(): String = string(KEY_UPLOADS_FOLDER, DEFAULT_UPLOADS_FOLDER)
-    fun setUploadsFolder(value: String?) = values.setProperty(KEY_UPLOADS_FOLDER, value)
+    override fun getUploadsFolder(): String = string(KEY_UPLOADS_FOLDER, DEFAULT_UPLOADS_FOLDER)
+    override fun setUploadsFolder(value: String?) = values.setProperty(KEY_UPLOADS_FOLDER, value)
 
-    fun getGenreSeparators(): String = string(KEY_GENRE_SEPARATORS, DEFAULT_GENRE_SEPARATORS)
-    fun setGenreSeparators(value: String?) = values.setProperty(KEY_GENRE_SEPARATORS, value)
+    override fun getGenreSeparators(): String = string(KEY_GENRE_SEPARATORS, DEFAULT_GENRE_SEPARATORS)
+    override fun setGenreSeparators(value: String?) = values.setProperty(KEY_GENRE_SEPARATORS, value)
 
-    fun getShortcuts(): String = string(KEY_SHORTCUTS, DEFAULT_SHORTCUTS)
-    fun getShortcutsAsArray(): Array<String> = StringUtil.split(getShortcuts())
-    fun setShortcuts(value: String?) = values.setProperty(KEY_SHORTCUTS, value)
+    override fun getShortcuts(): String = string(KEY_SHORTCUTS, DEFAULT_SHORTCUTS)
+    override fun getShortcutsAsArray(): Array<String> = StringUtil.split(getShortcuts())
+    override fun setShortcuts(value: String?) = values.setProperty(KEY_SHORTCUTS, value)
 
-    fun getPlaylistFolder(): String = string(KEY_PLAYLIST_FOLDER, DEFAULT_PLAYLIST_FOLDER)
-    fun setPlaylistFolder(value: String?) = values.setProperty(KEY_PLAYLIST_FOLDER, value)
+    override fun getPlaylistFolder(): String = string(KEY_PLAYLIST_FOLDER, DEFAULT_PLAYLIST_FOLDER)
+    override fun setPlaylistFolder(value: String?) = values.setProperty(KEY_PLAYLIST_FOLDER, value)
 
-    fun getMusicFileTypes(): String = string(KEY_MUSIC_FILE_TYPES, DEFAULT_MUSIC_FILE_TYPES)
-    fun setMusicFileTypes(value: String?) = setFileTypes(KEY_MUSIC_FILE_TYPES, value)
-    fun getMusicFileTypesSet(): Set<String> = derived(KEY_MUSIC_FILE_TYPES) { splitLowerString(getMusicFileTypes(), " ") }
+    override fun getMusicFileTypes(): String = string(KEY_MUSIC_FILE_TYPES, DEFAULT_MUSIC_FILE_TYPES)
+    override fun setMusicFileTypes(value: String?) = setFileTypes(KEY_MUSIC_FILE_TYPES, value)
+    override fun getMusicFileTypesSet(): Set<String> = derived(KEY_MUSIC_FILE_TYPES) { splitLowerString(getMusicFileTypes(), " ") }
 
-    fun getVideoFileTypes(): String = string(KEY_VIDEO_FILE_TYPES, DEFAULT_VIDEO_FILE_TYPES)
-    fun setVideoFileTypes(value: String?) = setFileTypes(KEY_VIDEO_FILE_TYPES, value)
-    fun getVideoFileTypesSet(): Set<String> = derived(KEY_VIDEO_FILE_TYPES) { splitLowerString(getVideoFileTypes(), " ") }
+    override fun getVideoFileTypes(): String = string(KEY_VIDEO_FILE_TYPES, DEFAULT_VIDEO_FILE_TYPES)
+    override fun setVideoFileTypes(value: String?) = setFileTypes(KEY_VIDEO_FILE_TYPES, value)
+    override fun getVideoFileTypesSet(): Set<String> = derived(KEY_VIDEO_FILE_TYPES) { splitLowerString(getVideoFileTypes(), " ") }
 
-    fun getCoverArtFileTypes(): String = string(KEY_COVER_ART_FILE_TYPES, DEFAULT_COVER_ART_FILE_TYPES)
-    fun setCoverArtFileTypes(value: String?) = setFileTypes(KEY_COVER_ART_FILE_TYPES, value)
-    fun getCoverArtFileTypesSet(): Set<String> = derived(KEY_COVER_ART_FILE_TYPES) { splitLowerString(getCoverArtFileTypes(), " ") }
+    override fun getCoverArtFileTypes(): String = string(KEY_COVER_ART_FILE_TYPES, DEFAULT_COVER_ART_FILE_TYPES)
+    override fun setCoverArtFileTypes(value: String?) = setFileTypes(KEY_COVER_ART_FILE_TYPES, value)
+    override fun getCoverArtFileTypesSet(): Set<String> = derived(KEY_COVER_ART_FILE_TYPES) { splitLowerString(getCoverArtFileTypes(), " ") }
 
-    fun getCoverArtSource(): CoverArtSource = try {
+    override fun getCoverArtSource(): CoverArtSource = try {
         CoverArtSource.valueOf(string(KEY_COVER_ART_SOURCE, DEFAULT_COVER_ART_SOURCE))
     } catch (_: Exception) {
         CoverArtSource.valueOf(DEFAULT_COVER_ART_SOURCE)
     }
 
-    fun setCoverArtSource(source: CoverArtSource) = values.setProperty(KEY_COVER_ART_SOURCE, source.name)
-    fun getCoverArtConcurrency(): Int = values.getInt(KEY_COVER_ART_CONCURRENCY, DEFAULT_COVER_ART_CONCURRENCY)
-    fun setCoverArtConcurrency(value: Int?) = values.setProperty(KEY_COVER_ART_CONCURRENCY, value)
-    fun getCoverArtQuality(): Int = values.getInt(KEY_COVER_ART_QUALITY, DEFAULT_COVER_ART_QUALITY)
-    fun setCoverArtQuality(value: Int?) = values.setProperty(KEY_COVER_ART_QUALITY, value)
+    override fun setCoverArtSource(source: CoverArtSource) = values.setProperty(KEY_COVER_ART_SOURCE, source.name)
+    override fun getCoverArtConcurrency(): Int = values.getInt(KEY_COVER_ART_CONCURRENCY, DEFAULT_COVER_ART_CONCURRENCY)
+    override fun setCoverArtConcurrency(value: Int?) = values.setProperty(KEY_COVER_ART_CONCURRENCY, value)
+    override fun getCoverArtQuality(): Int = values.getInt(KEY_COVER_ART_QUALITY, DEFAULT_COVER_ART_QUALITY)
+    override fun setCoverArtQuality(value: Int?) = values.setProperty(KEY_COVER_ART_QUALITY, value)
 
     private fun setFileTypes(key: String, value: String?) {
         values.setProperty(key, value)

@@ -8,30 +8,30 @@ import org.airsonic.player.util.StringUtil
 import org.slf4j.LoggerFactory
 
 /** Provides locale and theme preferences plus the available presentation options. */
-internal class SettingsPresentationPreferences(private val values: SettingsValueStore) {
+internal class SettingsPresentationPreferences(private val values: SettingsValueStore) : SettingsPresentationAccess {
     private var themes: List<Theme>? = null
     private var locales: List<Locale>? = null
 
-    fun getLocale(): Locale = Locale.of(
+    override fun getLocale(): Locale = Locale.of(
         requireNotNull(values.getString(KEY_LOCALE_LANGUAGE, DEFAULT_LOCALE_LANGUAGE)),
         requireNotNull(values.getString(KEY_LOCALE_COUNTRY, "")),
         requireNotNull(values.getString(KEY_LOCALE_VARIANT, "")),
     )
 
-    fun setLocale(locale: Locale) {
+    override fun setLocale(locale: Locale) {
         values.setProperty(KEY_LOCALE_LANGUAGE, locale.language)
         values.setProperty(KEY_LOCALE_COUNTRY, locale.country)
         values.setProperty(KEY_LOCALE_VARIANT, locale.variant)
     }
 
-    fun getThemeId(): String = requireNotNull(values.getString(KEY_THEME_ID, DEFAULT_THEME_ID))
+    override fun getThemeId(): String = requireNotNull(values.getString(KEY_THEME_ID, DEFAULT_THEME_ID))
 
-    fun setThemeId(themeId: String?) {
+    override fun setThemeId(themeId: String?) {
         values.setProperty(KEY_THEME_ID, themeId)
     }
 
     @Synchronized
-    fun getAvailableThemes(): Array<Theme> {
+    override fun getAvailableThemes(): Array<Theme> {
         if (themes == null) {
             val discovered = mutableListOf<Theme>()
             try {
@@ -54,7 +54,7 @@ internal class SettingsPresentationPreferences(private val values: SettingsValue
     }
 
     @Synchronized
-    fun getAvailableLocales(): Array<Locale> {
+    override fun getAvailableLocales(): Array<Locale> {
         if (locales == null) {
             val discovered = mutableListOf<Locale>()
             try {
@@ -71,7 +71,7 @@ internal class SettingsPresentationPreferences(private val values: SettingsValue
         return locales!!.toTypedArray()
     }
 
-    fun getBrand(): String = "Airsonic"
+    override fun getBrand(): String = "Airsonic"
 
     private companion object {
         const val KEY_LOCALE_LANGUAGE = "LocaleLanguage"

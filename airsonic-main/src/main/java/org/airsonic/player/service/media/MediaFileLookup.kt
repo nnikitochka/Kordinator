@@ -45,7 +45,7 @@ internal class MediaFileLookup(private val service: MediaFileService) {
         if (service.memoryCacheEnabled) service.mediaFileIdCache?.get(id)?.let { return it }
         val mediaFile = service.mediaFileDao.getMediaFile(id) ?: return null
         val folder = service.mediaFolderService.getMusicFolderById(mediaFile.folderId)
-        val result = checkLastModified(mediaFile, folder, service.settingsService.isFastCacheEnabled)
+        val result = checkLastModified(mediaFile, folder, service.settingsService.isFastCacheEnabled())
         if (result != null && service.memoryCacheEnabled) service.mediaFileIdCache?.put(id, result)
         return result
     }
@@ -92,7 +92,7 @@ internal class MediaFileLookup(private val service: MediaFileService) {
         }
 
         if (mediaFile.getVersion() >= MediaFileDao.VERSION &&
-            !service.settingsService.fullScan &&
+            !service.settingsService.getFullScan() &&
             mediaFile.changed!!.compareTo(FileUtil.lastModified(mediaFile.getFullPath(actualFolder.path))) > -1
         ) {
             log.debug(

@@ -37,7 +37,7 @@ internal class MediaFileChildren(private val service: MediaFileService) {
         }
 
         resultStream = resultStream.filter { (includeDirectories && it.isDirectory) || (includeFiles && it.isFile) }
-        if (sort) resultStream = resultStream.sorted(MediaFileComparator(service.settingsService.isSortAlbumsByYear))
+        if (sort) resultStream = resultStream.sorted(MediaFileComparator(service.settingsService.isSortAlbumsByYear()))
         return resultStream.collect(Collectors.toList())
     }
 
@@ -48,7 +48,7 @@ internal class MediaFileChildren(private val service: MediaFileService) {
     fun getDescendantsOf(ancestor: MediaFile, sort: Boolean): MutableList<MediaFile> {
         if (ancestor.isFile) return Arrays.asList(ancestor)
         val result = ArrayList<MediaFile>()
-        for (child in getChildrenOf(ancestor, true, true, sort, service.settingsService.isFastCacheEnabled)) {
+        for (child in getChildrenOf(ancestor, true, true, sort, service.settingsService.isFastCacheEnabled())) {
             if (child.isDirectory) result.addAll(getDescendantsOf(child, sort)) else result.add(child)
         }
         return result

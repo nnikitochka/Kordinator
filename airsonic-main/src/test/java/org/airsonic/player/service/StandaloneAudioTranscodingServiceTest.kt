@@ -37,7 +37,7 @@ class StandaloneAudioTranscodingServiceTest {
         val folders = mock(MediaFolderService::class.java)
         `when`(folders.getMusicFolderById(1)).thenReturn(MusicFolder(1, root, "Music", MusicFolder.Type.MEDIA, true, Instant.now()))
         val settings = mock(SettingsService::class.java)
-        `when`(settings.downsamplingCommand).thenReturn("/usr/bin/ffmpeg -nostdin -v error -i %s -b:a %bk -f mp3 -")
+        `when`(settings.getDownsamplingCommand()).thenReturn("/usr/bin/ffmpeg -nostdin -v error -i %s -b:a %bk -f mp3 -")
         val engine = TranscodingService(dao, settings, folders) { mock(PlayerService::class.java) }
         val service = StandaloneAudioTranscodingService(engine)
         val profile = Transcoding(1, "MP3", "wav flac", "mp3",
@@ -90,7 +90,7 @@ class StandaloneAudioTranscodingServiceTest {
         val folders = mock(MediaFolderService::class.java)
         `when`(folders.getMusicFolderById(1)).thenReturn(MusicFolder(1, root, "Music", MusicFolder.Type.MEDIA, true, Instant.now()))
         val settings = mock(SettingsService::class.java)
-        `when`(settings.downsamplingCommand).thenReturn("/usr/bin/ffmpeg -v error -i %s -b:a %bk -f mp3 -")
+        `when`(settings.getDownsamplingCommand()).thenReturn("/usr/bin/ffmpeg -v error -i %s -b:a %bk -f mp3 -")
         val service = StandaloneAudioTranscodingService(TranscodingService(dao, settings, folders) { mock(PlayerService::class.java) })
         val profile = Transcoding(1, "WAV", "wav", "wav", "", null, null, true)
         `when`(dao.allTranscodings).thenReturn(listOf(profile))

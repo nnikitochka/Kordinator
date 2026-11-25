@@ -44,7 +44,7 @@ class UPnPService(
     private val running = AtomicReference(false)
 
     fun init() {
-        if (settings.isDlnaEnabled) {
+        if (settings.isDlnaEnabled()) {
             ensureServiceStarted()
             setMediaServerEnabled(true)
         }
@@ -108,8 +108,8 @@ class UPnPService(
 
     @Throws(Exception::class)
     private fun createMediaServerDevice(): LocalDevice {
-        val serverName = settings.dlnaServerName
-        val serverId = settings.dlnaServerId ?: UUID.randomUUID().toString().also(settings::setDlnaServerId)
+        val serverName = settings.getDlnaServerName()
+        val serverId = settings.getDlnaServerId() ?: UUID.randomUUID().toString().also(settings::setDlnaServerId)
         val identity = DeviceIdentity(UDN.valueOf(serverId))
         val type = UDADeviceType("MediaServer", 1)
         val details = DeviceDetails(

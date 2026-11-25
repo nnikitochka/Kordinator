@@ -18,7 +18,7 @@ class UPnPServiceLifecycleTest {
     @Test
     fun initializationLeavesDlnaStoppedWhenDisabled() {
         val settings = mock(SettingsService::class.java)
-        `when`(settings.isDlnaEnabled).thenReturn(false)
+        `when`(settings.isDlnaEnabled()).thenReturn(false)
         val service = UPnPService(settings, mock(CustomContentDirectory::class.java))
 
         service.init()
@@ -53,8 +53,8 @@ class UPnPServiceLifecycleTest {
     fun mediaServerDeviceKeepsItsIconServicesAndGeneratedIdentity() {
         val settings = mock(SettingsService::class.java)
         val contentDirectory = mock(CustomContentDirectory::class.java)
-        `when`(settings.dlnaServerName).thenReturn("Kordinator")
-        `when`(settings.dlnaServerId).thenReturn(null)
+        `when`(settings.getDlnaServerName()).thenReturn("Kordinator")
+        `when`(settings.getDlnaServerId()).thenReturn(null)
         val service = UPnPService(settings, contentDirectory)
         val createDevice = UPnPService::class.java.getDeclaredMethod("createMediaServerDevice").apply {
             isAccessible = true

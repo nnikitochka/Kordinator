@@ -8,9 +8,9 @@ import java.util.function.Function
 /** Reads, writes, and caches configured values shared by [org.airsonic.player.service.SettingsService]. */
 internal class SettingsValueStore(
     private val properties: ConfigurationPropertiesService,
-    propertyLookup: Function<String, String>,
+    propertyLookup: Function<String, String?>,
 ) {
-    private var propertyLookup: Function<String, String> = propertyLookup
+    private var propertyLookup: Function<String, String?> = propertyLookup
     private val settingsCache = ConcurrentHashMap<String, Any>()
     private val derivativeSettingsCache = ConcurrentHashMap<String, Any>()
 
@@ -50,7 +50,7 @@ internal class SettingsValueStore(
         derivativeSettingsCache.remove(key)
     }
 
-    fun setPropertyLookup(propertyLookup: Function<String, String>) {
+    fun setPropertyLookup(propertyLookup: Function<String, String?>) {
         this.propertyLookup = requireNotNull(propertyLookup)
     }
 

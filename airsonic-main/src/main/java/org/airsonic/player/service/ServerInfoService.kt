@@ -16,7 +16,7 @@ class ServerInfoService(private val versions: VersionService, private val settin
         val runtime = Runtime.getRuntime()
         val total = runtime.totalMemory()
         return linkedMapOf(
-            "brand" to settings.brand,
+            "brand" to settings.getBrand(),
             "localVersion" to versions.getLocalVersion()?.toString(),
             "buildDate" to versions.getLocalBuildDate()?.toString(),
             "buildNumber" to versions.getLocalBuildNumber(),
@@ -30,7 +30,7 @@ class ServerInfoService(private val versions: VersionService, private val settin
     }
 
     fun log(): Map<String, Any?> {
-        val path = Paths.get(settings.logFile)
+        val path = Paths.get(settings.getLogFile())
         val lines = ArrayDeque<String>()
         val available = try {
             ReversedLinesFileReader(path.toFile(), Charset.defaultCharset()).use { reader ->

@@ -151,7 +151,7 @@ class DownloadService(
             return DownloadResponse(
                 {
                     MonitoredInputStream(
-                        Files.newInputStream(path), settingsService.downloadBitrateLimiter,
+                        Files.newInputStream(path), settingsService.getDownloadBitrateLimiter(),
                         statusSupplier, statusCloser
                     ) { _, _ -> }
                 },
@@ -171,7 +171,7 @@ class DownloadService(
         return DownloadResponse(
             {
                 MonitoredInputStream(
-                    PipedInputStream(null, 16 * 1024), settingsService.downloadBitrateLimiter,
+                    PipedInputStream(null, 16 * 1024), settingsService.getDownloadBitrateLimiter(),
                     statusSupplier, statusCloser, initializePipe
                 )
             },

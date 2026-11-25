@@ -112,8 +112,8 @@ internal class SecurityCredentialOperations(
     fun checkLegacyCredentialsPresent(): Boolean = userDao().getCredentialCountByEncoder("legacy%") != 0
 
     fun migrateLegacyCredentialsToNonLegacy(useDecodableOnly: Boolean): Boolean {
-        val decodableEncoder = settingsService().decodablePasswordEncoder
-        val nonDecodableEncoder = if (useDecodableOnly) decodableEncoder else settingsService().nonDecodablePasswordEncoder
+        val decodableEncoder = settingsService().getDecodablePasswordEncoder()
+        val nonDecodableEncoder = if (useDecodableOnly) decodableEncoder else settingsService().getNonDecodablePasswordEncoder()
         val failures = ArrayList<UserCredential>()
 
         userDao().getCredentialsByEncoder("legacy%").forEach { credentials ->
@@ -135,10 +135,10 @@ internal class SecurityCredentialOperations(
     }
 
     fun preferredPasswordEncoder(nonDecodableAllowed: Boolean): String =
-        if (!nonDecodableAllowed || !settingsService().preferNonDecodablePasswords) {
-            settingsService().decodablePasswordEncoder
+        if (!nonDecodableAllowed || !settingsService().getPreferNonDecodablePasswords()) {
+            settingsService().getDecodablePasswordEncoder()
         } else {
-            settingsService().nonDecodablePasswordEncoder
+            settingsService().getNonDecodablePasswordEncoder()
         }
 
     fun decodeCredentials(credentials: UserCredential): String? = try {

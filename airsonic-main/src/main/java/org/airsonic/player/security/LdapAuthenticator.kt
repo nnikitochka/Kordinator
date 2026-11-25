@@ -11,7 +11,7 @@ class LdapAuthenticator(
     private val directory: LdapDirectoryAuthenticator
 ) {
     fun authenticate(username: String, password: String, saltedToken: Boolean): User? {
-        if (!settingsService.isLdapEnabled) {
+        if (!settingsService.isLdapEnabled()) {
             throw LdapAuthenticationException(Failure.DISABLED, "LDAP authentication disabled.")
         }
         if (saltedToken) {
@@ -22,7 +22,7 @@ class LdapAuthenticator(
         }
 
         var user = securityService.getUserByName(username, false)
-        if (user == null && !settingsService.isLdapAutoShadowing) {
+        if (user == null && !settingsService.isLdapAutoShadowing()) {
             throw LdapAuthenticationException(Failure.USER_NOT_FOUND, "User does not exist.")
         }
         if (user != null && !user.isLdapAuthenticated) {

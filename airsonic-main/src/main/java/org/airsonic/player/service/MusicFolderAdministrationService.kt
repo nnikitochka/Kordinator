@@ -27,20 +27,20 @@ class MusicFolderAdministrationService(
     val settings: MusicFolderSettingsCommand
         get() {
             val command = MusicFolderSettingsCommand()
-            command.interval = settingsService.indexCreationInterval.toString()
-            command.hour = settingsService.indexCreationHour.toString()
+            command.interval = settingsService.getIndexCreationInterval().toString()
+            command.hour = settingsService.getIndexCreationHour().toString()
             command.isFastCache = settingsService.isFastCacheEnabled()
             command.isOrganizeByFolderStructure = settingsService.isOrganizeByFolderStructure()
             command.isScanning = mediaScannerService.isScanning
             command.musicFolders = wrap(mediaFolderService.getAllMusicFolders(true, true))
             command.newMusicFolder = MusicFolderInfo()
             command.deletedMusicFolders = wrap(mediaFolderService.getDeletedMusicFolders())
-            command.uploadsFolder = settingsService.uploadsFolder
-            command.excludePatternString = settingsService.excludePatternString
-            command.ignoreSymLinks = settingsService.ignoreSymLinks
-            command.fullScan = settingsService.fullScan
+            command.uploadsFolder = settingsService.getUploadsFolder()
+            command.excludePatternString = settingsService.getExcludePatternString()
+            command.ignoreSymLinks = settingsService.getIgnoreSymLinks()
+            command.fullScan = settingsService.getFullScan()
             command.clearFullScanSettingAfterScan =
-                if (!settingsService.fullScan) settingsService.fullScan else settingsService.clearFullScanSettingAfterScan
+                if (!settingsService.getFullScan()) settingsService.getFullScan() else settingsService.getClearFullScanSettingAfterScan()
             return command
         }
 

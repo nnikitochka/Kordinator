@@ -1,23 +1,23 @@
 package org.airsonic.player.service.settings
 
 /** Owns signing, encryption, and password encoder preferences. */
-internal class SettingsCredentialPreferences(private val values: SettingsValueStore) {
-    fun getJwtKey(): String? = values.getString(KEY_JWT_KEY, null)
-    fun setJwtKey(key: String?) = values.setProperty(KEY_JWT_KEY, key)
-    fun getEncryptionPassword(): String? = values.getString(KEY_ENCRYPTION_PASSWORD, null)
-    fun setEncryptionPassword(password: String?) = values.setProperty(KEY_ENCRYPTION_PASSWORD, password)
-    fun getEncryptionSalt(): String? = values.getString(KEY_ENCRYPTION_SALT, null)
-    fun setEncryptionSalt(salt: String?) = values.setProperty(KEY_ENCRYPTION_SALT, salt)
-    fun getDecodablePasswordEncoder(): String = requireNotNull(
+internal class SettingsCredentialPreferences(private val values: SettingsValueStore) : SettingsCredentialAccess {
+    override fun getJWTKey(): String? = values.getString(KEY_JWT_KEY, null)
+    override fun setJWTKey(key: String?) = values.setProperty(KEY_JWT_KEY, key)
+    override fun getEncryptionPassword(): String? = values.getString(KEY_ENCRYPTION_PASSWORD, null)
+    override fun setEncryptionPassword(password: String?) = values.setProperty(KEY_ENCRYPTION_PASSWORD, password)
+    override fun getEncryptionSalt(): String? = values.getString(KEY_ENCRYPTION_SALT, null)
+    override fun setEncryptionSalt(salt: String?) = values.setProperty(KEY_ENCRYPTION_SALT, salt)
+    override fun getDecodablePasswordEncoder(): String = requireNotNull(
         values.getString(KEY_DECODABLE_ENCODER, DEFAULT_DECODABLE_ENCODER),
     )
-    fun setDecodablePasswordEncoder(encoder: String?) = values.setProperty(KEY_DECODABLE_ENCODER, encoder)
-    fun getNonDecodablePasswordEncoder(): String = requireNotNull(
+    override fun setDecodablePasswordEncoder(encoder: String?) = values.setProperty(KEY_DECODABLE_ENCODER, encoder)
+    override fun getNonDecodablePasswordEncoder(): String = requireNotNull(
         values.getString(KEY_NON_DECODABLE_ENCODER, DEFAULT_NON_DECODABLE_ENCODER),
     )
-    fun setNonDecodablePasswordEncoder(encoder: String?) = values.setProperty(KEY_NON_DECODABLE_ENCODER, encoder)
-    fun getPreferNonDecodablePasswords(): Boolean = values.getBoolean(KEY_PREFER_NON_DECODABLE, true)
-    fun setPreferNonDecodablePasswords(preference: Boolean) = values.setProperty(KEY_PREFER_NON_DECODABLE, preference)
+    override fun setNonDecodablePasswordEncoder(encoder: String?) = values.setProperty(KEY_NON_DECODABLE_ENCODER, encoder)
+    override fun getPreferNonDecodablePasswords(): Boolean = values.getBoolean(KEY_PREFER_NON_DECODABLE, true)
+    override fun setPreferNonDecodablePasswords(preference: Boolean) = values.setProperty(KEY_PREFER_NON_DECODABLE, preference)
 
     private companion object {
         const val KEY_JWT_KEY = "JWTKey"

@@ -70,8 +70,8 @@ internal class TranscodingPolicy(
             log.error("Unknown bit rate for {}. Unable to estimate transcoded size.", file)
             return null
         }
-        return Math.round((duration + settingsService.transcodeEstimateTimePadding / 1000.0) * maxBitRate * 1000L / 8L) +
-            settingsService.transcodeEstimateBytePadding
+        return Math.round((duration + settingsService.getTranscodeEstimateTimePadding() / 1000.0) * maxBitRate * 1000L / 8L) +
+            settingsService.getTranscodeEstimateBytePadding()
     }
 
     fun rangeAllowed(parameters: TranscodingService.Parameters): Boolean {

@@ -98,7 +98,7 @@ public class SettingsServiceTestCase {
         assertNull("Wrong default database username.", settingsService.getDatabaseUsername());
         assertNull("Wrong default database password.", settingsService.getDatabasePassword());
         assertNull("Wrong default database JNDI name.", settingsService.getDatabaseJNDIName());
-        assertEquals("Wrong default database VARCHAR length.", 384, settingsService.getDatabaseMysqlVarcharMaxlength().intValue());
+        assertEquals("Wrong default database VARCHAR length.", 384, settingsService.getDatabaseMysqlVarcharMaxlength());
         assertEquals("30m", settingsService.getSessionDuration());
     }
 
@@ -255,7 +255,7 @@ public class SettingsServiceTestCase {
         assertEquals("Wrong database username.", "sa", ss.getDatabaseUsername());
         assertEquals("Wrong database password.", "database-secret", ss.getDatabasePassword());
         assertEquals("Wrong database JNDI name.", "jdbc/kordinator", ss.getDatabaseJNDIName());
-        assertEquals("Wrong database VARCHAR length.", 512, ss.getDatabaseMysqlVarcharMaxlength().intValue());
+        assertEquals("Wrong database VARCHAR length.", 512, ss.getDatabaseMysqlVarcharMaxlength());
     }
 
     @Test

@@ -41,7 +41,7 @@ class KtorStandaloneTranscodingSettingsTest {
             val listenerToken = auth.login("listener", "listener password for tests")!!.token
             val transcoding = Mockito.mock(TranscodingService::class.java)
             val settings = Mockito.mock(SettingsService::class.java)
-            Mockito.`when`(settings.brand).thenReturn("Kordinator")
+            Mockito.`when`(settings.getBrand()).thenReturn("Kordinator")
             val previousHome = System.getProperty("airsonic.home")
             val temporaryHome = Files.createTempDirectory("kordinator-transcoding-test")
             System.setProperty("airsonic.home", temporaryHome.toString())

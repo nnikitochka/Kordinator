@@ -47,7 +47,7 @@ class JndiLdapDirectoryAuthenticator internal constructor(
     }
 
     private fun findUser(username: String): SearchResult {
-        val filter = settings.ldapSearchFilter.replace("{0}", escapeFilter(username))
+        val filter = settings.getLdapSearchFilter().replace("{0}", escapeFilter(username))
         val controls = SearchControls().apply { searchScope = SearchControls.SUBTREE_SCOPE }
         var context: DirContext? = null
         var results: NamingEnumeration<SearchResult>? = null
@@ -72,12 +72,12 @@ class JndiLdapDirectoryAuthenticator internal constructor(
 
     private fun environment(): Hashtable<String, Any> = Hashtable<String, Any>().apply {
         put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory")
-        put(Context.PROVIDER_URL, settings.ldapUrl)
+        put(Context.PROVIDER_URL, settings.getLdapUrl())
         put(Context.SECURITY_AUTHENTICATION, "simple")
-        val managerDn = settings.ldapManagerDn
+        val managerDn = settings.getLdapManagerDn()
         if (!managerDn.isNullOrBlank()) {
             put(Context.SECURITY_PRINCIPAL, managerDn)
-            put(Context.SECURITY_CREDENTIALS, settings.ldapManagerPassword)
+            put(Context.SECURITY_CREDENTIALS, settings.getLdapManagerPassword())
         }
     }
 

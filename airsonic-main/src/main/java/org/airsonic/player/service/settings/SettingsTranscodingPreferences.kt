@@ -1,17 +1,17 @@
 package org.airsonic.player.service.settings
 
 /** Owns the configured external commands used for audio, HLS, video, and caption processing. */
-internal class SettingsTranscodingPreferences(private val values: SettingsValueStore) {
-    fun getDownsamplingCommand(): String = value(KEY_DOWNSAMPLING_COMMAND, DEFAULT_DOWNSAMPLING_COMMAND)
-    fun setDownsamplingCommand(command: String?) = values.setProperty(KEY_DOWNSAMPLING_COMMAND, command)
-    fun getHlsCommand(): String = value(KEY_HLS_COMMAND, DEFAULT_HLS_COMMAND)
-    fun setHlsCommand(command: String?) = values.setProperty(KEY_HLS_COMMAND, command)
-    fun getJukeboxCommand(): String = value(KEY_JUKEBOX_COMMAND, DEFAULT_JUKEBOX_COMMAND)
-    fun setJukeboxCommand(command: String?) = values.setProperty(KEY_JUKEBOX_COMMAND, command)
-    fun getVideoImageCommand(): String = value(KEY_VIDEO_IMAGE_COMMAND, DEFAULT_VIDEO_IMAGE_COMMAND)
-    fun setVideoImageCommand(command: String?) = values.setProperty(KEY_VIDEO_IMAGE_COMMAND, command)
-    fun getSubtitlesExtractionCommand(): String = value(KEY_SUBTITLES_EXTRACTION_COMMAND, DEFAULT_SUBTITLES_EXTRACTION_COMMAND)
-    fun setSubtitlesExtractionCommand(command: String?) = values.setProperty(KEY_SUBTITLES_EXTRACTION_COMMAND, command)
+internal class SettingsTranscodingPreferences(private val values: SettingsValueStore) : SettingsTranscodingAccess {
+    override fun getDownsamplingCommand(): String = value(KEY_DOWNSAMPLING_COMMAND, DEFAULT_DOWNSAMPLING_COMMAND)
+    override fun setDownsamplingCommand(command: String?) = values.setProperty(KEY_DOWNSAMPLING_COMMAND, command)
+    override fun getHlsCommand(): String = value(KEY_HLS_COMMAND, DEFAULT_HLS_COMMAND)
+    override fun setHlsCommand(command: String?) = values.setProperty(KEY_HLS_COMMAND, command)
+    override fun getJukeboxCommand(): String = value(KEY_JUKEBOX_COMMAND, DEFAULT_JUKEBOX_COMMAND)
+    override fun setJukeboxCommand(command: String?) = values.setProperty(KEY_JUKEBOX_COMMAND, command)
+    override fun getVideoImageCommand(): String = value(KEY_VIDEO_IMAGE_COMMAND, DEFAULT_VIDEO_IMAGE_COMMAND)
+    override fun setVideoImageCommand(command: String?) = values.setProperty(KEY_VIDEO_IMAGE_COMMAND, command)
+    override fun getSubtitlesExtractionCommand(): String = value(KEY_SUBTITLES_EXTRACTION_COMMAND, DEFAULT_SUBTITLES_EXTRACTION_COMMAND)
+    override fun setSubtitlesExtractionCommand(command: String?) = values.setProperty(KEY_SUBTITLES_EXTRACTION_COMMAND, command)
 
     private fun value(key: String, defaultValue: String): String = requireNotNull(values.getString(key, defaultValue))
 

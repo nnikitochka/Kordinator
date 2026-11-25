@@ -85,11 +85,11 @@ internal fun saveTranscodingSettings(
     profiles.filter { it.id != null }.forEach(service::updateTranscoding)
     request.deleteIds.forEach(service::deleteTranscoding)
     profiles.filter { it.id == null }.forEach(service::createTranscoding)
-    settings.downsamplingCommand = request.downsampleCommand
-    settings.hlsCommand = request.hlsCommand
-    settings.jukeboxCommand = request.jukeboxCommand
-    settings.videoImageCommand = request.videoImageCommand
-    settings.subtitlesExtractionCommand = request.subtitlesExtractionCommand
+    settings.setDownsamplingCommand(request.downsampleCommand)
+    settings.setHlsCommand(request.hlsCommand)
+    settings.setJukeboxCommand(request.jukeboxCommand)
+    settings.setVideoImageCommand(request.videoImageCommand)
+    settings.setSubtitlesExtractionCommand(request.subtitlesExtractionCommand)
     settings.setTranscodeEstimateTimePadding(request.estimateTimePadding)
     settings.setTranscodeEstimateBytePadding(request.estimateBytePadding)
     settings.save()
@@ -100,23 +100,23 @@ internal fun updateAdvancedSettings(settings: SettingsService, request: UpdateAd
     require(request.uploadLimit >= 0) { "Upload limit must be non-negative" }
     require(request.smtpPort.toIntOrNull()?.let { it in 1..65535 } == true) { "SMTP port must be between 1 and 65535" }
     require(request.smtpEncryption in setOf("None", "STARTTLS", "SSL/TLS")) { "Invalid SMTP encryption" }
-    settings.downloadBitrateLimit = request.downloadLimit
-    settings.uploadBitrateLimit = request.uploadLimit
-    settings.ldapUrl = request.ldapUrl
-    settings.ldapSearchFilter = request.ldapSearchFilter
-    settings.ldapManagerDn = request.ldapManagerDn
-    settings.smtpServer = request.smtpServer
-    settings.smtpEncryption = request.smtpEncryption
-    settings.smtpPort = request.smtpPort
-    settings.smtpUser = request.smtpUser
-    settings.smtpFrom = request.smtpFrom
-    settings.recaptchaSiteKey = request.recaptchaSiteKey
-    settings.isLdapEnabled = request.ldapEnabled
-    settings.isLdapAutoShadowing = request.ldapAutoShadowing
-    settings.isCaptchaEnabled = request.captchaEnabled
-    request.ldapManagerPassword?.takeIf { it.isNotEmpty() }?.let { settings.ldapManagerPassword = it }
-    request.smtpPassword?.takeIf { it.isNotEmpty() }?.let { settings.smtpPassword = it }
-    request.recaptchaSecretKey?.takeIf { it.isNotEmpty() }?.let { settings.recaptchaSecretKey = it }
+    settings.setDownloadBitrateLimit(request.downloadLimit)
+    settings.setUploadBitrateLimit(request.uploadLimit)
+    settings.setLdapUrl(request.ldapUrl)
+    settings.setLdapSearchFilter(request.ldapSearchFilter)
+    settings.setLdapManagerDn(request.ldapManagerDn)
+    settings.setSmtpServer(request.smtpServer)
+    settings.setSmtpEncryption(request.smtpEncryption)
+    settings.setSmtpPort(request.smtpPort)
+    settings.setSmtpUser(request.smtpUser)
+    settings.setSmtpFrom(request.smtpFrom)
+    settings.setRecaptchaSiteKey(request.recaptchaSiteKey)
+    settings.setLdapEnabled(request.ldapEnabled)
+    settings.setLdapAutoShadowing(request.ldapAutoShadowing)
+    settings.setCaptchaEnabled(request.captchaEnabled)
+    request.ldapManagerPassword?.takeIf { it.isNotEmpty() }?.let { settings.setLdapManagerPassword(it) }
+    request.smtpPassword?.takeIf { it.isNotEmpty() }?.let { settings.setSmtpPassword(it) }
+    request.recaptchaSecretKey?.takeIf { it.isNotEmpty() }?.let { settings.setRecaptchaSecretKey(it) }
     settings.save()
 }
 

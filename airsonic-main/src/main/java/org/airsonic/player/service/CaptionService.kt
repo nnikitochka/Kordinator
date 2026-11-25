@@ -26,7 +26,7 @@ open class CaptionService(
 ) {
     @Throws(IOException::class)
     open fun openConverted(inputFile: Path, identifier: String, format: String): InputStream {
-        val split = StringUtils.split(settingsService.subtitlesExtractionCommand)!!
+        val split = StringUtils.split(settingsService.getSubtitlesExtractionCommand())!!
         val command = split.map { argument ->
             when {
                 argument == split[0] -> SettingsService.resolveTranscodeExecutable(argument, argument)

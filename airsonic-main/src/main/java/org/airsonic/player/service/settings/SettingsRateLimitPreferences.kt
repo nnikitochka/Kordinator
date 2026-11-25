@@ -4,25 +4,25 @@ import com.google.common.util.concurrent.RateLimiter
 import java.util.function.Function
 
 /** Keeps configured upload and download rates in sync with their reusable limiters. */
-internal class SettingsRateLimitPreferences(private val values: SettingsValueStore) {
-    fun getDownloadBitrateLimit(): Long = values.getLong(KEY_DOWNLOAD_BITRATE_LIMIT, DEFAULT_BITRATE_LIMIT)
+internal class SettingsRateLimitPreferences(private val values: SettingsValueStore) : SettingsRateLimitAccess {
+    override fun getDownloadBitrateLimit(): Long = values.getLong(KEY_DOWNLOAD_BITRATE_LIMIT, DEFAULT_BITRATE_LIMIT)
 
-    fun getDownloadBitrateLimiter(): RateLimiter = limiter(KEY_DOWNLOAD_BITRATE_LIMIT) {
+    override fun getDownloadBitrateLimiter(): RateLimiter = limiter(KEY_DOWNLOAD_BITRATE_LIMIT) {
         getDownloadBitrateLimit()
     }
 
-    fun setDownloadBitrateLimit(limit: Long) {
+    override fun setDownloadBitrateLimit(limit: Long) {
         values.setProperty(KEY_DOWNLOAD_BITRATE_LIMIT, limit)
         getDownloadBitrateLimiter().setRate(adjustBitrateLimit(limit.toDouble()))
     }
 
-    fun getUploadBitrateLimit(): Long = values.getLong(KEY_UPLOAD_BITRATE_LIMIT, DEFAULT_BITRATE_LIMIT)
+    override fun getUploadBitrateLimit(): Long = values.getLong(KEY_UPLOAD_BITRATE_LIMIT, DEFAULT_BITRATE_LIMIT)
 
-    fun getUploadBitrateLimiter(): RateLimiter = limiter(KEY_UPLOAD_BITRATE_LIMIT) {
+    override fun getUploadBitrateLimiter(): RateLimiter = limiter(KEY_UPLOAD_BITRATE_LIMIT) {
         getUploadBitrateLimit()
     }
 
-    fun setUploadBitrateLimit(limit: Long) {
+    override fun setUploadBitrateLimit(limit: Long) {
         values.setProperty(KEY_UPLOAD_BITRATE_LIMIT, limit)
         getUploadBitrateLimiter().setRate(adjustBitrateLimit(limit.toDouble()))
     }

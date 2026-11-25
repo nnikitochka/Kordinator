@@ -37,9 +37,9 @@ class KtorStandaloneServerInfoTest {
             val adminToken = auth.login("admin", "a strong password for tests")!!.token
             val listenerToken = auth.login("listener", "listener password for tests")!!.token
             val settings = Mockito.mock(SettingsService::class.java)
-            Mockito.`when`(settings.brand).thenReturn("Kordinator")
-            Mockito.`when`(settings.logFile).thenReturn("/tmp/kordinator-test-log-does-not-exist")
-            Mockito.`when`(settings.isGettingStartedEnabled).thenReturn(true)
+            Mockito.`when`(settings.getBrand()).thenReturn("Kordinator")
+            Mockito.`when`(settings.getLogFile()).thenReturn("/tmp/kordinator-test-log-does-not-exist")
+            Mockito.`when`(settings.isGettingStartedEnabled()).thenReturn(true)
             val versions = Mockito.mock(VersionService::class.java)
             val serverInfo = ServerInfoService(versions, settings)
 

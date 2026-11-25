@@ -81,7 +81,7 @@ class DownloadServiceTest {
         val coverArtService = Mockito.mock(CoverArtService::class.java)
         `when`(statusService.createDownloadStatus(player)).thenReturn(status)
         `when`(securityService.isFolderAccessAllowed(selectedFile, context)).thenReturn(true)
-        `when`(settingsService.downloadBitrateLimiter).thenReturn(RateLimiter.create(1_000_000.0))
+        `when`(settingsService.getDownloadBitrateLimiter()).thenReturn(RateLimiter.create(1_000_000.0))
         `when`(mediaFileService.getMediaFile(10)).thenReturn(selectedFile)
         `when`(mediaFileService.getChildrenOf(selectedFile, true, false, true)).thenReturn(children)
         `when`(mediaFolderService.getMusicFolderById(1)).thenReturn(musicFolder)

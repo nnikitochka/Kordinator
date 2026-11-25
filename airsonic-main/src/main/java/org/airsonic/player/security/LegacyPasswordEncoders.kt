@@ -70,17 +70,17 @@ object LegacyPasswordEncoders {
     @JvmStatic
     fun configureEncryption(settingsService: SettingsService) {
         var generatedKeys = false
-        var keyPass = settingsService.encryptionPassword
+        var keyPass = settingsService.getEncryptionPassword()
         if (keyPass.isNullOrBlank()) {
             keyPass = JWTSecurityService.generateKey()
-            settingsService.encryptionPassword = keyPass
+            settingsService.setEncryptionPassword(keyPass)
             generatedKeys = true
         }
-        var keySalt = settingsService.encryptionSalt
+        var keySalt = settingsService.getEncryptionSalt()
         if (keySalt.isNullOrBlank()) {
             val bytes = ByteArray(16).also(random::nextBytes)
             keySalt = BaseEncoding.base16().encode(bytes)
-            settingsService.encryptionSalt = keySalt
+            settingsService.setEncryptionSalt(keySalt)
             generatedKeys = true
         }
         if (generatedKeys) settingsService.save()

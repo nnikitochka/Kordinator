@@ -39,7 +39,7 @@ class KtorStandaloneAdvancedSettingsTest {
             val adminToken = auth.login("admin", "a strong password for tests")!!.token
             val listenerToken = auth.login("listener", "listener password for tests")!!.token
             val settings = Mockito.mock(SettingsService::class.java)
-            Mockito.`when`(settings.brand).thenReturn("Kordinator")
+            Mockito.`when`(settings.getBrand()).thenReturn("Kordinator")
 
             testApplication {
                 application { configureApiRouting(authService = auth, settingsService = settings) }

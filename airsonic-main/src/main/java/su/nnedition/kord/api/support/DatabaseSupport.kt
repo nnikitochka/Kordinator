@@ -44,24 +44,24 @@ internal fun updateDatabaseSettings(settings: SettingsService, request: UpdateDa
     val password = when {
         request.clearPassword -> ""
         !request.password.isNullOrEmpty() -> request.password
-        else -> settings.databasePassword
+        else -> settings.getDatabasePassword()
     }
     settings.resetDatabaseToDefault()
     when (request.configType) {
         "EXTERNAL" -> {
-            settings.databaseDriver = driver
-            settings.databaseUrl = url
-            settings.databaseUsername = username
-            settings.databasePassword = password
-            settings.databaseMysqlVarcharMaxlength = request.mysqlVarcharMaxlength
+            settings.setDatabaseDriver(driver)
+            settings.setDatabaseUrl(url)
+            settings.setDatabaseUsername(username)
+            settings.setDatabasePassword(password)
+            settings.setDatabaseMysqlVarcharMaxlength(request.mysqlVarcharMaxlength)
         }
         "JNDI" -> {
-            settings.databaseJNDIName = jndiName
-            settings.databaseMysqlVarcharMaxlength = request.mysqlVarcharMaxlength
+            settings.setDatabaseJNDIName(jndiName)
+            settings.setDatabaseMysqlVarcharMaxlength(request.mysqlVarcharMaxlength)
         }
     }
-    settings.dbBackupInterval = request.backupIntervalHours
-    settings.dbBackupRetentionCount = request.backupRetentionCount
+    settings.setDbBackupInterval(request.backupIntervalHours)
+    settings.setDbBackupRetentionCount(request.backupRetentionCount)
     settings.save()
 }
 

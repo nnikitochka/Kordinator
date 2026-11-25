@@ -26,7 +26,7 @@ internal object TranscodingCommandSupport {
     }
 
     fun substitute(index: Int, segment: String, keys: Array<String>, values: Array<String>): String =
-        if (index == 0) SettingsService.resolveTranscodeExecutable(segment, segment)
+        if (index == 0) requireNotNull(SettingsService.resolveTranscodeExecutable(segment, segment))
         else StringUtils.replaceEach(segment, keys, values)
 
     fun substitutionMap(

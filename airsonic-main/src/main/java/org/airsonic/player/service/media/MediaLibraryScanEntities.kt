@@ -27,8 +27,8 @@ internal class MediaLibraryScanEntities(
     fun updateGenres(file: MediaFile, genres: Genres) {
         val genre = file.genre ?: return
         when {
-            file.isAlbum -> genres.incrementAlbumCount(genre, settingsService.genreSeparators)
-            file.isAudio -> genres.incrementSongCount(genre, settingsService.genreSeparators)
+            file.isAlbum -> genres.incrementAlbumCount(genre, settingsService.getGenreSeparators())
+            file.isAudio -> genres.incrementSongCount(genre, settingsService.getGenreSeparators())
         }
     }
 

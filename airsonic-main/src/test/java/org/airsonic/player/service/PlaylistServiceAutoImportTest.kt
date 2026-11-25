@@ -41,7 +41,7 @@ class PlaylistServiceAutoImportTest {
         val playlistFile = playlistFolder.resolve("favorites.m3u")
         Files.writeString(playlistFile, "#EXTM3U\n")
 
-        `when`(settingsService.playlistFolder).thenReturn(playlistFolder.toString())
+        `when`(settingsService.getPlaylistFolder()).thenReturn(playlistFolder.toString())
         `when`(playlistDao.getAllPlaylists()).thenReturn(emptyList())
         `when`(playlistDao.getPlaylistFileStats(anyInt())).thenReturn(Pair.of(0, 0.0))
         `when`(playlistDao.getPlaylist(anyInt())).thenAnswer { invocation ->

@@ -51,7 +51,7 @@ open class MusicIndexService(
             .collect(Collectors.toList())
 
     private fun <T : SortableArtist> sortArtists(artists: List<T>): SortedMap<MusicIndex, MutableList<T>> {
-        val indexes = createIndexesFromExpression(settingsService.indexString)
+        val indexes = createIndexesFromExpression(settingsService.getIndexString())
         val result = TreeMap<MusicIndex, MutableList<T>>(MusicIndexComparator(indexes))
 
         for (artist in artists) {
@@ -92,8 +92,8 @@ open class MusicIndexService(
         folders: List<MusicFolder>,
         refresh: Boolean
     ): List<MusicIndex.SortableArtistWithMediaFiles> {
-        val ignoredArticles = settingsService.ignoredArticlesAsArray
-        val shortcuts = settingsService.shortcutsAsArray
+        val ignoredArticles = settingsService.getIgnoredArticlesAsArray()
+        val shortcuts = settingsService.getShortcutsAsArray()
         val artistMap = TreeMap<String, MusicIndex.SortableArtistWithMediaFiles>()
         val shortcutSet = HashSet(Arrays.asList(*shortcuts))
         val collator = createCollator()
@@ -117,7 +117,7 @@ open class MusicIndexService(
 
     private fun createSortableArtists(artists: List<Artist>): List<MusicIndex.SortableArtistWithArtist> {
         val result = ArrayList<MusicIndex.SortableArtistWithArtist>()
-        val ignoredArticles = settingsService.ignoredArticlesAsArray
+        val ignoredArticles = settingsService.getIgnoredArticlesAsArray()
         val collator = createCollator()
         for (artist in artists) {
             val sortableName = createSortableName(artist.name!!, ignoredArticles)
@@ -126,7 +126,7 @@ open class MusicIndexService(
         return result
     }
 
-    private fun createCollator(): Collator = Collator.getInstance(settingsService.locale)
+    private fun createCollator(): Collator = Collator.getInstance(settingsService.getLocale())
 
     private fun createSortableName(name: String, ignoredArticles: Array<String>): String {
         val uppercaseName = name.uppercase(Locale.getDefault())

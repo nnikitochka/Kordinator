@@ -33,11 +33,11 @@ open class JWTSecurityService(private val settingsService: SettingsService) {
         additionalClaims: Map<String, String>
     ): String {
         val expiration = expires ?: Instant.now().plus(DEFAULT_DAYS_VALID_FOR.toLong(), ChronoUnit.DAYS)
-        val token = createToken(settingsService.jwtKey, user, uri, expiration, additionalClaims)
+        val token = createToken(requireNotNull(settingsService.getJWTKey()), user, uri, expiration, additionalClaims)
         return appendQueryParameter(uri, JWT_PARAM_NAME, token)
     }
 
-    open fun verify(credentials: String): DecodedJWT = verify(settingsService.jwtKey, credentials)
+    open fun verify(credentials: String): DecodedJWT = verify(requireNotNull(settingsService.getJWTKey()), credentials)
 
     companion object {
         const val JWT_PARAM_NAME = "jwt"
@@ -64,9 +64,9 @@ open class JWTSecurityService(private val settingsService: SettingsService) {
 
         @JvmStatic
         fun initializeSigningKey(settingsService: SettingsService) {
-            if (StringUtils.isBlank(settingsService.jwtKey)) {
+            if (StringUtils.isBlank(settingsService.getJWTKey())) {
                 LOG.warn("Generating new jwt key")
-                settingsService.jwtKey = generateKey()
+                settingsService.setJWTKey(generateKey())
                 settingsService.save()
             }
         }

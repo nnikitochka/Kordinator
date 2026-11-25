@@ -39,7 +39,7 @@ class KtorStandaloneDlnaSettingsTest {
             val adminToken = auth.login("admin", "a strong password for tests")!!.token
             val listenerToken = auth.login("listener", "listener password for tests")!!.token
             val settings = Mockito.mock(SettingsService::class.java)
-            Mockito.`when`(settings.dlnaServerName).thenReturn("Kordinator")
+            Mockito.`when`(settings.getDlnaServerName()).thenReturn("Kordinator")
             val upnp = Mockito.mock(UPnPService::class.java)
 
             testApplication {

@@ -58,27 +58,27 @@ class StandalonePasswordRecoveryService(
         private val LOG = LoggerFactory.getLogger(StandalonePasswordRecoveryService::class.java)
 
         fun smtp(settings: SettingsService): PasswordRecoveryEmailSender = PasswordRecoveryEmailSender { recipient, subject, body ->
-            val server = settings.smtpServer
+            val server = settings.getSmtpServer()
             require(!server.isNullOrBlank()) { "SMTP server is not configured" }
-            val protocol = if (settings.smtpEncryption == "SSL/TLS") "smtps" else "smtp"
+            val protocol = if (settings.getSmtpEncryption() == "SSL/TLS") "smtps" else "smtp"
             val properties = Properties().apply {
                 setProperty("mail.$protocol.host", server)
-                setProperty("mail.$protocol.port", settings.smtpPort)
-                if (settings.smtpEncryption == "SSL/TLS") setProperty("mail.smtps.ssl.enable", "true")
-                if (settings.smtpEncryption == "STARTTLS") setProperty("mail.smtp.starttls.enable", "true")
-                if (!settings.smtpUser.isNullOrBlank()) setProperty("mail.$protocol.auth", "true")
+                setProperty("mail.$protocol.port", settings.getSmtpPort())
+                if (settings.getSmtpEncryption() == "SSL/TLS") setProperty("mail.smtps.ssl.enable", "true")
+                if (settings.getSmtpEncryption() == "STARTTLS") setProperty("mail.smtp.starttls.enable", "true")
+                if (!settings.getSmtpUser().isNullOrBlank()) setProperty("mail.$protocol.auth", "true")
             }
             val session = Session.getInstance(properties, null)
             val message: Message = MimeMessage(session).apply {
-                setFrom(InternetAddress(settings.smtpFrom))
+                setFrom(InternetAddress(settings.getSmtpFrom()))
                 setRecipients(Message.RecipientType.TO, InternetAddress.parse(recipient))
                 setSubject(subject)
                 setText(body)
                 sentDate = Date()
             }
             session.getTransport(protocol).use { transport ->
-                if (!settings.smtpUser.isNullOrBlank()) {
-                    transport.connect(server, settings.smtpUser, settings.smtpPassword)
+                if (!settings.getSmtpUser().isNullOrBlank()) {
+                    transport.connect(server, settings.getSmtpUser(), settings.getSmtpPassword())
                 } else {
                     transport.connect()
                 }

@@ -178,7 +178,7 @@ fun Route.adminStatusRoutes(
         call.response.headers.append(HttpHeaders.CacheControl, "no-store")
         call.respondJson(mapOf(
                 "runningAsRoot" to (System.getProperty("user.name") == "root"),
-                "enabled" to settings.isGettingStartedEnabled,
+                "enabled" to settings.isGettingStartedEnabled(),
         ))
     }
     delete("/admin/getting-started") {
@@ -190,7 +190,7 @@ fun Route.adminStatusRoutes(
         val settings = context.settingsService
             ?: return@delete call.respondJson(ApiError("unavailable", "Settings service is not configured"), HttpStatusCode.ServiceUnavailable)
         withContext(Dispatchers.IO) {
-            settings.isGettingStartedEnabled = false
+            settings.setGettingStartedEnabled(false)
             settings.save()
         }
         call.response.headers.append(HttpHeaders.CacheControl, "no-store")

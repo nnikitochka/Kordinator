@@ -66,7 +66,7 @@ class DatabaseService(
 
     @Synchronized
     private fun schedule() {
-        val hoursBetween = settingsService.dbBackupInterval
+        val hoursBetween = settingsService.getDbBackupInterval()
         if (hoursBetween == -1) {
             LOG.info("Automatic DB backup disabled")
             unschedule()
@@ -88,7 +88,7 @@ class DatabaseService(
         try {
             if (backuppable()) {
                 try {
-                    val dbPath = StringUtils.substringBetween(settingsService.databaseUrl, "jdbc:hsqldb:file:", ";")
+                    val dbPath = StringUtils.substringBetween(settingsService.getDatabaseUrl(), "jdbc:hsqldb:file:", ";")
                     val backupLocation = LegacyHsqlMigrationUtil.performHsqlDbBackup(dbPath)
                     LOG.info("Backed up DB to location: {}", backupLocation)
                     backupStatus = OperationStatus(backupStatus.version, true, false, "location: $backupLocation")
@@ -113,7 +113,7 @@ class DatabaseService(
 
     @Synchronized
     private fun deleteObsoleteBackups(backupLocation: Path) {
-        val backupCount = java.util.concurrent.atomic.AtomicInteger(settingsService.dbBackupRetentionCount)
+        val backupCount = java.util.concurrent.atomic.AtomicInteger(settingsService.getDbBackupRetentionCount())
         if (backupCount.get() == -1) return
 
         val backupNamePattern = StringUtils.substringBeforeLast(backupLocation.fileName.toString(), ".")
@@ -138,8 +138,8 @@ class DatabaseService(
         }
     }
 
-    fun backuppable(): Boolean = settingsService.databaseJNDIName == null &&
-        StringUtils.startsWith(settingsService.databaseUrl, "jdbc:hsqldb:file:")
+    fun backuppable(): Boolean = settingsService.getDatabaseJNDIName() == null &&
+        StringUtils.startsWith(settingsService.getDatabaseUrl(), "jdbc:hsqldb:file:")
 
     private val exportFunction = changeLogs.exportFunction()
 

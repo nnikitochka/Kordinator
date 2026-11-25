@@ -83,12 +83,12 @@ fun Route.adminSettingsRoutes(
             ?: return@get call.respondJson(ApiError("unavailable", "Settings are not configured"), HttpStatusCode.ServiceUnavailable)
         call.respondJson(withContext(Dispatchers.IO) {
                 TranscodingSettingsResponse(
-                    settings.brand,
+                    settings.getBrand(),
                     SettingsService.getTranscodeDirectory().toString(),
-                    settings.downsamplingCommand.orEmpty(), settings.hlsCommand.orEmpty(),
-                    settings.jukeboxCommand.orEmpty(), settings.videoImageCommand.orEmpty(),
-                    settings.subtitlesExtractionCommand.orEmpty(), settings.transcodeEstimateTimePadding,
-                    settings.transcodeEstimateBytePadding,
+                    settings.getDownsamplingCommand().orEmpty(), settings.getHlsCommand().orEmpty(),
+                    settings.getJukeboxCommand().orEmpty(), settings.getVideoImageCommand().orEmpty(),
+                    settings.getSubtitlesExtractionCommand().orEmpty(), settings.getTranscodeEstimateTimePadding(),
+                    settings.getTranscodeEstimateBytePadding(),
                     service.allTranscodings.sortedBy { it.id }.map { it.toResponse() },
                 )
         })
@@ -133,11 +133,11 @@ fun Route.adminSettingsRoutes(
         val settings = context.settingsService
             ?: return@get call.respondJson(ApiError("unavailable", "Settings are not configured"), HttpStatusCode.ServiceUnavailable)
         call.respondJson(AdvancedSettingsResponse(
-                settings.downloadBitrateLimit, settings.uploadBitrateLimit,
-                settings.ldapUrl.orEmpty(), settings.ldapSearchFilter.orEmpty(), settings.ldapManagerDn.orEmpty(),
-                settings.smtpServer.orEmpty(), settings.smtpEncryption.orEmpty(), settings.smtpPort.orEmpty(),
-                settings.smtpUser.orEmpty(), settings.smtpFrom.orEmpty(), settings.recaptchaSiteKey.orEmpty(),
-                settings.brand, settings.isLdapEnabled, settings.isLdapAutoShadowing, settings.isCaptchaEnabled,
+                settings.getDownloadBitrateLimit(), settings.getUploadBitrateLimit(),
+                settings.getLdapUrl().orEmpty(), settings.getLdapSearchFilter().orEmpty(), settings.getLdapManagerDn().orEmpty(),
+                settings.getSmtpServer().orEmpty(), settings.getSmtpEncryption().orEmpty(), settings.getSmtpPort().orEmpty(),
+                settings.getSmtpUser().orEmpty(), settings.getSmtpFrom().orEmpty(), settings.getRecaptchaSiteKey().orEmpty(),
+                settings.getBrand(), settings.isLdapEnabled(), settings.isLdapAutoShadowing(), settings.isCaptchaEnabled(),
         ))
     }
     put("/admin/settings/advanced") {
@@ -173,7 +173,7 @@ fun Route.adminSettingsRoutes(
         }
         val settings = context.settingsService
             ?: return@get call.respondJson(ApiError("unavailable", "Settings are not configured"), HttpStatusCode.ServiceUnavailable)
-        call.respondJson(DlnaSettingsResponse(settings.isDlnaEnabled, settings.dlnaServerName, settings.dlnaBaseLANURL.orEmpty()))
+        call.respondJson(DlnaSettingsResponse(settings.isDlnaEnabled(), settings.getDlnaServerName(), settings.getDlnaBaseLANURL().orEmpty()))
     }
     put("/admin/settings/dlna") {
         val actor = call.principal<LocalUserPrincipal>() ?: return@put call.respond(HttpStatusCode.Unauthorized)
@@ -192,9 +192,9 @@ fun Route.adminSettingsRoutes(
             return@put
         }
         service.setMediaServerEnabled(false)
-        settings.isDlnaEnabled = request.enabled
-        settings.dlnaServerName = request.serverName.trim().ifEmpty { "Kordinator" }
-        settings.dlnaBaseLANURL = request.baseLanUrl.trim().ifEmpty { null }
+        settings.setDlnaEnabled(request.enabled)
+        settings.setDlnaServerName(request.serverName.trim().ifEmpty { "Kordinator" })
+        settings.setDlnaBaseLANURL(request.baseLanUrl.trim().ifEmpty { null })
         settings.save()
         service.setMediaServerEnabled(request.enabled)
         call.respond(HttpStatusCode.NoContent)

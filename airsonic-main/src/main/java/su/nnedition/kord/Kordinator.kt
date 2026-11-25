@@ -206,7 +206,7 @@ object Kordinator {
                 scrobbleService,
                 lyricsService,
                 randomSearchService,
-                settingsService.genreSeparators,
+                settingsService.getGenreSeparators(),
                 topSongsService,
                 mediaFileService,
                 legacyGraph.artistDao,

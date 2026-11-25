@@ -157,27 +157,27 @@ internal class MediaFileMetadataFactory(private val service: MediaFileService) {
         return MediaFile.MediaType.MUSIC
     }
 
-    private fun isAudioFile(suffix: String): Boolean = service.settingsService.musicFileTypesSet.contains(suffix)
+    private fun isAudioFile(suffix: String): Boolean = service.settingsService.getMusicFileTypesSet().contains(suffix)
 
     private fun isVideoFile(suffix: String?): Boolean =
-        service.settingsService.videoFileTypesSet.contains(suffix!!.lowercase(Locale.getDefault()))
+        service.settingsService.getVideoFileTypesSet().contains(suffix!!.lowercase(Locale.getDefault()))
 
     private fun isExcluded(file: Path): Boolean {
-        if (service.settingsService.ignoreSymLinks && Files.isSymbolicLink(file)) {
+        if (service.settingsService.getIgnoreSymLinks() && Files.isSymbolicLink(file)) {
             log.info("excluding symbolic link {}", file)
             return true
         }
         val name = file.fileName.toString()
-        val excludePattern = service.settingsService.excludePattern
+        val excludePattern = service.settingsService.getExcludePattern()
         if (excludePattern != null && excludePattern.matcher(name).find()) {
-            log.info("excluding file which matches exclude pattern {}: {}", service.settingsService.excludePatternString, file)
+            log.info("excluding file which matches exclude pattern {}: {}", service.settingsService.getExcludePatternString(), file)
             return true
         }
         return (name.startsWith(".") && !name.startsWith("..")) || name.startsWith("@eaDir") || name == "Thumbs.db"
     }
 
     private fun findCoverArt(candidates: Collection<Path>): Path? {
-        return when (service.settingsService.coverArtSource) {
+        return when (service.settingsService.getCoverArtSource()) {
             CoverArtSource.TAG_FILE -> findTagCover(candidates) ?: findFileCover(candidates)
             CoverArtSource.FILE -> findFileCover(candidates)
             CoverArtSource.TAG -> findTagCover(candidates)
@@ -186,7 +186,7 @@ internal class MediaFileMetadataFactory(private val service: MediaFileService) {
     }
 
     private fun findFileCover(candidates: Collection<Path>): Path? {
-        for (mask in service.settingsService.coverArtFileTypesSet) {
+        for (mask in service.settingsService.getCoverArtFileTypesSet()) {
             val candidate = candidates.parallelStream().filter { path ->
                 val name = path.fileName.toString().lowercase(Locale.getDefault())
                 name.endsWith(mask) && !name.startsWith(".") && Files.isRegularFile(path)

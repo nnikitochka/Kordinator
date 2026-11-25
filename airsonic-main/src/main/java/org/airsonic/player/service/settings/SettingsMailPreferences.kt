@@ -4,17 +4,17 @@ import org.airsonic.player.util.StringUtil
 import org.slf4j.LoggerFactory
 
 /** Owns SMTP delivery and CAPTCHA provider settings. */
-internal class SettingsMailPreferences(private val values: SettingsValueStore) {
-    fun getSmtpServer(): String? = values.getString(KEY_SMTP_SERVER, null)
-    fun setSmtpServer(server: String?) = values.setProperty(KEY_SMTP_SERVER, server)
-    fun getSmtpPort(): String? = values.getString(KEY_SMTP_PORT, DEFAULT_SMTP_PORT)
-    fun setSmtpPort(port: String?) = values.setProperty(KEY_SMTP_PORT, port)
-    fun getSmtpEncryption(): String? = values.getString(KEY_SMTP_ENCRYPTION, DEFAULT_SMTP_ENCRYPTION)
-    fun setSmtpEncryption(encryption: String?) = values.setProperty(KEY_SMTP_ENCRYPTION, encryption)
-    fun getSmtpUser(): String? = values.getString(KEY_SMTP_USER, null)
-    fun setSmtpUser(user: String?) = values.setProperty(KEY_SMTP_USER, user)
+internal class SettingsMailPreferences(private val values: SettingsValueStore) : SettingsMailAccess {
+    override fun getSmtpServer(): String? = values.getString(KEY_SMTP_SERVER, null)
+    override fun setSmtpServer(server: String?) = values.setProperty(KEY_SMTP_SERVER, server)
+    override fun getSmtpPort(): String? = values.getString(KEY_SMTP_PORT, DEFAULT_SMTP_PORT)
+    override fun setSmtpPort(port: String?) = values.setProperty(KEY_SMTP_PORT, port)
+    override fun getSmtpEncryption(): String? = values.getString(KEY_SMTP_ENCRYPTION, DEFAULT_SMTP_ENCRYPTION)
+    override fun setSmtpEncryption(encryption: String?) = values.setProperty(KEY_SMTP_ENCRYPTION, encryption)
+    override fun getSmtpUser(): String? = values.getString(KEY_SMTP_USER, null)
+    override fun setSmtpUser(user: String?) = values.setProperty(KEY_SMTP_USER, user)
 
-    fun getSmtpPassword(): String? {
+    override fun getSmtpPassword(): String? {
         val password = values.getString(KEY_SMTP_PASSWORD, null)
         return try {
             StringUtil.utf8HexDecode(password)
@@ -24,7 +24,7 @@ internal class SettingsMailPreferences(private val values: SettingsValueStore) {
         }
     }
 
-    fun setSmtpPassword(password: String?) {
+    override fun setSmtpPassword(password: String?) {
         val encoded = try {
             StringUtil.utf8HexEncode(password)
         } catch (failure: Exception) {
@@ -34,15 +34,15 @@ internal class SettingsMailPreferences(private val values: SettingsValueStore) {
         values.setProperty(KEY_SMTP_PASSWORD, encoded)
     }
 
-    fun getSmtpFrom(): String? = values.getString(KEY_SMTP_FROM, DEFAULT_SMTP_FROM)
-    fun setSmtpFrom(from: String?) = values.setProperty(KEY_SMTP_FROM, from)
+    override fun getSmtpFrom(): String? = values.getString(KEY_SMTP_FROM, DEFAULT_SMTP_FROM)
+    override fun setSmtpFrom(from: String?) = values.setProperty(KEY_SMTP_FROM, from)
 
-    fun isCaptchaEnabled(): Boolean = values.getBoolean(KEY_CAPTCHA_ENABLED, false)
-    fun setCaptchaEnabled(enabled: Boolean) = values.setProperty(KEY_CAPTCHA_ENABLED, enabled)
-    fun getRecaptchaSiteKey(): String? = values.getString(KEY_RECAPTCHA_SITE_KEY, DEFAULT_RECAPTCHA_SITE_KEY)
-    fun setRecaptchaSiteKey(key: String?) = values.setProperty(KEY_RECAPTCHA_SITE_KEY, key)
-    fun getRecaptchaSecretKey(): String? = values.getString(KEY_RECAPTCHA_SECRET_KEY, DEFAULT_RECAPTCHA_SECRET_KEY)
-    fun setRecaptchaSecretKey(key: String?) = values.setProperty(KEY_RECAPTCHA_SECRET_KEY, key)
+    override fun isCaptchaEnabled(): Boolean = values.getBoolean(KEY_CAPTCHA_ENABLED, false)
+    override fun setCaptchaEnabled(enabled: Boolean) = values.setProperty(KEY_CAPTCHA_ENABLED, enabled)
+    override fun getRecaptchaSiteKey(): String? = values.getString(KEY_RECAPTCHA_SITE_KEY, DEFAULT_RECAPTCHA_SITE_KEY)
+    override fun setRecaptchaSiteKey(key: String?) = values.setProperty(KEY_RECAPTCHA_SITE_KEY, key)
+    override fun getRecaptchaSecretKey(): String? = values.getString(KEY_RECAPTCHA_SECRET_KEY, DEFAULT_RECAPTCHA_SECRET_KEY)
+    override fun setRecaptchaSecretKey(key: String?) = values.setProperty(KEY_RECAPTCHA_SECRET_KEY, key)
 
     private companion object {
         val LOG = LoggerFactory.getLogger(SettingsMailPreferences::class.java)

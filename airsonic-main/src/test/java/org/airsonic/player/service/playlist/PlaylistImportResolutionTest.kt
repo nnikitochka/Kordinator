@@ -20,7 +20,7 @@ class PlaylistImportResolutionTest {
         val libraryMatch = MediaFile().apply { mediaType = MediaFile.MediaType.MUSIC }
         val directoryMatch = MediaFile().apply { mediaType = MediaFile.MediaType.DIRECTORY }
         val workingMatch = MediaFile()
-        `when`(settings.playlistFolder).thenReturn(folder.toString())
+        `when`(settings.getPlaylistFolder()).thenReturn(folder.toString())
         `when`(files.getMediaFile(folder.resolve(relative))).thenReturn(playlistMatch)
         `when`(files.getMediaFilesByRelativePath(relative)).thenReturn(listOf(libraryMatch, directoryMatch))
         `when`(files.getMediaFile(Path.of(".").toAbsolutePath().resolve(relative).normalize())).thenReturn(workingMatch)

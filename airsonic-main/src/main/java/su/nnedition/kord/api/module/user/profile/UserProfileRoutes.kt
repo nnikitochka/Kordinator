@@ -64,12 +64,12 @@ fun Route.userProfileRoutes(
             val availableFields = request.hasChanges()
             require(availableFields) { "At least one setting must be provided" }
             request.themeId?.let { value ->
-                require(value.isEmpty() || service.availableThemes.any { it.id == value }) { "Unknown theme" }
+                require(value.isEmpty() || service.getAvailableThemes().any { it.id == value }) { "Unknown theme" }
             }
             val parsedLocale = request.locale?.let { value ->
                 if (value.isEmpty()) null else Locale.forLanguageTag(value).also {
                     require(it.language.isNotEmpty() && it.toLanguageTag().equals(value, true)) { "Unknown locale" }
-                    require(service.availableLocales.any { option -> option.toLanguageTag().equals(value, true) }) { "Unknown locale" }
+                    require(service.getAvailableLocales().any { option -> option.toLanguageTag().equals(value, true) }) { "Unknown locale" }
                 }
             }
             val albumList = request.defaultAlbumList?.let {

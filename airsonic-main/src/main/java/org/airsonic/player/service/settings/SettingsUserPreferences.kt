@@ -15,35 +15,35 @@ internal class SettingsUserPreferences(
     private var userDao: UserDao,
     private var avatarDao: AvatarDao,
     private val userSettingsCache: Cache<String, UserSettings>?,
-) {
-    fun getUserSettings(username: String): UserSettings = requireNotNull(
+) : SettingsUserAccess {
+    override fun getUserSettings(username: String): UserSettings = requireNotNull(
         CacheHelper.getOrCompute(userSettingsCache, username, Function { user ->
             user?.let { userDao.getUserSettings(it) ?: createDefaultUserSettings(it) }
         })
     )
 
-    fun updateUserSettings(settings: UserSettings?) {
+    override fun updateUserSettings(settings: UserSettings?) {
         if (userSettingsCache != null && settings?.username != null) {
             userSettingsCache.remove(settings.username)
         }
         userDao.updateUserSettings(settings!!)
     }
 
-    fun getAllSystemAvatars(): List<Avatar> = avatarDao.getAllSystemAvatars()
+    override fun getAllSystemAvatars(): List<Avatar> = avatarDao.getAllSystemAvatars()
 
-    fun getSystemAvatar(id: Int): Avatar? = avatarDao.getSystemAvatar(id)
+    override fun getSystemAvatar(id: Int): Avatar? = avatarDao.getSystemAvatar(id)
 
-    fun getCustomAvatar(username: String): Avatar? = avatarDao.getCustomAvatar(username)
+    override fun getCustomAvatar(username: String): Avatar? = avatarDao.getCustomAvatar(username)
 
-    fun setCustomAvatar(avatar: Avatar?, username: String) {
+    override fun setCustomAvatar(avatar: Avatar?, username: String) {
         avatarDao.setCustomAvatar(avatar, username)
     }
 
-    fun setUserDao(userDao: UserDao) {
+    override fun setUserDao(userDao: UserDao) {
         this.userDao = userDao
     }
 
-    fun setAvatarDao(avatarDao: AvatarDao) {
+    override fun setAvatarDao(avatarDao: AvatarDao) {
         this.avatarDao = avatarDao
     }
 

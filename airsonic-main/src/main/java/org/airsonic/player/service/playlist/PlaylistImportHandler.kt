@@ -24,7 +24,7 @@ abstract class PlaylistImportHandler(
         if (path.isAbsolute) return mediaFileService.getMediaFile(path)?.let(::listOf) ?: emptyList()
 
         val matches = ArrayList<MediaFile>()
-        settingsService.playlistFolder?.let { folder ->
+        settingsService.getPlaylistFolder()?.let { folder ->
             mediaFileService.getMediaFile(Paths.get(folder).resolve(path).normalize())?.let(matches::add)
         }
         matches.addAll(mediaFileService.getMediaFilesByRelativePath(path).filter {

@@ -39,18 +39,18 @@ fun Route.databaseRoutes(
             ?: return@get call.respondJson(ApiError("unavailable", "Settings are not configured"), HttpStatusCode.ServiceUnavailable)
         val db = context.databaseService
         val type = when {
-            settings.databaseJNDIName != null -> "JNDI"
-            settings.databaseUrl == SettingsService.getDefaultJDBCUrl() &&
-            settings.databaseUsername == SettingsService.getDefaultJDBCUsername() &&
-            settings.databasePassword == SettingsService.getDefaultJDBCPassword() -> "BUILTIN"
+            settings.getDatabaseJNDIName() != null -> "JNDI"
+            settings.getDatabaseUrl() == SettingsService.getDefaultJDBCUrl() &&
+            settings.getDatabaseUsername() == SettingsService.getDefaultJDBCUsername() &&
+            settings.getDatabasePassword() == SettingsService.getDefaultJDBCPassword() -> "BUILTIN"
             else -> "EXTERNAL"
         }
         call.respondJson(DatabaseSettingsResponse(
-                type, settings.databaseDriver.orEmpty(), settings.databaseUrl.orEmpty(),
-                settings.databaseUsername.orEmpty(), settings.databaseJNDIName.orEmpty(),
-                settings.databaseMysqlVarcharMaxlength, settings.dbBackupInterval,
-                settings.dbBackupRetentionCount, db?.backuppable() ?: false,
-                !settings.databasePassword.isNullOrEmpty(),
+                type, settings.getDatabaseDriver().orEmpty(), settings.getDatabaseUrl().orEmpty(),
+                settings.getDatabaseUsername().orEmpty(), settings.getDatabaseJNDIName().orEmpty(),
+                settings.getDatabaseMysqlVarcharMaxlength(), settings.getDbBackupInterval(),
+                settings.getDbBackupRetentionCount(), db?.backuppable() ?: false,
+                !settings.getDatabasePassword().isNullOrEmpty(),
         ))
     }
     put("/admin/settings/database") {

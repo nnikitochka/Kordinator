@@ -10,33 +10,33 @@ class GeneralSettingsAdministrationService(
     private val playlistService: PlaylistService,
 ) {
     val availableLocales: Array<Locale>
-        get() = settingsService.availableLocales
+        get() = settingsService.getAvailableLocales()
 
     val settings: GeneralSettingsCommand
         get() {
             val command = GeneralSettingsCommand()
-            command.coverArtFileTypes = settingsService.coverArtFileTypes
-            command.coverArtSource = settingsService.coverArtSource
-            command.coverArtConcurrency = settingsService.coverArtConcurrency
-            command.coverArtQuality = settingsService.coverArtQuality
-            command.ignoredArticles = settingsService.ignoredArticles
-            command.genreSeparators = settingsService.genreSeparators
-            command.shortcuts = settingsService.shortcuts
-            command.index = settingsService.indexString
-            command.playlistFolder = settingsService.playlistFolder
-            command.musicFileTypes = settingsService.musicFileTypes
-            command.videoFileTypes = settingsService.videoFileTypes
+            command.coverArtFileTypes = settingsService.getCoverArtFileTypes()
+            command.coverArtSource = settingsService.getCoverArtSource()
+            command.coverArtConcurrency = settingsService.getCoverArtConcurrency()
+            command.coverArtQuality = settingsService.getCoverArtQuality()
+            command.ignoredArticles = settingsService.getIgnoredArticles()
+            command.genreSeparators = settingsService.getGenreSeparators()
+            command.shortcuts = settingsService.getShortcuts()
+            command.index = settingsService.getIndexString()
+            command.playlistFolder = settingsService.getPlaylistFolder()
+            command.musicFileTypes = settingsService.getMusicFileTypes()
+            command.videoFileTypes = settingsService.getVideoFileTypes()
             command.sortAlbumsByYear = settingsService.isSortAlbumsByYear()
             command.gettingStartedEnabled = settingsService.isGettingStartedEnabled()
-            command.welcomeTitle = settingsService.welcomeTitle
-            command.welcomeSubtitle = settingsService.welcomeSubtitle
-            command.welcomeMessage = settingsService.welcomeMessage
-            command.loginMessage = settingsService.loginMessage
-            command.sessionDuration = settingsService.sessionDuration
+            command.welcomeTitle = settingsService.getWelcomeTitle()
+            command.welcomeSubtitle = settingsService.getWelcomeSubtitle()
+            command.welcomeMessage = settingsService.getWelcomeMessage()
+            command.loginMessage = settingsService.getLoginMessage()
+            command.sessionDuration = settingsService.getSessionDuration()
 
-            val themes = settingsService.availableThemes
+            val themes = settingsService.getAvailableThemes()
             command.themes = themes
-            val currentThemeId = settingsService.themeId
+            val currentThemeId = settingsService.getThemeId()
             for (index in themes.indices) {
                 if (currentThemeId == themes[index].id) {
                     command.themeIndex = index.toString()
@@ -44,8 +44,8 @@ class GeneralSettingsAdministrationService(
                 }
             }
 
-            val currentLocale = settingsService.locale
-            val locales = settingsService.availableLocales
+            val currentLocale = settingsService.getLocale()
+            val locales = settingsService.getAvailableLocales()
             val localeStrings = Array(locales.size) { index ->
                 if (currentLocale == locales[index]) command.localeIndex = index.toString()
                 locales[index].getDisplayName(locales[index])
@@ -55,11 +55,11 @@ class GeneralSettingsAdministrationService(
     }
 
     fun save(command: GeneralSettingsCommand) {
-        val theme = settingsService.availableThemes[command.themeIndex!!.toInt()]
-        val locale = settingsService.availableLocales[command.localeIndex!!.toInt()]
+        val theme = settingsService.getAvailableThemes()[command.themeIndex!!.toInt()]
+        val locale = settingsService.getAvailableLocales()[command.localeIndex!!.toInt()]
 
         // A changed cover source requires at least one full scan.
-        if (settingsService.coverArtSource != command.coverArtSource && !settingsService.fullScan) {
+        if (settingsService.getCoverArtSource() != command.coverArtSource && !settingsService.getFullScan()) {
             settingsService.setFullScan(true)
             settingsService.setClearFullScanSettingAfterScan(true)
         }
@@ -74,7 +74,7 @@ class GeneralSettingsAdministrationService(
         settingsService.setMusicFileTypes(command.musicFileTypes)
         settingsService.setVideoFileTypes(command.videoFileTypes)
         settingsService.setCoverArtFileTypes(command.coverArtFileTypes)
-        settingsService.setCoverArtSource(command.coverArtSource)
+        settingsService.setCoverArtSource(requireNotNull(command.coverArtSource))
         settingsService.setCoverArtConcurrency(command.coverArtConcurrency)
         settingsService.setCoverArtQuality(command.coverArtQuality)
         settingsService.setSortAlbumsByYear(command.sortAlbumsByYear)
