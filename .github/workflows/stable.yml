@@ -1,4 +1,4 @@
-name: 'Stable Deploy CI (Maven)'
+name: 'Stable Deploy CI (Gradle)'
 
 on:
   push:
@@ -15,13 +15,10 @@ jobs:
         with:
           java-version: 25
           distribution: temurin
-      - name: Cache Maven packages
-        uses: actions/cache@v3
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-m2-
+          gradle-version: '9.3.0'
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
@@ -31,16 +28,14 @@ jobs:
           install: true
       - name: Available platforms
         run: echo ${{ steps.buildx.outputs.platforms }}
-      - name: Remove snapshots
-        run: mvn versions:set -DremoveSnapshot=true -DgenerateBackupPoms=false
-      - name: Build with Maven
-        run: mvn -B -DskipTests -Dcheckstyle.skip=true -Dpmd.skip=true package
+      - name: Build with Gradle
+        run: gradle --no-daemon :kordinator-main:releaseArtifacts
       - name: Calculate tags
         if: success()
         id: tagcalc
         run: |
           # Create tag
-          tag=$(grep "version=" kordinator-main/target/generated/build-metadata/build.properties | cut -d"=" -f2);
+          tag=$(grep "version=" kordinator-main/build/generated/build-metadata/build.properties | cut -d"=" -f2);
           minor=$(echo $tag | cut -d"." -f1-2);
           major=$(echo $minor | cut -d"." -f1);
           echo $tag;
@@ -51,8 +46,8 @@ jobs:
         run: echo "${{ secrets.GPG_SIGNING_PRIVATE_KEY }}" | gpg --quiet --batch --yes --import
       - name: Sign artifacts
         run: |
-          echo "${{ secrets.GPG_SIGNING_PASSPHRASE }}" | gpg --quiet --batch --yes --pinentry-mode loopback --clearsign --passphrase-fd 0 kordinator-main/target/artifacts-checksums.sha;
-          #echo "${{ secrets.GPG_SIGNING_PASSPHRASE }}" | gpg --quiet --batch --yes --pinentry-mode loopback --detach-sign --armor --passphrase-fd 0 kordinator-main/target/kordinator.jar;
+          echo "${{ secrets.GPG_SIGNING_PASSPHRASE }}" | gpg --quiet --batch --yes --pinentry-mode loopback --clearsign --passphrase-fd 0 kordinator-main/build/artifacts-checksums.sha;
+          #echo "${{ secrets.GPG_SIGNING_PASSPHRASE }}" | gpg --quiet --batch --yes --pinentry-mode loopback --detach-sign --armor --passphrase-fd 0 kordinator-main/build/libs/kordinator.jar;
       - name: Deploy to GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
@@ -67,8 +62,8 @@ jobs:
           body: |
             List of issues addressed: https://github.com/nnikitochka/Kordinator/issues?q=milestone%3A${{ steps.tagcalc.outputs.tag }}
           files: |
-            kordinator-main/target/kordinator.jar
-            kordinator-main/target/artifacts-checksums.sha.asc
+            kordinator-main/build/libs/kordinator.jar
+            kordinator-main/build/artifacts-checksums.sha.asc
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
@@ -80,8 +75,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - run: mkdir -p install/docker/target/dependency
-      - run: cp kordinator-main/target/kordinator.jar install/docker/target/dependency/kordinator-main.jar
+      - run: mkdir -p install/docker/build/dependency
+      - run: cp kordinator-main/build/libs/kordinator.jar install/docker/build/dependency/kordinator.jar
       - name: Build and push multiplatform images to Dockerhub
         uses: docker/build-push-action@v4
         with:

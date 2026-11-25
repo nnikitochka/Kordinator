@@ -2,6 +2,6 @@
 !Dockerfile
 !entry.sh
 !run.sh
-!target/
-!target/dependency/
-!target/dependency/kordinator-main.jar
+!build/
+!build/dependency/
+!build/dependency/kordinator.jar

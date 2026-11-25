@@ -1,4 +1,4 @@
-name: 'Edge Deploy CI (Maven)'
+name: 'Edge Deploy CI (Gradle)'
 
 on:
   push:
@@ -15,13 +15,10 @@ jobs:
         with:
           java-version: 25
           distribution: temurin
-      - name: Cache Maven packages
-        uses: actions/cache@v3
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-m2-
+          gradle-version: '9.3.0'
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
@@ -31,18 +28,25 @@ jobs:
           install: true
       - name: Available platforms
         run: echo ${{ steps.buildx.outputs.platforms }}
-      - name: Build with Maven
+      - name: Build with Gradle
         run: >-
-          mvn -B -Dcheckstyle.skip=true -Dpmd.skip=true
-          '-Dtest=KtorStandalone*Test,Kordinator*Test,RuntimeCompositionRoot*Test,*DaoTestCase,JdbcHelperTest,CoverArtServiceAccentColorTest,LegacyDatabaseStartupTestCase,MediaScannerService*Test*,SettingsServiceTestCase,TranscodingServiceIntTest,MetaDataFactoryTestCase,*SearchService*TestCase,IndexManagerTestCase,QueryFactoryTestCase,ScheduledTaskSnapshotTest,PlaylistServiceHandlerOrderTest'
-          -Dsurefire.failIfNoSpecifiedTests=false package
+          gradle --no-daemon
+          :kordinator-main:test :kordinator-main:releaseArtifacts
+          --tests 'KtorStandalone*Test' --tests 'Kordinator*Test'
+          --tests 'RuntimeCompositionRoot*Test' --tests '*DaoTestCase'
+          --tests 'JdbcHelperTest' --tests 'CoverArtServiceAccentColorTest'
+          --tests 'LegacyDatabaseStartupTestCase' --tests 'MediaScannerService*Test*'
+          --tests 'SettingsServiceTestCase' --tests 'TranscodingServiceIntTest'
+          --tests 'MetaDataFactoryTestCase' --tests '*SearchService*TestCase'
+          --tests 'IndexManagerTestCase' --tests 'QueryFactoryTestCase'
+          --tests 'ScheduledTaskSnapshotTest' --tests 'PlaylistServiceHandlerOrderTest'
       - name: Calculate tags
         if: success()
         id: tagcalc
         run: |
           # Create tag
-          ver=$(grep "version=" kordinator-main/target/generated/build-metadata/build.properties | cut -d"=" -f2);
-          ts=$(grep "timestamp=" kordinator-main/target/generated/build-metadata/build.properties | cut -d"=" -f2);
+          ver=$(grep "version=" kordinator-main/build/generated/build-metadata/build.properties | cut -d"=" -f2);
+          ts=$(grep "timestamp=" kordinator-main/build/generated/build-metadata/build.properties | cut -d"=" -f2);
           # Note this doesn't completely follow semver because docker tags do not take a + sign
           tag=$ver\.$ts;
           echo $tag;
@@ -59,8 +63,8 @@ jobs:
           prerelease: true
           generate_release_notes: true
           files: |
-            kordinator-main/target/kordinator.jar
-            kordinator-main/target/artifacts-checksums.sha
+            kordinator-main/build/libs/kordinator.jar
+            kordinator-main/build/artifacts-checksums.sha
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
@@ -72,8 +76,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - run: mkdir -p install/docker/target/dependency
-      - run: cp kordinator-main/target/kordinator.jar install/docker/target/dependency/kordinator-main.jar
+      - run: mkdir -p install/docker/build/dependency
+      - run: cp kordinator-main/build/libs/kordinator.jar install/docker/build/dependency/kordinator.jar
       - name: Build and push multiplatform images to Dockerhub
         uses: docker/build-push-action@v4
         with:

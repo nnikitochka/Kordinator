@@ -31,6 +31,11 @@ jobs:
       with:
         java-version: 25
         distribution: temurin
+
+    - name: Set up Gradle
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: '9.3.0'
           
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
@@ -38,7 +43,7 @@ jobs:
         languages: ${{ matrix.language }}
 
     - name: Build
-      run: mvn package -DskipTests -Dcheckstyle.skip=true -Dpmd.skip=true
+      run: gradle --no-daemon :kordinator-main:classes
         
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2

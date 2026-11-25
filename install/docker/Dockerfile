@@ -8,7 +8,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --chmod=755 run.sh entry.sh /usr/local/bin/
-COPY target/dependency/kordinator-main.jar /app/kordinator.jar
+COPY build/dependency/kordinator.jar /app/kordinator.jar
 
 EXPOSE ${KORDINATOR_PORT}
 VOLUME ["/var/kordinator", "/var/music"]
