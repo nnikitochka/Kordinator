@@ -1,15 +1,11 @@
 package org.airsonic.player.service;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.RateLimiter;
 import org.airsonic.player.dao.AvatarDao;
 import org.airsonic.player.dao.UserDao;
 import org.airsonic.player.domain.*;
 import org.airsonic.player.service.settings.*;
 import org.airsonic.player.util.Util;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.airsonic.player.runtime.RuntimeConfiguration;
@@ -17,25 +13,16 @@ import org.airsonic.player.runtime.RuntimeConfiguration;
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 /**
  * Provides persistent storage of application settings and preferences.
  */
 public class SettingsService {
-    // Airsonic home directory.
-    private static final Path AIRSONIC_HOME_WINDOWS = Paths.get("c:/airsonic");
-    private static final Path AIRSONIC_HOME_OTHER = Paths.get("/var/airsonic");
-
     // Global settings.
     private static final String KEY_REMEMBER_ME_KEY = "RememberMeKey";
 
@@ -116,89 +103,30 @@ public class SettingsService {
     }
 
     public static Path getAirsonicHome() {
-        Path home;
-
-        String overrideHome = System.getProperty("airsonic.home");
-        String oldHome = System.getProperty("libresonic.home");
-        if (overrideHome != null) {
-            home = Paths.get(overrideHome);
-        } else if (oldHome != null) {
-            home = Paths.get(oldHome);
-        } else {
-            home = Util.isWindows() ? AIRSONIC_HOME_WINDOWS : AIRSONIC_HOME_OTHER;
-        }
-        ensureDirectoryPresent(home);
-
-        return home;
+        return SettingsEnvironment.getAirsonicHome();
     }
 
     /**
      * Returns the directory in which all transcoders are installed.
      */
     public static Path getTranscodeDirectory() {
-        Path dir = getAirsonicHome().resolve("transcode");
-        if (!Files.exists(dir)) {
-            try {
-                dir = Files.createDirectory(dir);
-                LOG.info("Created directory {}", dir);
-            } catch (Exception e) {
-                LOG.warn("Failed to create directory {}", dir);
-            }
-        }
-        return dir;
+        return SettingsEnvironment.getTranscodeDirectory();
     }
-
-    private static boolean isExecutableInstalled(String executable) {
-        Process process = null;
-        try {
-            process = new ProcessBuilder(executable).start();
-            LOG.debug("{} exists and can be executed. Last executed {}", executable, process.info().startInstant());
-            return true;
-        } catch (IOException e) {
-            LOG.debug("{} cannot be executed", executable, e);
-            return false;
-        } finally {
-            if (process != null) {
-                process.destroy();
-            }
-        }
-    }
-
-    private static final LoadingCache<String, String> transcodeExecutableCache = CacheBuilder.newBuilder()
-        .expireAfterAccess(8, TimeUnit.HOURS)
-        .build(new CacheLoader<>() {
-            @Override
-            public String load(@NotNull String executable) {
-                    return Stream.of(getTranscodeDirectory().resolve(executable).toString(), executable)
-                        .filter(SettingsService::isExecutableInstalled)
-                        .findFirst()
-                        .orElseThrow();
-            }
-        });
 
     public static String resolveTranscodeExecutable(String executable, String defaultValue) {
-        try {
-            return transcodeExecutableCache.get(executable);
-        } catch (Exception e) {
-            return defaultValue;
-        }
-    }
-
-    private static String getFileSystemAppName() {
-        String home = getAirsonicHome().toString();
-        return home.contains("libresonic") ? "libresonic" : "airsonic";
+        return SettingsEnvironment.resolveTranscodeExecutable(executable, defaultValue);
     }
 
     public static String getDefaultJDBCUrl() {
-        return "jdbc:hsqldb:file:" + getAirsonicHome().resolve("db").resolve(getFileSystemAppName()) + ";hsqldb.tx=mvcc;sql.enforce_size=false;sql.char_literal=false;sql.nulls_first=false;sql.pad_space=false;hsqldb.defrag_limit=50;shutdown=true";
+        return SettingsEnvironment.getDefaultJDBCUrl();
     }
 
     public static String getDefaultJDBCUsername() {
-        return "sa";
+        return SettingsEnvironment.getDefaultJDBCUsername();
     }
 
     public static String getDefaultJDBCPassword() {
-        return "";
+        return SettingsEnvironment.getDefaultJDBCPassword();
     }
 
     public int getUPnpPort() {
@@ -206,7 +134,7 @@ public class SettingsService {
     }
 
     public static String getDefaultLogFile() {
-        return SettingsService.getAirsonicHome().resolve(getFileSystemAppName() + ".log").toString();
+        return SettingsEnvironment.getDefaultLogFile();
     }
 
     public String getLogFile() {
@@ -230,22 +158,8 @@ public class SettingsService {
         properties.save();
     }
 
-    private static void ensureDirectoryPresent(Path home) {
-        // Attempt to create home directory if it doesn't exist.
-        if (!Files.exists(home) || !Files.isDirectory(home)) {
-            try {
-                Files.createDirectories(home);
-            } catch (Exception e) {
-                LOG.error("Could not create or see home directory {}", home, e);
-                String message = "The directory " + home + " does not exist. Please create it and make it writable. " +
-                        "(Set -Dairsonic.home=... or --airsonic.home=... when starting the server.)";
-                throw new RuntimeException(message);
-            }
-        }
-    }
-
     static Path getPropertyFile() {
-        return getAirsonicHome().resolve(getFileSystemAppName() + ".properties");
+        return SettingsEnvironment.getPropertyFile();
     }
 
     private final SettingsValueStore valueStore;
