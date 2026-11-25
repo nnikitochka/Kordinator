@@ -35,7 +35,7 @@
 
 ### Production: 0 Java-файлов
 
-### Тесты и fixtures: 73 файла
+### Тесты и fixtures: 70 файлов
 
 - `airsonic-main/src/test/java/org/airsonic/player/TestCaseUtils.java`
 - `airsonic-main/src/test/java/org/airsonic/player/api/ScanningTestUtils.java`
@@ -49,10 +49,8 @@
 - `airsonic-main/src/test/java/org/airsonic/player/domain/MediaFileComparatorTestCase.java`
 - `airsonic-main/src/test/java/org/airsonic/player/domain/PlayQueueTestCase.java`
 - `airsonic-main/src/test/java/org/airsonic/player/domain/SortableArtistTestCase.java`
-- `airsonic-main/src/test/java/org/airsonic/player/domain/TranscodeSchemeTestCase.java`
 - `airsonic-main/src/test/java/org/airsonic/player/domain/VersionTestCase.java`
 - `airsonic-main/src/test/java/org/airsonic/player/filter/ParameterDecodingPolicyTest.java`
-- `airsonic-main/src/test/java/org/airsonic/player/filter/RequestEncodingPolicyTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/filter/StaticResponseHeadersTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/health/HealthFrameworkTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/runtime/LifecycleRegistryTest.java`
@@ -104,7 +102,6 @@
 - `airsonic-main/src/test/java/org/airsonic/player/service/upnp/CustomContentDirectoryUrlTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/service/upnp/DispatchingContentDirectoryUrlTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/service/upnp/FolderBasedContentDirectoryUrlTest.java`
-- `airsonic-main/src/test/java/org/airsonic/player/util/EmbeddedTestCategory.java`
 - `airsonic-main/src/test/java/org/airsonic/player/util/FileUtils.java`
 - `airsonic-main/src/test/java/org/airsonic/player/util/HomeRule.java`
 - `airsonic-main/src/test/java/org/airsonic/player/util/MusicFolderTestData.java`
@@ -161,3 +158,4 @@
 - `SettingsEnvironment.kt` перенесла выбор и создание домашнего каталога, каталог transcoder, кеш обнаружения исполняемых файлов и default database/log/property paths. Статические вызовы `SettingsService` сохранены как делегаты. `SettingsServiceTestCase`, `RuntimeConfigurationLoaderTest`, `StandaloneAudioTranscodingServiceTest` и `MetaDataParsingTest`: 42 теста прошли.
 - `SettingsService` заменён Kotlin-фасадом из 185 строк. Его операции делегированы тематическим компонентам через интерфейсы; Java API статических функций и настроек сохранён для потребителей. Конструктор продолжает принимать `null` для необязательного `CacheManager`. Обновлены обращения в Kotlin production-коде и тестах. Чистый `test-compile` прошёл; 53 целевых теста настроек, runtime-конфигурации, DLNA, БД, транскодирования, плейлистов и загрузок прошли.
 - Остальные Liquibase custom changes перенесены в Kotlin-пакет `org.airsonic.player.runtime.migrations`; два custom changes, работавшие только с данными podcast-таблиц, удалены вместе с вызовами. Ссылки в Liquibase XML обновлены. Чистая компиляция прошла, `RuntimeLiquibaseMigratorTest` и `StandaloneDatabaseTest` прошли (4 теста); production Java-файлов больше нет. Исторические XML changesets ещё содержат удаляемые podcast schema changes, но итоговая схема продолжает удалять podcast-таблицы; их полное упрощение остаётся отдельным пунктом аудита базы/схемы.
+- На Kotlin переведены два оставшихся небольших Java test-класса (`RequestEncodingPolicyTest`, `TranscodeSchemeTestCase`) и JUnit category marker `EmbeddedTestCategory`, который продолжает использоваться из Java fixture. Количество Java test/fixture-файлов уменьшено с 73 до 70.
