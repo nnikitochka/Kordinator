@@ -82,6 +82,11 @@ public class SettingsServiceTestCase {
         assertEquals("Wrong default SMTP encryption.", "None", settingsService.getSmtpEncryption());
         assertEquals("Wrong default SMTP from address.", "airsonic@airsonic.org", settingsService.getSmtpFrom());
         assertFalse("Wrong default CAPTCHA setting.", settingsService.isCaptchaEnabled());
+        assertFalse("Wrong default DLNA state.", settingsService.isDlnaEnabled());
+        assertEquals("Wrong default DLNA server name.", "Airsonic", settingsService.getDlnaServerName());
+        assertNull("Wrong default DLNA server ID.", settingsService.getDlnaServerId());
+        assertNull("Wrong default DLNA base URL.", settingsService.getDlnaBaseLANURL());
+        assertEquals("Wrong default UPnP port.", 4041, settingsService.getUPnpPort());
         assertEquals("30m", settingsService.getSessionDuration());
     }
 
@@ -144,6 +149,10 @@ public class SettingsServiceTestCase {
         settingsService.setCaptchaEnabled(true);
         settingsService.setRecaptchaSiteKey("site-key");
         settingsService.setRecaptchaSecretKey("secret-key");
+        settingsService.setDlnaEnabled(true);
+        settingsService.setDlnaServerName("Kordinator");
+        settingsService.setDlnaServerId("server-id");
+        settingsService.setDlnaBaseLANURL("http://music.example.test/");
 
         verifySettings(settingsService);
 
@@ -186,6 +195,10 @@ public class SettingsServiceTestCase {
         assertTrue("Wrong CAPTCHA setting.", ss.isCaptchaEnabled());
         assertEquals("Wrong reCAPTCHA site key.", "site-key", ss.getRecaptchaSiteKey());
         assertEquals("Wrong reCAPTCHA secret key.", "secret-key", ss.getRecaptchaSecretKey());
+        assertTrue("Wrong DLNA state.", ss.isDlnaEnabled());
+        assertEquals("Wrong DLNA server name.", "Kordinator", ss.getDlnaServerName());
+        assertEquals("Wrong DLNA server ID.", "server-id", ss.getDlnaServerId());
+        assertEquals("Wrong DLNA base URL.", "http://music.example.test/", ss.getDlnaBaseLANURL());
     }
 
     @Test

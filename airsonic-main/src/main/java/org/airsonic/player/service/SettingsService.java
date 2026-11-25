@@ -43,11 +43,6 @@ public class SettingsService {
     private static final String KEY_JUKEBOX_COMMAND = "JukeboxCommand2";
     private static final String KEY_VIDEO_IMAGE_COMMAND = "VideoImageCommand";
     private static final String KEY_SUBTITLES_EXTRACTION_COMMAND = "SubtitlesExtractionCommand";
-    private static final String KEY_DLNA_ENABLED = "DlnaEnabled";
-    private static final String KEY_DLNA_SERVER_NAME = "DlnaServerName";
-    private static final String KEY_DLNA_SERVER_ID = "DlnaServerId";
-    private static final String KEY_DLNA_BASE_LAN_URL = "DlnaBaseLANURL";
-    private static final String KEY_UPNP_PORT = "UPnpPort";
     private static final String KEY_JWT_KEY = "JWTKey";
     private static final String KEY_REMEMBER_ME_KEY = "RememberMeKey";
     private static final String KEY_ENCRYPTION_PASSWORD = "EncryptionKeyPassword";
@@ -76,11 +71,6 @@ public class SettingsService {
     private static final String DEFAULT_JUKEBOX_COMMAND = "ffmpeg -ss %o -i %s -map 0:0 -v 0 -ar 44100 -ac 2 -f s16be -";
     private static final String DEFAULT_VIDEO_IMAGE_COMMAND = "ffmpeg -r 1 -ss %o -t 1 -i %s -s %wx%h -v 0 -f mjpeg -";
     private static final String DEFAULT_SUBTITLES_EXTRACTION_COMMAND = "ffmpeg -i %s -map 0:%i -f %f -";
-    private static final boolean DEFAULT_DLNA_ENABLED = false;
-    private static final String DEFAULT_DLNA_SERVER_NAME = "Airsonic";
-    private static final String DEFAULT_DLNA_SERVER_ID = null;
-    private static final String DEFAULT_DLNA_BASE_LAN_URL = null;
-    private static final int DEFAULT_UPNP_PORT = 4041;
     private static final String DEFAULT_EXPORT_PLAYLIST_FORMAT = "m3u";
     private static final String DEFAULT_PREFERRED_NONDECODABLE_PASSWORD_ENCODER = "bcrypt";
     private static final String DEFAULT_PREFERRED_DECODABLE_PASSWORD_ENCODER = "encrypted-AES-GCM";
@@ -114,6 +104,7 @@ public class SettingsService {
     private final SettingsRateLimitPreferences rateLimitPreferences;
     private final SettingsLdapPreferences ldapPreferences;
     private final SettingsMailPreferences mailPreferences;
+    private final SettingsDlnaPreferences dlnaPreferences;
     private final ConfigurationPropertiesService properties;
 
     public SettingsService(UserDao userDao, AvatarDao avatarDao, RuntimeConfiguration configuration,
@@ -131,6 +122,7 @@ public class SettingsService {
         this.rateLimitPreferences = new SettingsRateLimitPreferences(valueStore);
         this.ldapPreferences = new SettingsLdapPreferences(valueStore);
         this.mailPreferences = new SettingsMailPreferences(valueStore);
+        this.dlnaPreferences = new SettingsDlnaPreferences(valueStore);
         Cache<String, UserSettings> userSettingsCache = cacheManager != null
                 ? cacheManager.getCache("userSettingsCache", String.class, UserSettings.class) : null;
         this.userPreferences = new SettingsUserPreferences(userDao, avatarDao, userSettingsCache);
@@ -336,7 +328,7 @@ public class SettingsService {
     }
 
     public int getUPnpPort() {
-        return getInt(KEY_UPNP_PORT, DEFAULT_UPNP_PORT);
+        return dlnaPreferences.getUpnpPort();
     }
 
     public static String getDefaultLogFile() {
@@ -993,35 +985,35 @@ public class SettingsService {
     }
 
     public boolean isDlnaEnabled() {
-        return getBoolean(KEY_DLNA_ENABLED, DEFAULT_DLNA_ENABLED);
+        return dlnaPreferences.isEnabled();
     }
 
     public void setDlnaEnabled(boolean dlnaEnabled) {
-        setBoolean(KEY_DLNA_ENABLED, dlnaEnabled);
+        dlnaPreferences.setEnabled(dlnaEnabled);
     }
 
     public String getDlnaServerName() {
-        return getString(KEY_DLNA_SERVER_NAME, DEFAULT_DLNA_SERVER_NAME);
+        return dlnaPreferences.getServerName();
     }
 
     public void setDlnaServerName(String dlnaServerName) {
-        setString(KEY_DLNA_SERVER_NAME, dlnaServerName);
+        dlnaPreferences.setServerName(dlnaServerName);
     }
 
     public String getDlnaServerId() {
-        return getString(KEY_DLNA_SERVER_ID, DEFAULT_DLNA_SERVER_ID); // default is null
+        return dlnaPreferences.getServerId();
     }
 
     public void setDlnaServerId(String dlnaServerId) {
-        setString(KEY_DLNA_SERVER_ID, dlnaServerId);
+        dlnaPreferences.setServerId(dlnaServerId);
     }
 
     public String getDlnaBaseLANURL() {
-        return getString(KEY_DLNA_BASE_LAN_URL, DEFAULT_DLNA_BASE_LAN_URL);
+        return dlnaPreferences.getBaseLanUrl();
     }
 
     public void setDlnaBaseLANURL(String dlnaBaseLANURL) {
-        setString(KEY_DLNA_BASE_LAN_URL, dlnaBaseLANURL);
+        dlnaPreferences.setBaseLanUrl(dlnaBaseLANURL);
     }
 
     public void setUserDao(UserDao userDao) {
