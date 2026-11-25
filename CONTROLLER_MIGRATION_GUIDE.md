@@ -35,7 +35,7 @@
 
 ### Production: 0 Java-файлов
 
-### Тесты и fixtures: 67 файлов
+### Тесты и fixtures: 64 файла
 
 - `airsonic-main/src/test/java/org/airsonic/player/TestCaseUtils.java`
 - `airsonic-main/src/test/java/org/airsonic/player/api/ScanningTestUtils.java`
@@ -46,10 +46,7 @@
 - `airsonic-main/src/test/java/org/airsonic/player/dao/PlayerDaoTestCase.java`
 - `airsonic-main/src/test/java/org/airsonic/player/dao/TranscodingDaoTestCase.java`
 - `airsonic-main/src/test/java/org/airsonic/player/dao/UserDaoTestCase.java`
-- `airsonic-main/src/test/java/org/airsonic/player/domain/MediaFileComparatorTestCase.java`
 - `airsonic-main/src/test/java/org/airsonic/player/domain/PlayQueueTestCase.java`
-- `airsonic-main/src/test/java/org/airsonic/player/domain/SortableArtistTestCase.java`
-- `airsonic-main/src/test/java/org/airsonic/player/domain/VersionTestCase.java`
 - `airsonic-main/src/test/java/org/airsonic/player/filter/ParameterDecodingPolicyTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/filter/StaticResponseHeadersTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/health/HealthFrameworkTest.java`
@@ -159,4 +156,5 @@
 - `AuthorizationPolicyTest` переведён на Kotlin без изменения проверок анонимного доступа, ролей, прав к папкам и reserved admin username. Чистая сборка целевого теста прошла: 4 теста.
 - `AesGcmPasswordEncoderTest` переведён на Kotlin, сохранив проверки дешифровки, случайного nonce, совпадения пароля и отказа при несовпадающем пароле/соли. Чистая сборка и все 6 тестов прошли.
 - `UserIdentityTest` переведён на Kotlin; сохранены проверки snapshot-семантики credentials/roles и Java-конструктора на null-входы через reflection. Чистая сборка и оба теста прошли.
+- Три небольших доменных Java-теста (`VersionTestCase`, `SortableArtistTestCase`, `MediaFileComparatorTestCase`) переведены на Kotlin без изменения проверок сравнения версий, collation и порядка альбомов/треков. Чистая сборка с 7 целевыми тестами прошла. Осталось 64 Java test/fixture-файла.
 - Runtime-аудит: Maven `dependency:tree` для runtime scope не содержит Spring, Servlet API или Tomcat; production-исходники не импортируют эти framework API. Собранный `kordinator.jar` запускается с `su.nnedition.kord.Kordinator`, `/api/v1/health` вернул HTTP 200 и `{"status":"UP"}`, процесс завершился штатным shutdown hook. При этом сам старт пока всё ещё выполняет legacy changelog/DAO-граф, что должно быть устранено на этапе 7.
