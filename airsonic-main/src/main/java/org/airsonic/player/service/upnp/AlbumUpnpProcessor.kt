@@ -26,7 +26,7 @@ open class AlbumUpnpProcessor : UpnpContentProcessor<Album, MediaFile>() {
 
     override fun browseRoot(filter: String?, firstResult: Long, maxResults: Long, orderBy: Array<out SortCriterion>?): BrowseResult {
         val didl = DIDLContent()
-        val folders = getDispatchingContentDirectory().getMediaFolderService().allMusicFolders
+        val folders = getDispatchingContentDirectory().getMediaFolderService().getAllMusicFolders()
         getAlbumDao().getAlphabeticalAlbums(Ints.saturatedCast(firstResult), Ints.saturatedCast(maxResults), false, true, folders)
             .forEach { addItem(didl, it) }
         return createBrowseResult(didl, didl.count.toLong(), getAllItemsSize().toLong())
@@ -46,7 +46,7 @@ open class AlbumUpnpProcessor : UpnpContentProcessor<Album, MediaFile>() {
     }
 
     override fun getAllItems(): List<Album> = getAlbumDao().getAlphabeticalAlbums(
-        0, Int.MAX_VALUE, false, true, getDispatchingContentDirectory().getMediaFolderService().allMusicFolders,
+        0, Int.MAX_VALUE, false, true, getDispatchingContentDirectory().getMediaFolderService().getAllMusicFolders(),
     )
 
     override fun getItemById(id: String): Album? = if (id.startsWith(ALL_BY_ARTIST) || id.equals(ALL_RECENT, true)) {
@@ -74,7 +74,7 @@ open class AlbumUpnpProcessor : UpnpContentProcessor<Album, MediaFile>() {
         return files
     }
 
-    override fun getAllItemsSize(): Int = getAlbumDao().getAlbumCount(getDispatchingContentDirectory().getMediaFolderService().allMusicFolders)
+    override fun getAllItemsSize(): Int = getAlbumDao().getAlbumCount(getDispatchingContentDirectory().getMediaFolderService().getAllMusicFolders())
 
     override fun addChild(didl: DIDLContent, child: MediaFile) {
         didl.addItem(getDispatcher().getMediaFileProcessor().createItem(child))

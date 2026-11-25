@@ -4,5 +4,5 @@ import org.airsonic.player.domain.PlayQueue
 import org.airsonic.player.service.MediaFolderService
 
 class PlayerDaoPlayQueueFactory(private val mediaFolderService: MediaFolderService) {
-    fun createPlayQueue(): PlayQueue = PlayQueue(mediaFolderService::getMusicFolderById)
+    fun createPlayQueue(): PlayQueue = PlayQueue { folderId -> mediaFolderService.getMusicFolderById(folderId)!! }
 }

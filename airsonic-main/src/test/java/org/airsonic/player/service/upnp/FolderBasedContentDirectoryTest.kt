@@ -23,7 +23,7 @@ class FolderBasedContentDirectoryTest {
         `when`(indexManager.getStatistics()).thenReturn(statistics)
         val folders = listOf(MusicFolder(1, Path.of("/music"), "Music", MusicFolder.Type.MEDIA, true, null))
         val mediaFolderService = mock(MediaFolderService::class.java)
-        `when`(mediaFolderService.allMusicFolders).thenReturn(folders)
+        `when`(mediaFolderService.getAllMusicFolders()).thenReturn(folders)
         val directory = FolderBasedContentDirectory(null, mediaFolderService, null, indexManager)
 
         val result = directory.browse("0", BrowseFlag.METADATA, null, 0, 0, null)

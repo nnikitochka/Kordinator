@@ -95,7 +95,7 @@ abstract class UpnpContentProcessor<T, U> {
         val clazz = (javaClass.genericSuperclass as ParameterizedType).actualTypeArguments[0] as Class<T>
         return try {
             val directory = getDispatchingContentDirectory()!!
-            val allFolders: List<MusicFolder> = directory.getMediaFolderService().allMusicFolders
+            val allFolders: List<MusicFolder> = directory.getMediaFolderService().getAllMusicFolders()
             val result: ParamSearchResult<T> = directory.getSearchService().searchByName(
                 name,
                 Ints.saturatedCast(firstResult),

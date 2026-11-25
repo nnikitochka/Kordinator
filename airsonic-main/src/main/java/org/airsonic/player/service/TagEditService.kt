@@ -27,7 +27,7 @@ open class TagEditService(
             }
             if (!file.isFile) throw IllegalArgumentException("Media file is not a file")
 
-            val folder: MusicFolder = mediaFolderService.getMusicFolderById(file.folderId)
+            val folder: MusicFolder = mediaFolderService.getMusicFolderById(file.folderId)!!
             val filePath = file.getFullPath(folder.path)
             val parser: MetaDataParser? = metaDataParserFactory.getParser(filePath)
             if (parser == null || !parser.isEditingSupported()) {

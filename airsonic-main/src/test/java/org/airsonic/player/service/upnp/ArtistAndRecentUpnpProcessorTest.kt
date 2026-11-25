@@ -16,7 +16,7 @@ class ArtistAndRecentUpnpProcessorTest {
     fun sortsArtistsAndAddsAllAlbumsEntryWhenNeeded() {
         val folders = listOf(MusicFolder(1, Path.of("/music"), "Music", MusicFolder.Type.MEDIA, true, null))
         val folderService = mock(MediaFolderService::class.java)
-        `when`(folderService.allMusicFolders).thenReturn(folders)
+        `when`(folderService.getAllMusicFolders()).thenReturn(folders)
         val directory = mock(DispatchingContentDirectory::class.java)
         `when`(directory.getMediaFolderService()).thenReturn(folderService)
         val artistDao = mock(ArtistDao::class.java)
@@ -41,7 +41,7 @@ class ArtistAndRecentUpnpProcessorTest {
     fun recentAlbumsIncludeAggregateAndCapTotalCount() {
         val folders = listOf(MusicFolder(1, Path.of("/music"), "Music", MusicFolder.Type.MEDIA, true, null))
         val folderService = mock(MediaFolderService::class.java)
-        `when`(folderService.allMusicFolders).thenReturn(folders)
+        `when`(folderService.getAllMusicFolders()).thenReturn(folders)
         val directory = mock(DispatchingContentDirectory::class.java)
         `when`(directory.getMediaFolderService()).thenReturn(folderService)
         val albums = mock(AlbumDao::class.java)

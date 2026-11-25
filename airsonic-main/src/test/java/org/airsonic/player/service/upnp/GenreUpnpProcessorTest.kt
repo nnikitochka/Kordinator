@@ -47,7 +47,7 @@ class GenreUpnpProcessorTest {
         `when`(mediaFileService.getGenres(false)).thenReturn(genres)
         val folders = listOf(MusicFolder(1, Path.of("/music"), "Music", MusicFolder.Type.MEDIA, true, null))
         val folderService = mock(MediaFolderService::class.java)
-        `when`(folderService.allMusicFolders).thenReturn(folders)
+        `when`(folderService.getAllMusicFolders()).thenReturn(folders)
         val expectedTracks = listOf(mock(MediaFile::class.java))
         val mediaFileDao = mock(MediaFileDao::class.java)
         `when`(mediaFileDao.getSongsByGenre("Rock", 0, Int.MAX_VALUE, folders)).thenReturn(expectedTracks)

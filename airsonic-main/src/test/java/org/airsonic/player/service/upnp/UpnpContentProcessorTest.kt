@@ -42,7 +42,7 @@ class UpnpContentProcessorTest {
     fun searchesUsingConcreteProcessorTypeAndReturnsTotalHits() {
         val folders = listOf(MusicFolder(1, java.nio.file.Path.of("/music"), "Music", MusicFolder.Type.MEDIA, true, null))
         val folderService = mock(MediaFolderService::class.java)
-        `when`(folderService.allMusicFolders).thenReturn(folders)
+        `when`(folderService.getAllMusicFolders()).thenReturn(folders)
         val searchService = mock(SearchService::class.java)
         val searchResult = ParamSearchResult<String>().apply {
             items.add("matched")

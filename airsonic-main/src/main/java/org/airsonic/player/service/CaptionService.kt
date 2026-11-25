@@ -76,7 +76,7 @@ open class CaptionService(
     }
 
     open fun getVideoMetaData(video: MediaFile): MetaData? {
-        val videoFullPath = video.getFullPath(mediaFolderService.getMusicFolderById(video.folderId).path)
+        val videoFullPath = video.getFullPath(mediaFolderService.getMusicFolderById(video.folderId)!!.path)
         val parser: MetaDataParser? = metaDataParserFactory.getParser(videoFullPath)
         return parser?.getMetaData(videoFullPath)
     }
@@ -89,7 +89,7 @@ open class CaptionService(
 
     open fun findExternalCaptionsForVideo(video: MediaFile): List<Path> {
         val parent = mediaFileService.getParentOf(video) ?: return emptyList()
-        val parentPath = parent.getFullPath(mediaFolderService.getMusicFolderById(parent.folderId).path)
+        val parentPath = parent.getFullPath(mediaFolderService.getMusicFolderById(parent.folderId)!!.path)
         return try {
             Files.walk(parentPath).use { children ->
                 children.filter(Files::isRegularFile)

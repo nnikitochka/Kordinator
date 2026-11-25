@@ -31,7 +31,7 @@ open class XspfPlaylistExportHandler(
         output.creator = "Airsonic user ${playlist.username}"
         output.date = Date.from(Instant.now())
         mediaFileDao.getFilesInPlaylist(id).forEach { mediaFile ->
-            val folder = mediaFolderService.getMusicFolderById(mediaFile.folderId)
+            val folder = mediaFolderService.getMusicFolderById(mediaFile.folderId)!!
             val track = Track()
             track.trackNumber = mediaFile.trackNumber
             track.creator = mediaFile.artist

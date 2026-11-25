@@ -14,7 +14,7 @@
 
 1. **Composition root — завершён.** Перенести `RuntimeCompositionRoot` на Kotlin, разделив infrastructure, security, settings, media, search/scanner, playlists, playback, UPnP и application services. Сохранить singleton identity, ленивый PlayerService supplier, общий reentrant lock, проверки порядка сборки графа и регистрацию lifecycle ровно один раз. Проверки: runtime graph, конкурентное создание компонентов, JDBC/Liquibase, запуск API и реальное сканирование.
 2. **Метаданные и малые зависимости.** Перенести `MetaData`, parser contract и parser implementations; затем playlist import/export contracts и handlers, HLS session, audio player, scrobbler adapters и утилиты. Сохранить nullable поля, сортировки, ошибки чтения файлов, закрытие потоков и транскодирующих процессов. Проверки: существующие parser, playlist, HLS/transcoding и streaming tests.
-3. **Каталог и сканирование.** Перенести `CoverArtImageService` (завершён), затем разделить и перенести `MediaFolderService`, `MediaFileService`, `MediaScannerService`, `LastFmService`. Проверки: сканирование реальной папки, повторное сканирование, удалённые файлы, изоляция библиотек, каталог/поиск и обложки.
+3. **Каталог и сканирование.** Перенесены `CoverArtImageService` и `MediaFolderService`; далее разделить и перенести `MediaFileService`, `MediaScannerService`, `LastFmService`. Проверки: сканирование реальной папки, повторное сканирование, удалённые файлы, изоляция библиотек, каталог/поиск и обложки.
 4. **Настройки и безопасность.** Перенести `VersionService` (завершён), затем разделить и перенести `SettingsService`, `SecurityService`, `DatabaseService`; сохранить права, кеши, обновления credentials, настройки и backup/import/export. Проверки: security/settings suites и соответствующие admin API.
 5. **Воспроизведение и плейлисты.** Перенести `PlaylistService`, `TranscodingService`, `DownloadService`, `JukeboxLegacySubsonicService`. Сохранить порядок треков, доступ аккаунтов, streaming/Range/HEAD, параметры ffmpeg, завершение процессов и ресурсы jukebox. Проверки: playlist, streaming/transcoding, jukebox и download suites.
 6. **DLNA/UPnP — завершён.** Перенесены processors, content directories, NAT-PMP router и регистрация media server. Проверены URL generation, дерево каталога, NAT-PMP параметры, lifecycle и DLNA API.
@@ -33,14 +33,13 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 21 файл
+### Production: 20 файлов
 
 - `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/DownloadService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/JukeboxLegacySubsonicService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/LastFmService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/MediaFileService.java`
-- `airsonic-main/src/main/java/org/airsonic/player/service/MediaFolderService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/MediaScannerService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/PlaylistService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/SecurityService.java`
@@ -162,4 +161,5 @@
 - `UPnPService` переведён на Kotlin; проверены конфигурация устройства и иконки, выключенный DLNA при старте, идемпотентная остановка, composition root и DLNA API: 17 тестов прошли.
 - `VersionService` переведён на Kotlin; локальные build.properties, кеширование версии, server-info API и runtime composition проверены: 9 тестов прошли.
 - `CoverArtImageService` переведён на Kotlin; чтение embedded-artwork, обложки видео, default cover, resize, artwork API и UPnP вызовы: 11 тестов прошли.
+- `MediaFolderService` переведён на Kotlin; доступ пользователей, фильтрация и кеш папок, иерархия путей, создание/удаление и scanner/playlist/UPnP/library API: 36 тестов прошли.
 - `FolderBasedContentDirectory` переведён на Kotlin; корневой и playlist browse, статистика библиотеки, подписанный artwork URL и runtime: 22 теста прошли.

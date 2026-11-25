@@ -48,7 +48,7 @@ open class JaudiotaggerParser(private val mediaFolders: MediaFolderService) : Me
 
     override fun setMetaData(file: MediaFile, metaData: MetaData) {
         try {
-            val folder = mediaFolders.getMusicFolderById(file.folderId)
+            val folder = mediaFolders.getMusicFolderById(file.folderId)!!
             val audio = AudioFileIO.read(file.getFullPath(folder.path).toFile())
             val tag = audio.tagOrCreateAndSetDefault
             tag.setField(FieldKey.ARTIST, StringUtils.trimToEmpty(metaData.artist))

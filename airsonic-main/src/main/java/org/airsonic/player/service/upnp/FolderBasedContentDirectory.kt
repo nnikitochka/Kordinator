@@ -96,7 +96,7 @@ class FolderBasedContentDirectory(
         root.isRestricted = true
         root.isSearchable = false
         root.writeStatus = WriteStatus.NOT_WRITABLE
-        root.childCount = mediaFolderService!!.allMusicFolders.size + 1
+        root.childCount = mediaFolderService!!.getAllMusicFolders().size + 1
 
         val didl = DIDLContent().apply { addContainer(root) }
         return createBrowseResult(didl, 1, 1)
@@ -135,7 +135,7 @@ class FolderBasedContentDirectory(
     @Throws(Exception::class)
     private fun browseRoot(firstResult: Long, maxResults: Long): BrowseResult {
         val didl = DIDLContent()
-        val allFolders = mediaFolderService!!.allMusicFolders
+        val allFolders = mediaFolderService!!.getAllMusicFolders()
         val selectedFolders = Util.subList(allFolders, firstResult, maxResults)
         selectedFolders.forEach { folder ->
             val mediaFile = mediaFileService!!.getMediaFile("", folder)

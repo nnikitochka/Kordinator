@@ -48,7 +48,7 @@ class StandaloneJukeboxService(
             name = "Kordinator server output"
             this.username = username
             technology = PlayerTechnology.JUKEBOX
-            playQueue = PlayQueue { folderId -> folders.getMusicFolderById(folderId) }
+            playQueue = PlayQueue { folderId -> folders.getMusicFolderById(folderId)!! }
         }
         val queue = player.playQueue!!
         if (current != null) {

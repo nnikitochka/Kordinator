@@ -21,7 +21,7 @@ open class DefaultPlaylistExportHandler(
     internal fun createChameleonGenericPlaylistFromDBId(id: Int): Playlist {
         val playlist = Playlist()
         mediaFileDao.getFilesInPlaylist(id).forEach { file ->
-            val folder = mediaFolderService.getMusicFolderById(file.folderId)
+            val folder = mediaFolderService.getMusicFolderById(file.folderId)!!
             val content = Content(file.getFullPath(folder.path).toString())
             file.duration?.let { content.duration = (it * 1000).toLong() }
             file.fileSize?.let { content.length = it }

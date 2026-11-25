@@ -24,7 +24,7 @@ class ArtistUpnpProcessor : UpnpContentProcessor<Artist, Album>() {
     }
 
     override fun getAllItems(): List<Artist> {
-        val folders = getDispatcher().getMediaFolderService().allMusicFolders
+        val folders = getDispatcher().getMediaFolderService().getAllMusicFolders()
         return getArtistDao().getAlphabetialArtists(0, Int.MAX_VALUE, folders).sortedWith { first, second ->
             first.name!!.replace(Regex("\\W"), "").compareTo(second.name!!.replace(Regex("\\W"), ""), ignoreCase = true)
         }
@@ -33,7 +33,7 @@ class ArtistUpnpProcessor : UpnpContentProcessor<Artist, Album>() {
     override fun getItemById(id: String): Artist? = getArtistDao().getArtist(id.toInt())
 
     override fun getChildren(artist: Artist): List<Album> {
-        val folders = getDispatcher().getMediaFolderService().allMusicFolders
+        val folders = getDispatcher().getMediaFolderService().getAllMusicFolders()
         val albums = getAlbumProcessor().getAlbumDao().getAlbumsForArtist(artist.name!!, folders).toMutableList()
         if (albums.size > 1) {
             albums.add(0, Album().apply {
