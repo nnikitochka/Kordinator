@@ -35,7 +35,7 @@
 
 ### Production: 0 Java-файлов
 
-### Тесты и fixtures: 53 файла
+### Тесты и fixtures: 52 файла
 
 - `airsonic-main/src/test/java/org/airsonic/player/dao/BookmarkDaoTestCase.java`
 - `airsonic-main/src/test/java/org/airsonic/player/dao/DaoTestCase.java`
@@ -46,7 +46,6 @@
 - `airsonic-main/src/test/java/org/airsonic/player/dao/UserDaoTestCase.java`
 - `airsonic-main/src/test/java/org/airsonic/player/domain/PlayQueueTestCase.java`
 - `airsonic-main/src/test/java/org/airsonic/player/runtime/RuntimeCompositionRootGraphTest.java`
-- `airsonic-main/src/test/java/org/airsonic/player/security/CallerContextTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/security/CredentialCompatibilityBaselineTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/security/JndiLdapDirectoryAuthenticatorTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/security/JwtTokenVerifierTest.java`
@@ -150,4 +149,5 @@
 - Тесты политик параметров/заголовков, health-компонентов и lifecycle переведены на Kotlin без изменения покрываемых сценариев. Чистая сборка и все 21 тест прошли; осталось 55 Java test/fixture-файлов.
 - `RuntimeCompositionRootTest` переведён на Kotlin, сохранив проверки порядка health-статусов, неизменности конфигурации и однократной startup-регистрации backfill. Чистая сборка и все 5 тестов прошли; осталось 54 Java test/fixture-файла.
 - `RuntimeConfigurationLoaderTest` переведён на Kotlin с сохранением всех проверок приоритета конфигурационных слоёв, alias-нормализации, обработки типов и маскирования секретов. Чистая компиляция и все 21 тест прошли; осталось 53 Java test/fixture-файла.
+- `CallerContextTest` переведён на Kotlin без потери проверок анонимного контекста, полномочий, защитного копирования и отказа на null. Чистая компиляция и все 4 теста прошли; осталось 52 Java test/fixture-файла.
 - Runtime-аудит: Maven `dependency:tree` для runtime scope не содержит Spring, Servlet API или Tomcat; production-исходники не импортируют эти framework API. Собранный `kordinator.jar` запускается с `su.nnedition.kord.Kordinator`, `/api/v1/health` вернул HTTP 200 и `{"status":"UP"}`, процесс завершился штатным shutdown hook. При этом сам старт пока всё ещё выполняет legacy changelog/DAO-граф, что должно быть устранено на этапе 7.
