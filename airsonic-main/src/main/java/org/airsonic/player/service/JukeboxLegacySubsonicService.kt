@@ -34,7 +34,7 @@ class JukeboxLegacySubsonicService(
     /** Starts or pauses local playback after checking the legacy jukebox role. */
     @Synchronized
     fun updateJukebox(player: Player, offset: Int) {
-        val user = securityService.getUserByName(player.username)
+        val user = securityService.getUserByName(player.username)!!
         if (!user.isJukeboxRole) {
             log.warn("{} is not authorized for jukebox playback.", user.username)
             return

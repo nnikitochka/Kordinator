@@ -130,7 +130,7 @@ fun Route.adminStatusRoutes(
             ?: return@get call.respondJson(ApiError("unavailable", "User statistics service is not configured"), HttpStatusCode.ServiceUnavailable)
         call.response.headers.append(HttpHeaders.CacheControl, "no-store")
         val users = withContext(Dispatchers.IO) {
-            security.allUsers.sortedBy { it.username }.map { user ->
+            security.getAllUsers().sortedBy { it.username }.map { user ->
                 UserTransferStatisticsResponse(user.username, user.bytesStreamed, user.bytesDownloaded, user.bytesUploaded)
             }
         }

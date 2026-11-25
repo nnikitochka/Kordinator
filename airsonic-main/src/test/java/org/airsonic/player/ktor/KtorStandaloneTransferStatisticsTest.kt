@@ -48,7 +48,7 @@ class KtorStandaloneTransferStatisticsTest {
             Mockito.`when`(statuses.getActivePlays()).thenReturn(emptyList())
             Mockito.`when`(statuses.getInactivePlays()).thenReturn(emptyList())
             val security = Mockito.mock(SecurityService::class.java)
-            Mockito.`when`(security.allUsers).thenReturn(listOf(User("admin", null).apply {
+            Mockito.`when`(security.getAllUsers()).thenReturn(listOf(User("admin", null).apply {
                 bytesStreamed = 1234
                 bytesDownloaded = 56
                 bytesUploaded = 7

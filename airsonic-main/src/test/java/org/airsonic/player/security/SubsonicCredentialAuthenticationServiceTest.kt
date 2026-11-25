@@ -24,7 +24,10 @@ class SubsonicCredentialAuthenticationServiceTest {
         Mockito.`when`(security.findUserIdentity("alice", true)).thenReturn(identity)
         Mockito.`when`(encoders.matches("noop", "password", "old")).thenReturn(true)
         Mockito.`when`(encoders.upgradeEncoding("noop", "old")).thenReturn(true)
-        Mockito.`when`(security.updateCredentials(any(), any(), anyString(), anyBoolean())).thenReturn(true)
+        Mockito.`when`(
+            security.updateCredentials(any<UserCredential>() ?: credential, any<UserCredential>() ?: credential,
+                anyString(), anyBoolean()),
+        ).thenReturn(true)
 
         val result = SubsonicCredentialAuthenticationService(security, encoders)
             .authenticate("alice", "password", SubsonicAuthenticator.Mode.PASSWORD)
@@ -32,8 +35,12 @@ class SubsonicCredentialAuthenticationServiceTest {
         assertTrue(result.isAuthenticated)
         assertSame(identity, result.identity)
         val upgraded = ArgumentCaptor.forClass(UserCredential::class.java)
-        Mockito.verify(security).updateCredentials(eq(credential), upgraded.capture(),
-            eq("null | Automatically upgraded by system"), eq(true))
+        Mockito.verify(security).updateCredentials(
+            eq(credential) ?: credential,
+            upgraded.capture() ?: credential,
+            eq("null | Automatically upgraded by system") ?: "null | Automatically upgraded by system",
+            eq(true) ?: true,
+        )
         assertEquals("password", upgraded.value.credential)
     }
 
