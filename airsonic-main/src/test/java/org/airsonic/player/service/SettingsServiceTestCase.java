@@ -93,6 +93,12 @@ public class SettingsServiceTestCase {
         assertEquals("Wrong default decodable password encoder.", "encrypted-AES-GCM", settingsService.getDecodablePasswordEncoder());
         assertEquals("Wrong default non-decodable password encoder.", "bcrypt", settingsService.getNonDecodablePasswordEncoder());
         assertTrue("Wrong default password encoder preference.", settingsService.getPreferNonDecodablePasswords());
+        assertNull("Wrong default database driver.", settingsService.getDatabaseDriver());
+        assertNull("Wrong default database URL.", settingsService.getDatabaseUrl());
+        assertNull("Wrong default database username.", settingsService.getDatabaseUsername());
+        assertNull("Wrong default database password.", settingsService.getDatabasePassword());
+        assertNull("Wrong default database JNDI name.", settingsService.getDatabaseJNDIName());
+        assertEquals("Wrong default database VARCHAR length.", 384, settingsService.getDatabaseMysqlVarcharMaxlength().intValue());
         assertEquals("30m", settingsService.getSessionDuration());
     }
 
@@ -165,6 +171,12 @@ public class SettingsServiceTestCase {
         settingsService.setDecodablePasswordEncoder("custom-decodable");
         settingsService.setNonDecodablePasswordEncoder("custom-hash");
         settingsService.setPreferNonDecodablePasswords(false);
+        settingsService.setDatabaseDriver("org.hsqldb.jdbc.JDBCDriver");
+        settingsService.setDatabaseUrl("jdbc:hsqldb:mem:settings-test");
+        settingsService.setDatabaseUsername("sa");
+        settingsService.setDatabasePassword("database-secret");
+        settingsService.setDatabaseJNDIName("jdbc/kordinator");
+        settingsService.setDatabaseMysqlVarcharMaxlength(512);
 
         verifySettings(settingsService);
 
@@ -217,6 +229,12 @@ public class SettingsServiceTestCase {
         assertEquals("Wrong decodable password encoder.", "custom-decodable", ss.getDecodablePasswordEncoder());
         assertEquals("Wrong non-decodable password encoder.", "custom-hash", ss.getNonDecodablePasswordEncoder());
         assertFalse("Wrong password encoder preference.", ss.getPreferNonDecodablePasswords());
+        assertEquals("Wrong database driver.", "org.hsqldb.jdbc.JDBCDriver", ss.getDatabaseDriver());
+        assertEquals("Wrong database URL.", "jdbc:hsqldb:mem:settings-test", ss.getDatabaseUrl());
+        assertEquals("Wrong database username.", "sa", ss.getDatabaseUsername());
+        assertEquals("Wrong database password.", "database-secret", ss.getDatabasePassword());
+        assertEquals("Wrong database JNDI name.", "jdbc/kordinator", ss.getDatabaseJNDIName());
+        assertEquals("Wrong database VARCHAR length.", 512, ss.getDatabaseMysqlVarcharMaxlength().intValue());
     }
 
     @Test

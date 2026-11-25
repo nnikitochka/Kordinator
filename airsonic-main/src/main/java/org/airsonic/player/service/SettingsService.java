@@ -96,6 +96,7 @@ public class SettingsService {
     private final SettingsMailPreferences mailPreferences;
     private final SettingsDlnaPreferences dlnaPreferences;
     private final SettingsCredentialPreferences credentialPreferences;
+    private final SettingsDatabasePreferences databasePreferences;
     private final ConfigurationPropertiesService properties;
 
     public SettingsService(UserDao userDao, AvatarDao avatarDao, RuntimeConfiguration configuration,
@@ -115,6 +116,7 @@ public class SettingsService {
         this.mailPreferences = new SettingsMailPreferences(valueStore);
         this.dlnaPreferences = new SettingsDlnaPreferences(valueStore);
         this.credentialPreferences = new SettingsCredentialPreferences(valueStore);
+        this.databasePreferences = new SettingsDatabasePreferences(valueStore);
         Cache<String, UserSettings> userSettingsCache = cacheManager != null
                 ? cacheManager.getCache("userSettingsCache", String.class, UserSettings.class) : null;
         this.userPreferences = new SettingsUserPreferences(userDao, avatarDao, userSettingsCache);
@@ -1089,51 +1091,51 @@ public class SettingsService {
     }
 
     public String getDatabaseDriver() {
-        return getString(KEY_DATABASE_DRIVER, DEFAULT_DATABASE_DRIVER);
+        return databasePreferences.getDriver();
     }
 
     public void setDatabaseDriver(String driver) {
-        setString(KEY_DATABASE_DRIVER, driver);
+        databasePreferences.setDriver(driver);
     }
 
     public String getDatabaseUrl() {
-        return getString(KEY_DATABASE_URL, DEFAULT_DATABASE_URL);
+        return databasePreferences.getUrl();
     }
 
     public void setDatabaseUrl(String url) {
-        setString(KEY_DATABASE_URL, url);
+        databasePreferences.setUrl(url);
     }
 
     public String getDatabaseUsername() {
-        return getString(KEY_DATABASE_USERNAME, DEFAULT_DATABASE_USERNAME);
+        return databasePreferences.getUsername();
     }
 
     public void setDatabaseUsername(String username) {
-        setString(KEY_DATABASE_USERNAME, username);
+        databasePreferences.setUsername(username);
     }
 
     public String getDatabasePassword() {
-        return getString(KEY_DATABASE_PASSWORD, DEFAULT_DATABASE_PASSWORD);
+        return databasePreferences.getPassword();
     }
 
     public void setDatabasePassword(String password) {
-        setString(KEY_DATABASE_PASSWORD, password);
+        databasePreferences.setPassword(password);
     }
 
     public String getDatabaseJNDIName() {
-        return getString(KEY_DATABASE_JNDI_NAME, DEFAULT_DATABASE_JNDI_NAME);
+        return databasePreferences.getJndiName();
     }
 
     public void setDatabaseJNDIName(String jndiName) {
-        setString(KEY_DATABASE_JNDI_NAME, jndiName);
+        databasePreferences.setJndiName(jndiName);
     }
 
     public Integer getDatabaseMysqlVarcharMaxlength() {
-        return getInt(KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH, DEFAULT_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH);
+        return databasePreferences.getMysqlVarcharMaxlength();
     }
 
     public void setDatabaseMysqlVarcharMaxlength(int maxlength) {
-        setInt(KEY_DATABASE_MIGRATION_PARAMETER_MYSQL_VARCHAR_MAXLENGTH, maxlength);
+        databasePreferences.setMysqlVarcharMaxlength(maxlength);
     }
 
     public String getJWTKey() {
