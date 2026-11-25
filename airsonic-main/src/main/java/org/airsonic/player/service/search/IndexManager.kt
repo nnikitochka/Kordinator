@@ -128,7 +128,7 @@ class IndexManager(
         writers.computeIfPresent(type) { mapType, writer ->
             try {
                 writer.use {
-                    val userData = Util.objectToStringMap(statistics)
+                    val userData = Util.objectToStringMap(statistics)!!
                     it.setLiveCommitData(userData.entries)
                     val updated = -1L != it.commit()
                     LOG.trace("Success to create or update search index : [{}]", mapType)

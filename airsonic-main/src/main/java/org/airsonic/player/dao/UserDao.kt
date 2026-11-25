@@ -169,7 +169,7 @@ class UserDao(jdbcHelper: JdbcHelper) : AbstractDao(jdbcHelper) {
 
     private class UserSettingsRowMapper : RowMapper<UserSettings> {
         override fun mapRow(rs: ResultSet, rowNum: Int): UserSettings =
-            Util.fromJson(rs.getString("settings"), UserSettings::class.java)
+            Util.fromJson(rs.getString("settings"), UserSettings::class.java)!!
     }
 
     private companion object {

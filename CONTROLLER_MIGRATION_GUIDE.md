@@ -13,7 +13,7 @@
 ## Порядок оставшейся работы
 
 1. **Composition root — завершён.** Перенести `RuntimeCompositionRoot` на Kotlin, разделив infrastructure, security, settings, media, search/scanner, playlists, playback, UPnP и application services. Сохранить singleton identity, ленивый PlayerService supplier, общий reentrant lock, проверки порядка сборки графа и регистрацию lifecycle ровно один раз. Проверки: runtime graph, конкурентное создание компонентов, JDBC/Liquibase, запуск API и реальное сканирование.
-2. **Метаданные и малые зависимости.** Перенести `MetaData`, parser contract и parser implementations; затем playlist import/export contracts и handlers, HLS session, audio player, scrobbler adapters и утилиты. Сохранить nullable поля, сортировки, ошибки чтения файлов, закрытие потоков и транскодирующих процессов. Проверки: существующие parser, playlist, HLS/transcoding и streaming tests.
+2. **Метаданные и малые зависимости.** Перенести `MetaData`, parser contract и parser implementations; затем playlist import/export contracts и handlers, HLS session, audio player, scrobbler adapters и оставшиеся утилиты (`Util` уже перенесён). Сохранить nullable поля, сортировки, ошибки чтения файлов, закрытие потоков и транскодирующих процессов. Проверки: существующие parser, playlist, HLS/transcoding и streaming tests.
 3. **Каталог и сканирование.** Перенесены `CoverArtImageService` и `MediaFolderService`; далее разделить и перенести `MediaFileService`, `MediaScannerService`, `LastFmService`. Проверки: сканирование реальной папки, повторное сканирование, удалённые файлы, изоляция библиотек, каталог/поиск и обложки.
 4. **Настройки и безопасность.** Перенести `VersionService` (завершён), затем разделить и перенести `SettingsService`, `SecurityService`, `DatabaseService`; сохранить права, кеши, обновления credentials, настройки и backup/import/export. Проверки: security/settings suites и соответствующие admin API.
 5. **Воспроизведение и плейлисты.** Перенести `PlaylistService`, `TranscodingService`, `DownloadService`, `JukeboxLegacySubsonicService`. Сохранить порядок треков, доступ аккаунтов, streaming/Range/HEAD, параметры ffmpeg, завершение процессов и ресурсы jukebox. Проверки: playlist, streaming/transcoding, jukebox и download suites.
@@ -33,7 +33,7 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 20 файлов
+### Production: 19 файлов
 
 - `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/DownloadService.java`
@@ -54,7 +54,6 @@
 - `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/UserRolesJsonColumnPopulation.java`
 - `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/UserSettingsJsonTablePopulation.java`
 - `airsonic-main/src/main/java/org/airsonic/player/util/LegacyHsqlMigrationUtil.java`
-- `airsonic-main/src/main/java/org/airsonic/player/util/Util.java`
 
 ### Тесты и fixtures: 73 файла
 
@@ -163,3 +162,4 @@
 - `CoverArtImageService` переведён на Kotlin; чтение embedded-artwork, обложки видео, default cover, resize, artwork API и UPnP вызовы: 11 тестов прошли.
 - `MediaFolderService` переведён на Kotlin; доступ пользователей, фильтрация и кеш папок, иерархия путей, создание/удаление и scanner/playlist/UPnP/library API: 36 тестов прошли.
 - `FolderBasedContentDirectory` переведён на Kotlin; корневой и playlist browse, статистика библиотеки, подписанный artwork URL и runtime: 22 теста прошли.
+- `Util` переведён на Kotlin с сохранением Java static API; URL-маскирование, JSON conversion, validation, sublist, daemon thread factory и Kotlin/Java consumers: 22 теста прошли.
