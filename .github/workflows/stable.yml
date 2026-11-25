@@ -50,7 +50,7 @@ jobs:
           #echo "${{ secrets.GPG_SIGNING_PASSPHRASE }}" | gpg --quiet --batch --yes --pinentry-mode loopback --detach-sign --armor --passphrase-fd 0 kordinator-main/build/libs/kordinator.jar;
       - name: Deploy to GitHub Release
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
