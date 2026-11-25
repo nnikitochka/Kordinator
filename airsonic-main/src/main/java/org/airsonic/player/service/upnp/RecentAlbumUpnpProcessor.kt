@@ -21,7 +21,7 @@ class RecentAlbumUpnpProcessor : AlbumUpnpProcessor() {
     }
 
     override fun getAllItems(): List<Album> {
-        val folders = dispatchingContentDirectory.mediaFolderService.allMusicFolders
+        val folders = dispatchingContentDirectory.getMediaFolderService().allMusicFolders
         val albums = getAlbumDao().getNewestAlbums(0, RECENT_COUNT, folders).toMutableList()
         if (albums.size > 1) {
             albums.add(0, Album().apply { name = "- All Albums -"; id = -1; comment = ALL_RECENT })
@@ -30,7 +30,7 @@ class RecentAlbumUpnpProcessor : AlbumUpnpProcessor() {
     }
 
     override fun getAllItemsSize(): Int =
-        minOf(getAlbumDao().getAlbumCount(dispatchingContentDirectory.mediaFolderService.allMusicFolders), RECENT_COUNT)
+        minOf(getAlbumDao().getAlbumCount(dispatchingContentDirectory.getMediaFolderService().allMusicFolders), RECENT_COUNT)
 
     companion object { private const val RECENT_COUNT = 50 }
 }

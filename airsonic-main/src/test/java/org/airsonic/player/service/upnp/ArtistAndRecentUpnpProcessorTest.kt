@@ -18,7 +18,7 @@ class ArtistAndRecentUpnpProcessorTest {
         val folderService = mock(MediaFolderService::class.java)
         `when`(folderService.allMusicFolders).thenReturn(folders)
         val directory = mock(DispatchingContentDirectory::class.java)
-        `when`(directory.mediaFolderService).thenReturn(folderService)
+        `when`(directory.getMediaFolderService()).thenReturn(folderService)
         val artistDao = mock(ArtistDao::class.java)
         val artist = Artist(id = 5, name = "The Artist", albumCount = 2)
         `when`(artistDao.getAlphabetialArtists(0, Int.MAX_VALUE, folders)).thenReturn(listOf(
@@ -28,7 +28,7 @@ class ArtistAndRecentUpnpProcessorTest {
         `when`(albumDao.getAlbumsForArtist("The Artist", folders)).thenReturn(listOf(Album().apply { id = 1 }, Album().apply { id = 2 }))
         val albumProcessor = mock(AlbumUpnpProcessor::class.java)
         `when`(albumProcessor.getAlbumDao()).thenReturn(albumDao)
-        `when`(directory.albumProcessor).thenReturn(albumProcessor)
+        `when`(directory.getAlbumProcessor()).thenReturn(albumProcessor)
         val processor = ArtistUpnpProcessor().apply { setArtistDao(artistDao); dispatchingContentDirectory = directory }
         assertEquals(listOf("!alpha", "The Artist", "Zebra"), processor.getAllItems().map { it.name })
         val children = processor.getChildren(artist)
@@ -43,7 +43,7 @@ class ArtistAndRecentUpnpProcessorTest {
         val folderService = mock(MediaFolderService::class.java)
         `when`(folderService.allMusicFolders).thenReturn(folders)
         val directory = mock(DispatchingContentDirectory::class.java)
-        `when`(directory.mediaFolderService).thenReturn(folderService)
+        `when`(directory.getMediaFolderService()).thenReturn(folderService)
         val albums = mock(AlbumDao::class.java)
         `when`(albums.getNewestAlbums(0, 50, folders)).thenReturn(listOf(Album().apply { id = 7 }, Album().apply { id = 8 }))
         `when`(albums.getAlbumCount(folders)).thenReturn(80)
