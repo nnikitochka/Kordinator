@@ -33,7 +33,7 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 8 файлов
+### Production: 9 файлов
 
 - `airsonic-main/src/main/java/org/airsonic/player/service/SettingsService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/AddMediaFileIdToPodcastChannels.java`
@@ -160,3 +160,4 @@
 - `DownloadService` переведён на Kotlin; сохранены caller context/access checks, selection snapshot, monitored single-file streams и stored ZIP generation. Проверены file/ZIP contents и runtime graph: 5 тестов прошли.
 - `DatabaseService` переведён на Kotlin с сохранением backup scheduling, HSQL backup retention, Liquibase export/import, zip cleanup, operation status и Java accessor API. DB status, Ktor database settings/import/export, HSQL copy, standalone database и Liquibase startup: 7 тестов прошли.
 - `SecurityService` переведён на Kotlin; credential encoding/migration вынесены в `SecurityCredentialOperations`. Сохранены права к папкам, кэш пользователей, операции с учетными записями и исходная семантика проверок путей. Kotlin-вызовы и Mockito матчеры адаптированы к non-null API. Основная компиляция и security/authentication/LDAP/Ktor/runtime suite: 58 тестов прошли.
+- `SettingsService` начат: property lookup, typed parsing, invalidation и derived-value caches вынесены в `SettingsValueStore.kt`; внешняя Java-точка доступа пока сохранена. Production/test compile прошёл, `SettingsServiceTestCase` и 7 Ktor settings tests прошли (21 тест). Сам `SettingsService.java` остаётся в очереди и должен быть разделён на Kotlin-компоненты до 300 строк.

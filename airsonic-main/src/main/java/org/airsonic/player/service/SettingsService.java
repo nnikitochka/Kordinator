@@ -26,20 +26,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
  * Provides persistent storage of application settings and preferences.
- *
- * @author Sindre Mehus
  */
 public class SettingsService {
     // Airsonic home directory.
@@ -230,7 +226,6 @@ public class SettingsService {
     private List<Locale> locales;
     private UserDao userDao;
     private AvatarDao avatarDao;
-    private Function<String, String> environmentPropertyLookup;
 
     // Array of obsolete properties. Used to clean property file.
     private static final List<String> OBSOLETE_KEYS = Arrays.asList("PortForwardingPublicPort", "PortForwardingLocalPort",
@@ -255,8 +250,8 @@ public class SettingsService {
                             CacheManager cacheManager, ConfigurationPropertiesService properties) {
         this.userDao = userDao;
         this.avatarDao = avatarDao;
-        this.environmentPropertyLookup = Objects.requireNonNull(propertyLookup);
         this.properties = Objects.requireNonNull(properties);
+        this.valueStore = new SettingsValueStore(properties, Objects.requireNonNull(propertyLookup));
         this.userSettingsCache = cacheManager != null ? cacheManager.getCache("userSettingsCache", String.class, UserSettings.class) : null;
     }
 
@@ -506,27 +501,14 @@ public class SettingsService {
         return getAirsonicHome().resolve(getFileSystemAppName() + ".properties");
     }
 
-    private final Map<String, Object> settingsCache = new ConcurrentHashMap<>();
-    // exists for secondary derived objects based on objects in properties.
-    // Can't be stored with settingsCache because ConcurrentHashMaps cannot recursively update values.
-    // Example: Retrieving KEY_DERIVATIVE: If absent, retrieve KEY to derive object from. If KEY in turn is also absent: look up in env.
-    // Then store KEY first, then KEY_DERIVATIVE. So one lookup ends up modifying another part of ConcurrentHashMap which is illegal by contract.
-    private final Map<String, Object> derivativeSettingsCache = new ConcurrentHashMap<>();
+    private final SettingsValueStore valueStore;
 
     private void setProperty(String key, Object value) {
-        if (value == null) {
-            properties.clearProperty(key);
-        } else {
-            properties.setProperty(key, value);
-        }
-        settingsCache.remove(key);
+        valueStore.setProperty(key, value);
     }
 
     private int getInt(String key, int defaultValue) {
-        return (int) settingsCache.computeIfAbsent(key, k -> {
-            String value = environmentPropertyLookup.apply(k);
-            return value == null || value.trim().isEmpty() ? defaultValue : Integer.parseInt(value.trim());
-        });
+        return valueStore.getInt(key, defaultValue);
     }
 
     private void setInt(String key, Integer value) {
@@ -534,10 +516,7 @@ public class SettingsService {
     }
 
     private long getLong(String key, long defaultValue) {
-        return (long) settingsCache.computeIfAbsent(key, k -> {
-            String value = environmentPropertyLookup.apply(k);
-            return value == null || value.trim().isEmpty() ? defaultValue : Long.parseLong(value.trim());
-        });
+        return valueStore.getLong(key, defaultValue);
     }
 
     private void setLong(String key, Long value) {
@@ -545,17 +524,7 @@ public class SettingsService {
     }
 
     private boolean getBoolean(String key, boolean defaultValue) {
-        return (boolean) settingsCache.computeIfAbsent(key, k -> {
-            String value = environmentPropertyLookup.apply(k);
-            if (value == null || value.trim().isEmpty()) {
-                return defaultValue;
-            }
-            return switch (value.trim().toLowerCase(Locale.ROOT)) {
-                case "true", "yes", "on", "1" -> true;
-                case "false", "no", "off", "0" -> false;
-                default -> throw new IllegalArgumentException("Invalid boolean value for " + k + ": " + value);
-            };
-        });
+        return valueStore.getBoolean(key, defaultValue);
     }
 
     private void setBoolean(String key, Boolean value) {
@@ -571,10 +540,7 @@ public class SettingsService {
     }
 
     private String getProperty(String key, String defaultValue) {
-        return (String) settingsCache.computeIfAbsent(key, k -> {
-            String value = environmentPropertyLookup.apply(k);
-            return value == null ? defaultValue : value;
-        });
+        return valueStore.getString(key, defaultValue);
     }
 
     public String getIndexString() {
@@ -590,12 +556,12 @@ public class SettingsService {
     }
 
     String[] getIgnoredArticlesAsArray() {
-        return (String[]) derivativeSettingsCache.computeIfAbsent(KEY_IGNORED_ARTICLES, k -> getIgnoredArticles().split("\\s+"));
+        return (String[]) valueStore.derived(KEY_IGNORED_ARTICLES, k -> getIgnoredArticles().split("\\s+"));
     }
 
     public void setIgnoredArticles(String ignoredArticles) {
         setProperty(KEY_IGNORED_ARTICLES, ignoredArticles);
-        derivativeSettingsCache.remove(KEY_IGNORED_ARTICLES);
+        valueStore.invalidateDerived(KEY_IGNORED_ARTICLES);
     }
 
     public String getUploadsFolder() {
@@ -687,12 +653,12 @@ public class SettingsService {
 
     public void setMusicFileTypes(String fileTypes) {
         setProperty(KEY_MUSIC_FILE_TYPES, fileTypes);
-        derivativeSettingsCache.remove(KEY_MUSIC_FILE_TYPES);
+        valueStore.invalidateDerived(KEY_MUSIC_FILE_TYPES);
     }
 
     @SuppressWarnings("unchecked")
     public Set<String> getMusicFileTypesSet() {
-        return (Set<String>) derivativeSettingsCache.computeIfAbsent(KEY_MUSIC_FILE_TYPES,
+        return (Set<String>) valueStore.derived(KEY_MUSIC_FILE_TYPES,
             k -> splitLowerString(getMusicFileTypes(), " "));
     }
 
@@ -702,12 +668,12 @@ public class SettingsService {
 
     public void setVideoFileTypes(String fileTypes) {
         setProperty(KEY_VIDEO_FILE_TYPES, fileTypes);
-        derivativeSettingsCache.remove(KEY_VIDEO_FILE_TYPES);
+        valueStore.invalidateDerived(KEY_VIDEO_FILE_TYPES);
     }
 
     @SuppressWarnings("unchecked")
     public Set<String> getVideoFileTypesSet() {
-        return (Set<String>) derivativeSettingsCache.computeIfAbsent(KEY_VIDEO_FILE_TYPES,
+        return (Set<String>) valueStore.derived(KEY_VIDEO_FILE_TYPES,
             k -> splitLowerString(getVideoFileTypes(), " "));
     }
 
@@ -717,12 +683,12 @@ public class SettingsService {
 
     public void setCoverArtFileTypes(String fileTypes) {
         setProperty(KEY_COVER_ART_FILE_TYPES, fileTypes);
-        derivativeSettingsCache.remove(KEY_COVER_ART_FILE_TYPES);
+        valueStore.invalidateDerived(KEY_COVER_ART_FILE_TYPES);
     }
 
     @SuppressWarnings("unchecked")
     Set<String> getCoverArtFileTypesSet() {
-        return (Set<String>) derivativeSettingsCache.computeIfAbsent(KEY_COVER_ART_FILE_TYPES,
+        return (Set<String>) valueStore.derived(KEY_COVER_ART_FILE_TYPES,
             k -> splitLowerString(getCoverArtFileTypes(), " "));
     }
 
@@ -888,7 +854,7 @@ public class SettingsService {
     }
 
     public RateLimiter getDownloadBitrateLimiter() {
-        return (RateLimiter) derivativeSettingsCache.computeIfAbsent(KEY_DOWNLOAD_BITRATE_LIMIT,
+        return (RateLimiter) valueStore.derived(KEY_DOWNLOAD_BITRATE_LIMIT,
             k -> RateLimiter.create(adjustBitrateLimit(getDownloadBitrateLimit())));
     }
 
@@ -920,7 +886,7 @@ public class SettingsService {
     }
 
     public RateLimiter getUploadBitrateLimiter() {
-        return (RateLimiter) derivativeSettingsCache.computeIfAbsent(KEY_UPLOAD_BITRATE_LIMIT,
+        return (RateLimiter) valueStore.derived(KEY_UPLOAD_BITRATE_LIMIT,
             k -> RateLimiter.create(adjustBitrateLimit(getUploadBitrateLimit())));
     }
 
@@ -1073,12 +1039,12 @@ public class SettingsService {
 
     public void setExcludePatternString(String s) {
         setString(KEY_EXCLUDE_PATTERN_STRING, s);
-        derivativeSettingsCache.remove(KEY_EXCLUDE_PATTERN_STRING);
+        valueStore.invalidateDerived(KEY_EXCLUDE_PATTERN_STRING);
     }
 
     @SuppressWarnings("unchecked")
     public Pattern getExcludePattern() {
-        return ((Optional<Pattern>) derivativeSettingsCache.computeIfAbsent(KEY_EXCLUDE_PATTERN_STRING,
+        return ((Optional<Pattern>) valueStore.derived(KEY_EXCLUDE_PATTERN_STRING,
             k -> Optional.ofNullable(getExcludePatternString()).map(StringUtils::trimToNull).map(Pattern::compile))).orElse(null);
     }
 
@@ -1529,7 +1495,7 @@ public class SettingsService {
     }
 
     public void setPropertyLookup(Function<String, String> propertyLookup) {
-        this.environmentPropertyLookup = Objects.requireNonNull(propertyLookup);
+        valueStore.setPropertyLookup(Objects.requireNonNull(propertyLookup));
     }
 
     public void resetDatabaseToDefault() {
