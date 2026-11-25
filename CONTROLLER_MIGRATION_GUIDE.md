@@ -35,7 +35,7 @@
 
 ### Production: 0 Java-файлов
 
-### Тесты и fixtures: 70 файлов
+### Тесты и fixtures: 69 файлов
 
 - `airsonic-main/src/test/java/org/airsonic/player/TestCaseUtils.java`
 - `airsonic-main/src/test/java/org/airsonic/player/api/ScanningTestUtils.java`
@@ -58,7 +58,6 @@
 - `airsonic-main/src/test/java/org/airsonic/player/runtime/RuntimeCompositionRootTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/runtime/RuntimeConfigurationLoaderTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/security/AesGcmPasswordEncoderTest.java`
-- `airsonic-main/src/test/java/org/airsonic/player/security/AuthorizationPolicyTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/security/CallerContextTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/security/CredentialCompatibilityBaselineTest.java`
 - `airsonic-main/src/test/java/org/airsonic/player/security/JndiLdapDirectoryAuthenticatorTest.java`
@@ -159,3 +158,4 @@
 - `SettingsService` заменён Kotlin-фасадом из 185 строк. Его операции делегированы тематическим компонентам через интерфейсы; Java API статических функций и настроек сохранён для потребителей. Конструктор продолжает принимать `null` для необязательного `CacheManager`. Обновлены обращения в Kotlin production-коде и тестах. Чистый `test-compile` прошёл; 53 целевых теста настроек, runtime-конфигурации, DLNA, БД, транскодирования, плейлистов и загрузок прошли.
 - Остальные Liquibase custom changes перенесены в Kotlin-пакет `org.airsonic.player.runtime.migrations`; два custom changes, работавшие только с данными podcast-таблиц, удалены вместе с вызовами. Ссылки в Liquibase XML обновлены. Чистая компиляция прошла, `RuntimeLiquibaseMigratorTest` и `StandaloneDatabaseTest` прошли (4 теста); production Java-файлов больше нет. Исторические XML changesets ещё содержат удаляемые podcast schema changes, но итоговая схема продолжает удалять podcast-таблицы; их полное упрощение остаётся отдельным пунктом аудита базы/схемы.
 - На Kotlin переведены два оставшихся небольших Java test-класса (`RequestEncodingPolicyTest`, `TranscodeSchemeTestCase`) и JUnit category marker `EmbeddedTestCategory`, который продолжает использоваться из Java fixture. Количество Java test/fixture-файлов уменьшено с 73 до 70.
+- `AuthorizationPolicyTest` переведён на Kotlin без изменения проверок анонимного доступа, ролей, прав к папкам и reserved admin username. Чистая сборка целевого теста прошла: 4 теста.
