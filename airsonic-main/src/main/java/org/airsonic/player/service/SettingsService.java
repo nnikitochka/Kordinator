@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -39,18 +38,6 @@ public class SettingsService {
     private static final Path AIRSONIC_HOME_OTHER = Paths.get("/var/airsonic");
 
     // Global settings.
-    private static final String KEY_INDEX_STRING = "IndexString";
-    private static final String KEY_IGNORED_ARTICLES = "IgnoredArticles";
-    private static final String KEY_GENRE_SEPARATORS = "GenreSeparators";
-    private static final String KEY_UPLOADS_FOLDER = "UploadsFolder";
-    private static final String KEY_SHORTCUTS = "Shortcuts";
-    private static final String KEY_PLAYLIST_FOLDER = "PlaylistFolder";
-    private static final String KEY_MUSIC_FILE_TYPES = "MusicFileTypes";
-    private static final String KEY_VIDEO_FILE_TYPES = "VideoFileTypes";
-    private static final String KEY_COVER_ART_FILE_TYPES = "CoverArtFileTypes2";
-    private static final String KEY_COVER_ART_SOURCE = "CoverArtSource";
-    private static final String KEY_COVER_ART_CONCURRENCY = "CoverArtConcurrency";
-    private static final String KEY_COVER_ART_QUALITY = "CoverArtQuality";
     private static final String KEY_WELCOME_TITLE = "WelcomeTitle";
     private static final String KEY_WELCOME_SUBTITLE = "WelcomeSubtitle";
     private static final String KEY_WELCOME_MESSAGE = "WelcomeMessage2";
@@ -122,18 +109,6 @@ public class SettingsService {
 
     // Default values.
     private static final String DEFAULT_JWT_KEY = null;
-    private static final String DEFAULT_INDEX_STRING = "A B C D E F G H I J K L M N O P Q R S T U V W X-Z(XYZ)";
-    private static final String DEFAULT_IGNORED_ARTICLES = "The El La Los Las Le Les";
-    private static final String DEFAULT_UPLOADS_FOLDER = "%{['USER_MUSIC_FOLDERS'][0]}/Incoming";
-    private static final String DEFAULT_GENRE_SEPARATORS = ";";
-    private static final String DEFAULT_SHORTCUTS = "";
-    private static final String DEFAULT_PLAYLIST_FOLDER = Util.getDefaultPlaylistFolder();
-    private static final String DEFAULT_MUSIC_FILE_TYPES = "mp3 ogg oga aac m4a m4b flac wav wma aif aiff ape mpc shn mka opus alm 669 mdl far xm mod fnk imf it liq wow mtm ptm rtm stm s3m ult dmf dbm med okt emod sfx m15 mtn amf gdm stx gmc psm j2b umx amd rad hsc flx gtk mgt mtp wv";
-    private static final String DEFAULT_VIDEO_FILE_TYPES = "flv avi mpg mpeg mp4 m4v mkv mov wmv ogv divx m2ts webm";
-    private static final String DEFAULT_COVER_ART_FILE_TYPES = "cover.jpg cover.png cover.gif folder.jpg jpg jpeg gif png";
-    private static final String DEFAULT_COVER_ART_SOURCE = CoverArtSource.FILE_TAG.name();
-    private static final int DEFAULT_COVER_ART_CONCURRENCY = 4;
-    private static final int DEFAULT_COVER_ART_QUALITY = 90;
     private static final String DEFAULT_WELCOME_TITLE = "Welcome to Airsonic!";
     private static final String DEFAULT_WELCOME_SUBTITLE = null;
     private static final String DEFAULT_WELCOME_MESSAGE = "__Welcome to Airsonic!__\n" +
@@ -218,6 +193,7 @@ public class SettingsService {
 
     private final SettingsUserPreferences userPreferences;
     private final SettingsPresentationPreferences presentationPreferences;
+    private final SettingsCatalogPreferences catalogPreferences;
     private final ConfigurationPropertiesService properties;
 
     public SettingsService(UserDao userDao, AvatarDao avatarDao, RuntimeConfiguration configuration,
@@ -230,6 +206,7 @@ public class SettingsService {
         this.properties = Objects.requireNonNull(properties);
         this.valueStore = new SettingsValueStore(properties, Objects.requireNonNull(propertyLookup));
         this.presentationPreferences = new SettingsPresentationPreferences(valueStore);
+        this.catalogPreferences = new SettingsCatalogPreferences(valueStore);
         Cache<String, UserSettings> userSettingsCache = cacheManager != null
                 ? cacheManager.getCache("userSettingsCache", String.class, UserSettings.class) : null;
         this.userPreferences = new SettingsUserPreferences(userDao, avatarDao, userSettingsCache);
@@ -524,32 +501,31 @@ public class SettingsService {
     }
 
     public String getIndexString() {
-        return getProperty(KEY_INDEX_STRING, DEFAULT_INDEX_STRING);
+        return catalogPreferences.getIndexString();
     }
 
     public void setIndexString(String indexString) {
-        setProperty(KEY_INDEX_STRING, indexString);
+        catalogPreferences.setIndexString(indexString);
     }
 
     public String getIgnoredArticles() {
-        return getProperty(KEY_IGNORED_ARTICLES, DEFAULT_IGNORED_ARTICLES);
+        return catalogPreferences.getIgnoredArticles();
     }
 
     String[] getIgnoredArticlesAsArray() {
-        return (String[]) valueStore.derived(KEY_IGNORED_ARTICLES, k -> getIgnoredArticles().split("\\s+"));
+        return catalogPreferences.getIgnoredArticlesAsArray();
     }
 
     public void setIgnoredArticles(String ignoredArticles) {
-        setProperty(KEY_IGNORED_ARTICLES, ignoredArticles);
-        valueStore.invalidateDerived(KEY_IGNORED_ARTICLES);
+        catalogPreferences.setIgnoredArticles(ignoredArticles);
     }
 
     public String getUploadsFolder() {
-        return getProperty(KEY_UPLOADS_FOLDER, DEFAULT_UPLOADS_FOLDER);
+        return catalogPreferences.getUploadsFolder();
     }
 
     public void setUploadsFolder(String uploadsFolder) {
-        setProperty(KEY_UPLOADS_FOLDER, uploadsFolder);
+        catalogPreferences.setUploadsFolder(uploadsFolder);
     }
 
     public Map<String, Object> buildSpelContext() {
@@ -565,104 +541,94 @@ public class SettingsService {
     }
 
     public String getGenreSeparators() {
-        return getProperty(KEY_GENRE_SEPARATORS, DEFAULT_GENRE_SEPARATORS);
+        return catalogPreferences.getGenreSeparators();
     }
 
     public void setGenreSeparators(String genreSeparators) {
-        setProperty(KEY_GENRE_SEPARATORS, genreSeparators);
+        catalogPreferences.setGenreSeparators(genreSeparators);
     }
 
     public String getShortcuts() {
-        return getProperty(KEY_SHORTCUTS, DEFAULT_SHORTCUTS);
+        return catalogPreferences.getShortcuts();
     }
 
     String[] getShortcutsAsArray() {
-        return StringUtil.split(getShortcuts());
+        return catalogPreferences.getShortcutsAsArray();
     }
 
     public void setShortcuts(String shortcuts) {
-        setProperty(KEY_SHORTCUTS, shortcuts);
+        catalogPreferences.setShortcuts(shortcuts);
     }
 
     public String getPlaylistFolder() {
-        return getProperty(KEY_PLAYLIST_FOLDER, DEFAULT_PLAYLIST_FOLDER);
+        return catalogPreferences.getPlaylistFolder();
     }
 
     public void setPlaylistFolder(String playlistFolder) {
-        setProperty(KEY_PLAYLIST_FOLDER, playlistFolder);
+        catalogPreferences.setPlaylistFolder(playlistFolder);
     }
 
     public String getMusicFileTypes() {
-        return getProperty(KEY_MUSIC_FILE_TYPES, DEFAULT_MUSIC_FILE_TYPES);
+        return catalogPreferences.getMusicFileTypes();
     }
 
     public void setMusicFileTypes(String fileTypes) {
-        setProperty(KEY_MUSIC_FILE_TYPES, fileTypes);
-        valueStore.invalidateDerived(KEY_MUSIC_FILE_TYPES);
+        catalogPreferences.setMusicFileTypes(fileTypes);
     }
 
     @SuppressWarnings("unchecked")
     public Set<String> getMusicFileTypesSet() {
-        return (Set<String>) valueStore.derived(KEY_MUSIC_FILE_TYPES,
-            k -> splitLowerString(getMusicFileTypes(), " "));
+        return catalogPreferences.getMusicFileTypesSet();
     }
 
     public String getVideoFileTypes() {
-        return getProperty(KEY_VIDEO_FILE_TYPES, DEFAULT_VIDEO_FILE_TYPES);
+        return catalogPreferences.getVideoFileTypes();
     }
 
     public void setVideoFileTypes(String fileTypes) {
-        setProperty(KEY_VIDEO_FILE_TYPES, fileTypes);
-        valueStore.invalidateDerived(KEY_VIDEO_FILE_TYPES);
+        catalogPreferences.setVideoFileTypes(fileTypes);
     }
 
     @SuppressWarnings("unchecked")
     public Set<String> getVideoFileTypesSet() {
-        return (Set<String>) valueStore.derived(KEY_VIDEO_FILE_TYPES,
-            k -> splitLowerString(getVideoFileTypes(), " "));
+        return catalogPreferences.getVideoFileTypesSet();
     }
 
     public String getCoverArtFileTypes() {
-        return getProperty(KEY_COVER_ART_FILE_TYPES, DEFAULT_COVER_ART_FILE_TYPES);
+        return catalogPreferences.getCoverArtFileTypes();
     }
 
     public void setCoverArtFileTypes(String fileTypes) {
-        setProperty(KEY_COVER_ART_FILE_TYPES, fileTypes);
-        valueStore.invalidateDerived(KEY_COVER_ART_FILE_TYPES);
+        catalogPreferences.setCoverArtFileTypes(fileTypes);
     }
 
     @SuppressWarnings("unchecked")
     Set<String> getCoverArtFileTypesSet() {
-        return (Set<String>) valueStore.derived(KEY_COVER_ART_FILE_TYPES,
-            k -> splitLowerString(getCoverArtFileTypes(), " "));
+        return catalogPreferences.getCoverArtFileTypesSet();
     }
 
     public CoverArtSource getCoverArtSource() {
-        try {
-            return CoverArtSource.valueOf(getString(KEY_COVER_ART_SOURCE, DEFAULT_COVER_ART_SOURCE));
-        } catch (Exception exception) {
-            return CoverArtSource.valueOf(DEFAULT_COVER_ART_SOURCE);
-        }
+        return catalogPreferences.getCoverArtSource();
     }
 
     public void setCoverArtSource(CoverArtSource source) {
-        setProperty(KEY_COVER_ART_SOURCE, source.name());
+        catalogPreferences.setCoverArtSource(source);
     }
 
     public int getCoverArtConcurrency() {
-        return getInt(KEY_COVER_ART_CONCURRENCY, DEFAULT_COVER_ART_CONCURRENCY);
+        return catalogPreferences.getCoverArtConcurrency();
     }
 
     public void setCoverArtConcurrency(Integer concurrency) {
-        setInt(KEY_COVER_ART_CONCURRENCY, concurrency);
+        catalogPreferences.setCoverArtConcurrency(concurrency);
     }
 
     public int getCoverArtQuality() {
-        return getInt(KEY_COVER_ART_QUALITY, DEFAULT_COVER_ART_QUALITY);
+        return catalogPreferences.getCoverArtQuality();
     }
 
     public void setCoverArtQuality(Integer quality) {
-        setInt(KEY_COVER_ART_QUALITY, quality);
+        catalogPreferences.setCoverArtQuality(quality);
     }
 
     public String getWelcomeTitle() {
@@ -1162,11 +1128,6 @@ public class SettingsService {
 
     public void setDlnaBaseLANURL(String dlnaBaseLANURL) {
         setString(KEY_DLNA_BASE_LAN_URL, dlnaBaseLANURL);
-    }
-
-    private static Set<String> splitLowerString(String s, String splitter) {
-        //serial stream and linkedhashset because order matters
-        return Stream.of(s.split(splitter)).filter(StringUtils::isNotBlank).map(String::toLowerCase).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     public void setUserDao(UserDao userDao) {
