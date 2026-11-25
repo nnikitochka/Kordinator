@@ -1,5 +1,5 @@
 <!--
-Thanks for reporting a problem with Airsonic! Please complete all of the
+Thanks for reporting a problem with Kordinator! Please complete all of the
 following sections to make it easier to assist you.
 -->
 
@@ -22,13 +22,13 @@ files, ensure you are legally permitted to share copies!*
 
 ## System information
 
- * **Airsonic version**: *the version listed on the About page*
- * **Operating system**: *the operating system you're running Airsonic on.
+ * **Kordinator version**: *the version listed on the About page*
+ * **Operating system**: *the operating system you're running Kordinator on.
    Linux, what distribution; Windows or Mac, what version?*
- * **Java version**: *the Java version you are using to run Airsonic.*
- * **Proxy server**: *if running Airsonic behind a proxy, what server and
+ * **Java version**: *the Java version you are using to run Kordinator.*
+ * **Proxy server**: *if running Kordinator behind a proxy, what server and
    version? Otherwise,* None
- * **Client**: *what browser and version you use to access the Airsonic web
+ * **Client**: *what browser and version you use to access the Kordinator web
    interface, or the name and version of another app you're using.*
  * **Language**: *which langauge/internationalization is in use*
 

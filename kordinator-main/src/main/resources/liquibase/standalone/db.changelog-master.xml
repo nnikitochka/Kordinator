@@ -1,0 +1,555 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+    <changeSet id="standalone-auth-tables-1" author="kordinator">
+        <createTable tableName="local_user">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_local_user"/>
+            </column>
+            <column name="username" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_local_user_username"/>
+            </column>
+            <column name="password_hash" type="VARCHAR(512)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role" type="VARCHAR(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="enabled" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createTable tableName="user_session">
+            <column name="token_hash" type="CHAR(64)">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_user_session"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_session" baseColumnNames="user_id"
+                                 constraintName="fk_user_session_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="user_session" indexName="ix_user_session_user_id">
+            <column name="user_id"/>
+        </createIndex>
+        <createIndex tableName="user_session" indexName="ix_user_session_expires_at">
+            <column name="expires_at"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="standalone-library-table-1" author="kordinator">
+        <createTable tableName="music_library">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_music_library"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_music_library_name"/>
+            </column>
+            <column name="root_path" type="VARCHAR(4096)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="standalone-account-recovery-1" author="kordinator">
+        <addColumn tableName="local_user">
+            <column name="email" type="VARCHAR(320)"/>
+        </addColumn>
+        <addUniqueConstraint tableName="local_user" columnNames="email" constraintName="uq_local_user_email"/>
+        <createTable tableName="password_recovery_token">
+            <column name="token_hash" type="CHAR(64)">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_password_recovery_token"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_password_recovery_user"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="password_recovery_token" baseColumnNames="user_id"
+                                 constraintName="fk_password_recovery_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="password_recovery_token" indexName="ix_password_recovery_expiry">
+            <column name="expires_at"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="standalone-scan-and-track-tables-1" author="kordinator">
+        <createTable tableName="library_scan_job">
+            <column name="id" type="VARCHAR(36)">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_library_scan_job"/>
+            </column>
+            <column name="library_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="state" type="VARCHAR(16)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tracks_scanned" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="error_count" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="started_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="finished_at" type="TIMESTAMP"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="library_scan_job" baseColumnNames="library_id"
+                                 constraintName="fk_library_scan_job_library" referencedTableName="music_library"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="library_scan_job" indexName="ix_library_scan_job_library">
+            <column name="library_id"/>
+            <column name="started_at"/>
+        </createIndex>
+
+        <createTable tableName="media_track">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_media_track"/>
+            </column>
+            <column name="library_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="relative_path" type="VARCHAR(4096)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="title" type="VARCHAR(512)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="artist" type="VARCHAR(512)"/>
+            <column name="album" type="VARCHAR(512)"/>
+            <column name="album_artist" type="VARCHAR(512)"/>
+            <column name="duration_seconds" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="size_bytes" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="modified_at" type="TIMESTAMP"/>
+            <column name="scan_id" type="VARCHAR(36)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="scanned_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="media_track" baseColumnNames="library_id"
+                                 constraintName="fk_media_track_library" referencedTableName="music_library"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="media_track" indexName="ix_media_track_library">
+            <column name="library_id"/>
+        </createIndex>
+        <createIndex tableName="media_track" indexName="ix_media_track_artist_album">
+            <column name="artist"/>
+            <column name="album"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="standalone-playlist-tables-1" author="kordinator">
+        <createTable tableName="user_playlist">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_user_playlist"/>
+            </column>
+            <column name="owner_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_playlist" baseColumnNames="owner_id"
+                                 constraintName="fk_user_playlist_owner" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="user_playlist" indexName="ix_user_playlist_owner">
+            <column name="owner_id"/>
+            <column name="updated_at"/>
+        </createIndex>
+
+        <createTable tableName="user_playlist_track">
+            <column name="playlist_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_playlist_track"/>
+            </column>
+            <column name="position" type="INT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_playlist_track"/>
+            </column>
+            <column name="track_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_playlist_track" baseColumnNames="playlist_id"
+                                 constraintName="fk_user_playlist_track_playlist" referencedTableName="user_playlist"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <addForeignKeyConstraint baseTableName="user_playlist_track" baseColumnNames="track_id"
+                                 constraintName="fk_user_playlist_track_track" referencedTableName="media_track"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="user_playlist_track" indexName="ix_user_playlist_track_track">
+            <column name="track_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="standalone-playlist-sharing-1" author="kordinator">
+        <modifyDataType tableName="user_playlist" columnName="name" newDataType="VARCHAR(512)"/>
+        <addColumn tableName="user_playlist">
+            <column name="description" type="VARCHAR(4096)"/>
+        </addColumn>
+        <addColumn tableName="user_playlist">
+            <column name="visibility" type="VARCHAR(16)" defaultValue="PRIVATE">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+        <createTable tableName="user_playlist_access">
+            <column name="playlist_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_playlist_access"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_playlist_access"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_playlist_access" baseColumnNames="playlist_id"
+                                 constraintName="fk_user_playlist_access_playlist" referencedTableName="user_playlist"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <addForeignKeyConstraint baseTableName="user_playlist_access" baseColumnNames="user_id"
+                                 constraintName="fk_user_playlist_access_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createTable tableName="legacy_playlist_import">
+            <column name="legacy_playlist_id" type="BIGINT">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_legacy_playlist_import"/>
+            </column>
+            <column name="playlist_id" type="BIGINT">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_legacy_playlist_import_playlist"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="legacy_playlist_import" baseColumnNames="playlist_id"
+                                 constraintName="fk_legacy_playlist_import_playlist" referencedTableName="user_playlist"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="standalone-track-tags-1" author="kordinator">
+        <addColumn tableName="media_track">
+            <column name="disc_number" type="INT"/>
+            <column name="track_number" type="INT"/>
+            <column name="year" type="INT"/>
+            <column name="genre" type="VARCHAR(512)"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="standalone-favorites-1" author="kordinator">
+        <createTable tableName="favorite_track">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_track"/>
+            </column>
+            <column name="track_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_track"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="favorite_track" baseColumnNames="user_id"
+                                 constraintName="fk_favorite_track_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <addForeignKeyConstraint baseTableName="favorite_track" baseColumnNames="track_id"
+                                 constraintName="fk_favorite_track_track" referencedTableName="media_track"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="favorite_track" indexName="ix_favorite_track_user_created">
+            <column name="user_id"/>
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="standalone-library-catalog-decouple-1" author="kordinator">
+        <dropForeignKeyConstraint baseTableName="library_scan_job" constraintName="fk_library_scan_job_library"/>
+        <dropForeignKeyConstraint baseTableName="media_track" constraintName="fk_media_track_library"/>
+        <dropTable tableName="music_library"/>
+    </changeSet>
+    <changeSet id="standalone-core-track-references-1" author="kordinator">
+        <dropForeignKeyConstraint baseTableName="user_playlist_track" constraintName="fk_user_playlist_track_track"/>
+        <dropForeignKeyConstraint baseTableName="favorite_track" constraintName="fk_favorite_track_track"/>
+        <createTable tableName="standalone_data_migration">
+            <column name="migration_id" type="VARCHAR(128)">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_standalone_data_migration"/>
+            </column>
+            <column name="completed_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="standalone-drop-track-projection-1" author="kordinator">
+        <preConditions onFail="MARK_RAN">
+            <and>
+                <tableExists tableName="media_track"/>
+                <sqlCheck expectedResult="0">SELECT COUNT(*) FROM media_track</sqlCheck>
+            </and>
+        </preConditions>
+        <dropTable tableName="media_track"/>
+    </changeSet>
+    <changeSet id="standalone-user-library-access-1" author="kordinator">
+        <createTable tableName="local_user_library">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="library_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="local_user_library" columnNames="user_id, library_id"
+                       constraintName="pk_local_user_library"/>
+        <addForeignKeyConstraint baseTableName="local_user_library" baseColumnNames="user_id"
+                                 constraintName="fk_local_user_library_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="standalone-user-play-queue-1" author="kordinator">
+        <createTable tableName="user_play_queue">
+            <column name="user_id" type="BIGINT">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_user_play_queue"/>
+            </column>
+            <column name="current_track_id" type="BIGINT"/>
+            <column name="position_ms" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_play_queue" baseColumnNames="user_id"
+                                 constraintName="fk_user_play_queue_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+
+        <createTable tableName="user_play_queue_track">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_play_queue_track"/>
+            </column>
+            <column name="position" type="INT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_play_queue_track"/>
+            </column>
+            <column name="track_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_play_queue_track" baseColumnNames="user_id"
+                                 constraintName="fk_user_play_queue_track_queue" referencedTableName="user_play_queue"
+                                 referencedColumnNames="user_id" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="standalone-catalog-favorites-1" author="kordinator">
+        <createTable tableName="favorite_album">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_album"/>
+            </column>
+            <column name="library_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_album"/>
+            </column>
+            <column name="album_name" type="VARCHAR(512)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_album"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="favorite_album" baseColumnNames="user_id"
+                                 constraintName="fk_favorite_album_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+
+        <createTable tableName="favorite_artist">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_artist"/>
+            </column>
+            <column name="library_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_artist"/>
+            </column>
+            <column name="artist_name" type="VARCHAR(512)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_favorite_artist"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="favorite_artist" baseColumnNames="user_id"
+                                 constraintName="fk_favorite_artist_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="standalone-track-bookmarks-1" author="kordinator">
+        <createTable tableName="track_bookmark">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_track_bookmark"/>
+            </column>
+            <column name="track_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_track_bookmark"/>
+            </column>
+            <column name="position_ms" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="comment" type="VARCHAR(1024)"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="track_bookmark" baseColumnNames="user_id"
+                                 constraintName="fk_track_bookmark_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="track_bookmark" indexName="ix_track_bookmark_user_updated">
+            <column name="user_id"/>
+            <column name="updated_at"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="standalone-video-bookmarks-1" author="kordinator">
+        <createTable tableName="video_bookmark">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_video_bookmark"/>
+            </column>
+            <column name="video_id" type="INT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_video_bookmark"/>
+            </column>
+            <column name="position_ms" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="comment" type="VARCHAR(1024)"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="video_bookmark" baseColumnNames="user_id"
+                                 constraintName="fk_video_bookmark_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="video_bookmark" indexName="ix_video_bookmark_user_updated">
+            <column name="user_id"/>
+            <column name="updated_at"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="standalone-track-ratings-1" author="kordinator">
+        <createTable tableName="track_rating">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_track_rating"/>
+            </column>
+            <column name="track_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_track_rating"/>
+            </column>
+            <column name="rating" type="INT">
+                <constraints nullable="false" checkConstraint="rating BETWEEN 1 AND 5"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="track_rating" baseColumnNames="user_id"
+                                 constraintName="fk_track_rating_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="standalone-album-ratings-1" author="kordinator">
+        <createTable tableName="album_rating">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_album_rating"/>
+            </column>
+            <column name="library_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_album_rating"/>
+            </column>
+            <column name="album_name" type="VARCHAR(512)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_album_rating"/>
+            </column>
+            <column name="rating" type="INT">
+                <constraints nullable="false" checkConstraint="rating BETWEEN 1 AND 5"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="album_rating" baseColumnNames="user_id"
+                                 constraintName="fk_album_rating_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+    </changeSet>
+    <changeSet id="standalone-user-track-notes-1" author="kordinator">
+        <createTable tableName="user_track_note">
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_track_note"/>
+            </column>
+            <column name="track_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_user_track_note"/>
+            </column>
+            <column name="note" type="VARCHAR(4096)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="user_track_note" baseColumnNames="user_id"
+                                 constraintName="fk_user_track_note_user" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="user_track_note" indexName="ix_user_track_note_track">
+            <column name="track_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet id="standalone-shares-1" author="kordinator">
+        <createTable tableName="shared_link">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_shared_link"/>
+            </column>
+            <column name="owner_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="token_hash" type="CHAR(64)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_shared_link_token"/>
+            </column>
+            <column name="description" type="VARCHAR(1024)"/>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="expires_at" type="TIMESTAMP"/>
+            <column name="visit_count" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="last_visited_at" type="TIMESTAMP"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="shared_link" baseColumnNames="owner_id"
+                                 constraintName="fk_shared_link_owner" referencedTableName="local_user"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="shared_link" indexName="ix_shared_link_owner">
+            <column name="owner_id"/>
+            <column name="created_at"/>
+        </createIndex>
+        <createTable tableName="shared_link_track">
+            <column name="share_id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_shared_link_track"/>
+            </column>
+            <column name="position" type="INT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_shared_link_track"/>
+            </column>
+            <column name="track_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="shared_link_track" baseColumnNames="share_id"
+                                 constraintName="fk_shared_link_track_share" referencedTableName="shared_link"
+                                 referencedColumnNames="id" onDelete="CASCADE"/>
+        <createIndex tableName="shared_link_track" indexName="ix_shared_link_track_track">
+            <column name="track_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

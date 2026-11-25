@@ -1,0 +1,6 @@
+package su.nnedition.kord.filter
+
+/** Shared default charset for HTTP requests. */
+object RequestEncodingPolicy {
+    const val DEFAULT_ENCODING: String = "UTF-8"
+}

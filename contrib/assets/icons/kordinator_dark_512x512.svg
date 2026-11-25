@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Kordinator icon">
+  <rect width="512" height="512" rx="112" fill="#142033"/>
+  <g fill="#35c6b0">
+    <rect x="92" y="264" width="48" height="132" rx="24"/>
+    <rect x="172" y="194" width="48" height="202" rx="24"/>
+    <rect x="252" y="128" width="48" height="268" rx="24"/>
+  </g>
+  <path d="M364 104v206a54 54 0 1 1-36-51V154l112-28v160a54 54 0 1 1-36-51V96z" fill="#f4f7fb"/>
+</svg>

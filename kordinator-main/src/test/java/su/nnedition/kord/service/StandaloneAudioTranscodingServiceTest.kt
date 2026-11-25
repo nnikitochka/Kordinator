@@ -1,0 +1,152 @@
+package su.nnedition.kord.service
+
+import su.nnedition.kord.dao.TranscodingDao
+import su.nnedition.kord.domain.MediaFile
+import su.nnedition.kord.domain.MusicFolder
+import su.nnedition.kord.domain.Transcoding
+import su.nnedition.kord.io.TranscodeInputStream
+import su.nnedition.kord.service.media.MediaFolderService
+import org.junit.jupiter.api.Assumptions.assumeTrue
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import org.mockito.Mockito.*
+import java.io.ByteArrayInputStream
+import java.nio.file.Files
+import java.nio.file.Path
+import java.time.Instant
+import java.util.concurrent.TimeUnit
+import javax.sound.sampled.*
+import kotlin.test.*
+
+class StandaloneAudioTranscodingServiceTest {
+    @TempDir lateinit var root: Path
+
+    @Test
+    fun configuredProfileProducesActualMp3AndStartupFailureDoesNotReturnOriginal() {
+        assumeTrue(Files.isExecutable(Path.of("/usr/bin/ffmpeg")), "ffmpeg is required for audio encoding verification")
+        val pcm = ByteArray(16_000)
+        val source = root.resolve("track with spaces.wav")
+        AudioInputStream(ByteArrayInputStream(pcm), AudioFormat(8000f, 16, 1, true, false), 8000).use {
+            AudioSystem.write(it, AudioFileFormat.Type.WAVE, source.toFile())
+        }
+        val file = MediaFile().apply {
+            id = 1; folderId = 1; path = source.fileName.toString()
+            format = "wav"; mediaType = MediaFile.MediaType.MUSIC
+        }
+        val dao = mock(TranscodingDao::class.java)
+        val folders = mock(MediaFolderService::class.java)
+        `when`(folders.getMusicFolderById(1)).thenReturn(MusicFolder(1, root, "Music", MusicFolder.Type.MEDIA, true, Instant.now()))
+        val settings = mock(SettingsService::class.java)
+        `when`(settings.getDownsamplingCommand()).thenReturn("/usr/bin/ffmpeg -nostdin -v error -i %s -b:a %bk -f mp3 -")
+        val engine = TranscodingService(dao, settings, folders) { mock(PlayerService::class.java) }
+        val service = StandaloneAudioTranscodingService(engine)
+        val profile = Transcoding(1, "MP3", "wav flac", "mp3",
+            "/usr/bin/ffmpeg -nostdin -v error -i %s -b:a %bk -f mp3 -", null, null, true)
+        `when`(dao.allTranscodings).thenReturn(listOf(profile))
+        assertNull(service.prepare(file, "opus", 128))
+        assertFailsWith<IllegalArgumentException> { service.prepare(file, "mp3", 1000) }
+        val plan = assertNotNull(service.prepare(file, "MP3", 128))
+        val bytes = service.open(plan).use { it.readAllBytes() }
+        assertTrue(bytes.size > 1000)
+        assertEquals("ID3", bytes.take(3).map { it.toInt().toChar() }.joinToString(""))
+        val output = root.resolve("encoded.mp3")
+        Files.write(output, bytes)
+        val decoder = ProcessBuilder("/usr/bin/ffmpeg", "-nostdin", "-v", "error", "-i", output.toString(), "-f", "null", "-")
+            .redirectError(ProcessBuilder.Redirect.INHERIT).start()
+        assertTrue(decoder.waitFor(10, TimeUnit.SECONDS))
+        assertEquals(0, decoder.exitValue())
+        profile.step1 = root.resolve("missing-transcoder").toString() + " %s"
+        assertFailsWith<java.io.IOException> { service.open(plan) }
+        file.format = "mp3"
+        file.path = output.fileName.toString()
+        val downsample = assertNotNull(service.prepare(file, "mp3", 64))
+        assertTrue(downsample.parameters.isDownsample)
+        val fullDownsample = service.open(downsample).use { it.readAllBytes() }
+        assertTrue(fullDownsample.size > 500)
+        file.duration = 1.0
+        val soughtDownsample = assertNotNull(service.prepare(file, "mp3", 64, 0.5))
+        val remainder = service.open(soughtDownsample).use { it.readAllBytes() }
+        assertTrue(remainder.size > 500 && remainder.size < fullDownsample.size)
+    }
+
+    @Test
+    fun seekingStartsAtRequestedAudioSampleForFfmpegAndPlaceholderProfiles() {
+        assumeTrue(Files.isExecutable(Path.of("/usr/bin/ffmpeg")))
+        val pcm = ByteArray(64_000)
+        for (sample in 16_000 until 32_000) {
+            val value = (10_000 * kotlin.math.sin(sample * 2 * Math.PI * 440 / 8000)).toInt()
+            pcm[sample * 2] = value.toByte()
+            pcm[sample * 2 + 1] = (value shr 8).toByte()
+        }
+        val source = root.resolve("seek source.wav")
+        AudioInputStream(ByteArrayInputStream(pcm), AudioFormat(8000f, 16, 1, true, false), 32_000).use {
+            AudioSystem.write(it, AudioFileFormat.Type.WAVE, source.toFile())
+        }
+        val file = MediaFile().apply {
+            id = 1; folderId = 1; path = source.fileName.toString()
+            format = "wav"; mediaType = MediaFile.MediaType.MUSIC; duration = 4.0
+        }
+        val dao = mock(TranscodingDao::class.java)
+        val folders = mock(MediaFolderService::class.java)
+        `when`(folders.getMusicFolderById(1)).thenReturn(MusicFolder(1, root, "Music", MusicFolder.Type.MEDIA, true, Instant.now()))
+        val settings = mock(SettingsService::class.java)
+        `when`(settings.getDownsamplingCommand()).thenReturn("/usr/bin/ffmpeg -v error -i %s -b:a %bk -f mp3 -")
+        val service = StandaloneAudioTranscodingService(TranscodingService(dao, settings, folders) { mock(PlayerService::class.java) })
+        val profile = Transcoding(1, "WAV", "wav", "wav", "", null, null, true)
+        `when`(dao.allTranscodings).thenReturn(listOf(profile))
+        for ((index, command) in listOf(
+            "/usr/bin/ffmpeg -v error -i %s -f wav -",
+            "/usr/bin/ffmpeg -v error -ss %o -i %s -f wav -",
+        ).withIndex()) {
+            profile.step1 = command
+            val plan = assertNotNull(service.prepare(file, "wav", 128, 2.25))
+            val encoded = root.resolve("seek-$index.wav")
+            service.open(plan).use { Files.copy(it, encoded) }
+            val raw = root.resolve("seek-$index.pcm")
+            val decode = ProcessBuilder("/usr/bin/ffmpeg", "-nostdin", "-v", "error", "-i", encoded.toString(),
+                "-f", "s16le", "-ac", "1", "-ar", "8000", raw.toString())
+                .redirectError(ProcessBuilder.Redirect.INHERIT).start()
+            try {
+                assertTrue(decode.waitFor(10, TimeUnit.SECONDS))
+                assertEquals(0, decode.exitValue())
+                assertContentEquals(pcm.copyOfRange(36_000, 64_000), Files.readAllBytes(raw))
+            } finally { decode.destroyForcibly() }
+        }
+        for (offset in listOf(-1.0, Double.NaN, Double.POSITIVE_INFINITY, 4.0, 5.0)) {
+            assertFailsWith<IllegalArgumentException> { service.prepare(file, "wav", 128, offset) }
+        }
+        profile.step1 = "unsupported-encoder %s"
+        assertNull(service.prepare(file, "wav", 128, 1.0))
+    }
+
+    @Test
+    fun closingBlockedStreamUnblocksReaderAndKillsProcess() {
+        assumeTrue(Files.isExecutable(Path.of("/usr/bin/tail")))
+        val stream = TranscodeInputStream(ProcessBuilder("/usr/bin/tail", "-f", "/dev/null"), null, null)
+        val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
+        try {
+            val started = java.util.concurrent.CountDownLatch(1)
+            val read = executor.submit<Int> { started.countDown(); runCatching { stream.read() }.getOrDefault(-1) }
+            assertTrue(started.await(5, TimeUnit.SECONDS))
+            stream.close()
+            assertEquals(-1, read.get(5, TimeUnit.SECONDS))
+            assertTrue(stream.process!!.waitFor(5, TimeUnit.SECONDS))
+        } finally { stream.close(); executor.shutdownNow() }
+    }
+
+    @Test
+    fun closingFinalPipelineStreamTerminatesUpstreamProcess() {
+        assumeTrue(Files.isExecutable(Path.of("/usr/bin/yes")))
+        val upstream = TranscodeInputStream(ProcessBuilder("/usr/bin/yes"), null, null)
+        val downstream = TranscodeInputStream(ProcessBuilder("/usr/bin/cat"), upstream, null)
+        try {
+            assertTrue(downstream.read() >= 0)
+            downstream.close()
+            assertTrue(upstream.process!!.waitFor(5, TimeUnit.SECONDS))
+            assertTrue(downstream.process!!.waitFor(5, TimeUnit.SECONDS))
+        } finally {
+            downstream.close()
+            upstream.close()
+        }
+    }
+}

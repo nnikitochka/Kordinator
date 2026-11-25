@@ -29,8 +29,8 @@ jobs:
       - name: Start the packaged server
         run: |
           data_dir="$(mktemp -d)"
-          java -jar airsonic-main/target/kordinator.jar --airsonic.home="$data_dir" \
-            --airsonic.http.host=127.0.0.1 --airsonic.http.port=8080 > "$data_dir/server.log" 2>&1 &
+          java -jar kordinator-main/target/kordinator.jar --kordinator.home="$data_dir" \
+            --kordinator.http.host=127.0.0.1 --kordinator.http.port=8080 > "$data_dir/server.log" 2>&1 &
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true; wait "$pid" || true; rm -rf "$data_dir"' EXIT
           if ! curl --fail --silent --show-error --retry 20 --retry-connrefused --retry-delay 1 \

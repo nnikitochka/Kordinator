@@ -14,6 +14,6 @@ if [[ -n ${JAVA_OPTS:-} ]]; then
 fi
 
 exec java -Djava.awt.headless=true \
-    "-Dairsonic.home=$AIRSONIC_DIR/airsonic" \
-    "-Dairsonic.http.port=$AIRSONIC_PORT" \
+    "-Dkordinator.home=$KORDINATOR_DIR/kordinator" \
+    "-Dkordinator.http.port=$KORDINATOR_PORT" \
     "${java_opts[@]}" -jar /app/kordinator.jar "$@"

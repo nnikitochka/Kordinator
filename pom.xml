@@ -3,14 +3,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.airsonic.player</groupId>
-    <artifactId>airsonic</artifactId>
-    <version>11.0.0-SNAPSHOT</version>
-    <name>Airsonic</name>
+    <groupId>su.nnedition.kord</groupId>
+    <artifactId>kordinator</artifactId>
+    <version>0.1.0</version>
+    <name>Kordinator</name>
     <packaging>pom</packaging>
     <organization>
-        <name>Airsonic</name>
-        <url>https://airsonic.org/</url>
+        <name>Kordinator</name>
+        <url>https://github.com/nnikitochka/Kordinator</url>
     </organization>
     <inceptionYear>2016</inceptionYear>
 
@@ -25,7 +25,7 @@
         <netty.version>4.2.17.Final</netty.version>
         <kotlin-coroutines.version>1.11.0</kotlin-coroutines.version>
         <kotlin-serialization.version>1.11.0</kotlin-serialization.version>
-        <docker.container.repo>airsonicadvanced/airsonic-advanced</docker.container.repo>
+        <docker.container.repo>ghcr.io/nnikitochka/kordinator</docker.container.repo>
     </properties>
 
     <repositories>
@@ -52,13 +52,13 @@
     </pluginRepositories>
 
     <scm>
-        <connection>scm:git:git://github.com/airsonic-advanced/airsonic-advanced.git</connection>
-        <developerConnection>scm:git:git@github.com:airsonic-advanced/airsonic-advanced.git</developerConnection>
-        <url>https://github.com/airsonic-advanced/airsonic-advanced.git</url>
+        <connection>scm:git:git://github.com/nnikitochka/Kordinator.git</connection>
+        <developerConnection>scm:git:git@github.com:nnikitochka/Kordinator.git</developerConnection>
+        <url>https://github.com/nnikitochka/Kordinator</url>
     </scm>
 
     <modules>
-        <module>airsonic-main</module>
+        <module>kordinator-main</module>
     </modules>
 
     <dependencyManagement>
@@ -482,7 +482,7 @@
                         <configuration>
                             <!-- #1186 Temporarily skip a test. -->
                             <excludes>
-                                <exclude>org.airsonic.player.service.search.*TestCase.java</exclude>
+                                <exclude>su.nnedition.kord.service.search.*TestCase.java</exclude>
                             </excludes>
                             <!-- see https://github.com/mockito/mockito/issues/3037#issuecomment-1930132240 -->
                             <argLine>-javaagent:${net.bytebuddy:byte-buddy-agent:jar}</argLine>
@@ -597,7 +597,7 @@
         <profile>
             <id>docker</id>
             <modules>
-                <module>airsonic-main</module>
+                <module>kordinator-main</module>
                 <module>install/docker</module>
             </modules>
         </profile>

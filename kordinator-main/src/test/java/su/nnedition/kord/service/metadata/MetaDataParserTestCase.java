@@ -1,0 +1,87 @@
+package su.nnedition.kord.service.metadata;
+
+import su.nnedition.kord.domain.MediaFile;
+import su.nnedition.kord.service.media.MediaFolderService;
+import org.junit.Test;
+
+import java.nio.file.Path;
+
+import static org.junit.Assert.assertEquals;
+
+/**
+ * Unit test of {@link MetaDataParser}.
+ *
+ * @author Sindre Mehus
+ */
+public class MetaDataParserTestCase {
+
+    @Test
+    public void testRemoveTrackNumberFromTitle() {
+
+        MetaDataParser parser = new MetaDataParser() {
+            @Override
+            public MetaData getRawMetaData(Path file) {
+                return null;
+            }
+
+            @Override
+            public void setMetaData(MediaFile file, MetaData metaData) {
+            }
+
+            @Override
+            public boolean isEditingSupported() {
+                return false;
+            }
+
+            @Override
+            public MediaFolderService getMediaFolderService() {
+                return null;
+            }
+
+            @Override
+            public boolean isApplicable(Path path) {
+                return false;
+            }
+        };
+
+        assertEquals("", parser.removeTrackNumberFromTitle("", null));
+        assertEquals("kokos", parser.removeTrackNumberFromTitle("kokos", null));
+        assertEquals("01 kokos", parser.removeTrackNumberFromTitle("01 kokos", null));
+        assertEquals("01 - kokos", parser.removeTrackNumberFromTitle("01 - kokos", null));
+        assertEquals("01-kokos", parser.removeTrackNumberFromTitle("01-kokos", null));
+        assertEquals("01 - kokos", parser.removeTrackNumberFromTitle("01 - kokos", null));
+        assertEquals("99 - kokos", parser.removeTrackNumberFromTitle("99 - kokos", null));
+        assertEquals("99.- kokos", parser.removeTrackNumberFromTitle("99.- kokos", null));
+        assertEquals("01 kokos", parser.removeTrackNumberFromTitle(" 01 kokos", null));
+        assertEquals("400 years", parser.removeTrackNumberFromTitle("400 years", null));
+        assertEquals("49ers", parser.removeTrackNumberFromTitle("49ers", null));
+        assertEquals("01", parser.removeTrackNumberFromTitle("01", null));
+        assertEquals("01", parser.removeTrackNumberFromTitle("01 ", null));
+        assertEquals("01", parser.removeTrackNumberFromTitle(" 01 ", null));
+        assertEquals("01", parser.removeTrackNumberFromTitle(" 01", null));
+
+        assertEquals("", parser.removeTrackNumberFromTitle("", 1));
+        assertEquals("kokos", parser.removeTrackNumberFromTitle("01 kokos", 1));
+        assertEquals("kokos", parser.removeTrackNumberFromTitle("01 - kokos", 1));
+        assertEquals("kokos", parser.removeTrackNumberFromTitle("01-kokos", 1));
+        assertEquals("kokos", parser.removeTrackNumberFromTitle("99 - kokos", 99));
+        assertEquals("kokos", parser.removeTrackNumberFromTitle("99.- kokos", 99));
+        assertEquals("01 kokos", parser.removeTrackNumberFromTitle("01 kokos", 2));
+        assertEquals("1 kokos", parser.removeTrackNumberFromTitle("1 kokos", 2));
+        assertEquals("50 years", parser.removeTrackNumberFromTitle("50 years", 1));
+        assertEquals("years", parser.removeTrackNumberFromTitle("50 years", 50));
+        assertEquals("15 Step", parser.removeTrackNumberFromTitle("15 Step", 1));
+        assertEquals("Step", parser.removeTrackNumberFromTitle("15 Step", 15));
+
+        assertEquals("49ers", parser.removeTrackNumberFromTitle("49ers", 1));
+        assertEquals("49ers", parser.removeTrackNumberFromTitle("49ers", 49));
+        assertEquals("01", parser.removeTrackNumberFromTitle("01", 1));
+        assertEquals("01", parser.removeTrackNumberFromTitle("01 ", 1));
+        assertEquals("01", parser.removeTrackNumberFromTitle(" 01 ", 1));
+        assertEquals("01", parser.removeTrackNumberFromTitle(" 01", 1));
+        assertEquals("01", parser.removeTrackNumberFromTitle("01", 2));
+        assertEquals("01", parser.removeTrackNumberFromTitle("01 ", 2));
+        assertEquals("01", parser.removeTrackNumberFromTitle(" 01 ", 2));
+        assertEquals("01", parser.removeTrackNumberFromTitle(" 01", 2));
+    }
+}
