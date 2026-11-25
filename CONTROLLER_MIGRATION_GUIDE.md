@@ -16,7 +16,7 @@
 2. **Метаданные и малые зависимости.** Перенести `MetaData`, parser contract и parser implementations; затем playlist import/export contracts и handlers, HLS session, audio player, scrobbler adapters и оставшиеся утилиты (`Util` и `LegacyHsqlMigrationUtil` уже перенесены). Сохранить nullable поля, сортировки, ошибки чтения файлов, закрытие потоков и транскодирующих процессов. Проверки: существующие parser, playlist, HLS/transcoding и streaming tests.
 3. **Каталог и сканирование — завершён.** Перенесены `CoverArtImageService`, `MediaFolderService`, `MediaFileService`, `MediaScannerService` и `LastFmService`; крупные сервисы разделены на небольшие Kotlin-классы. Проверки: реальное сканирование, изоляция библиотек, каталог/поиск, обложки, Last.fm metadata и playlist API.
 4. **Настройки и безопасность.** Перенести `VersionService` (завершён), затем разделить и перенести `SettingsService`, `SecurityService`, `DatabaseService`; сохранить права, кеши, обновления credentials, настройки и backup/import/export. Проверки: security/settings suites и соответствующие admin API.
-5. **Воспроизведение и плейлисты.** Перенести `PlaylistService`, `TranscodingService`, `DownloadService`, `JukeboxLegacySubsonicService`. Сохранить порядок треков, доступ аккаунтов, streaming/Range/HEAD, параметры ffmpeg, завершение процессов и ресурсы jukebox. Проверки: playlist, streaming/transcoding, jukebox и download suites.
+5. **Воспроизведение и плейлисты.** `DownloadService` перенесён; далее перенести `PlaylistService`, `TranscodingService` и `JukeboxLegacySubsonicService`. Сохранить порядок треков, доступ аккаунтов, streaming/Range/HEAD, параметры ffmpeg, завершение процессов и ресурсы jukebox. Проверки: playlist, streaming/transcoding, jukebox и download suites.
 6. **DLNA/UPnP — завершён.** Перенесены processors, content directories, NAT-PMP router и регистрация media server. Проверены URL generation, дерево каталога, NAT-PMP параметры, lifecycle и DLNA API.
 7. **Создание схемы и оставшиеся тесты.** Перенести нужные Liquibase custom changes и оставшиеся Java-тесты/fixtures вместе с их областями. Старые миграционные названия не означают активную зависимость от Spring; проверять реальные импорты и загрузку changesets. Не удалять действующую схему без замены.
 8. **Завершающий аудит.** Сверить список Java-файлов, выполнить полную сборку и автоматические проверки, запустить packaged JAR с изолированным home, проверить поддерживаемые сценарии и отсутствие Spring/Servlet/Tomcat в runtime. Удалить ненужные Java-specific build steps после исчезновения потребителей. Завершить коммиты.
@@ -33,10 +33,9 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 15 файлов
+### Production: 14 файлов
 
 - `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
-- `airsonic-main/src/main/java/org/airsonic/player/service/DownloadService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/JukeboxLegacySubsonicService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/PlaylistService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/SecurityService.java`
@@ -163,3 +162,4 @@
 - `MediaFileService` переведён на Kotlin и разделён на пять классов до 300 строк; lookup, дерево каталога, метаданные, подборки и обновление media file проверены через scanner/library/artwork/search/playlist/status/UPnP suites: 18 тестов прошли.
 - `MediaScannerService` переведён на Kotlin и разделён на coordinator, scan state, traversal worker, entity aggregation и persistence; проверены полный scan fixture, асинхронный статус, изоляция библиотек, каталог/search/status/runtime: 16 тестов прошли.
 - `LastFmService` переведён на Kotlin и разделён на facade, recommendations, metadata client и cache initialization; проверены metadata normalization, playlist API stubs, scrobblers и runtime wiring: 11 тестов прошли.
+- `DownloadService` переведён на Kotlin; сохранены caller context/access checks, selection snapshot, monitored single-file streams и stored ZIP generation. Проверены file/ZIP contents и runtime graph: 5 тестов прошли.
