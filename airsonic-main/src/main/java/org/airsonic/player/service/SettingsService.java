@@ -12,7 +12,6 @@ import org.airsonic.player.util.Util;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
-import org.airsonic.player.cache.CacheHelper;
 import org.slf4j.LoggerFactory;
 import org.airsonic.player.runtime.RuntimeConfiguration;
 
@@ -24,7 +23,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -224,8 +222,6 @@ public class SettingsService {
 
     private List<Theme> themes;
     private List<Locale> locales;
-    private UserDao userDao;
-    private AvatarDao avatarDao;
 
     // Array of obsolete properties. Used to clean property file.
     private static final List<String> OBSOLETE_KEYS = Arrays.asList("PortForwardingPublicPort", "PortForwardingLocalPort",
@@ -238,7 +234,7 @@ public class SettingsService {
             "database.usertable.quote", "DatabaseUsertableQuote", "spring.liquibase.parameters.userTableQuote"
             );
 
-    private final Cache<String, UserSettings> userSettingsCache;
+    private final SettingsUserPreferences userPreferences;
     private final ConfigurationPropertiesService properties;
 
     public SettingsService(UserDao userDao, AvatarDao avatarDao, RuntimeConfiguration configuration,
@@ -248,11 +244,11 @@ public class SettingsService {
 
     private SettingsService(UserDao userDao, AvatarDao avatarDao, Function<String, String> propertyLookup,
                             CacheManager cacheManager, ConfigurationPropertiesService properties) {
-        this.userDao = userDao;
-        this.avatarDao = avatarDao;
         this.properties = Objects.requireNonNull(properties);
         this.valueStore = new SettingsValueStore(properties, Objects.requireNonNull(propertyLookup));
-        this.userSettingsCache = cacheManager != null ? cacheManager.getCache("userSettingsCache", String.class, UserSettings.class) : null;
+        Cache<String, UserSettings> userSettingsCache = cacheManager != null
+                ? cacheManager.getCache("userSettingsCache", String.class, UserSettings.class) : null;
+        this.userPreferences = new SettingsUserPreferences(userDao, avatarDao, userSettingsCache);
     }
 
     public static Map<String, String> getMigratedPropertyKeys() {
@@ -1177,46 +1173,7 @@ public class SettingsService {
      * @return User-specific settings. Never <code>null</code>.
      */
     public UserSettings getUserSettings(String username) {
-        return CacheHelper.getOrCompute(userSettingsCache, username, u -> {
-            UserSettings settings = userDao.getUserSettings(u);
-            return settings == null ? createDefaultUserSettings(u) : settings;
-        });
-    }
-
-    private UserSettings createDefaultUserSettings(String username) {
-        UserSettings settings = new UserSettings(username);
-        settings.setFinalVersionNotificationEnabled(true);
-        settings.setBetaVersionNotificationEnabled(false);
-        settings.setSongNotificationEnabled(true);
-        settings.setShowNowPlayingEnabled(true);
-        settings.setPartyModeEnabled(false);
-        settings.setNowPlayingAllowed(true);
-        settings.setAutoHidePlayQueue(true);
-        settings.setKeyboardShortcutsEnabled(false);
-        settings.setShowSideBar(true);
-        settings.setShowArtistInfoEnabled(true);
-        settings.setViewAsList(false);
-        settings.setQueueFollowingSongs(true);
-        settings.setDefaultAlbumList(AlbumListType.RANDOM);
-        settings.setLastFmEnabled(false);
-        settings.setListenBrainzEnabled(false);
-        settings.setChanged(Instant.now());
-
-        UserSettings.Visibility playlist = settings.getPlaylistVisibility();
-        playlist.setArtistVisible(true);
-        playlist.setAlbumVisible(true);
-        playlist.setYearVisible(true);
-        playlist.setDurationVisible(true);
-        playlist.setBitRateVisible(true);
-        playlist.setFormatVisible(true);
-        playlist.setFileSizeVisible(true);
-
-        UserSettings.Visibility main = settings.getMainVisibility();
-        main.setTrackNumberVisible(true);
-        main.setArtistVisible(true);
-        main.setDurationVisible(true);
-
-        return settings;
+        return userPreferences.getUserSettings(username);
     }
 
     /**
@@ -1225,10 +1182,7 @@ public class SettingsService {
      * @param settings The user-specific settings.
      */
     public void updateUserSettings(UserSettings settings) {
-        if (userSettingsCache != null && settings != null && settings.getUsername() != null) {
-            userSettingsCache.remove(settings.getUsername());
-        }
-        userDao.updateUserSettings(settings);
+        userPreferences.updateUserSettings(settings);
     }
 
     /**
@@ -1237,7 +1191,7 @@ public class SettingsService {
      * @return All system avatars.
      */
     public List<Avatar> getAllSystemAvatars() {
-        return avatarDao.getAllSystemAvatars();
+        return userPreferences.getAllSystemAvatars();
     }
 
     /**
@@ -1247,7 +1201,7 @@ public class SettingsService {
      * @return The avatar or <code>null</code> if not found.
      */
     public Avatar getSystemAvatar(int id) {
-        return avatarDao.getSystemAvatar(id);
+        return userPreferences.getSystemAvatar(id);
     }
 
     /**
@@ -1257,7 +1211,7 @@ public class SettingsService {
      * @return The avatar or <code>null</code> if not found.
      */
     public Avatar getCustomAvatar(String username) {
-        return avatarDao.getCustomAvatar(username);
+        return userPreferences.getCustomAvatar(username);
     }
 
     /**
@@ -1267,7 +1221,7 @@ public class SettingsService {
      * @param username The username.
      */
     public void setCustomAvatar(Avatar avatar, String username) {
-        avatarDao.setCustomAvatar(avatar, username);
+        userPreferences.setCustomAvatar(avatar, username);
     }
 
     public boolean isDlnaEnabled() {
@@ -1308,11 +1262,11 @@ public class SettingsService {
     }
 
     public void setUserDao(UserDao userDao) {
-        this.userDao = userDao;
+        userPreferences.setUserDao(userDao);
     }
 
     public void setAvatarDao(AvatarDao avatarDao) {
-        this.avatarDao = avatarDao;
+        userPreferences.setAvatarDao(avatarDao);
     }
 
     public String getSmtpServer() {
