@@ -24,7 +24,7 @@ class GenreUpnpProcessorTest {
         `when`(mediaFileService.getGenres(false)).thenReturn(genres)
         val directory = mock(DispatchingContentDirectory::class.java)
         `when`(directory.getMediaFileService()).thenReturn(mediaFileService)
-        val processor = GenreUpnpProcessor().apply { dispatchingContentDirectory = directory }
+        val processor = GenreUpnpProcessor().apply { setDispatchingContentDirectory(directory) }
 
         val container = processor.createContainer(genres[1], 1) as GenreContainer
         val page = processor.browseRoot(null, 1, 1, null)
@@ -57,7 +57,7 @@ class GenreUpnpProcessorTest {
         `when`(directory.getMediaFileService()).thenReturn(mediaFileService)
         `when`(directory.getMediaFolderService()).thenReturn(folderService)
         `when`(directory.getMediaFileProcessor()).thenReturn(mediaProcessor)
-        val processor = GenreUpnpProcessor().apply { dispatchingContentDirectory = directory }
+        val processor = GenreUpnpProcessor().apply { setDispatchingContentDirectory(directory) }
 
         assertSame(genre, processor.getItemById("0"))
         assertNull(processor.getItemById("1"))

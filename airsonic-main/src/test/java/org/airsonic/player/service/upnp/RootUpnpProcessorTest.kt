@@ -32,7 +32,7 @@ class RootUpnpProcessorTest {
         `when`(playlist.createRootContainer()).thenReturn(categories[4])
         `when`(recent.createRootContainer()).thenReturn(categories[5])
         val processor = RootUpnpProcessor(index)
-        processor.dispatchingContentDirectory = directory
+        processor.setDispatchingContentDirectory(directory)
         val root = processor.createRootContainer() as StorageFolder
         assertEquals(DispatchingContentDirectory.CONTAINER_ID_ROOT, root.id)
         assertEquals("-1", root.parentID)

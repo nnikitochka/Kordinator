@@ -29,7 +29,7 @@ class ArtistAndRecentUpnpProcessorTest {
         val albumProcessor = mock(AlbumUpnpProcessor::class.java)
         `when`(albumProcessor.getAlbumDao()).thenReturn(albumDao)
         `when`(directory.getAlbumProcessor()).thenReturn(albumProcessor)
-        val processor = ArtistUpnpProcessor().apply { setArtistDao(artistDao); dispatchingContentDirectory = directory }
+        val processor = ArtistUpnpProcessor().apply { setArtistDao(artistDao); setDispatchingContentDirectory(directory) }
         assertEquals(listOf("!alpha", "The Artist", "Zebra"), processor.getAllItems().map { it.name })
         val children = processor.getChildren(artist)
         assertEquals(listOf(-1, 1, 2), children.map { it.id })
@@ -47,7 +47,7 @@ class ArtistAndRecentUpnpProcessorTest {
         val albums = mock(AlbumDao::class.java)
         `when`(albums.getNewestAlbums(0, 50, folders)).thenReturn(listOf(Album().apply { id = 7 }, Album().apply { id = 8 }))
         `when`(albums.getAlbumCount(folders)).thenReturn(80)
-        val processor = RecentAlbumUpnpProcessor().apply { setAlbumDao(albums); dispatchingContentDirectory = directory }
+        val processor = RecentAlbumUpnpProcessor().apply { setAlbumDao(albums); setDispatchingContentDirectory(directory) }
         assertEquals(listOf(-1, 7, 8), processor.getAllItems().map { it.id })
         assertEquals("allRecent", processor.getAllItems().first().comment)
         assertEquals(50, processor.getAllItemsSize())

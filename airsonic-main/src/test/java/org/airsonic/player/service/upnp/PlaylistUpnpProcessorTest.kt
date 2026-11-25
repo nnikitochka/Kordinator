@@ -24,7 +24,7 @@ class PlaylistUpnpProcessorTest {
         `when`(directory.getPlaylistService()).thenReturn(playlistService)
         val processor = PlaylistUpnpProcessor().apply {
             setPlaylistService(playlistService)
-            dispatchingContentDirectory = directory
+            setDispatchingContentDirectory(directory)
         }
 
         val container = processor.createContainer(playlist) as PlaylistContainer
@@ -34,7 +34,7 @@ class PlaylistUpnpProcessorTest {
         assertEquals("Favorites", container.title)
         assertEquals("Picked tracks", container.description)
         assertEquals(2, container.childCount)
-        assertEquals(listOf(playlist), processor.allItems)
+        assertEquals(listOf(playlist), processor.getAllItems())
         assertSame(playlist, processor.getItemById("12"))
         assertEquals(tracks, processor.getChildren(playlist))
         verify(playlistService, org.mockito.Mockito.times(2)).getFilesInPlaylist(12)

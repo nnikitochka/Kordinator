@@ -33,7 +33,7 @@
 
 Пути ниже относительно корня репозитория. Обновлять после каждого законченного среза; количество файлов не является процентом функциональной готовности.
 
-### Production: 27 файла
+### Production: 26 файлов
 
 - `airsonic-main/src/main/java/org/airsonic/player/service/CoverArtImageService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/DatabaseService.java`
@@ -51,7 +51,6 @@
 - `airsonic-main/src/main/java/org/airsonic/player/service/VersionService.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/NATPMPRouter.java`
 - `airsonic-main/src/main/java/org/airsonic/player/service/upnp/Router.java`
-- `airsonic-main/src/main/java/org/airsonic/player/service/upnp/UpnpContentProcessor.java`
 - `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/AddMediaFileIdToPodcastChannels.java`
 - `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/AddPodcastMediaFolderUsers.java`
 - `airsonic-main/src/main/java/org/airsonic/player/spring/migrations/AddUnknownMediaFolders.java`
@@ -163,4 +162,5 @@
 - `MediaFileUpnpProcessor` переведён на Kotlin; нормализация сортировки дочерних путей, композиция и связанные DLNA/API сценарии: 13 тестов прошли.
 - `CustomContentDirectory` переведён на Kotlin; подписанные audio/video URL, форматирование ресурсов, DLNA-настройки и runtime: 8 тестов прошли.
 - `DispatchingContentDirectory` переведён на Kotlin; выбор DLNA processors, browse/search-разбор, UPnP ошибки, URL и runtime: 19 тестов прошли.
+- `UpnpContentProcessor` переведён на Kotlin; общий browse/metadata, pagination и generic name-search: 2 focused теста прошли.
 - `FolderBasedContentDirectory` переведён на Kotlin; корневой и playlist browse, статистика библиотеки, подписанный artwork URL и runtime: 22 теста прошли.

@@ -25,7 +25,7 @@ class RootUpnpProcessor(private val indexManager: IndexManager) : UpnpContentPro
     override fun createContainer(item: Container): Container = item
 
     override fun getAllItems(): List<Container> {
-        val directory = dispatchingContentDirectory
+        val directory = getDispatchingContentDirectory()
         return arrayListOf(
             directory.getAlbumProcessor().createRootContainer(),
             directory.getArtistProcessor().createRootContainer(),

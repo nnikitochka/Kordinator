@@ -20,7 +20,7 @@ class MediaFileUpnpProcessorTest {
         `when`(mediaFileService.getChildrenOf(parent, true, true, true)).thenReturn(children)
         val directory = mock(DispatchingContentDirectory::class.java)
         `when`(directory.getMediaFileService()).thenReturn(mediaFileService)
-        val processor = MediaFileUpnpProcessor().apply { dispatchingContentDirectory = directory }
+        val processor = MediaFileUpnpProcessor().apply { setDispatchingContentDirectory(directory) }
 
         val result = processor.getChildren(parent)
 
