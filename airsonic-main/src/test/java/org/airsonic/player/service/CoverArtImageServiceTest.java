@@ -10,7 +10,6 @@ import org.jaudiotagger.tag.images.Artwork;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.MockedStatic;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -42,15 +41,13 @@ public class CoverArtImageServiceTest {
         when(artService.get(CoverArt.EntityType.MEDIA_FILE, 3)).thenReturn(art);
         when(artService.getFullPath(art)).thenReturn(path);
         when(parser.isApplicable(path)).thenReturn(true);
+        when(parser.getEmbeddedArtwork(path)).thenReturn(embedded);
         when(embedded.getBinaryData()).thenReturn(bytes);
         when(embedded.getMimeType()).thenReturn("image/png");
         CoverArtImageService service = create(files, artService, parser, settings, mock(TranscodingService.class));
-        try (MockedStatic<JaudiotaggerParser> tagger = mockStatic(JaudiotaggerParser.class)) {
-            tagger.when(() -> JaudiotaggerParser.getArtwork(path)).thenReturn(embedded);
-            try (var result = service.getImage("3", null, null)) {
-                assertEquals("image/png", result.contentType());
-                assertArrayEquals(bytes, result.stream().readAllBytes());
-            }
+        try (var result = service.getImage("3", null, null)) {
+            assertEquals("image/png", result.contentType());
+            assertArrayEquals(bytes, result.stream().readAllBytes());
         }
     }
 
@@ -83,6 +80,19 @@ public class CoverArtImageServiceTest {
         assertEquals(56, parameters.getValue().getVideoTranscodingSettings().getWidth());
         assertEquals(32, parameters.getValue().getVideoTranscodingSettings().getHeight());
         assertEquals(123, parameters.getValue().getVideoTranscodingSettings().getTimeOffset());
+    }
+
+    @Test public void returnsScaledDefaultCoverWhenImageIdIsMissing() throws Exception {
+        CoverArtImageService service = create(mock(MediaFileService.class), mock(CoverArtService.class),
+                mock(JaudiotaggerParser.class), mock(SettingsService.class), mock(TranscodingService.class));
+
+        try (var result = service.getImage(null, 64, null)) {
+            BufferedImage image = ImageIO.read(result.stream());
+            assertNotNull(image);
+            assertEquals("image/jpeg", result.contentType());
+            assertEquals(64, image.getWidth());
+            assertEquals(64, image.getHeight());
+        }
     }
 
     private CoverArtImageService create(MediaFileService files, CoverArtService art, JaudiotaggerParser parser,

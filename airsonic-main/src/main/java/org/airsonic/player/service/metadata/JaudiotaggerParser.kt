@@ -75,6 +75,8 @@ open class JaudiotaggerParser(private val mediaFolders: MediaFolderService) : Me
     override fun getOrder(): Int = 0
     override fun getMediaFolderService(): MediaFolderService = mediaFolders
 
+    open fun getEmbeddedArtwork(file: Path): Artwork? = getArtwork(file)
+
     companion object {
         private val LOG = LoggerFactory.getLogger(JaudiotaggerParser::class.java)
         private val APPLICABLE_FORMATS = setOf("mp3", "m4a", "m4b", "m4p", "aac", "ogg", "flac", "wav", "mpc", "mp+", "aif", "dsf", "aiff", "wma")
