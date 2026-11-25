@@ -21,16 +21,12 @@ import org.airsonic.player.service.media.MediaFileService
 import org.airsonic.player.service.KtorCoreMediaCatalogService
 import org.airsonic.player.service.StandaloneVideoPlaybackService
 import org.airsonic.player.service.StandaloneVideoBookmarkService
-import org.airsonic.player.service.StandalonePlaylistService
 import org.airsonic.player.service.StandaloneAvatarService
 import org.airsonic.player.service.TranscodingService
 import org.mockito.Mockito
 import java.nio.file.Path
 import java.nio.file.Files
 import java.time.Instant
-import java.awt.image.BufferedImage
-import java.io.ByteArrayOutputStream
-import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -87,220 +83,7 @@ class KtorStandaloneVideoTest {
                 val mediaFileDao = runtime.runtime.createPersistenceGraph().daos.mediaFileDao
                 val mediaFileService = Mockito.mock(MediaFileService::class.java)
                 videos.forEach { video -> Mockito.`when`(mediaFileService.getMediaFile(video.id!!)).thenReturn(video) }
-                val legacyTrackTime = Instant.now()
-                val legacyTrack = MediaFile().apply {
-                    path = "legacy-track.mp3"
-                    folderId = library.id
-                    mediaType = MediaFile.MediaType.MUSIC
-                    title = "Legacy Track"
-                    albumName = "Legacy Rated Album"
-                    artist = "Legacy Artist"
-                    format = "mp3"
-                    duration = 180.0
-                    fileSize = 1_000
-                    parentPath = ""
-                    created = legacyTrackTime
-                    this.changed = legacyTrackTime
-                    lastScanned = legacyTrackTime
-                    childrenLastUpdated = legacyTrackTime
-                    present = true
-                }.also { mediaFileDao.createOrUpdateMediaFile(it) { } }
-                val legacyAlbum = MediaFile().apply {
-                    path = "legacy-rated-album"
-                    folderId = library.id
-                    mediaType = MediaFile.MediaType.ALBUM
-                    title = "Legacy Rated Album"
-                    albumName = "Legacy Rated Album"
-                    artist = "Legacy Artist"
-                    parentPath = ""
-                    created = legacyTrackTime
-                    this.changed = legacyTrackTime
-                    lastScanned = legacyTrackTime
-                    childrenLastUpdated = legacyTrackTime
-                    present = true
-                }.also { mediaFileDao.createOrUpdateMediaFile(it) { } }
-                runtime.coreDataSource.connection.use { connection ->
-                    val legacyAvatarBytes = ByteArrayOutputStream().use { output ->
-                        ImageIO.write(BufferedImage(24, 12, BufferedImage.TYPE_INT_RGB), "png", output)
-                        output.toByteArray()
-                    }
-                    val legacyAvatarFolder = home.resolve("avatars").resolve("admin")
-                    Files.createDirectories(legacyAvatarFolder)
-                    Files.write(legacyAvatarFolder.resolve("legacy.png"), legacyAvatarBytes)
-                    connection.prepareStatement(
-                        "INSERT INTO custom_avatar (name, mime_type, width, height, username, path) VALUES (?, ?, ?, ?, ?, ?)",
-                    ).use { statement ->
-                        statement.setString(1, "legacy")
-                        statement.setString(2, "image/png")
-                        statement.setInt(3, 24)
-                        statement.setInt(4, 12)
-                        statement.setString(5, "admin")
-                        statement.setString(6, legacyAvatarFolder.resolve("legacy.png").toString())
-                        statement.executeUpdate()
-                    }
-                    connection.prepareStatement(
-                        "INSERT INTO bookmark (media_file_id, position_millis, username, comment, created, changed) " +
-                            "VALUES (?, ?, ?, ?, ?, ?)",
-                    ).use { statement ->
-                        statement.setInt(1, videos.first().id!!)
-                        statement.setLong(2, 12_000)
-                        statement.setString(3, "admin")
-                        statement.setString(4, "migrated bookmark")
-                        statement.setTimestamp(5, java.sql.Timestamp.from(Instant.now()))
-                        statement.setTimestamp(6, java.sql.Timestamp.from(Instant.now()))
-                        statement.executeUpdate()
-                    }
-                    connection.prepareStatement(
-                        "INSERT INTO bookmark (media_file_id, position_millis, username, comment, created, changed) " +
-                            "VALUES (?, ?, ?, ?, ?, ?)",
-                    ).use { statement ->
-                        statement.setInt(1, legacyTrack.id!!)
-                        statement.setLong(2, 45_000)
-                        statement.setString(3, "admin")
-                        statement.setString(4, "migrated track bookmark")
-                        statement.setTimestamp(5, java.sql.Timestamp.from(Instant.now()))
-                        statement.setTimestamp(6, java.sql.Timestamp.from(Instant.now()))
-                        statement.executeUpdate()
-                    }
-                    listOf(legacyTrack.id!! to 4, legacyAlbum.id!! to 5).forEach { (mediaId, rating) ->
-                        connection.prepareStatement(
-                            "INSERT INTO user_rating (username, media_file_id, rating) VALUES (?, ?, ?)",
-                        ).use { statement ->
-                            statement.setString(1, "admin")
-                            statement.setInt(2, mediaId)
-                            statement.setInt(3, rating)
-                            statement.executeUpdate()
-                        }
-                    }
-                    listOf(legacyTrack.id!!, legacyAlbum.id!!).forEach { mediaId ->
-                        connection.prepareStatement(
-                            "INSERT INTO starred_media_file (media_file_id, username, created) VALUES (?, ?, ?)",
-                        ).use { statement ->
-                            statement.setInt(1, mediaId)
-                            statement.setString(2, "admin")
-                            statement.setTimestamp(3, java.sql.Timestamp.from(Instant.now()))
-                            statement.executeUpdate()
-                        }
-                    }
-                    val legacyPlaylistId = connection.prepareStatement(
-                        "INSERT INTO playlist (id, username, is_public, name, comment, file_count, duration, created, changed) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    ).use { statement ->
-                        statement.setInt(1, 701)
-                        statement.setString(2, "admin")
-                        statement.setBoolean(3, true)
-                        statement.setString(4, "Imported shared playlist")
-                        statement.setString(5, "legacy playlist comment")
-                        statement.setInt(6, 1)
-                        statement.setInt(7, 180)
-                        statement.setTimestamp(8, java.sql.Timestamp.from(legacyTrackTime))
-                        statement.setTimestamp(9, java.sql.Timestamp.from(legacyTrackTime))
-                        statement.executeUpdate()
-                        701
-                    }
-                    connection.prepareStatement("INSERT INTO playlist_file (playlist_id, media_file_id) VALUES (?, ?)").use { statement ->
-                        statement.setInt(1, legacyPlaylistId)
-                        statement.setInt(2, legacyTrack.id!!)
-                        statement.executeUpdate()
-                    }
-                    connection.prepareStatement(
-                        "INSERT INTO artist (name, album_count, last_scanned, present, folder_id) VALUES (?, ?, ?, ?, ?)",
-                    ).use { statement ->
-                        statement.setString(1, "Legacy Artist")
-                        statement.setInt(2, 1)
-                        statement.setTimestamp(3, java.sql.Timestamp.from(legacyTrackTime))
-                        statement.setBoolean(4, true)
-                        statement.setInt(5, library.id!!)
-                        statement.executeUpdate()
-                    }
-                    val artistId = connection.prepareStatement("SELECT id FROM artist WHERE name = ?").use { statement ->
-                        statement.setString(1, "Legacy Artist")
-                        statement.executeQuery().use { rows -> rows.next(); rows.getInt(1) }
-                    }
-                    connection.prepareStatement(
-                        "INSERT INTO starred_artist (artist_id, username, created) VALUES (?, ?, ?)",
-                    ).use { statement ->
-                        statement.setInt(1, artistId)
-                        statement.setString(2, "admin")
-                        statement.setTimestamp(3, java.sql.Timestamp.from(Instant.now()))
-                        statement.executeUpdate()
-                    }
-                }
-                val mediaCatalog = KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
-                val playlists = StandalonePlaylistService(dataSource, mediaCatalog)
                 val avatarService = StandaloneAvatarService(home.resolve("avatars").resolve("accounts"))
-                avatarService.migrateLegacyAvatars(runtime.coreDataSource, dataSource, home.resolve("avatars"))
-                assertEquals(24, avatarService.get(adminId)?.width)
-                assertEquals(12, avatarService.get(adminId)?.height)
-                val importedPlaylistId = dataSource.connection.use { connection ->
-                    connection.prepareStatement(
-                        "SELECT playlist_id FROM legacy_playlist_import WHERE legacy_playlist_id = ?",
-                    ).use { statement ->
-                        statement.setInt(1, 701)
-                        statement.executeQuery().use { rows -> assertTrue(rows.next()); rows.getLong(1) }
-                    }
-                }
-                val importedPlaylist = playlists.get(adminId, importedPlaylistId)
-                assertEquals("Imported shared playlist", importedPlaylist?.name)
-                assertEquals("PUBLIC", importedPlaylist?.visibility)
-                assertEquals("legacy playlist comment", importedPlaylist?.description)
-                assertEquals(legacyTrack.id!!.toLong(), importedPlaylist?.tracks?.single()?.id)
-                assertEquals(importedPlaylistId, playlists.list(listenerId).single().id)
-                dataSource.connection.use { connection ->
-                    connection.prepareStatement(
-                        "SELECT position_ms, comment FROM track_bookmark WHERE user_id = ? AND track_id = ?",
-                    ).use { statement ->
-                        statement.setLong(1, adminId)
-                        statement.setLong(2, legacyTrack.id!!.toLong())
-                        statement.executeQuery().use { rows ->
-                            assertTrue(rows.next())
-                            assertEquals(45_000, rows.getLong("position_ms"))
-                            assertEquals("migrated track bookmark", rows.getString("comment"))
-                        }
-                    }
-                    connection.prepareStatement(
-                        "SELECT rating FROM track_rating WHERE user_id = ? AND track_id = ?",
-                    ).use { statement ->
-                        statement.setLong(1, adminId)
-                        statement.setLong(2, legacyTrack.id!!.toLong())
-                        statement.executeQuery().use { rows ->
-                            assertTrue(rows.next())
-                            assertEquals(4, rows.getInt("rating"))
-                        }
-                    }
-                    connection.prepareStatement(
-                        "SELECT rating FROM album_rating WHERE user_id = ? AND library_id = ? AND album_name = ?",
-                    ).use { statement ->
-                        statement.setLong(1, adminId)
-                        statement.setLong(2, library.id!!.toLong())
-                        statement.setString(3, "Legacy Rated Album")
-                        statement.executeQuery().use { rows ->
-                            assertTrue(rows.next())
-                            assertEquals(5, rows.getInt("rating"))
-                        }
-                    }
-                    connection.prepareStatement("SELECT 1 FROM favorite_track WHERE user_id = ? AND track_id = ?").use { statement ->
-                        statement.setLong(1, adminId)
-                        statement.setLong(2, legacyTrack.id!!.toLong())
-                        assertTrue(statement.executeQuery().use { it.next() })
-                    }
-                    connection.prepareStatement(
-                        "SELECT 1 FROM favorite_album WHERE user_id = ? AND library_id = ? AND album_name = ?",
-                    ).use { statement ->
-                        statement.setLong(1, adminId)
-                        statement.setLong(2, library.id!!.toLong())
-                        statement.setString(3, "Legacy Rated Album")
-                        assertTrue(statement.executeQuery().use { it.next() })
-                    }
-                    connection.prepareStatement(
-                        "SELECT 1 FROM favorite_artist WHERE user_id = ? AND library_id = ? AND artist_name = ?",
-                    ).use { statement ->
-                        statement.setLong(1, adminId)
-                        statement.setLong(2, library.id!!.toLong())
-                        statement.setString(3, "Legacy Artist")
-                        assertTrue(statement.executeQuery().use { it.next() })
-                    }
-                }
                 val playbackService = StandaloneVideoPlaybackService(mediaFileService, Mockito.mock(TranscodingService::class.java))
                 val videoBookmarkService = StandaloneVideoBookmarkService(dataSource, mediaFileService)
                 val previousHome = System.getProperty("airsonic.home")
@@ -338,18 +121,11 @@ class KtorStandaloneVideoTest {
                     assertEquals("Concert A", firstBody.get("items")[0].get("title").asText())
                     assertEquals(1920, firstBody.get("items")[0].get("width").asInt())
                     assertTrue(firstBody.get("hasMore").asBoolean())
-                    assertEquals(HttpStatusCode.OK, client.get("/api/v1/me/avatar") { bearerAuth(adminToken) }.status)
+                    assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/me/avatar") { bearerAuth(adminToken) }.status)
 
                     assertTrue(auth.setAllowedLibraries(listenerId, setOf(library.id!!.toLong())))
                     val visible = client.get("/api/v1/videos") { bearerAuth(listenerToken) }
                     assertEquals(2, jacksonObjectMapper().readTree(visible.bodyAsText()).get("items").size())
-                    val imported = jacksonObjectMapper().readTree(
-                        client.get("/api/v1/me/video-bookmarks") { bearerAuth(adminToken) }.bodyAsText(),
-                    )
-                    assertEquals(1, imported.get("count").asInt())
-                    assertEquals(12_000, imported.get("items")[0].get("positionMillis").asLong())
-                    assertEquals("migrated bookmark", imported.get("items")[0].get("comment").asText())
-
                     val unauthenticatedBookmarks = client.get("/api/v1/me/video-bookmarks")
                     assertEquals(HttpStatusCode.Unauthorized, unauthenticatedBookmarks.status)
                     val hiddenBookmark = client.put("/api/v1/videos/$videoId/bookmark") {

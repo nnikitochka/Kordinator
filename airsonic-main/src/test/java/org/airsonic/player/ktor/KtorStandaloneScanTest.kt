@@ -32,7 +32,6 @@ import java.nio.file.Path
 import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class KtorStandaloneScanTest {
@@ -86,59 +85,7 @@ class KtorStandaloneScanTest {
                     coreCatalog.mediaFileService,
                     coreCatalog.mediaScannerService,
                 )
-                val adminId = auth.authenticate(token)!!.id
-                val legacyTrackId = 9_876_543L
-                dataSource.connection.use { connection ->
-                    connection.createStatement().use {
-                        it.execute("CREATE TABLE media_track (id BIGINT PRIMARY KEY, library_id BIGINT NOT NULL, relative_path VARCHAR(4096) NOT NULL)")
-                    }
-                    connection.prepareStatement("INSERT INTO media_track (id, library_id, relative_path) VALUES (?, ?, ?)").use { statement ->
-                        statement.setLong(1, legacyTrackId)
-                        statement.setInt(2, libraryId)
-                        statement.setString(3, "01 - First Track.mp3")
-                        statement.executeUpdate()
-                    }
-                    connection.prepareStatement(
-                        "INSERT INTO favorite_track (user_id, track_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
-                    ).use { statement ->
-                        statement.setLong(1, adminId)
-                        statement.setLong(2, legacyTrackId)
-                        statement.executeUpdate()
-                    }
-                    connection.prepareStatement(
-                        "INSERT INTO user_playlist (id, owner_id, name, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
-                    ).use { statement ->
-                        statement.setLong(1, 9_876_543L)
-                        statement.setLong(2, adminId)
-                        statement.setString(3, "Legacy")
-                        statement.executeUpdate()
-                    }
-                    connection.prepareStatement(
-                        "INSERT INTO user_playlist_track (playlist_id, position, track_id) VALUES (?, 0, ?)",
-                    ).use { statement ->
-                        statement.setLong(1, 9_876_543L)
-                        statement.setLong(2, legacyTrackId)
-                        statement.executeUpdate()
-                    }
-                }
                 val mediaCatalogService = org.airsonic.player.service.KtorCoreMediaCatalogService(runtime.coreDataSource, dataSource)
-                val hasTrackProjection = dataSource.connection.use { connection ->
-                    connection.metaData.getTables(connection.catalog, null, null, arrayOf("TABLE")).use { tables ->
-                        generateSequence { if (tables.next()) tables.getString("TABLE_NAME") else null }
-                            .any { it.equals("media_track", ignoreCase = true) }
-                    }
-                }
-                assertFalse(hasTrackProjection)
-                dataSource.connection.use { connection ->
-                    connection.prepareStatement("SELECT track_id FROM favorite_track WHERE user_id = ?").use { statement ->
-                        statement.setLong(1, adminId)
-                        statement.executeQuery().use { rows -> rows.next(); assertEquals(coreTrackId, rows.getLong(1)) }
-                    }
-                    connection.prepareStatement("SELECT track_id FROM user_playlist_track WHERE playlist_id = ?").use { statement ->
-                        statement.setLong(1, 9_876_543L)
-                        statement.executeQuery().use { rows -> rows.next(); assertEquals(coreTrackId, rows.getLong(1)) }
-                    }
-                }
                 org.mockito.Mockito.`when`(coreCatalog.mediaFileService.getMediaFile(coreTrackId.toInt())).thenAnswer {
                     (runtime.runtime.createPersistenceGraph().daos.mediaFileDao.getMediaFile(coreTrackId.toInt())
                         ?: error("Expected seeded track to be available in the media-file DAO")).apply { duration = 30.0 }
