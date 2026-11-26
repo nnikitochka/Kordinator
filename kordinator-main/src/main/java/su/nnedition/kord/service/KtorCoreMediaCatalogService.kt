@@ -358,7 +358,7 @@ class KtorCoreMediaCatalogService(
     ): List<StandaloneArtist> {
         val folderId = libraryId?.toCoreFolderId()
         val artistExpression = "COALESCE(NULLIF(TRIM(album_artist), ''), TRIM(artist))"
-        val prefixPattern = prefix?.trim()?.takeIf(String::isNotEmpty)?.let(::prefixLikePattern)
+        val prefixPattern = prefix?.trim()?.takeIf(String::isNotEmpty)?.let(::artistSearchPattern)
         val sql = "SELECT folder_id, $artistExpression AS artist_name, " +
             "COUNT(DISTINCT NULLIF(TRIM(album), '')) AS album_count, COUNT(*) AS track_count " +
             "FROM media_file WHERE present AND type IN ('MUSIC', 'AUDIOBOOK') AND (? IS NULL OR folder_id = ?) " +
@@ -392,7 +392,7 @@ class KtorCoreMediaCatalogService(
     fun countArtists(libraryId: Long?, accessibleLibraryIds: Set<Long>? = null, prefix: String? = null): Long {
         val artistExpression = "COALESCE(NULLIF(TRIM(album_artist), ''), TRIM(artist))"
         val folderId = libraryId?.toCoreFolderId()
-        val prefixPattern = prefix?.trim()?.takeIf(String::isNotEmpty)?.let(::prefixLikePattern)
+        val prefixPattern = prefix?.trim()?.takeIf(String::isNotEmpty)?.let(::artistSearchPattern)
         val sql = "SELECT COUNT(*) FROM (SELECT folder_id, $artistExpression AS catalog_entry FROM media_file " +
             "WHERE present AND type IN ('MUSIC', 'AUDIOBOOK') AND (? IS NULL OR folder_id = ?) " +
             "AND $artistExpression IS NOT NULL AND (? IS NULL OR LOWER($artistExpression) LIKE ? ESCAPE '!')" +
@@ -409,8 +409,8 @@ class KtorCoreMediaCatalogService(
         }
     }
 
-    private fun prefixLikePattern(prefix: String): String =
-        prefix.lowercase().replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%"
+    private fun artistSearchPattern(query: String): String =
+        "%" + query.lowercase().replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%"
 
     private fun countCatalogEntries(
         entryExpression: String,

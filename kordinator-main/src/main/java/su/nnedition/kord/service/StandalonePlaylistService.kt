@@ -240,6 +240,7 @@ class StandalonePlaylistService(
             statement.setLong(1, playlistId)
             statement.executeUpdate()
         }
+        if (trackIds.isEmpty()) return
         connection.prepareStatement("INSERT INTO user_playlist_track (playlist_id, position, track_id) VALUES (?, ?, ?)").use { statement ->
             trackIds.forEachIndexed { position, trackId ->
                 statement.setLong(1, playlistId)
