@@ -44,6 +44,7 @@ class RuntimeLiquibaseMigratorTest {
                 connection.createStatement().use { statement ->
                     statement.executeQuery("SELECT COUNT(*) FROM music_folder").use { result ->
                         assertTrue(result.next())
+                        assertEquals(0, result.getInt(1))
                     }
                 }
             }

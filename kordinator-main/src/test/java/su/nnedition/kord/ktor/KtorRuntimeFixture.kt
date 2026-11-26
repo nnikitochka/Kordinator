@@ -43,6 +43,18 @@ internal class KtorRuntimeFixture(
         runtime.createPersistenceGraph()
         coreDataSource = runtime.createDataSource()
         mediaFolderService = runtime.createMediaFolderService()
+        if (mediaFolderService.getAllMusicFolders(true, true, true).isEmpty()) {
+            mediaFolderService.createMusicFolder(
+                MusicFolder(
+                    null,
+                    defaultMusicFolder,
+                    "Music",
+                    MusicFolder.Type.MEDIA,
+                    true,
+                    Instant.now(),
+                ),
+            )
+        }
     }
 
     override fun close() {

@@ -36,11 +36,6 @@
                 <constraints nullable="false" />
             </column>
         </createTable>
-        <insert tableName="music_folder">
-            <column name="path" value="${defaultMusicFolder}"/>
-            <column name="name" value="Music"/>
-            <column name="enabled" valueBoolean="true" />
-        </insert>
         <rollback>
             <dropTable tableName="music_folder" />
         </rollback>
