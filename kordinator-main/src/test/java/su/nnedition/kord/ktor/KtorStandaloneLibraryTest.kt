@@ -157,6 +157,18 @@ class KtorStandaloneLibraryTest {
                     assertTrue(auth.allowedLibraries(listenerId).orEmpty().isEmpty())
                     assertTrue(runtime.mediaFolderService.getMusicFolderById(createdId.toInt(), true, true) == null)
                     assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/admin/music-folders") { bearerAuth(adminToken) }.status)
+
+                    val initialLibraryId = requireNotNull(
+                        runtime.mediaFolderService.getAllMusicFolders(true, true, true).singleOrNull { it.name == "Music" }?.id,
+                    )
+                    assertEquals(
+                        HttpStatusCode.NoContent,
+                        client.delete("/api/v1/admin/libraries/$initialLibraryId") { bearerAuth(adminToken) }.status,
+                    )
+                    assertEquals(
+                        HttpStatusCode.NotFound,
+                        client.delete("/api/v1/admin/libraries/0") { bearerAuth(adminToken) }.status,
+                    )
                 }
             }
         } finally {

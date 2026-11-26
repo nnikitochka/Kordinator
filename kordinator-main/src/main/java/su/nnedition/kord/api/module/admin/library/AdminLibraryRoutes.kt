@@ -57,8 +57,8 @@ fun Route.adminLibraryRoutes(
             return@put
         }
         val libraryId = call.parameters["id"]?.toIntOrNull()
-        if (libraryId == null || libraryId <= 0) {
-            call.respondJson(ApiError("invalid_request", "Library ID must be a positive number"), HttpStatusCode.BadRequest)
+        if (libraryId == null || libraryId < 0) {
+            call.respondJson(ApiError("invalid_request", "Library ID must be a non-negative number"), HttpStatusCode.BadRequest)
             return@put
         }
         val request = try {
@@ -165,8 +165,8 @@ fun Route.adminLibraryRoutes(
             return@delete
         }
         val libraryId = call.parameters["id"]?.toIntOrNull()
-        if (libraryId == null || libraryId <= 0) {
-            call.respondJson(ApiError("invalid_request", "Library ID must be a positive number"), HttpStatusCode.BadRequest)
+        if (libraryId == null || libraryId < 0) {
+            call.respondJson(ApiError("invalid_request", "Library ID must be a non-negative number"), HttpStatusCode.BadRequest)
             return@delete
         }
         val exists = withContext(authDispatcher) {
