@@ -9,4 +9,5 @@ data class AlbumSummaryResponse(
     val genre: String?,
     val trackCount: Long,
     val durationSeconds: Long,
+    val releaseDate: String? = null,
 )

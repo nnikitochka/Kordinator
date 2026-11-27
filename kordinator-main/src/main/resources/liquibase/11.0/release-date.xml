@@ -1,0 +1,14 @@
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
+    <changeSet id="media-file-release-date-1" author="kordinator">
+        <addColumn tableName="media_file">
+            <column name="release_date" type="VARCHAR(10)"/>
+        </addColumn>
+        <update tableName="media_file">
+            <column name="release_date" valueComputed="CAST(year AS CHAR(4))"/>
+            <where>year BETWEEN 1000 AND 9999</where>
+        </update>
+        <rollback><dropColumn tableName="media_file" columnName="release_date"/></rollback>
+    </changeSet>
+</databaseChangeLog>

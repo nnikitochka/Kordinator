@@ -1,5 +1,7 @@
 package su.nnedition.kord.service
 
+import su.nnedition.kord.model.ReleaseDate
+
 import su.nnedition.kord.service.library.scan.StandaloneAlbum
 import su.nnedition.kord.service.library.scan.StandaloneArtist
 import su.nnedition.kord.service.library.scan.StandaloneTrack
@@ -177,14 +179,16 @@ class KtorCoreMediaCatalogService(
     fun album(libraryId: Long, name: String, accessibleLibraryIds: Set<Long>? = null): StandaloneAlbum? {
         val tracks = tracksForAlbum(libraryId, name, accessibleLibraryIds)
         if (tracks.isEmpty()) return null
+        val date = ReleaseDate.mostCommon(tracks.map { it.releaseDate })
         return StandaloneAlbum(
             libraryId,
             name,
             tracks.first().albumArtist ?: tracks.first().artist,
-            tracks.mapNotNull { it.year }.maxOrNull(),
+            date?.year,
             tracks.firstNotNullOfOrNull { it.genre },
             tracks.size.toLong(),
             tracks.sumOf { it.durationSeconds.toLong() },
+            date,
         )
     }
 
@@ -216,13 +220,13 @@ class KtorCoreMediaCatalogService(
         if (sort == "highest-rated") {
             return albumsByRating(libraryId, limit, offset, accessibleLibraryIds, genre, fromYear, toYear)
         }
-        val sql = "SELECT folder_id, album, MAX(COALESCE(NULLIF(TRIM(album_artist), ''), TRIM(artist))) AS album_artist, " +
-            "MAX(year) AS year, MAX(genre) AS genre, COUNT(*) AS track_count, " +
-            "CAST(SUM(COALESCE(duration, 0)) AS BIGINT) AS duration_seconds FROM media_file " +
+        val sql = AlbumReleaseDateSql.ctes + " SELECT folder_id, album, MAX(COALESCE(NULLIF(TRIM(album_artist), ''), TRIM(artist))) AS album_artist, " +
+            "MAX(release_year) AS year, MAX(release_month) AS release_month, MAX(release_day) AS release_day, MAX(genre) AS genre, COUNT(*) AS track_count, " +
+            "CAST(SUM(COALESCE(duration, 0)) AS BIGINT) AS duration_seconds FROM media_file LEFT JOIN album_release_dates USING (folder_id, album) " +
             "WHERE present AND type IN ('MUSIC', 'AUDIOBOOK') AND (? IS NULL OR folder_id = ?) " +
             "AND album IS NOT NULL AND TRIM(album) <> ''" + libraryScope(accessibleLibraryIds) + " " +
             "GROUP BY folder_id, album HAVING (? IS NULL OR MAX(genre) = ?) " +
-            "AND (? IS NULL OR MAX(year) >= ?) AND (? IS NULL OR MAX(year) <= ?) " +
+            "AND (? IS NULL OR MAX(release_year) >= ?) AND (? IS NULL OR MAX(release_year) <= ?) " +
             "ORDER BY ${albumOrder(sort)} LIMIT ? OFFSET ?"
         return coreDataSource.connection.use { connection ->
             connection.prepareStatement(sql).use { statement ->
@@ -244,6 +248,12 @@ class KtorCoreMediaCatalogService(
                                 rows.getLong("folder_id"), rows.getString("album"), rows.getString("album_artist"),
                                 rows.getObject("year")?.let { rows.getInt("year") }, rows.getString("genre"),
                                 rows.getLong("track_count"), rows.getLong("duration_seconds"),
+                                rows.getObject("year")?.let {
+                                    ReleaseDate(
+                                        rows.getInt("year"), rows.getObject("release_month")?.let { rows.getInt("release_month") },
+                                        rows.getObject("release_day")?.let { rows.getInt("release_day") },
+                                    )
+                                },
                             ),
                         )
                     }
@@ -262,11 +272,11 @@ class KtorCoreMediaCatalogService(
         val folderId = libraryId?.toCoreFolderId()
         require((fromYear == null) == (toYear == null)) { "Both year bounds must be provided" }
         require(fromYear == null || fromYear <= requireNotNull(toYear)) { "Year range is reversed" }
-        val sql = "SELECT COUNT(*) FROM (SELECT folder_id, album FROM media_file " +
+        val sql = AlbumReleaseDateSql.ctes + " SELECT COUNT(*) FROM (SELECT folder_id, album FROM media_file LEFT JOIN album_release_dates USING (folder_id, album) " +
             "WHERE present AND type IN ('MUSIC', 'AUDIOBOOK') AND (? IS NULL OR folder_id = ?) " +
             "AND album IS NOT NULL AND TRIM(album) <> ''" + libraryScope(accessibleLibraryIds) + " " +
             "GROUP BY folder_id, album HAVING (? IS NULL OR MAX(genre) = ?) " +
-            "AND (? IS NULL OR MAX(year) >= ?) AND (? IS NULL OR MAX(year) <= ?)) catalog_albums"
+            "AND (? IS NULL OR MAX(release_year) >= ?) AND (? IS NULL OR MAX(release_year) <= ?)) catalog_albums"
         return coreDataSource.connection.use { connection ->
             connection.prepareStatement(sql).use { statement ->
                 statement.setObject(1, folderId)
@@ -286,7 +296,7 @@ class KtorCoreMediaCatalogService(
     private fun albumOrder(sort: String): String = when (sort) {
         "name" -> "LOWER(album), album, folder_id"
         "artist" -> "LOWER(album_artist), album_artist, LOWER(album), album, folder_id"
-        "year" -> "MAX(year), LOWER(album), album, folder_id"
+        "year" -> "MAX(release_year), LOWER(album), album, folder_id"
         "newest" -> "MAX(created) DESC, LOWER(album), album, folder_id"
         "most-played" -> "SUM(COALESCE(play_count, 0)) DESC, LOWER(album), album, folder_id"
         "recently-played" -> "MAX(last_played) DESC, LOWER(album), album, folder_id"
@@ -468,10 +478,11 @@ class KtorCoreMediaCatalogService(
         val durationSeconds: Int,
         val sizeBytes: Long,
         val modifiedAt: java.time.Instant?,
+        val releaseDate: ReleaseDate?,
     ) {
         fun toStandalone(id: Long) = StandaloneTrack(
             id, libraryId.toLong(), relativePath, title, artist, album, albumArtist, discNumber, trackNumber,
-            year, genre, durationSeconds, sizeBytes, modifiedAt,
+            year, genre, durationSeconds, sizeBytes, modifiedAt, releaseDate,
         )
     }
 
@@ -481,6 +492,8 @@ class KtorCoreMediaCatalogService(
         getObject("disc_number")?.let { getInt("disc_number") }, getObject("track_number")?.let { getInt("track_number") },
         getObject("year")?.let { getInt("year") }, getString("genre"), getDouble("duration").toInt().coerceAtLeast(0),
         getLong("file_size"), getTimestamp("changed")?.toInstant(),
+        ReleaseDate.parse(getString("release_date"))
+            ?: ReleaseDate.fromYear(getObject("year")?.let { getInt("year") }),
     )
 
     private fun Long.toCoreFolderId(): Int {
@@ -506,7 +519,7 @@ class KtorCoreMediaCatalogService(
         )
         const val ALBUM_PAGE_SIZE = 100
         const val TRACK_COLUMNS = "id, folder_id, path, title, artist, album, album_artist, disc_number, " +
-            "track_number, year, genre, duration, file_size, changed"
+            "track_number, year, genre, duration, file_size, changed, release_date"
     }
 }
 

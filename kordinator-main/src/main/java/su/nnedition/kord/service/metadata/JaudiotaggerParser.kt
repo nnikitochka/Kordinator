@@ -1,5 +1,7 @@
 package su.nnedition.kord.service.metadata
 
+import su.nnedition.kord.model.ReleaseDate
+
 import com.google.common.io.MoreFiles
 import su.nnedition.kord.domain.MediaFile
 import su.nnedition.kord.service.media.MediaFolderService
@@ -16,7 +18,9 @@ import java.util.Locale
 import java.util.logging.LogManager
 
 /** Reads and writes audio tags using jaudiotagger. */
-open class JaudiotaggerParser(private val mediaFolders: MediaFolderService) : MetaDataParser() {
+open class JaudiotaggerParser(
+    private val mediaFolders: MediaFolderService
+) : MetaDataParser() {
     override fun getRawMetaData(file: Path): MetaData {
         val metadata = MetaData()
         try {
@@ -24,7 +28,8 @@ open class JaudiotaggerParser(private val mediaFolders: MediaFolderService) : Me
             audio.tag?.let { tag ->
                 metadata.albumName = tagField(tag, FieldKey.ALBUM)
                 metadata.title = tagField(tag, FieldKey.TITLE)
-                metadata.year = parseIntegerPattern(tagField(tag, FieldKey.YEAR), YEAR_NUMBER_PATTERN)
+                metadata.releaseDate = ReleaseDate.parse(tagField(tag, FieldKey.YEAR))
+                metadata.year = metadata.releaseDate?.year
                 metadata.genre = mapGenre(tagField(tag, FieldKey.GENRE))
                 metadata.discNumber = parseIntegerPattern(tagField(tag, FieldKey.DISC_NO), null)
                 metadata.trackNumber = parseIntegerPattern(tagField(tag, FieldKey.TRACK), TRACK_NUMBER_PATTERN)
@@ -47,26 +52,8 @@ open class JaudiotaggerParser(private val mediaFolders: MediaFolderService) : Me
     }
 
     override fun setMetaData(file: MediaFile, metaData: MetaData) {
-        try {
-            val folder = mediaFolders.getMusicFolderById(file.folderId)!!
-            val audio = AudioFileIO.read(file.getFullPath(folder.path).toFile())
-            val tag = audio.tagOrCreateAndSetDefault
-            tag.setField(FieldKey.ARTIST, StringUtils.trimToEmpty(metaData.artist))
-            tag.setField(FieldKey.ALBUM, StringUtils.trimToEmpty(metaData.albumName))
-            tag.setField(FieldKey.TITLE, StringUtils.trimToEmpty(metaData.title))
-            tag.setField(FieldKey.GENRE, StringUtils.trimToEmpty(metaData.genre))
-            try {
-                tag.setField(FieldKey.ALBUM_ARTIST, StringUtils.trimToEmpty(metaData.albumArtist))
-            } catch (_: Exception) {
-                // ID3v1 does not support album artist.
-            }
-            metaData.trackNumber?.let { tag.setField(FieldKey.TRACK, it.toString()) } ?: tag.deleteField(FieldKey.TRACK)
-            metaData.year?.let { tag.setField(FieldKey.YEAR, it.toString()) } ?: tag.deleteField(FieldKey.YEAR)
-            audio.commit()
-        } catch (failure: Throwable) {
-            LOG.warn("Failed to update tags for file {}", file, failure)
-            throw RuntimeException("Failed to update tags for file $file. ${failure.message}", failure)
-        }
+        val folder = requireNotNull(mediaFolders.getMusicFolderById(file.folderId))
+        VerifiedTagWriter.write(file.getFullPath(folder.path), metaData)
     }
 
     override fun isEditingSupported(): Boolean = true

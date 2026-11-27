@@ -1,5 +1,7 @@
 package su.nnedition.kord.service
 
+import su.nnedition.kord.model.ReleaseDate
+
 import org.apache.commons.io.FilenameUtils
 import org.apache.commons.lang.ObjectUtils
 import org.apache.commons.lang.StringUtils
@@ -35,17 +37,25 @@ open class TagEditService(
                 return "Tag editing of ${FilenameUtils.getExtension(file.path)} files is not supported."
             }
 
-            val artist = data.artist.trimToNull()
-            val album = data.album.trimToNull()
-            val title = data.title.trimToNull()
-            val genre = data.genre.trimToNull()
+            val date = when {
+                data.updateReleaseDate -> data.releaseDate?.let {
+                    requireNotNull(ReleaseDate.parse(it)) { "Invalid release date" }
+                }
+                data.year != null -> requireNotNull(ReleaseDate.fromYear(data.year)) { "Invalid year" }
+                else -> file.releaseDate ?: ReleaseDate.fromYear(file.year)
+            }
+            val track = if (data.fields?.contains("track") != false) data.track else file.trackNumber
+            val changesDate = data.updateReleaseDate || data.year != null
+            val artist = if (data.fields?.contains("artist") != false) data.artist.trimToNull() else file.artist
+            val album = if (data.fields?.contains("album") != false) data.album.trimToNull() else file.albumName
+            val title = if (data.fields?.contains("title") != false) data.title.trimToNull() else file.title
+            val genre = if (data.fields?.contains("genre") != false) data.genre.trimToNull() else file.genre
 
-            if (StringUtils.equals(artist, file.artist) &&
+            if (!changesDate && StringUtils.equals(artist, file.artist) &&
                 StringUtils.equals(album, file.albumName) &&
                 StringUtils.equals(title, file.title) &&
-                ObjectUtils.equals(data.year, file.year) &&
                 StringUtils.equals(genre, file.genre) &&
-                ObjectUtils.equals(data.track, file.trackNumber)
+                ObjectUtils.equals(track, file.trackNumber)
             ) {
                 return "SKIPPED"
             }
@@ -55,9 +65,11 @@ open class TagEditService(
             newMetaData.artist = artist
             newMetaData.albumName = album
             newMetaData.title = title
-            newMetaData.year = data.year
+            newMetaData.year = date?.year
+            newMetaData.releaseDate = date
+            newMetaData.updateReleaseDate = changesDate
             newMetaData.genre = genre
-            newMetaData.trackNumber = data.track
+            newMetaData.trackNumber = track
             parser.setMetaData(file, newMetaData)
 
             mediaFileService.refreshMediaFile(file, folder)

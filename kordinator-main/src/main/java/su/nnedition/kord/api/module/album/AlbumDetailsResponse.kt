@@ -11,4 +11,5 @@ data class AlbumDetailsResponse(
     val trackCount: Int,
     val durationSeconds: Long,
     val tracks: List<TrackResponse>,
+    val releaseDate: String? = null,
 )

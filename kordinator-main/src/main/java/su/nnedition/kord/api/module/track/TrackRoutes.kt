@@ -10,6 +10,7 @@ import su.nnedition.kord.api.ApiError
 import su.nnedition.kord.api.scanDispatcher
 import su.nnedition.kord.api.support.catalogLibraryScope
 import su.nnedition.kord.api.support.respondJson
+import su.nnedition.kord.api.support.toCatalogTrackResponse
 
 fun Route.trackRoutes(
     context: ApiContext
@@ -38,12 +39,7 @@ fun Route.trackRoutes(
             context.mediaCatalogService.tracks(libraryId, query, limit, offset, accessibleLibraries, genre) to
                     context.mediaCatalogService.countTracks(libraryId, query, accessibleLibraries, genre)
         }
-        val tracks = requestedTracks.map {
-            TrackResponse(
-                it.id, it.libraryId, it.relativePath, it.title, it.artist, it.album, it.albumArtist,
-                it.durationSeconds, it.sizeBytes, it.modifiedAt?.toString(),
-            )
-        }
+        val tracks = requestedTracks.map { it.toCatalogTrackResponse() }
         call.respondJson(TrackPage(tracks, tracks.size, total, limit.coerceIn(1, 200), offset.coerceAtLeast(0)))
     }
     get("/tracks/{id}") {
@@ -63,12 +59,6 @@ fun Route.trackRoutes(
             call.respond(HttpStatusCode.NotFound)
             return@get
         }
-        call.respondJson(
-            TrackResponse(
-                track.id, track.libraryId, track.relativePath, track.title,
-                track.artist, track.album, track.albumArtist, track.durationSeconds, track.sizeBytes,
-                track.modifiedAt?.toString()
-            )
-        )
+        call.respondJson(track.toCatalogTrackResponse())
     }
 }

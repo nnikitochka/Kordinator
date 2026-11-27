@@ -87,7 +87,7 @@ private fun StandaloneBookmark.toResponse() = BookmarkResponse(
     track = TrackResponse(
         track.id, track.libraryId, track.relativePath, track.title, track.artist, track.album, track.albumArtist,
         track.durationSeconds, track.sizeBytes, track.modifiedAt?.toString(),
-        track.discNumber, track.trackNumber, track.year, track.genre,
+        track.discNumber, track.trackNumber, track.year, track.genre, track.releaseDate?.toString(),
     ),
     positionMillis = positionMillis,
     comment = comment,

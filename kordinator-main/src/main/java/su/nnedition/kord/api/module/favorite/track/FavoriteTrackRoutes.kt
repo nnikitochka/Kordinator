@@ -69,5 +69,5 @@ private suspend fun ApplicationCall.updateTrackFavorite(
 
 private fun StandaloneTrack.toTrackResponse() = TrackResponse(
     id, libraryId, relativePath, title, artist, album, albumArtist, durationSeconds, sizeBytes, modifiedAt?.toString(),
-    discNumber, trackNumber, year, genre,
+    discNumber, trackNumber, year, genre, releaseDate?.toString(),
 )

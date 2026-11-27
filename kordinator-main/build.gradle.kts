@@ -146,6 +146,8 @@ dependencies {
     }
     runtimeOnly("com.mysql:mysql-connector-j:9.4.0")
     runtimeOnly("org.mariadb.jdbc:mariadb-java-client:3.5.5")
+
+    implementation(project(":kordinator-api"))
 }
 
 sourceSets {

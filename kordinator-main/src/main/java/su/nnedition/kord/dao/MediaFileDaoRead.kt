@@ -1,18 +1,19 @@
 package su.nnedition.kord.dao
 
+import su.nnedition.kord.model.ReleaseDate
+
 import su.nnedition.kord.domain.Genre
 import su.nnedition.kord.domain.MediaFile
 import su.nnedition.kord.domain.MusicFolder
 import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
-import java.util.Optional
 
 internal object MediaFileDaoSql {
     const val INSERT_COLUMNS = "path, folder_id, type, format, title, album, artist, album_artist, disc_number, " +
         "track_number, year, genre, bit_rate, variable_bit_rate, duration, file_size, width, height, " +
         "parent_path, play_count, last_played, comment, created, changed, last_scanned, children_last_updated, present, " +
-        "version, mb_release_id, mb_recording_id"
+        "version, mb_release_id, mb_recording_id, release_date"
     const val QUERY_COLUMNS = "id, $INSERT_COLUMNS"
     const val GENRE_COLUMNS = "name, song_count, album_count"
 }
@@ -51,7 +52,10 @@ class MediaFileRowMapper : RowMapper<MediaFile> {
         rs.getInt("version"),
         rs.getString("mb_release_id"),
         rs.getString("mb_recording_id")
-    )
+    ).apply {
+        releaseDate = ReleaseDate.parse(rs.getString("release_date"))
+            ?: ReleaseDate.fromYear(year)
+    }
 }
 
 /** Mapper for the optional play-count information projection. */

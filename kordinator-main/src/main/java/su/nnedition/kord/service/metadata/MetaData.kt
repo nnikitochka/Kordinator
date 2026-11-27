@@ -1,5 +1,7 @@
 package su.nnedition.kord.service.metadata
 
+import su.nnedition.kord.model.ReleaseDate
+
 import java.util.Collections
 
 /** Tags and stream information read from a media file. */
@@ -12,6 +14,9 @@ class MetaData {
     var albumName: String? = null
     var genre: String? = null
     var year: Int? = null
+    var releaseDate: ReleaseDate? = null
+    /** Only an explicit tag-edit request may replace or delete YEAR. */
+    var updateReleaseDate: Boolean = false
     var bitRate: Int? = null
     var variableBitRate: Boolean = false
     var duration: Double? = null

@@ -31,4 +31,5 @@
     <include file="drop-podcasts.xml" relativeToChangelogFile="true"/>
     <include file="drop-internet-radio.xml" relativeToChangelogFile="true"/>
     <include file="kordinator-api-sessions.xml" relativeToChangelogFile="true"/>
+    <include file="release-date.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

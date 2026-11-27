@@ -75,6 +75,6 @@ class MediaFileDao(jdbcHelper: JdbcHelper) : AbstractDao(jdbcHelper) {
     fun expunge() = mutations.expunge()
 
     companion object {
-        const val VERSION = 4
+        const val VERSION = 5
     }
 }

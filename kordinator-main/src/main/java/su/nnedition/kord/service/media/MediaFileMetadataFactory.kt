@@ -131,6 +131,7 @@ internal class MediaFileMetadataFactory(private val service: MediaFileService) {
         mediaFile.trackNumber = metadata.trackNumber
         mediaFile.genre = metadata.genre
         mediaFile.year = metadata.year
+        mediaFile.releaseDate = metadata.releaseDate
         mediaFile.duration = metadata.duration
         mediaFile.bitRate = metadata.bitRate
         mediaFile.variableBitRate = metadata.variableBitRate
@@ -144,6 +145,7 @@ internal class MediaFileMetadataFactory(private val service: MediaFileService) {
         mediaFile.artist = metadata.albumArtist
         mediaFile.albumName = metadata.albumName
         mediaFile.year = metadata.year
+        mediaFile.releaseDate = metadata.releaseDate
         mediaFile.genre = metadata.genre
     }
 

@@ -1,5 +1,6 @@
 package su.nnedition.kord.api.module.album
 
+import su.nnedition.kord.model.ReleaseDate
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -86,15 +87,17 @@ fun Route.albumRoutes(
             call.respond(HttpStatusCode.NotFound)
             return@get
         }
+        val date = ReleaseDate.mostCommon(tracks.map { it.releaseDate })
         call.respondJson(
             AlbumDetailsResponse(
                 kordinatorCatalogId(selector.first, selector.second), selector.second,
                 tracks.first().albumArtist ?: tracks.first().artist,
-                tracks.mapNotNull { it.year }.maxOrNull(),
+                date?.year,
                 tracks.firstNotNullOfOrNull { it.genre },
                 tracks.size,
                 tracks.sumOf { it.durationSeconds.toLong() },
                 tracks.map { it.toResponse() },
+                date?.toString(),
             )
         )
     }

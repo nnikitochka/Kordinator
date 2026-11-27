@@ -8,3 +8,5 @@ pluginManagement {
 rootProject.name = "kordinator"
 
 include(":kordinator-main")
+
+include("kordinator-api")

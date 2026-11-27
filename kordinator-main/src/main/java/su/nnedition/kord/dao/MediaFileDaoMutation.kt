@@ -1,5 +1,7 @@
 package su.nnedition.kord.dao
 
+import su.nnedition.kord.model.ReleaseDate
+
 import su.nnedition.kord.domain.MediaFile
 import java.time.Instant
 import java.util.function.Consumer
@@ -17,7 +19,7 @@ class MediaFileDaoMutation(jdbcHelper: JdbcHelper) : AbstractDao(jdbcHelper) {
                 "height" to "h", "parent_path" to "pp", "play_count" to "pc", "last_played" to "lp",
                 "comment" to "comment", "changed" to "changed", "last_scanned" to "ls",
                 "children_last_updated" to "clu", "present" to "pres", "version" to "ver",
-                "mb_release_id" to "mbrelid", "mb_recording_id" to "mbrecid"
+                "mb_release_id" to "mbrelid", "mb_recording_id" to "mbrecid", "release_date" to "releaseDate"
             )
             val assignments = buildList {
                 if (hasId) {
@@ -39,7 +41,8 @@ class MediaFileDaoMutation(jdbcHelper: JdbcHelper) : AbstractDao(jdbcHelper) {
                 "albumartist" to file.albumArtist,
                 "dn" to file.discNumber,
                 "tn" to file.trackNumber,
-                "year" to file.year,
+                "year" to (file.releaseDate?.year ?: file.year),
+                "releaseDate" to (file.releaseDate ?: ReleaseDate.fromYear(file.year))?.toString(),
                 "genre" to file.genre,
                 "br" to file.bitRate,
                 "vbr" to file.isVariableBitRate,
@@ -67,11 +70,12 @@ class MediaFileDaoMutation(jdbcHelper: JdbcHelper) : AbstractDao(jdbcHelper) {
                         "(${questionMarks(MediaFileDaoSql.INSERT_COLUMNS)})",
                     *arrayOf<Any?>(
                         file.path, file.folderId, file.mediaType!!.name, file.format, file.title, file.albumName,
-                        file.artist, file.albumArtist, file.discNumber, file.trackNumber, file.year, file.genre,
+                        file.artist, file.albumArtist, file.discNumber, file.trackNumber, file.releaseDate?.year ?: file.year, file.genre,
                         file.bitRate, file.isVariableBitRate, file.duration, file.fileSize, file.width, file.height,
                         file.parentPath, file.playCount, file.lastPlayed, file.comment, file.created, file.changed,
                         file.lastScanned, file.childrenLastUpdated, file.isPresent, MediaFileDao.VERSION,
-                        file.musicBrainzReleaseId, file.musicBrainzRecordingId
+                        file.musicBrainzReleaseId, file.musicBrainzRecordingId,
+                        (file.releaseDate ?: ReleaseDate.fromYear(file.year))?.toString()
                     )
                 )
             }

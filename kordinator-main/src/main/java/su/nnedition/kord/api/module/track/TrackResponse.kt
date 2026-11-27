@@ -15,4 +15,5 @@ data class TrackResponse(
     val trackNumber: Int? = null,
     val year: Int? = null,
     val genre: String? = null,
+    val releaseDate: String? = null,
 )

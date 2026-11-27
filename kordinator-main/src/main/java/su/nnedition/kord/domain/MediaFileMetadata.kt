@@ -1,5 +1,6 @@
 package su.nnedition.kord.domain
 
+import su.nnedition.kord.model.ReleaseDate
 import java.time.Instant
 
 /** Mutable metadata shared by the persisted media-file model. */
@@ -12,6 +13,7 @@ open class MediaFileMetadata {
     open var discNumber: Int? = null
     open var trackNumber: Int? = null
     open var year: Int? = null
+    open var releaseDate: ReleaseDate? = null
     open var genre: String? = null
     open var bitRate: Int? = null
     open var variableBitRate: Boolean = false

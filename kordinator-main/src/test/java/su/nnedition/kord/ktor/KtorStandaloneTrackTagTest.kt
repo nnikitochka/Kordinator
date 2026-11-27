@@ -94,6 +94,34 @@ class KtorStandaloneTrackTagTest {
                 assertEquals(2, capturedData?.track)
                 assertEquals(true, capturedCaller?.isAuthenticated)
                 assertEquals(true, capturedCaller?.hasFolderAccess(1))
+                assertEquals(true, capturedData?.updateReleaseDate)
+                assertEquals("2024", capturedData?.releaseDate)
+                for ((body, expectedDate, changesDate) in listOf(
+                    Triple("""{"title":"Only a title"}""", null, false),
+                    Triple("""{"releaseDate":"2026.02.27"}""", "2026-02-27", true),
+                    Triple("""{"releaseDate":null}""", null, true),
+                    Triple("""{"year":null}""", null, true),
+                )) {
+                    val response = client.put("/api/v1/tracks/42/tags") {
+                        bearerAuth(adminToken)
+                        setBody(body)
+                    }
+                    assertEquals(200, response.status.value, response.bodyAsText())
+                    assertEquals(expectedDate, capturedData?.releaseDate)
+                    assertEquals(changesDate, capturedData?.updateReleaseDate)
+                }
+                for (body in listOf(
+                    """{"releaseDate":"2026-02-30"}""", """{"releaseDate":"27.02.2026"}""",
+                    """{"releaseDate":"2026.02-27"}""", """{"releaseDate":2026}""",
+                    """{"releaseDate":"2026","year":2026}""", """{"year":2026.5}""",
+                    """{"year":0}""",
+                )) {
+                    assertEquals(400, client.put("/api/v1/tracks/42/tags") {
+                        bearerAuth(adminToken)
+                        setBody(body)
+                    }.status.value, body)
+                }
+
             }
         }
     }

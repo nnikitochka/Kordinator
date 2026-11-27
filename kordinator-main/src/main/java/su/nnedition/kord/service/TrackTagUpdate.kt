@@ -1,7 +1,7 @@
 package su.nnedition.kord.service
 
 /** Tag values requested for a media file update. */
-data class TrackTagUpdate(
+data class TrackTagUpdate @JvmOverloads constructor(
     val mediaFileId: Int,
     val track: Int?,
     val artist: String?,
@@ -9,4 +9,7 @@ data class TrackTagUpdate(
     val title: String?,
     val year: Int?,
     val genre: String?,
+    val releaseDate: String? = null,
+    val updateReleaseDate: Boolean = false,
+    val fields: Set<String>? = null,
 )

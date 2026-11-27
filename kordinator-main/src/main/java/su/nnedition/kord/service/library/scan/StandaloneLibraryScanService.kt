@@ -1,5 +1,7 @@
 package su.nnedition.kord.service.library.scan
 
+import su.nnedition.kord.model.ReleaseDate
+
 import su.nnedition.kord.domain.MediaFile
 import su.nnedition.kord.service.media.MediaFileService
 import su.nnedition.kord.service.media.MediaFolderService
@@ -35,6 +37,7 @@ data class StandaloneTrack(
     val durationSeconds: Int,
     val sizeBytes: Long,
     val modifiedAt: Instant?,
+    val releaseDate: ReleaseDate? = ReleaseDate.fromYear(year),
 )
 
 data class StandaloneTrackFile(val path: Path, val sizeBytes: Long, val contentType: String)
@@ -48,6 +51,7 @@ data class StandaloneAlbum(
     val genre: String?,
     val trackCount: Long,
     val durationSeconds: Long,
+    val releaseDate: ReleaseDate? = ReleaseDate.fromYear(year),
 )
 data class StandaloneArtist(val libraryId: Long, val name: String, val albumCount: Long, val trackCount: Long)
 

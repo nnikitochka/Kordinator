@@ -11,7 +11,7 @@ import su.nnedition.kord.security.LocalUserPrincipal
 import su.nnedition.kord.api.ApiContext
 import su.nnedition.kord.api.ApiError
 import su.nnedition.kord.api.authDispatcher
-import su.nnedition.kord.api.module.track.TrackResponse
+import su.nnedition.kord.api.support.toCatalogTrackResponse
 import su.nnedition.kord.api.scanDispatcher
 import su.nnedition.kord.api.support.catalogLibraryScope
 import su.nnedition.kord.api.support.decodeKordinatorCatalogId
@@ -44,12 +44,7 @@ fun Route.searchRoutes(
             context.mediaCatalogService.tracks(null, query, limit, offset, accessibleLibraries) to
                     context.mediaCatalogService.countTracks(null, query, accessibleLibraries)
         }
-        call.respondJson(SearchResponse(query, offset, total, matches.map {
-            TrackResponse(
-                it.id, it.libraryId, it.relativePath, it.title, it.artist, it.album,
-                it.albumArtist, it.durationSeconds, it.sizeBytes, it.modifiedAt?.toString()
-            )
-        }))
+        call.respondJson(SearchResponse(query, offset, total, matches.map { it.toCatalogTrackResponse() }))
     }
     get("/tracks/random") {
         val search = context.randomSearchService

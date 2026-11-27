@@ -1,5 +1,7 @@
 package su.nnedition.kord.service.metadata
 
+import su.nnedition.kord.model.ReleaseDate
+
 import com.fasterxml.jackson.databind.JsonNode
 import su.nnedition.kord.domain.MediaFile
 import su.nnedition.kord.service.media.MediaFolderService
@@ -54,8 +56,8 @@ internal fun populateMetadata(result: JsonNode, metadata: MetaData) {
     metadata.title = ffprobeTag(result, "title")
     val track = ffprobeTag(result, "track")
     if (NumberUtils.isCreatable(track)) metadata.trackNumber = NumberUtils.createInteger(track)
-    val year = ffprobeTag(result, "date")
-    if (NumberUtils.isCreatable(year)) metadata.year = NumberUtils.createInteger(year)
+    metadata.releaseDate = ReleaseDate.parse(ffprobeTag(result, "date"))
+    metadata.year = metadata.releaseDate?.year
     for (stream in result.at("/streams")) {
         val mediaTrack = Track(stream.get("index").asInt(), stream.get("codec_type").asText(),
             stream.at("/tags/language").asText(), stream.get("codec_name").asText())

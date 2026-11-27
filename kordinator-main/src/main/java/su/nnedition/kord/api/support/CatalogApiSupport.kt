@@ -78,11 +78,11 @@ internal fun StandaloneShare.toResponse(token: String?, tracks: List<TrackRespon
 )
 internal fun StandaloneTrack.toCatalogTrackResponse() = TrackResponse(
     id, libraryId, relativePath, title, artist, album, albumArtist, durationSeconds, sizeBytes, modifiedAt?.toString(),
-    discNumber, trackNumber, year, genre,
+    discNumber, trackNumber, year, genre, releaseDate?.toString(),
 )
 
 internal fun StandaloneAlbum.toResponse() = AlbumSummaryResponse(
-    kordinatorCatalogId(libraryId, name), libraryId, name, artist, year, genre, trackCount, durationSeconds,
+    kordinatorCatalogId(libraryId, name), libraryId, name, artist, year, genre, trackCount, durationSeconds, releaseDate?.toString(),
 )
 
 internal fun StandaloneArtist.toResponse() = ArtistSummaryResponse(
@@ -91,7 +91,7 @@ internal fun StandaloneArtist.toResponse() = ArtistSummaryResponse(
 
 internal fun StandaloneTrack.toResponse() = TrackResponse(
     id, libraryId, relativePath, title, artist, album, albumArtist, durationSeconds, sizeBytes, modifiedAt?.toString(),
-    discNumber, trackNumber, year, genre,
+    discNumber, trackNumber, year, genre, releaseDate?.toString(),
 )
 
 internal fun MediaFile.toVideoResponse() = VideoResponse(

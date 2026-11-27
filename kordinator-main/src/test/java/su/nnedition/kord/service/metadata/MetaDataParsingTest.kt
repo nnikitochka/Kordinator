@@ -28,4 +28,16 @@ class MetaDataParsingTest {
         assertEquals("Song", parser.removeTrackNumberFromTitle(" 01 - Song ", 1))
         assertEquals("01 - Song", parser.removeTrackNumberFromTitle("01 - Song", 2))
     }
+    @Test
+    fun ffprobeKeepsDatePrecisionAndRejectsInvalidDatesWithoutFailingTheTrack() {
+        val mapper = com.fasterxml.jackson.module.kotlin.jacksonObjectMapper()
+        for ((raw, expected) in listOf("2026" to "2026", "2026.02" to "2026-02",
+            "2026-02-27" to "2026-02-27", "2026-02-30" to null)) {
+            val metadata = MetaData()
+            populateMetadata(mapper.readTree("""{"format":{"tags":{"date":"$raw"}},"streams":[]}"""), metadata)
+            assertEquals(expected, metadata.releaseDate?.toString())
+            assertEquals(if (expected == null) null else 2026, metadata.year)
+        }
+    }
+
 }
