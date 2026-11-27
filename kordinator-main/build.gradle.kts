@@ -68,7 +68,7 @@ dependencies {
     }
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.12.2")
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.mockito:mockito-core:5.17.0")
+    testImplementation("org.mockito:mockito-core:5.24.0")
     testImplementation("org.assertj:assertj-core:3.27.4")
     testImplementation("org.hamcrest:hamcrest-core:3.0")
     testRuntimeOnly("net.bytebuddy:byte-buddy-agent:1.17.7")
