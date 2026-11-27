@@ -141,7 +141,7 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-parameter-names:2.19.2")
     runtimeOnly("org.eclipse.angus:angus-mail:2.0.4")
     implementation("jakarta.annotation:jakarta.annotation-api:2.1.1")
-    runtimeOnly("org.postgresql:postgresql:42.7.7") {
+    runtimeOnly("org.postgresql:postgresql:42.7.14") {
         exclude(group = "org.checkerframework", module = "checker-qual")
     }
     runtimeOnly("com.mysql:mysql-connector-j:9.4.0")
