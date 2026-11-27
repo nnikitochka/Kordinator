@@ -82,7 +82,7 @@ dependencies {
     implementation("de.androidpit:color-thief:1.1.2")
     implementation("commons-io:commons-io:2.16.1")
     implementation("commons-lang:commons-lang:2.6")
-    implementation("org.apache.commons:commons-lang3:3.17.0")
+    implementation("org.apache.commons:commons-lang3:3.22.0")
     implementation("org.apache.commons:commons-compress:1.21")
     implementation("org.tukaani:xz:1.8")
     implementation("com.github.junrar:junrar:7.4.1")
