@@ -53,7 +53,7 @@ dependencies {
     testImplementation("io.ktor:ktor-server-test-host-jvm:3.6.0")
 
     implementation("com.zaxxer:HikariCP:6.3.2")
-    implementation("io.dropwizard.metrics:metrics-core:4.2.35")
+    implementation("io.dropwizard.metrics:metrics-core:4.2.40")
     implementation("io.dropwizard.metrics:metrics-jmx:4.2.35")
     implementation("org.hibernate.validator:hibernate-validator:8.0.3.Final")
     implementation("javax.cache:cache-api:1.1.1")
